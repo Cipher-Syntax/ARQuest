@@ -1,0 +1,54 @@
+# ======================
+# Python / Django
+# ======================
+
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+*.sqlite3
+
+# Django stuff
+db.sqlite3
+media/
+staticfiles/
+static/
+
+# Migrations (ONLY if you're resetting DB frequently in dev)
+# migrations/
+# __pycache__/
+
+# ======================
+# Environment
+# ======================
+
+venv/
+env/
+.venv/
+
+.env
+.env.*
+
+# ======================
+# IDE / OS
+# ======================
+
+.vscode/
+.idea/
+
+.DS_Store
+Thumbs.db
+
+# ======================
+# Logs
+# ======================
+
+*.log
+
+# ======================
+# Celery / Cache (if used later)
+# ======================
+
+celerybeat-schedule
+celerybeat.pid
