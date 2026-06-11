@@ -45,7 +45,9 @@ INSTALLED_APPS = [
     
     # THIRD-PARTY APPS
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'anymail',
     
     # OWN APPS
     'apps.authentication',
@@ -183,3 +185,11 @@ BACKEND_URL = config('BACKEND_URL')
 FRONTEND_URL = config('FRONTEND_URL')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+ANYMAIL = {
+    "SENDINBLUE_API_KEY": config('ANYMAIL_API_KEY', default=''),
+}
+# Hardcoded to force Django to use Anymail API instead of default localhost SMTP
+EMAIL_BACKEND = 'anymail.backends.sendinblue.EmailBackend'
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+ADMIN_SUPPORT = config('ADMIN_SUPPORT')
