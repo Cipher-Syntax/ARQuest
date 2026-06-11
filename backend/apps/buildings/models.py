@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class Building(models.Model):
@@ -11,23 +12,45 @@ class Building(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['slug']),
+            models.Index(fields=['is_active']),
+        ]
+    
     def __str__(self):
         return self.name
+    
+    def clean(self):
+        if self.latitude < -90 or self.latitude > 90:
+            raise ValidationError({'latitude': 'Latitude must be between -90 and 90'})
+        if self.longitude < -180 or self.longitude > 180:
+            raise ValidationError({'longitude': 'Longitude must be between -180 and 180'})
 
 
 class Geofence(models.Model):
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='geofences')
-    center_latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    center_longitude = models.DecimalField(max_digits=9, decimal_places=6)
-    radius_meters = models.PositiveIntegerField()
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    radius_meters = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['building', 'is_active']),
+        ]
     
     def __str__(self):
         return f"Geofence for {self.building.name}"
     
     def clean(self):
-        from django.core.exceptions import ValidationError
+        if self.latitude < -90 or self.latitude > 90:
+            raise ValidationError({'latitude': 'Latitude must be between -90 and 90'})
+        if self.longitude < -180 or self.longitude > 180:
+            raise ValidationError({'longitude': 'Longitude must be between -180 and 180'})
         if self.radius_meters <= 0:
-            raise ValidationError("Radius must be positive")
+            raise ValidationError({'radius_meters': 'Radius must be greater than 0'})
