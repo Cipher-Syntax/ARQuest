@@ -48,7 +48,9 @@ INSTALLED_APPS = [
     'corsheaders',
     
     # OWN APPS
-    
+    'apps.authentication',
+    'apps.buildings',
+    'apps.api',
 ]
 
 REST_FRAMEWORK = {
