@@ -2,21 +2,21 @@
 
 ```mermaid
 graph TD
-    subgraph Mobile App "Mobile Application (React Native / Expo)"
+    subgraph MobileApp [Mobile Application - React Native / Expo]
         UI[User Interface]
         AuthC[Auth Context]
         API_S[API Service]
         AR[AR Engine]
     end
 
-    subgraph Backend "Backend System (Django)"
+    subgraph Backend [Backend System - Django]
         API_G[API Gateway / URLs]
         Auth_A[Authentication App]
         Bldg_A[Buildings App]
         Admin[Django Admin Panel]
     end
 
-    subgraph Database "Database Layer"
+    subgraph Database [Database Layer]
         DB[(Relational Database)]
     end
 
