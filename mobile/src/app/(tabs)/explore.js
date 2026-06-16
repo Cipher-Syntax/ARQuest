@@ -1,14 +1,128 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, Button, ScrollView, ActivityIndicator } from "react-native";
 import theme from "../../theme/tokens";
+import { useLocationTracking } from "../../hooks/useLocationTracking";
+import { GeoStatusIndicator } from "../../components/GeoStatusIndicator";
+import { geofencingService } from "../../services/geofencingService";
 
 export default function ExploreScreen() {
+    const {
+        location,
+        error,
+        permissionStatus,
+        isTracking,
+        startTracking,
+        stopTracking,
+        requestPermission,
+    } = useLocationTracking();
+
+    const [validationResult, setValidationResult] = useState(null);
+    const [isValidating, setIsValidating] = useState(false);
+
+    useEffect(() => {
+        if (location) {
+            validateLocation();
+        }
+    }, [location]);
+
+    const validateLocation = async () => {
+        if (!location) return;
+        
+        setIsValidating(true);
+        try {
+            const result = await geofencingService.validateLocation(
+                location.latitude,
+                location.longitude,
+                location.accuracy || 10
+            );
+            setValidationResult(result);
+        } catch (err) {
+            console.error('Validation error:', err);
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
+    const handleStartTracking = async () => {
+        if (permissionStatus !== 'granted') {
+            await requestPermission();
+        }
+        startTracking();
+    };
+
     return (
-        <View style={styles.container}>
-            <View style={styles.mapPlaceholder}>
-                <Text style={styles.text}>Map Area Placeholder</Text>
+        <ScrollView style={styles.container}>
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>GPS Location Tracking</Text>
+                
+                {permissionStatus === 'denied' && (
+                    <Text style={styles.errorText}>
+                        Location permission denied. Enable it in settings.
+                    </Text>
+                )}
+
+                {!isTracking && permissionStatus !== 'denied' && (
+                    <Button title="Start GPS Tracking" onPress={handleStartTracking} />
+                )}
+
+                {isTracking && (
+                    <Button title="Stop GPS Tracking" onPress={stopTracking} color="#dc2626" />
+                )}
+
+                {error && (
+                    <Text style={styles.errorText}>{error}</Text>
+                )}
             </View>
-        </View>
+
+            {location && (
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Current Location</Text>
+                    <View style={styles.infoBox}>
+                        <Text style={styles.infoText}>Lat: {location.latitude.toFixed(6)}</Text>
+                        <Text style={styles.infoText}>Lon: {location.longitude.toFixed(6)}</Text>
+                        <Text style={styles.infoText}>Accuracy: ±{location.accuracy?.toFixed(1)}m</Text>
+                    </View>
+                </View>
+            )}
+
+            {isValidating && (
+                <View style={styles.section}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <Text style={styles.infoText}>Checking geofence...</Text>
+                </View>
+            )}
+
+            {validationResult && (
+                <View style={styles.section}>
+                    <GeoStatusIndicator
+                        status={validationResult.status}
+                        buildingName={validationResult.building?.name}
+                        permissionDenied={permissionStatus === 'denied'}
+                    />
+
+                    {validationResult.building && (
+                        <View style={[styles.infoBox, styles.buildingBox]}>
+                            <Text style={styles.buildingName}>{validationResult.building.name}</Text>
+                            <Text style={styles.infoText}>
+                                Distance: {validationResult.distance_meters}m away
+                            </Text>
+                        </View>
+                    )}
+
+                    {validationResult.status === 'outside' && (
+                        <Text style={styles.infoText}>No buildings nearby</Text>
+                    )}
+                </View>
+            )}
+
+            {!isTracking && !location && (
+                <View style={styles.placeholderContainer}>
+                    <Text style={styles.placeholderText}>
+                        Start GPS tracking to detect nearby campus buildings
+                    </Text>
+                </View>
+            )}
+        </ScrollView>
     );
 }
 
@@ -17,19 +131,53 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.colors.bgPrimary,
     },
-    mapPlaceholder: {
+    section: {
+        padding: theme.spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border,
+    },
+    sectionTitle: {
+        color: theme.colors.textPrimary,
+        fontSize: theme.typography.lg,
+        fontWeight: "bold",
+        marginBottom: theme.spacing.sm,
+    },
+    infoBox: {
+        backgroundColor: theme.colors.surface,
+        padding: theme.spacing.sm,
+        borderRadius: theme.radius.md,
+        marginTop: theme.spacing.sm,
+    },
+    infoText: {
+        color: theme.colors.textSecondary,
+        fontSize: theme.typography.sm,
+        marginVertical: 2,
+    },
+    errorText: {
+        color: theme.colors.error,
+        fontSize: theme.typography.sm,
+        marginVertical: theme.spacing.sm,
+    },
+    buildingBox: {
+        backgroundColor: theme.colors.primary,
+        marginTop: theme.spacing.md,
+    },
+    buildingName: {
+        color: theme.colors.white,
+        fontSize: theme.typography.lg,
+        fontWeight: "bold",
+        marginBottom: theme.spacing.xs,
+    },
+    placeholderContainer: {
         flex: 1,
-        backgroundColor: theme.colors.surfaceSoft,
         justifyContent: "center",
         alignItems: "center",
-        margin: theme.spacing.md,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        borderStyle: "dashed",
+        padding: theme.spacing.xl,
+        marginTop: theme.spacing.xxl,
     },
-    text: {
+    placeholderText: {
         color: theme.colors.textMuted,
         fontSize: theme.typography.md,
+        textAlign: "center",
     },
 });
