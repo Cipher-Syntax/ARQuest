@@ -1,9 +1,9 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from apps.authentication.models import User
-from .models import Building, Geofence
+from .models import Building, Geofence, BuildingUnlock
 
 
 class BuildingModelTest(TestCase):
@@ -379,3 +379,206 @@ class GeofenceAPITest(APITestCase):
         data = {'radius_meters': 100.0}
         response = self.client.patch(f'/api/buildings/geofence/{geofence.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+
+
+class BuildingUnlockTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='student',
+            email='student@test.com',
+            password='testpass123',
+            role='student'
+        )
+        self.professional = User.objects.create_user(
+            username='professional',
+            email='prof@test.com',
+            password='testpass123',
+            role='professional'
+        )
+        self.building = Building.objects.create(
+            name='Test Building',
+            slug='test-building',
+            latitude=14.5995,
+            longitude=120.9842,
+            is_active=True
+        )
+        self.geofence = Geofence.objects.create(
+            building=self.building,
+            latitude=14.5995,
+            longitude=120.9842,
+            radius_meters=50,
+            is_active=True
+        )
+
+    def test_unlock_inside_geofence(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['data']['building'], self.building.id)
+        self.assertEqual(response.data['data']['source'], 'geofence')
+        
+        self.assertTrue(
+            BuildingUnlock.objects.filter(user=self.user, building=self.building).exists()
+        )
+
+    def test_unlock_outside_geofence(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.6100,
+            'longitude': 121.0000,
+            'accuracy_meters': 10
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.data['success'])
+        
+        self.assertFalse(
+            BuildingUnlock.objects.filter(user=self.user, building=self.building).exists()
+        )
+
+    def test_repeated_unlock_no_duplicate(self):
+        self.client.force_authenticate(user=self.user)
+        
+        response1 = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10
+        })
+        self.assertEqual(response1.status_code, 200)
+        
+        response2 = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10
+        })
+        self.assertEqual(response2.status_code, 200)
+        
+        count = BuildingUnlock.objects.filter(user=self.user, building=self.building).count()
+        self.assertEqual(count, 1)
+
+    def test_anonymous_cannot_unlock(self):
+        response = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10
+        })
+        self.assertEqual(response.status_code, 401)
+
+    def test_unlocked_buildings_student(self):
+        BuildingUnlock.objects.create(
+            user=self.user,
+            building=self.building,
+            source='geofence'
+        )
+        
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get('/api/buildings/unlocked/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(len(response.data['data']), 1)
+        self.assertEqual(response.data['data'][0]['id'], self.building.id)
+        self.assertEqual(response.data['data'][0]['unlock_source'], 'geofence')
+
+    def test_unlocked_buildings_professional_gets_all(self):
+        self.client.force_authenticate(user=self.professional)
+        response = self.client.get('/api/buildings/unlocked/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(len(response.data['data']), 1)
+        self.assertEqual(response.data['data'][0]['id'], self.building.id)
+        self.assertEqual(response.data['data'][0]['unlock_source'], 'role_access')
+
+
+
+class BuildingUnlockTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='student',
+            email='student@test.com',
+            password='testpass123',
+            role='student'
+        )
+        self.professional = User.objects.create_user(
+            username='professional',
+            email='prof@test.com',
+            password='testpass123',
+            role='professional'
+        )
+        self.building = Building.objects.create(
+            name='Test Building',
+            slug='test-building',
+            latitude=14.5995,
+            longitude=120.9842,
+            is_active=True
+        )
+        self.geofence = Geofence.objects.create(
+            building=self.building,
+            latitude=14.5995,
+            longitude=120.9842,
+            radius_meters=50,
+            is_active=True
+        )
+
+    def test_unlock_inside_geofence(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['data']['building'], self.building.id)
+        self.assertTrue(
+            BuildingUnlock.objects.filter(user=self.user, building=self.building).exists()
+        )
+
+    def test_unlock_outside_geofence(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.6100,
+            'longitude': 121.0000,
+            'accuracy_meters': 10
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(
+            BuildingUnlock.objects.filter(user=self.user, building=self.building).exists()
+        )
+
+    def test_repeated_unlock_no_duplicate(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10
+        })
+        self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10
+        })
+        count = BuildingUnlock.objects.filter(user=self.user, building=self.building).count()
+        self.assertEqual(count, 1)
+
+    def test_anonymous_cannot_unlock(self):
+        response = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10
+        })
+        self.assertEqual(response.status_code, 401)
+
+    def test_professional_gets_all_buildings(self):
+        self.client.force_authenticate(user=self.professional)
+        response = self.client.get('/api/buildings/unlocked/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['data']), 1)
+        self.assertEqual(response.data['data'][0]['unlock_source'], 'role_access')

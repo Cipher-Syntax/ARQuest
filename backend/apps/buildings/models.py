@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 
 class Building(models.Model):
@@ -54,3 +55,31 @@ class Geofence(models.Model):
             raise ValidationError({'longitude': 'Longitude must be between -180 and 180'})
         if self.radius_meters <= 0:
             raise ValidationError({'radius_meters': 'Radius must be greater than 0'})
+
+
+class BuildingUnlock(models.Model):
+    SOURCE_CHOICES = [
+        ('geofence', 'Geofence'),
+        ('admin', 'Admin'),
+        ('role_access', 'Role Access'),
+    ]
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='building_unlocks')
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='unlocks')
+    unlocked_at = models.DateTimeField(auto_now_add=True)
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='geofence')
+    last_validated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-unlocked_at']
+        unique_together = [['user', 'building']]
+        indexes = [
+            models.Index(fields=['user', 'building']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.building.name}"
+    
+    def clean(self):
+        if self.building and not self.building.is_active:
+            raise ValidationError({'building': 'Cannot unlock inactive building'})

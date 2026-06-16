@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Button, ScrollView, ActivityIndicator } from "react-native";
 import theme from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
+import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { GeoStatusIndicator } from "../../components/GeoStatusIndicator";
 import { geofencingService } from "../../services/geofencingService";
 
@@ -16,8 +17,10 @@ export default function ExploreScreen() {
         requestPermission,
     } = useLocationTracking();
 
+    const { attemptUnlock } = useUnlockedBuildings();
     const [validationResult, setValidationResult] = useState(null);
     const [isValidating, setIsValidating] = useState(false);
+    const [lastUnlockAttempt, setLastUnlockAttempt] = useState(null);
 
     useEffect(() => {
         if (location) {
@@ -36,6 +39,18 @@ export default function ExploreScreen() {
                 location.accuracy || 10
             );
             setValidationResult(result);
+
+            if (result.status === 'inside' && result.building) {
+                const buildingId = result.building.id;
+                if (lastUnlockAttempt !== buildingId) {
+                    try {
+                        await attemptUnlock(location.latitude, location.longitude, location.accuracy || 10);
+                        setLastUnlockAttempt(buildingId);
+                    } catch (err) {
+                        console.log('Unlock attempt:', err);
+                    }
+                }
+            }
         } catch (err) {
             console.error('Validation error:', err);
         } finally {
