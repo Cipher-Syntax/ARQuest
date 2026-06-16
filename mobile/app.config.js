@@ -34,6 +34,12 @@ export default {
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow ARQuest to use your location to unlock campus buildings when you're nearby."
+        }
       ]
     ],
     "experiments": {
