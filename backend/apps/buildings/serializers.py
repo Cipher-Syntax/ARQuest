@@ -31,10 +31,19 @@ class GeofenceWriteSerializer(serializers.ModelSerializer):
 
 class BuildingSerializer(serializers.ModelSerializer):
     geofences = GeofenceSerializer(many=True, read_only=True)
+    model_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Building
-        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_active', 'geofences', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_active', 'geofences', 
+                  'model_url', 'model_version', 'model_file_size', 'model_active', 'created_at', 'updated_at']
+    
+    def get_model_url(self, obj):
+        if obj.model_file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.model_file.url)
+        return None
 
 
 class BuildingWriteSerializer(serializers.ModelSerializer):
@@ -69,7 +78,16 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
     is_unlocked = serializers.BooleanField(default=True)
     unlock_source = serializers.CharField(default='role_access')
     unlocked_at = serializers.DateTimeField(required=False, allow_null=True)
+    model_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Building
-        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_unlocked', 'unlock_source', 'unlocked_at']
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_unlocked', 'unlock_source', 
+                  'unlocked_at', 'model_url', 'model_version', 'model_file_size', 'model_active']
+    
+    def get_model_url(self, obj):
+        if obj.model_file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.model_file.url)
+        return None

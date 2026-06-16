@@ -159,34 +159,17 @@ def unlocked_buildings(request):
     
     if user.is_professional_role:
         buildings = Building.objects.filter(is_active=True)
-        data = []
-        for building in buildings:
-            data.append({
-                'id': building.id,
-                'name': building.name,
-                'slug': building.slug,
-                'description': building.description,
-                'latitude': building.latitude,
-                'longitude': building.longitude,
-                'is_unlocked': True,
-                'unlock_source': 'role_access',
-                'unlocked_at': None
-            })
-        return success_response(data)
+        serializer = UnlockedBuildingSerializer(buildings, many=True, context={'request': request})
+        return success_response(serializer.data)
     
     unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__is_active=True)
-    data = []
+    buildings_data = []
     for unlock in unlocks:
-        data.append({
-            'id': unlock.building.id,
-            'name': unlock.building.name,
-            'slug': unlock.building.slug,
-            'description': unlock.building.description,
-            'latitude': unlock.building.latitude,
-            'longitude': unlock.building.longitude,
-            'is_unlocked': True,
-            'unlock_source': unlock.source,
-            'unlocked_at': unlock.unlocked_at
-        })
+        serializer = UnlockedBuildingSerializer(unlock.building, context={'request': request})
+        building_data = serializer.data
+        building_data['is_unlocked'] = True
+        building_data['unlock_source'] = unlock.source
+        building_data['unlocked_at'] = unlock.unlocked_at
+        buildings_data.append(building_data)
     
-    return success_response(data)
+    return success_response(buildings_data)

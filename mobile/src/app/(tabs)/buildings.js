@@ -1,10 +1,26 @@
 import React from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import theme from "../../theme/tokens";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading, error } = useUnlockedBuildings();
+    const router = useRouter();
+
+    const handleView3D = (building) => {
+        if (building.model_active && building.model_url) {
+            router.push({
+                pathname: '/building-3d-viewer',
+                params: {
+                    buildingId: building.id,
+                    buildingName: building.name,
+                    modelUrl: building.model_url,
+                },
+            });
+        }
+    };
 
     if (isLoading) {
         return (
@@ -37,7 +53,10 @@ export default function BuildingsScreen() {
                 <FlatList
                     data={unlockedBuildings}
                     keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => (
+                    renderItem={({ item }) => {
+                        // Debug: log the item to see model fields
+                        console.log('Building item:', JSON.stringify(item, null, 2));
+                        return (
                         <View style={styles.buildingCard}>
                             <View style={styles.cardHeader}>
                                 <Text style={styles.buildingName}>{item.name}</Text>
@@ -50,8 +69,22 @@ export default function BuildingsScreen() {
                             {item.description && (
                                 <Text style={styles.description}>{item.description}</Text>
                             )}
+                            {item.model_active && item.model_url ? (
+                                <TouchableOpacity 
+                                    style={styles.view3dButton}
+                                    onPress={() => handleView3D(item)}
+                                >
+                                    <Ionicons name="cube-outline" size={20} color={theme.colors.white} />
+                                    <Text style={styles.view3dText}>View 3D Model</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={styles.no3dContainer}>
+                                    <Text style={styles.no3dText}>3D model not available</Text>
+                                </View>
+                            )}
                         </View>
-                    )}
+                        );
+                    }}
                 />
             )}
         </View>
@@ -133,5 +166,30 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.sm,
         color: theme.colors.textSecondary,
         marginTop: theme.spacing.xs,
+    },
+    view3dButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.colors.primary,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.sm,
+        marginTop: theme.spacing.sm,
+    },
+    view3dText: {
+        color: theme.colors.white,
+        fontSize: theme.typography.md,
+        fontWeight: "600",
+        marginLeft: theme.spacing.xs,
+    },
+    no3dContainer: {
+        paddingVertical: theme.spacing.sm,
+        marginTop: theme.spacing.xs,
+    },
+    no3dText: {
+        fontSize: theme.typography.sm,
+        color: theme.colors.textMuted,
+        fontStyle: "italic",
     },
 });

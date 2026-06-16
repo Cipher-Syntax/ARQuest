@@ -10,6 +10,10 @@ class Building(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     is_active = models.BooleanField(default=True)
+    model_file = models.FileField(upload_to='models/', blank=True, null=True)
+    model_version = models.CharField(max_length=50, blank=True)
+    model_file_size = models.PositiveIntegerField(blank=True, null=True, help_text='File size in bytes')
+    model_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
