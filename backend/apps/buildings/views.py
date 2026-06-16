@@ -22,7 +22,7 @@ from .serializers import (
 def building_list_create(request):
     if request.method == 'GET':
         buildings = Building.objects.filter(is_active=True)
-        serializer = BuildingSerializer(buildings, many=True)
+        serializer = BuildingSerializer(buildings, many=True, context={'request': request})
         return success_response(serializer.data)
     
     elif request.method == 'POST':
@@ -32,7 +32,7 @@ def building_list_create(request):
         serializer = BuildingWriteSerializer(data=request.data)
         if serializer.is_valid():
             building = serializer.save()
-            return success_response(BuildingSerializer(building).data, status_code=status.HTTP_201_CREATED)
+            return success_response(BuildingSerializer(building, context={'request': request}).data, status_code=status.HTTP_201_CREATED)
         return error_response('validation_error', 'Invalid building data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 
@@ -47,7 +47,7 @@ def building_detail(request, id):
     if request.method == 'GET':
         if not building.is_active and not request.user.is_admin_role:
             return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
-        serializer = BuildingSerializer(building)
+        serializer = BuildingSerializer(building, context={'request': request})
         return success_response(serializer.data)
     
     elif request.method == 'PATCH':
@@ -57,7 +57,7 @@ def building_detail(request, id):
         serializer = BuildingWriteSerializer(building, data=request.data, partial=True)
         if serializer.is_valid():
             building = serializer.save()
-            return success_response(BuildingSerializer(building).data)
+            return success_response(BuildingSerializer(building, context={'request': request}).data)
         return error_response('validation_error', 'Invalid building data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
     
     elif request.method == 'DELETE':
