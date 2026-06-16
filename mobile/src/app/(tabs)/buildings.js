@@ -22,6 +22,16 @@ export default function BuildingsScreen() {
         }
     };
 
+    const handleViewPanorama = (building) => {
+        router.push({
+            pathname: '/panorama-viewer',
+            params: {
+                buildingId: building.id,
+                buildingName: building.name,
+            },
+        });
+    };
+
     if (isLoading) {
         return (
             <View style={[styles.container, styles.centerContent]}>
@@ -82,6 +92,13 @@ export default function BuildingsScreen() {
                                     <Text style={styles.no3dText}>3D model not available</Text>
                                 </View>
                             )}
+                            <TouchableOpacity 
+                                style={styles.viewPanoramaButton}
+                                onPress={() => handleViewPanorama(item)}
+                            >
+                                <Ionicons name="camera-outline" size={20} color={theme.colors.primary} />
+                                <Text style={styles.viewPanoramaText}>360° Walkthrough</Text>
+                            </TouchableOpacity>
                         </View>
                         );
                     }}
@@ -191,5 +208,23 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.sm,
         color: theme.colors.textMuted,
         fontStyle: "italic",
+    },
+    viewPanoramaButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.colors.bgPrimary,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.sm,
+        marginTop: theme.spacing.xs,
+    },
+    viewPanoramaText: {
+        color: theme.colors.primary,
+        fontSize: theme.typography.md,
+        fontWeight: "600",
+        marginLeft: theme.spacing.xs,
     },
 });

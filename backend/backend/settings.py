@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'apps.buildings',
     'apps.api',
     'apps.geofencing',
+    'apps.panorama',
 ]
 
 REST_FRAMEWORK = {

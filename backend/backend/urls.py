@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/buildings/', include('apps.buildings.urls')),
     path('api/geofencing/', include('apps.geofencing.urls')),
+    path('api/panorama/', include('apps.panorama.urls')),
 ]
 
 if settings.DEBUG:
