@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from apps.panorama import views as panorama_views
 
 urlpatterns = [
     path('', views.building_list_create, name='building_list_create'),
@@ -8,4 +9,5 @@ urlpatterns = [
     path('geofence/<int:id>/', views.geofence_update, name='geofence_update'),
     path('unlock/', views.unlock_building, name='unlock_building'),
     path('unlocked/', views.unlocked_buildings, name='unlocked_buildings'),
+    path('<int:id>/panorama/', panorama_views.building_panorama_walkthrough, name='building_panorama'),
 ]
