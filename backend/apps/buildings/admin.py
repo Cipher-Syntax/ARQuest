@@ -4,11 +4,25 @@ from .models import Building, Geofence, BuildingUnlock
 
 @admin.register(Building)
 class BuildingAdmin(admin.ModelAdmin):
-    list_display = ['name', 'slug', 'is_active', 'latitude', 'longitude', 'created_at', 'updated_at']
-    list_filter = ['is_active', 'created_at']
+    list_display = ['name', 'slug', 'is_active', 'model_active', 'latitude', 'longitude', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'model_active', 'created_at']
     search_fields = ['name', 'slug', 'description']
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'description', 'is_active')
+        }),
+        ('Location', {
+            'fields': ('latitude', 'longitude')
+        }),
+        ('3D Model', {
+            'fields': ('model_file', 'model_version', 'model_file_size', 'model_active')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
 
 
 @admin.register(Geofence)
