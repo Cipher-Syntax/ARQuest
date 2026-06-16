@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Building, Geofence
+from .models import Building, Geofence, BuildingUnlock
 
 
 class GeofenceSerializer(serializers.ModelSerializer):
@@ -51,3 +51,25 @@ class BuildingWriteSerializer(serializers.ModelSerializer):
         if value < -180 or value > 180:
             raise serializers.ValidationError('Longitude must be between -180 and 180')
         return value
+
+
+
+
+class BuildingUnlockSerializer(serializers.ModelSerializer):
+    building_name = serializers.CharField(source='building.name', read_only=True)
+    building_slug = serializers.CharField(source='building.slug', read_only=True)
+    
+    class Meta:
+        model = BuildingUnlock
+        fields = ['id', 'building', 'building_name', 'building_slug', 'source', 'unlocked_at', 'last_validated_at']
+        read_only_fields = ['unlocked_at', 'last_validated_at']
+
+
+class UnlockedBuildingSerializer(serializers.ModelSerializer):
+    is_unlocked = serializers.BooleanField(default=True)
+    unlock_source = serializers.CharField(default='role_access')
+    unlocked_at = serializers.DateTimeField(required=False, allow_null=True)
+    
+    class Meta:
+        model = Building
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_unlocked', 'unlock_source', 'unlocked_at']
