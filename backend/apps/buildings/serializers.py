@@ -49,7 +49,7 @@ class BuildingSerializer(serializers.ModelSerializer):
 class BuildingWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
-        fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'is_active']
+        fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'is_active', 'model_version', 'model_active', 'model_file']
     
     def validate_latitude(self, value):
         if value < -90 or value > 90:

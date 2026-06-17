@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.core.mail import send_mail
 from django.conf import settings
 from apps.api.responses import success_response, error_response
@@ -189,6 +190,31 @@ def logout(request):
             message='Invalid or expired refresh token.',
             status_code=status.HTTP_400_BAD_REQUEST
         )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def token_refresh(request):
+    serializer = TokenRefreshSerializer(data=request.data)
+
+    try:
+        serializer.is_valid(raise_exception=True)
+    except User.DoesNotExist:
+        return error_response(
+            code='user_not_found',
+            message='Refresh token belongs to a user that no longer exists.',
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
+    except TokenError:
+        return error_response(
+            code='invalid_token',
+            message='Invalid or expired refresh token.',
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
+
+    return success_response({
+        'access': serializer.validated_data['access']
+    })
 
 
 @api_view(['GET'])
