@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Building, Geofence, BuildingUnlock
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset
 
 
 class GeofenceSerializer(serializers.ModelSerializer):
@@ -90,4 +90,18 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.model_file.url)
+        return None
+
+class BuildingAssetSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BuildingAsset
+        fields = ['id', 'building', 'asset_type', 'file_url', 'version', 'file_size', 'checksum', 'is_active', 'updated_at']
+
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
         return None

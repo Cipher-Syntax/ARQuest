@@ -10,4 +10,5 @@ urlpatterns = [
     path('unlock/', views.unlock_building, name='unlock_building'),
     path('unlocked/', views.unlocked_buildings, name='unlocked_buildings'),
     path('<int:id>/panorama/', panorama_views.building_panorama_walkthrough, name='building_panorama'),
+    path('<int:id>/assets/', views.building_assets, name='building_assets'),
 ]

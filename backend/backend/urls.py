@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/buildings/', include('apps.buildings.urls')),
     path('api/geofencing/', include('apps.geofencing.urls')),
     path('api/panorama/', include('apps.panorama.urls')),
+    path('api/assets/', include('apps.buildings.asset_urls')),
 ]
 
 if settings.DEBUG:
