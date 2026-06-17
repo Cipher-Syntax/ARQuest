@@ -11,7 +11,7 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'points', 'rank']
+        fields = ['username', 'points', 'rank']
 
     def get_rank(self, obj):
         # The rank is passed from the view context
