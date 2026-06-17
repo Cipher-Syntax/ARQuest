@@ -32,3 +32,24 @@ class PanoramaWalkthroughSerializer(serializers.Serializer):
     building_name = serializers.CharField()
     start_scene = PanoramaSceneSerializer()
     scenes = PanoramaSceneSerializer(many=True)
+
+class PanoramaSceneWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PanoramaScene
+        fields = ['title', 'image', 'is_start_scene', 'sort_order', 'is_active']
+
+
+class PanoramaHotspotWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PanoramaHotspot
+        fields = ['target_scene', 'label', 'yaw', 'pitch', 'is_active']
+        
+    def validate(self, data):
+        source_scene = self.context.get('source_scene') or (self.instance.source_scene if self.instance else None)
+        target_scene = data.get('target_scene')
+        
+        if source_scene and target_scene:
+            if source_scene.building != target_scene.building:
+                raise serializers.ValidationError({'target_scene': 'Hotspot cannot link to different building'})
+        
+        return data

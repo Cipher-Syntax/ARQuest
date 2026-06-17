@@ -222,7 +222,24 @@ class TokenRefreshTestCase(TestCase):
         })
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
+        self.assertIn('access', response.data['data'])
+
+    def test_token_refresh_fails_when_user_is_missing(self):
+        login_response = self.client.post('/api/auth/login/', {
+            'username': 'testuser',
+            'password': 'testpass123'
+        })
+        refresh_token = login_response.data['data']['refresh']
+
+        User.objects.filter(username='testuser').delete()
+
+        response = self.client.post('/api/auth/token/refresh/', {
+            'refresh': refresh_token
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['error']['code'], 'user_not_found')
 
 
 class RBACPermissionTestCase(TestCase):

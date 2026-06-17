@@ -1,16 +1,95 @@
-# React + Vite
+# ARQuest Admin Web Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Admin web dashboard for managing ARQuest campus buildings, geofences, and media metadata.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Admin authentication with role-based access control
+- Building management (CRUD operations)
+- Geofence editor with interactive map (Leaflet)
+- Visual geofence configuration with radius control
+- Media metadata management (3D models)
+- Dashboard overview with statistics
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19
+- Vite
+- React Router DOM
+- Axios with interceptors
+- Leaflet & React-Leaflet for maps
+- lucide-react for icons
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Configure environment:
+Create or update `.env` file:
+```
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+3. Run development server:
+```bash
+npm run dev
+```
+
+## Usage
+
+### Login
+- Only admin users can access the dashboard
+- Use your admin credentials from the backend
+
+### Buildings Management
+- View all buildings in a table
+- Create new buildings with coordinates
+- Edit building information
+- Delete buildings
+- Toggle active/inactive status
+
+### Geofence Configuration
+- Click on map to set geofence center
+- Adjust radius in meters
+- Visual feedback with circle overlay
+- Map restricted to WMSU campus bounds
+- Save geofence configuration per building
+
+### 3D Model Metadata
+- Manage 3D model version information
+- Toggle model active status
+- Note: Actual file upload depends on media storage strategy
+
+## API Integration
+
+All API calls use axios with interceptors for:
+- Automatic JWT token attachment
+- Token refresh on 401 errors
+- Automatic redirect to login on auth failure
+
+Use `api.get()`, `api.post()`, `api.patch()`, `api.delete()` from `services/api.js` for all backend calls.
+
+## Architecture
+
+```
+src/
+├── apps/           # App entry and routing
+├── components/     # Reusable components
+├── hooks/          # Custom hooks (useAuth)
+├── layouts/        # Layout components
+├── pages/          # Page components
+├── services/       # API services
+├── theme/          # Theme configuration
+└── utils/          # Utilities
+```
+
+## Protected Routes
+
+All dashboard routes require:
+1. Valid JWT token
+2. Admin role
+
+Non-admin users are blocked with access denied message.
