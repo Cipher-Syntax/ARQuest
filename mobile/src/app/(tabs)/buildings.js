@@ -12,7 +12,7 @@ import api from "../../services/api";
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading: isUnlockedLoading } = useUnlockedBuildings();
     const { location } = useLocationTracking();
-    const { canAccessBuildingFeatures, canView3D, canViewPanorama } = useRoleAccess();
+    const { canAccessBuildingFeatures, canView3D, canViewPanorama, role } = useRoleAccess();
     const router = useRouter();
     
     const [allBuildings, setAllBuildings] = useState([]);
@@ -57,10 +57,10 @@ export default function BuildingsScreen() {
         try {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'building_click') {
-                if (data.isUnlocked) {
+                if (data.isUnlocked || role === 'visitor') {
                     const building = allBuildings.find(b => b.id === data.buildingId);
                     // Add unlock source from unlockedBuildings if available
-                    const unlockedData = unlockedBuildings.find(b => b.id === data.buildingId);
+                    const unlockedData = unlockedBuildings.find(b => b.id === data.buildingId) || {};
                     if (building) {
                         setSelectedBuilding({ ...building, ...unlockedData });
                         setModalVisible(true);
