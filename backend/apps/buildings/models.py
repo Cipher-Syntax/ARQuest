@@ -87,3 +87,30 @@ class BuildingUnlock(models.Model):
     def clean(self):
         if self.building and not self.building.is_active:
             raise ValidationError({'building': 'Cannot unlock inactive building'})
+
+
+class BuildingAsset(models.Model):
+    ASSET_TYPE_CHOICES = [
+        ('model', '3D Model'),
+        ('panorama', 'Panorama Image'),
+        ('image', 'Building Image'),
+    ]
+    
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='assets')
+    asset_type = models.CharField(max_length=20, choices=ASSET_TYPE_CHOICES)
+    file = models.FileField(upload_to='assets/')
+    version = models.PositiveIntegerField(default=1)
+    file_size = models.PositiveIntegerField(blank=True, null=True, help_text='File size in bytes')
+    checksum = models.CharField(max_length=64, blank=True, default='', help_text='SHA256 hash for cache invalidation')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['building', 'asset_type', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.building.name} - {self.get_asset_type_display()}"

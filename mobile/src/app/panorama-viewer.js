@@ -5,6 +5,8 @@ import { WebView } from 'react-native-webview';
 import ViewerHeader from '../components/viewer/ViewerHeader';
 import { theme } from '../theme/tokens';
 import api from '../services/api';
+import { useAssetCache } from '../hooks/useAssetCache';
+import { assetService } from '../services/assetService';
 
 export default function PanoramaViewerScreen() {
     const { buildingId, buildingName } = useLocalSearchParams();
@@ -12,22 +14,47 @@ export default function PanoramaViewerScreen() {
     const [error, setError] = useState(null);
     const [walkthrough, setWalkthrough] = useState(null);
     const [currentScene, setCurrentScene] = useState(null);
+    const [localImageUrl, setLocalImageUrl] = useState(null);
     const webViewRef = useRef(null);
+    const { loadAsset, isLoading: isAssetLoading, progress: assetProgress } = useAssetCache();
 
     useEffect(() => {
         loadWalkthrough();
     }, [buildingId]);
 
     useEffect(() => {
-        if (currentScene && webViewRef.current && walkthrough) {
+        const loadSceneImage = async () => {
+            if (currentScene && walkthrough) {
+                try {
+                    // Try to match with an asset from the backend to get true versioning, 
+                    // or generate a pseudo-asset object for caching based on scene id and updated_at
+                    const version = new Date(currentScene.updated_at || Date.now()).getTime();
+                    
+                    const uri = await loadAsset({
+                        id: currentScene.id + 10000, // Offset to avoid ID collision with BuildingAsset if needed, though they use same cache dir
+                        version: version,
+                        file_url: currentScene.image_url
+                    });
+                    setLocalImageUrl(uri);
+                } catch (e) {
+                    console.error('Failed to cache panorama image', e);
+                    setLocalImageUrl(currentScene.image_url);
+                }
+            }
+        };
+        loadSceneImage();
+    }, [currentScene]);
+
+    useEffect(() => {
+        if (localImageUrl && webViewRef.current && walkthrough) {
             console.log('Sending scene to WebView:', currentScene.title);
             webViewRef.current.postMessage(JSON.stringify({
                 type: 'init',
-                imageUrl: currentScene.image_url,
+                imageUrl: localImageUrl,
                 hotspots: currentScene.hotspots || []
             }));
         }
-    }, [currentScene]);
+    }, [localImageUrl]);
 
     const loadWalkthrough = async () => {
         try {
@@ -89,25 +116,29 @@ export default function PanoramaViewerScreen() {
 
     return (
         <View style={styles.container}>
-            {loading && (
+            {loading || isAssetLoading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.arHighlight} />
-                    <Text style={styles.loadingText}>Loading Panorama...</Text>
+                    <Text style={styles.loadingText}>
+                        {isAssetLoading 
+                            ? `Downloading Panorama... ${Math.round(assetProgress * 100)}%` 
+                            : 'Loading Panorama...'}
+                    </Text>
                 </View>
-            )}
+            ) : null}
             
-            {walkthrough && currentScene && (
+            {walkthrough && currentScene && localImageUrl && (
                 <WebView
                     ref={webViewRef}
                     source={require('../../assets/panorama-viewer.html')}
                     style={styles.webview}
                     onMessage={handleMessage}
                     onLoad={() => {
-                        if (webViewRef.current && currentScene) {
+                        if (webViewRef.current && localImageUrl) {
                             setTimeout(() => {
                                 webViewRef.current.postMessage(JSON.stringify({
                                     type: 'init',
-                                    imageUrl: currentScene.image_url,
+                                    imageUrl: localImageUrl,
                                     hotspots: currentScene.hotspots || []
                                 }));
                             }, 1000);

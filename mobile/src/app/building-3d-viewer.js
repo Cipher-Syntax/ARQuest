@@ -4,27 +4,64 @@ import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import ViewerHeader from '../components/viewer/ViewerHeader';
 import { theme } from '../theme/tokens';
+import { useAssetCache } from '../hooks/useAssetCache';
+import { assetService } from '../services/assetService';
 
 export default function Building3DViewerScreen() {
     const { buildingId, buildingName, modelUrl } = useLocalSearchParams();
     const [loading, setLoading] = useState(true);
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState(null);
-    const [webViewReady, setWebViewReady] = useState(false); // Track when WebView HTML finishes loading
+    const [webViewReady, setWebViewReady] = useState(false);
+    const [localModelUrl, setLocalModelUrl] = useState(null);
     const webViewRef = useRef(null);
+    const { loadAsset, isLoading: isAssetLoading, progress: assetProgress, error: assetError } = useAssetCache();
 
     useEffect(() => {
-        if (!modelUrl) {
-            setError('3D model not available');
-            setLoading(false);
-        }
-    }, [modelUrl]);
+        const initAsset = async () => {
+            if (!buildingId) {
+                if (modelUrl) {
+                    setLocalModelUrl(modelUrl);
+                } else {
+                    setError('3D model not available');
+                    setLoading(false);
+                }
+                return;
+            }
+
+            try {
+                const assets = await assetService.getBuildingAssets(buildingId);
+                const modelAsset = assets.find(a => a.asset_type === 'model');
+                
+                if (modelAsset) {
+                    const uri = await loadAsset(modelAsset);
+                    setLocalModelUrl(uri);
+                } else if (modelUrl) {
+                    // Fallback to legacy modelUrl from building
+                    setLocalModelUrl(modelUrl);
+                } else {
+                    setError('3D model not available');
+                    setLoading(false);
+                }
+            } catch (err) {
+                console.error('Failed to fetch building assets:', err);
+                if (modelUrl) {
+                    setLocalModelUrl(modelUrl);
+                } else {
+                    setError('Failed to load asset metadata');
+                    setLoading(false);
+                }
+            }
+        };
+
+        initAsset();
+    }, [buildingId, modelUrl]);
 
     // Only send the init message when BOTH the URL is available AND the WebView is fully ready
     useEffect(() => {
-        if (webViewReady && webViewRef.current && modelUrl) {
-            console.log('Loading model from URL:', modelUrl);
-            const initMessage = JSON.stringify({ type: 'init', modelUrl });
+        if (webViewReady && webViewRef.current && localModelUrl) {
+            console.log('Loading model from URL:', localModelUrl);
+            const initMessage = JSON.stringify({ type: 'init', modelUrl: localModelUrl });
             webViewRef.current.postMessage(initMessage);
         }
         
@@ -33,7 +70,7 @@ export default function Building3DViewerScreen() {
                 webViewRef.current.postMessage(JSON.stringify({ type: 'dispose' }));
             }
         };
-    }, [modelUrl, webViewReady]);
+    }, [localModelUrl, webViewReady]);
 
     const handleMessage = (event) => {
         try {
@@ -64,10 +101,14 @@ export default function Building3DViewerScreen() {
                 </View>
             ) : (
                 <>
-                    {loading && (
+                    {(loading || isAssetLoading) && (
                         <View style={styles.loadingContainer}>
                             <ActivityIndicator size="large" color={theme.colors.arHighlight} />
-                            <Text style={styles.loadingText}>Loading 3D Model... {progress}%</Text>
+                            <Text style={styles.loadingText}>
+                                {isAssetLoading 
+                                    ? `Downloading Asset... ${Math.round(assetProgress * 100)}%` 
+                                    : `Loading 3D Model... ${progress}%`}
+                            </Text>
                         </View>
                     )}
                     <WebView

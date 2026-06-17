@@ -6,14 +6,15 @@ from apps.authentication.permissions import IsAdminRole
 from apps.api.responses import success_response, error_response
 from apps.geofencing.serializers import LocationValidationSerializer
 from apps.geofencing.utils import calculate_distance
-from .models import Building, Geofence, BuildingUnlock
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset
 from .serializers import (
     BuildingSerializer, 
     BuildingWriteSerializer,
     GeofenceSerializer,
     GeofenceWriteSerializer,
     BuildingUnlockSerializer,
-    UnlockedBuildingSerializer
+    UnlockedBuildingSerializer,
+    BuildingAssetSerializer
 )
 
 
@@ -173,3 +174,48 @@ def unlocked_buildings(request):
         buildings_data.append(building_data)
     
     return success_response(buildings_data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def building_assets(request, id):
+    try:
+        building = Building.objects.get(id=id)
+    except Building.DoesNotExist:
+        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        
+    if not building.is_active and not request.user.is_admin_role:
+        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    if request.user.is_student_role:
+        is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
+        if not is_unlocked:
+            return error_response('permission_denied', 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
+            
+    assets = BuildingAsset.objects.filter(building=building, is_active=True)
+    serializer = BuildingAssetSerializer(assets, many=True, context={'request': request})
+    return success_response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def asset_metadata(request, id):
+    try:
+        asset = BuildingAsset.objects.select_related('building').get(id=id)
+    except BuildingAsset.DoesNotExist:
+        return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    building = asset.building
+    if not building.is_active and not request.user.is_admin_role:
+         return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
+         
+    if request.user.is_student_role:
+        is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
+        if not is_unlocked:
+            return error_response('permission_denied', 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
+
+    if not asset.is_active and not request.user.is_admin_role:
+        return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    serializer = BuildingAssetSerializer(asset, context={'request': request})
+    return success_response(serializer.data)
