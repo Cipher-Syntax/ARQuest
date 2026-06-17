@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import api from './api';
 
 const CACHE_DIR = `${FileSystem.cacheDirectory}arquest_assets/`;
@@ -12,12 +12,12 @@ const ensureCacheDir = async () => {
 
 export const assetService = {
     getBuildingAssets: async (buildingId) => {
-        const response = await api.get(`/buildings/${buildingId}/assets/`);
+        const response = await api.get(`/api/buildings/${buildingId}/assets/`);
         return response.data.data;
     },
 
     getAssetMetadata: async (assetId) => {
-        const response = await api.get(`/assets/${assetId}/metadata/`);
+        const response = await api.get(`/api/assets/${assetId}/metadata/`);
         return response.data.data;
     },
 

@@ -148,6 +148,9 @@ export default function PanoramaViewerScreen() {
                     domStorageEnabled={true}
                     mixedContentMode="always"
                     originWhitelist={['*']}
+                    allowFileAccess={true}
+                    allowFileAccessFromFileURLs={true}
+                    allowUniversalAccessFromFileURLs={true}
                 />
             )}
         </View>

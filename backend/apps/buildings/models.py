@@ -114,3 +114,28 @@ class BuildingAsset(models.Model):
     
     def __str__(self):
         return f"{self.building.name} - {self.get_asset_type_display()}"
+
+
+class Quest(models.Model):
+    title = models.CharField(max_length=255)
+    hint = models.TextField()
+    target_building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='quests')
+    reward_points = models.IntegerField(default=50)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+
+class UserQuestProgress(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quest_progress')
+    quest = models.ForeignKey(Quest, on_delete=models.CASCADE, related_name='progress')
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        unique_together = [['user', 'quest']]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.quest.title}"

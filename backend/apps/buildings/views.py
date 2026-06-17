@@ -115,6 +115,9 @@ def geofence_update(request, id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def unlock_building(request):
+    if request.user.is_visitor_role:
+        return error_response('permission_denied', 'Visitors cannot unlock buildings', status_code=status.HTTP_403_FORBIDDEN)
+
     serializer = LocationValidationSerializer(data=request.data)
     if not serializer.is_valid():
         return error_response('INVALID_INPUT', 'Invalid location data', status_code=400, details=serializer.errors)
@@ -187,6 +190,9 @@ def building_assets(request, id):
     if not building.is_active and not request.user.is_admin_role:
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
 
+    if request.user.is_visitor_role:
+        return error_response('permission_denied', 'Visitors cannot access heavy assets', status_code=status.HTTP_403_FORBIDDEN)
+
     if request.user.is_student_role:
         is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
         if not is_unlocked:
@@ -209,6 +215,9 @@ def asset_metadata(request, id):
     if not building.is_active and not request.user.is_admin_role:
          return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
          
+    if request.user.is_visitor_role:
+        return error_response('permission_denied', 'Visitors cannot access heavy assets', status_code=status.HTTP_403_FORBIDDEN)
+
     if request.user.is_student_role:
         is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
         if not is_unlocked:

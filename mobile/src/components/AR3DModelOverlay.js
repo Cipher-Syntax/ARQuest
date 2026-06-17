@@ -74,6 +74,8 @@ export default function AR3DModelOverlay({ modelUrl, buildingName, capturing, on
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 allowFileAccess={true}
+                allowFileAccessFromFileURLs={true}
+                allowUniversalAccessFromFileURLs={true}
                 scrollEnabled={false}
                 bounces={false}
                 scalesPageToFit={false}
@@ -101,13 +103,12 @@ export default function AR3DModelOverlay({ modelUrl, buildingName, capturing, on
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        top: 60,
+        top: 80,
         left: '50%',
-        width: 150,
-        height: 150,
-        marginLeft: -75,
-        borderRadius: 12,
-        overflow: 'hidden',
+        width: 320,
+        height: 320,
+        marginLeft: -160,
+        overflow: 'visible',
     },
     webview: {
         flex: 1,

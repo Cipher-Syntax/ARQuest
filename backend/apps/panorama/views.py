@@ -19,6 +19,15 @@ def building_panorama_walkthrough(request, id):
         building = Building.objects.get(id=id, is_active=True)
     except Building.DoesNotExist:
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        
+    if request.user.is_visitor_role:
+        return error_response('permission_denied', 'Visitors cannot access panoramas', status_code=status.HTTP_403_FORBIDDEN)
+        
+    if request.user.is_student_role:
+        from apps.buildings.models import BuildingUnlock
+        is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
+        if not is_unlocked:
+            return error_response('permission_denied', 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
     
     # Get active scenes for this building
     active_scenes = PanoramaScene.objects.filter(
@@ -53,6 +62,15 @@ def panorama_scene_detail(request, id):
         scene = PanoramaScene.objects.get(id=id, is_active=True)
     except PanoramaScene.DoesNotExist:
         return error_response('not_found', 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
+        
+    if request.user.is_visitor_role:
+        return error_response('permission_denied', 'Visitors cannot access panoramas', status_code=status.HTTP_403_FORBIDDEN)
+        
+    if request.user.is_student_role:
+        from apps.buildings.models import BuildingUnlock
+        is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=scene.building).exists()
+        if not is_unlocked:
+            return error_response('permission_denied', 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
     
     serializer = PanoramaSceneSerializer(scene, context={'request': request})
     return success_response(serializer.data)
