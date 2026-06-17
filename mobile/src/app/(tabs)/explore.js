@@ -5,9 +5,11 @@ import theme from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService } from "../../services/geofencingService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
 
 export default function ExploreScreen() {
+    const { role } = useRoleAccess();
     const {
         location,
         error,
@@ -219,69 +221,71 @@ export default function ExploreScreen() {
                 </View>
             )}
 
-            {/* Gamified Widgets (Visible regardless of tracking) */}
+            {/* Gamified Widgets (Visible regardless of tracking, but hidden for visitors) */}
             
-            {/* 1. Progress Tracker */}
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>EXPLORATION PROGRESS</Text>
-                <View style={styles.progressBarContainer}>
-                    <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
-                </View>
-                <Text style={styles.progressText}>
-                    {unlockedBuildings.length} / {totalBuildings || 15} Buildings Unlocked
-                </Text>
-            </View>
-
-            {/* 2. Daily Quest */}
-            <View style={styles.card}>
-                <View style={styles.cardHeaderRow}>
-                    <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
-                    <Text style={styles.cardTitle}>YOUR DAILY QUEST</Text>
-                </View>
-                
-                {activeQuests.length > 0 ? (
-                    activeQuests.map((quest) => {
-                        if (quest.is_completed) return null; // Skip completed quests here
-                        return (
-                            <View key={quest.id} style={{ marginBottom: theme.spacing.md }}>
-                                <Text style={styles.questHint}>
-                                    "{quest.hint}"
-                                </Text>
-                                <View style={styles.compassContainer}>
-                                    <Ionicons name="star" size={20} color="#eab308" />
-                                    <Text style={styles.compassText}>Reward: {quest.reward_points} Points</Text>
-                                </View>
-                            </View>
-                        );
-                    })
-                ) : (
-                    <Text style={styles.emptyLogText}>No active quests at the moment. Keep exploring!</Text>
-                )}
-            </View>
-
-
-
-            {/* 4. Discovery Log */}
-            <View style={styles.card}>
-                <View style={styles.cardHeaderRow}>
-                    <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
-                    <Text style={styles.cardTitle}>RECENT DISCOVERIES</Text>
-                </View>
-                
-                {unlockedBuildings.length > 0 ? (
-                    unlockedBuildings.slice(0, 3).map((b, idx) => (
-                        <View key={b.id} style={styles.logItem}>
-                            <View style={styles.logDot} />
-                            <View style={styles.logContent}>
-                                <Text style={styles.logTime}>{idx === 0 ? 'Just Now' : 'Earlier'}</Text>
-                                <Text style={styles.logText}>Unlocked {b.name} AR capabilities</Text>
-                            </View>
+            {role !== 'visitor' && (
+                <>
+                    {/* 1. Progress Tracker */}
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>EXPLORATION PROGRESS</Text>
+                        <View style={styles.progressBarContainer}>
+                            <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
                         </View>
-                    ))
-                ) : (
-                    <Text style={styles.emptyLogText}>No discoveries yet. Start scanning!</Text>
-                )}
-            </View>
+                        <Text style={styles.progressText}>
+                            {unlockedBuildings.length} / {totalBuildings || 15} Buildings Unlocked
+                        </Text>
+                    </View>
+
+                    {/* 2. Daily Quest */}
+                    <View style={styles.card}>
+                        <View style={styles.cardHeaderRow}>
+                            <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
+                            <Text style={styles.cardTitle}>YOUR DAILY QUEST</Text>
+                        </View>
+                        
+                        {activeQuests.length > 0 ? (
+                            activeQuests.map((quest) => {
+                                if (quest.is_completed) return null; // Skip completed quests here
+                                return (
+                                    <View key={quest.id} style={{ marginBottom: theme.spacing.md }}>
+                                        <Text style={styles.questHint}>
+                                            "{quest.hint}"
+                                        </Text>
+                                        <View style={styles.compassContainer}>
+                                            <Ionicons name="star" size={20} color="#eab308" />
+                                            <Text style={styles.compassText}>Reward: {quest.reward_points} Points</Text>
+                                        </View>
+                                    </View>
+                                );
+                            })
+                        ) : (
+                            <Text style={styles.emptyLogText}>No active quests at the moment. Keep exploring!</Text>
+                        )}
+                    </View>
+
+                    {/* 4. Discovery Log */}
+                    <View style={styles.card}>
+                        <View style={styles.cardHeaderRow}>
+                            <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
+                            <Text style={styles.cardTitle}>RECENT DISCOVERIES</Text>
+                        </View>
+                        
+                        {unlockedBuildings.length > 0 ? (
+                            unlockedBuildings.slice(0, 3).map((b, idx) => (
+                                <View key={b.id} style={styles.logItem}>
+                                    <View style={styles.logDot} />
+                                    <View style={styles.logContent}>
+                                        <Text style={styles.logTime}>{idx === 0 ? 'Just Now' : 'Earlier'}</Text>
+                                        <Text style={styles.logText}>Unlocked {b.name} AR capabilities</Text>
+                                    </View>
+                                </View>
+                            ))
+                        ) : (
+                            <Text style={styles.emptyLogText}>No discoveries yet. Start scanning!</Text>
+                        )}
+                    </View>
+                </>
+            )}
 
         </ScrollView>
     );

@@ -91,6 +91,22 @@ export default function LoginScreen() {
                     </Text>
                 </TouchableOpacity>
             </Link>
+
+            <TouchableOpacity 
+                style={styles.visitorButton}
+                onPress={async () => {
+                    try {
+                        setError("");
+                        await login("visitor", "WMSU-Visitor2026!");
+                        router.replace("/(tabs)");
+                    } catch (err) {
+                        setError("Visitor login temporarily unavailable.");
+                    }
+                }}
+                disabled={isLoading}
+            >
+                <Text style={styles.visitorText}>Continue as Visitor</Text>
+            </TouchableOpacity>
         </View>
     );
 }
@@ -166,5 +182,19 @@ const styles = StyleSheet.create({
         color: theme.colors.primary,
         fontSize: theme.typography.md,
         fontWeight: "600",
+    },
+    visitorButton: {
+        marginTop: theme.spacing.xl,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        alignItems: "center",
+        backgroundColor: "transparent",
+    },
+    visitorText: {
+        color: theme.colors.textSecondary,
+        fontSize: theme.typography.md,
+        fontWeight: "500",
     },
 });

@@ -62,7 +62,6 @@ class PanoramaAPITestCase(TestCase):
             sort_order=3
         )
         
-        # Create hotspots
         self.hotspot = PanoramaHotspot.objects.create(
             source_scene=self.scene1,
             target_scene=self.scene2,
@@ -70,6 +69,14 @@ class PanoramaAPITestCase(TestCase):
             yaw=90.0,
             pitch=0.0,
             is_active=True
+        )
+        
+        # Unlock the building for the student so they can access panoramas
+        from apps.buildings.models import BuildingUnlock
+        BuildingUnlock.objects.create(
+            user=self.student,
+            building=self.building,
+            source='geofence'
         )
     
     def test_building_panorama_authenticated_required(self):
@@ -119,6 +126,10 @@ class PanoramaAPITestCase(TestCase):
             latitude=0.0,
             longitude=0.0
         )
+        
+        # Unlock it so we get past the 403 check to test the 404 panorama check
+        from apps.buildings.models import BuildingUnlock
+        BuildingUnlock.objects.create(user=self.student, building=building2, source='geofence')
         
         self.client.force_authenticate(user=self.student)
         response = self.client.get(f'/api/buildings/{building2.id}/panorama/')

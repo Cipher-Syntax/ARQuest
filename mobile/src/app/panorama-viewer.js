@@ -23,38 +23,15 @@ export default function PanoramaViewerScreen() {
     }, [buildingId]);
 
     useEffect(() => {
-        const loadSceneImage = async () => {
-            if (currentScene && walkthrough) {
-                try {
-                    // Try to match with an asset from the backend to get true versioning, 
-                    // or generate a pseudo-asset object for caching based on scene id and updated_at
-                    const version = new Date(currentScene.updated_at || Date.now()).getTime();
-                    
-                    const uri = await loadAsset({
-                        id: currentScene.id + 10000, // Offset to avoid ID collision with BuildingAsset if needed, though they use same cache dir
-                        version: version,
-                        file_url: currentScene.image_url
-                    });
-                    setLocalImageUrl(uri);
-                } catch (e) {
-                    console.error('Failed to cache panorama image', e);
-                    setLocalImageUrl(currentScene.image_url);
-                }
-            }
-        };
-        loadSceneImage();
-    }, [currentScene]);
-
-    useEffect(() => {
-        if (localImageUrl && webViewRef.current && walkthrough) {
+        if (currentScene && webViewRef.current && walkthrough) {
             console.log('Sending scene to WebView:', currentScene.title);
             webViewRef.current.postMessage(JSON.stringify({
                 type: 'init',
-                imageUrl: localImageUrl,
+                imageUrl: currentScene.image_url,
                 hotspots: currentScene.hotspots || []
             }));
         }
-    }, [localImageUrl]);
+    }, [currentScene]);
 
     const loadWalkthrough = async () => {
         try {
@@ -116,29 +93,25 @@ export default function PanoramaViewerScreen() {
 
     return (
         <View style={styles.container}>
-            {loading || isAssetLoading ? (
+            {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.arHighlight} />
-                    <Text style={styles.loadingText}>
-                        {isAssetLoading 
-                            ? `Downloading Panorama... ${Math.round(assetProgress * 100)}%` 
-                            : 'Loading Panorama...'}
-                    </Text>
+                    <Text style={styles.loadingText}>Loading Panorama...</Text>
                 </View>
             ) : null}
             
-            {walkthrough && currentScene && localImageUrl && (
+            {walkthrough && currentScene && (
                 <WebView
                     ref={webViewRef}
                     source={require('../../assets/panorama-viewer.html')}
                     style={styles.webview}
                     onMessage={handleMessage}
                     onLoad={() => {
-                        if (webViewRef.current && localImageUrl) {
+                        if (webViewRef.current && currentScene) {
                             setTimeout(() => {
                                 webViewRef.current.postMessage(JSON.stringify({
                                     type: 'init',
-                                    imageUrl: localImageUrl,
+                                    imageUrl: currentScene.image_url,
                                     hotspots: currentScene.hotspots || []
                                 }));
                             }, 1000);
