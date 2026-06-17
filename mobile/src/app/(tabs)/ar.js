@@ -1,7 +1,8 @@
 // src/app/(tabs)/ar.js
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Animated } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { captureRef } from 'react-native-view-shot';
 import { router } from 'expo-router';
@@ -25,6 +26,13 @@ export default function ARScreen() {
     const [capturedBg, setCapturedBg] = useState(null); 
     const [bgReady, setBgReady] = useState(false);
     const [modelReady, setModelReady] = useState(true);
+    
+    // Trivia & Quest State
+    const [activeQuests, setActiveQuests] = useState([]);
+    const [triviaModalVisible, setTriviaModalVisible] = useState(false);
+    const [claimedQuest, setClaimedQuest] = useState(null);
+    const slideAnim = useRef(new Animated.Value(400)).current;
+
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
     const { canUseAR } = useRoleAccess();
@@ -37,6 +45,20 @@ export default function ARScreen() {
         return () => {
             stopTracking();
         };
+    }, []);
+
+    useEffect(() => {
+        const fetchQuests = async () => {
+            try {
+                const res = await api.get('/api/gamification/quests/active/');
+                if (res.data.success) {
+                    setActiveQuests(res.data.data);
+                }
+            } catch (error) {
+                console.error('Error fetching quests', error);
+            }
+        };
+        fetchQuests();
     }, []);
 
     useEffect(() => {
@@ -62,6 +84,38 @@ export default function ARScreen() {
         } catch (error) {
             console.error('Error fetching full building details:', error);
         }
+    };
+
+    const matchingQuest = activeQuests.find(q => nearbyBuildingFull && q.target_building === nearbyBuildingFull.id && !q.is_completed);
+
+    const handleClaimQuest = async () => {
+        if (!matchingQuest) return;
+        try {
+            const res = await api.post(`/api/gamification/quests/${matchingQuest.id}/complete/`);
+            if (res.data.success) {
+                setClaimedQuest(matchingQuest);
+                setActiveQuests(prev => prev.map(q => q.id === matchingQuest.id ? { ...q, is_completed: true } : q));
+                setTriviaModalVisible(true);
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    tension: 50,
+                    friction: 7,
+                    useNativeDriver: true,
+                }).start();
+            } else {
+                Alert.alert("Error", res.data.error || "Failed to claim quest.");
+            }
+        } catch (err) {
+            Alert.alert("Error", "Network error claiming quest.");
+        }
+    };
+
+    const closeTriviaModal = () => {
+        Animated.timing(slideAnim, {
+            toValue: 400,
+            duration: 250,
+            useNativeDriver: true,
+        }).start(() => setTriviaModalVisible(false));
     };
 
     const checkGeofenceStatus = async () => {
@@ -238,6 +292,14 @@ export default function ARScreen() {
                                 </Text>
                             )}
                         </View>
+                        
+                        {/* Claim Button */}
+                        {matchingQuest && geofenceStatus?.status === 'inside' && !triviaModalVisible && !capturing && (
+                            <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
+                                <Ionicons name="gift" size={20} color="#000" />
+                                <Text style={styles.claimQuestBtnText}>Claim {matchingQuest.reward_points} Points & Trivia!</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 )}
 
@@ -248,6 +310,27 @@ export default function ARScreen() {
                 />
             </View>
             {/* --- END CAPTURE TARGET --- */}
+
+            {/* --- TRIVIA MODAL --- */}
+            {triviaModalVisible && claimedQuest && (
+                <Animated.View style={[styles.triviaModal, { transform: [{ translateY: slideAnim }] }]}>
+                    <View style={styles.triviaModalHeader}>
+                        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                            <Ionicons name="gift" color="#fff" size={20} style={{marginRight: 6}} />
+                            <Text style={styles.triviaTitle}>TRIVIA UNLOCKED!</Text>
+                        </View>
+                        <TouchableOpacity onPress={closeTriviaModal}>
+                            <X color="#fff" size={24} />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.triviaBuildingName}>{nearbyBuildingFull?.name}</Text>
+                    <Text style={styles.triviaText}>{nearbyBuildingFull?.description || claimedQuest.hint}</Text>
+                    <View style={styles.rewardBadge}>
+                        <Ionicons name="star" color="#eab308" size={24} />
+                        <Text style={styles.rewardText}>+{claimedQuest.reward_points} Points Earned!</Text>
+                    </View>
+                </Animated.View>
+            )}
 
             {/* --- CONTROLS: Hidden during capture so they don't get snapshotted --- */}
             {!capturing && (
@@ -386,5 +469,81 @@ const styles = StyleSheet.create({
     captureButtonInner: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    claimQuestBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#00E5FF',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 25,
+        marginTop: 20,
+        shadowColor: '#00E5FF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    claimQuestBtnText: {
+        color: '#000',
+        fontSize: 16,
+        fontWeight: '900',
+        marginLeft: 8,
+        textTransform: 'uppercase',
+    },
+    triviaModal: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(10, 10, 15, 0.95)',
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        padding: 24,
+        paddingBottom: 40,
+        zIndex: 100,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    triviaModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    triviaTitle: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '900',
+        letterSpacing: 2,
+    },
+    triviaBuildingName: {
+        color: theme.colors.arHighlight,
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginBottom: 12,
+    },
+    triviaText: {
+        color: '#ddd',
+        fontSize: 16,
+        lineHeight: 24,
+        marginBottom: 24,
+    },
+    rewardBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(234, 179, 8, 0.1)',
+        alignSelf: 'flex-start',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(234, 179, 8, 0.3)',
+    },
+    rewardText: {
+        color: '#eab308',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginLeft: 8,
     },
 });
