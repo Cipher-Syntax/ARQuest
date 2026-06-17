@@ -23,12 +23,37 @@ class LeaderboardView(views.APIView):
             'data': data
         })
 
+import random
+from datetime import date
+
 class ActiveQuestsView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        quests = Quest.objects.filter(is_active=True)
-        serializer = QuestSerializer(quests, many=True, context={'request': request})
+        user = request.user
+        
+        # 1. Get all active quests the user HAS NOT completed
+        completed_quest_ids = UserQuestProgress.objects.filter(
+            user=user, is_completed=True
+        ).values_list('quest_id', flat=True)
+        
+        available_quests = list(Quest.objects.filter(is_active=True).exclude(id__in=completed_quest_ids))
+        
+        if not available_quests:
+            return Response({'success': True, 'data': []})
+
+        # 2. Seed the random generator with the user ID and the current date
+        # This guarantees the user gets the EXACT same random quest all day long, but it changes at midnight!
+        today_str = date.today().isoformat()
+        random.seed(f"{user.id}-{today_str}")
+        
+        # 3. Select 1 Daily Quest
+        daily_quest = random.choice(available_quests)
+        
+        # Reset the seed for the rest of the application
+        random.seed()
+        
+        serializer = QuestSerializer([daily_quest], many=True, context={'request': request})
         
         return Response({
             'success': True,

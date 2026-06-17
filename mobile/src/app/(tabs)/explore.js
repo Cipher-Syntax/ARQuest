@@ -23,20 +23,25 @@ export default function ExploreScreen() {
     const [isValidating, setIsValidating] = useState(false);
     const [lastUnlockAttempt, setLastUnlockAttempt] = useState(null);
     const [totalBuildings, setTotalBuildings] = useState(0);
+    const [activeQuests, setActiveQuests] = useState([]);
 
-    // Fetch total buildings for progress bar
+    // Fetch total buildings for progress bar and active quests
     useEffect(() => {
-        const fetchTotal = async () => {
+        const fetchData = async () => {
             try {
                 const res = await api.get('/api/buildings/');
                 if (res.data.success) {
                     setTotalBuildings(res.data.data.length);
                 }
+                const questRes = await api.get('/api/gamification/quests/active/');
+                if (questRes.data.success) {
+                    setActiveQuests(questRes.data.data);
+                }
             } catch (err) {
-                console.error("Failed to fetch total buildings", err);
+                console.error("Failed to fetch gamification data", err);
             }
         };
-        fetchTotal();
+        fetchData();
     }, []);
 
     const progressPercentage = totalBuildings > 0 ? (unlockedBuildings.length / totalBuildings) * 100 : 0;
@@ -227,30 +232,34 @@ export default function ExploreScreen() {
                 </Text>
             </View>
 
-            {/* 2. Active Quest */}
+            {/* 2. Daily Quest */}
             <View style={styles.card}>
                 <View style={styles.cardHeaderRow}>
                     <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
-                    <Text style={styles.cardTitle}>ACTIVE QUEST</Text>
+                    <Text style={styles.cardTitle}>YOUR DAILY QUEST</Text>
                 </View>
-                <Text style={styles.questHint}>
-                    "Find the place where WMSU's future builders and programmers learn."
-                </Text>
-                <View style={styles.compassContainer}>
-                    <Ionicons name="compass-outline" size={24} color={theme.colors.textSecondary} />
-                    <Text style={styles.compassText}>Target is roughly 250m North-East</Text>
-                </View>
+                
+                {activeQuests.length > 0 ? (
+                    activeQuests.map((quest) => {
+                        if (quest.is_completed) return null; // Skip completed quests here
+                        return (
+                            <View key={quest.id} style={{ marginBottom: theme.spacing.md }}>
+                                <Text style={styles.questHint}>
+                                    "{quest.hint}"
+                                </Text>
+                                <View style={styles.compassContainer}>
+                                    <Ionicons name="star" size={20} color="#eab308" />
+                                    <Text style={styles.compassText}>Reward: {quest.reward_points} Points</Text>
+                                </View>
+                            </View>
+                        );
+                    })
+                ) : (
+                    <Text style={styles.emptyLogText}>No active quests at the moment. Keep exploring!</Text>
+                )}
             </View>
 
-            {/* 3. Daily Challenge */}
-            <View style={styles.card}>
-                <View style={styles.cardHeaderRow}>
-                    <Ionicons name="star-outline" size={20} color="#eab308" />
-                    <Text style={styles.cardTitle}>DAILY CHALLENGE</Text>
-                </View>
-                <Text style={styles.challengeText}>Visit 3 new buildings today to earn the Explorer Badge.</Text>
-                <Text style={styles.challengeProgress}>0 / 3 Completed</Text>
-            </View>
+
 
             {/* 4. Discovery Log */}
             <View style={styles.card}>
@@ -260,11 +269,11 @@ export default function ExploreScreen() {
                 </View>
                 
                 {unlockedBuildings.length > 0 ? (
-                    unlockedBuildings.slice(0, 2).map((b, idx) => (
+                    unlockedBuildings.slice(0, 3).map((b, idx) => (
                         <View key={b.id} style={styles.logItem}>
                             <View style={styles.logDot} />
                             <View style={styles.logContent}>
-                                <Text style={styles.logTime}>{idx === 0 ? 'Recently' : 'Earlier'}</Text>
+                                <Text style={styles.logTime}>{idx === 0 ? 'Just Now' : 'Earlier'}</Text>
                                 <Text style={styles.logText}>Unlocked {b.name} AR capabilities</Text>
                             </View>
                         </View>
@@ -272,14 +281,6 @@ export default function ExploreScreen() {
                 ) : (
                     <Text style={styles.emptyLogText}>No discoveries yet. Start scanning!</Text>
                 )}
-                
-                <View style={styles.logItem}>
-                    <View style={styles.logDotGray} />
-                    <View style={styles.logContent}>
-                        <Text style={styles.logTime}>Yesterday</Text>
-                        <Text style={styles.logText}>Found the secret AR Trivia at the Grandstand</Text>
-                    </View>
-                </View>
             </View>
 
         </ScrollView>
