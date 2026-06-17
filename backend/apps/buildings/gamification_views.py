@@ -12,7 +12,7 @@ class LeaderboardView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        users = User.objects.filter(is_active=True).order_by('-exploration_points')[:50]
+        users = User.objects.filter(is_active=True, role='student').order_by('-exploration_points')[:50]
         data = []
         for index, user in enumerate(users):
             serializer = LeaderboardSerializer(user, context={'rank': index + 1})
@@ -98,4 +98,29 @@ class CompleteQuestView(views.APIView):
                 'message': f'Quest completed! You earned {quest.reward_points} points.',
                 'total_points': user.exploration_points
             }
+        })
+
+class RecentActivityView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        recent = UserQuestProgress.objects.filter(
+            is_completed=True, 
+            user__role='student',
+            user__is_active=True
+        ).select_related('user', 'quest', 'quest__target_building').order_by('-completed_at')[:5]
+        
+        data = []
+        for r in recent:
+            data.append({
+                'username': r.user.username,
+                'quest_title': r.quest.title,
+                'building_name': r.quest.target_building.name if r.quest.target_building else 'Unknown Location',
+                'points': r.quest.reward_points,
+                'time_ago': r.completed_at.isoformat()
+            })
+            
+        return Response({
+            'success': True,
+            'data': data
         })
