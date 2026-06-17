@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import api from './api';
 
 const CACHE_DIR = `${FileSystem.cacheDirectory}arquest_assets/`;

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+        #map { width: 100vw; height: 100vh; background: #111; }
+        /* Dark Theme Filter for Map Tiles */
+        .leaflet-tile-pane {
+            filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(110%);
+        }
+        
+        .glow-marker {
+            background-color: #ff0044;
+            border-radius: 50%;
+            box-shadow: 0 0 15px 5px rgba(255, 0, 68, 0.6);
+            border: 2px solid white;
+        }
+
+        .locked-marker {
+            background-color: #555;
+            border-radius: 50%;
+            border: 2px solid #888;
+        }
+        
+        .user-marker {
+            background-color: #00e5ff;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 15px 5px rgba(0, 229, 255, 0.6);
+        }
+
+        .building-label {
+            background: rgba(0,0,0,0.7);
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            font-size: 10px;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        const WMSU_CENTER = [6.9122, 122.0605];
+        const map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView(WMSU_CENTER, 16);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        let fogLayer = null;
+        let markersGroup = L.layerGroup().addTo(map);
+        let userMarker = null;
+
+        // Bounding box for WMSU
+        const wmsuBounds = [
+            [6.9155, 122.0575], // NW
+            [6.9155, 122.0640], // NE
+            [6.9095, 122.0640], // SE
+            [6.9095, 122.0575]  // SW
+        ];
+
+        // Function to create a circular hole in the fog
+        function getCirclePoints(center, radiusMeters, points = 32) {
+            const earthRadius = 6371000;
+            const lat = center[0] * Math.PI / 180;
+            const lng = center[1] * Math.PI / 180;
+            const d = radiusMeters / earthRadius;
+            
+            const coords = [];
+            for (let i = 0; i <= points; i++) {
+                const bearing = (i * 360 / points) * Math.PI / 180;
+                const newLat = Math.asin(Math.sin(lat)*Math.cos(d) + Math.cos(lat)*Math.sin(d)*Math.cos(bearing));
+                const newLng = lng + Math.atan2(Math.sin(bearing)*Math.sin(d)*Math.cos(lat), Math.cos(d)-Math.sin(lat)*Math.sin(newLat));
+                coords.push([newLat * 180 / Math.PI, newLng * 180 / Math.PI]);
+            }
+            return coords;
+        }
+
+        function updateMap(data) {
+            const { buildings, unlockedIds, userLocation } = data;
+            
+            // 1. Draw Fog of War
+            if (fogLayer) map.removeLayer(fogLayer);
+            
+            // Outer world bounds
+            const outerBounds = [
+                [90, -180], [90, 180], [-90, 180], [-90, -180]
+            ];
+
+            const polygonCoords = [outerBounds, wmsuBounds];
+
+            // 2. Draw Buildings and expand fog/bounds
+            const boundsElements = [L.polygon(wmsuBounds)];
+            
+            if (userLocation) {
+                if (userMarker) map.removeLayer(userMarker);
+                const userIcon = L.divIcon({ className: 'user-marker', iconSize: [16, 16] });
+                userMarker = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon }).addTo(map);
+                boundsElements.push(userMarker);
+                
+                const isOutside = userLocation.latitude > 6.9155 || userLocation.latitude < 6.9095 || userLocation.longitude > 122.0640 || userLocation.longitude < 122.0575;
+                if (isOutside) {
+                    polygonCoords.push(getCirclePoints([userLocation.latitude, userLocation.longitude], 150));
+                }
+            }
+
+            markersGroup.clearLayers();
+            buildings.forEach(b => {
+                const isUnlocked = unlockedIds.includes(b.id);
+                const lat = parseFloat(b.latitude);
+                const lng = parseFloat(b.longitude);
+
+                if (isUnlocked) {
+                    const isOutside = lat > 6.9155 || lat < 6.9095 || lng > 122.0640 || lng < 122.0575;
+                    if (isOutside) {
+                        polygonCoords.push(getCirclePoints([lat, lng], 150));
+                    }
+                }
+
+                const iconClass = isUnlocked ? 'glow-marker' : 'locked-marker';
+                const icon = L.divIcon({ className: iconClass, iconSize: [16, 16] });
+
+                const marker = L.marker([lat, lng], { icon }).addTo(markersGroup);
+                
+                if (isUnlocked) {
+                    boundsElements.push(marker);
+                }
+
+                marker.bindTooltip(b.name, {
+                    permanent: true,
+                    direction: 'bottom',
+                    className: 'building-label',
+                    offset: [0, 10]
+                });
+
+                marker.on('click', () => {
+                    if (window.ReactNativeWebView) {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: 'building_click',
+                            buildingId: b.id,
+                            isUnlocked: isUnlocked,
+                            name: b.name
+                        }));
+                    }
+                });
+            });
+
+            fogLayer = L.polygon(polygonCoords, {
+                color: 'transparent',
+                fillColor: '#000000',
+                fillOpacity: 0.75
+            }).addTo(map);
+
+            const group = new L.featureGroup(boundsElements);
+            map.fitBounds(group.getBounds(), { padding: [50, 50] });
+        }
+
+        window.addEventListener('message', (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (data.type === 'init' || data.type === 'update') {
+                    updateMap(data);
+                }
+            } catch (e) {
+                console.error("Parse error", e);
+            }
+        });
+
+        document.addEventListener('message', (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (data.type === 'init' || data.type === 'update') {
+                    updateMap(data);
+                }
+            } catch (e) {
+                console.error("Parse error", e);
+            }
+        });
+    </script>
+</body>
+</html>

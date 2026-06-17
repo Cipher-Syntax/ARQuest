@@ -13,6 +13,7 @@ import { geofencingService } from '../../services/geofencingService';
 import { api } from '../../services/api';
 import AR3DModelOverlay from '../../components/AR3DModelOverlay';
 import BrandedSelfieFrame from '../../components/BrandedSelfieFrame';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
 
 export default function ARScreen() {
     const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -26,6 +27,7 @@ export default function ARScreen() {
     const [modelReady, setModelReady] = useState(true);
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
+    const { canUseAR } = useRoleAccess();
 
     const { location, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
@@ -152,6 +154,23 @@ export default function ARScreen() {
             }, 300); 
         }
     }, [capturing, bgReady, modelReady]);
+
+    if (!canUseAR) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.permissionContainer}>
+                    <CameraIcon size={64} color={theme.colors.textMuted} />
+                    <Text style={styles.permissionTitle}>AR Access Restricted</Text>
+                    <Text style={styles.permissionText}>
+                        Your current role does not have access to the AR features. Please sign in as a student or professional to use AR Quest features.
+                    </Text>
+                    <TouchableOpacity style={styles.permissionButton} onPress={() => router.back()}>
+                        <Text style={styles.permissionButtonText}>Go Back</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
 
     if (!cameraPermission) {
         return (
@@ -300,29 +319,40 @@ const styles = StyleSheet.create({
     },
     topOverlay: {
         position: 'absolute',
-        top: 220,
+        top: 380, // Positioned right under the 3D model (80 + 320 = 400, so slightly overlapping or just below)
         left: 0,
         right: 0,
         alignItems: 'center',
         zIndex: 10,
     },
     buildingLabelContainer: {
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(138, 21, 56, 0.85)', // WMSU Crimson with opacity
         paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.radius.lg,
+        paddingHorizontal: theme.spacing.xl,
+        borderRadius: 30, // Pill shape
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.4)',
+        shadowColor: theme.colors.arHighlight,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 15,
+        elevation: 5,
     },
     buildingLabel: {
         color: '#fff',
         fontSize: theme.typography.lg,
-        fontWeight: '600',
+        fontWeight: '900',
+        letterSpacing: 1.5,
         textAlign: 'center',
+        textTransform: 'uppercase',
     },
     buildingStatus: {
         color: theme.colors.arHighlight,
         fontSize: theme.typography.sm,
+        fontWeight: 'bold',
         marginTop: 4,
         textAlign: 'center',
+        letterSpacing: 1,
     },
     controls: {
         position: 'absolute',

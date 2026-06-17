@@ -1,21 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
-import ViewerHeader from '../components/viewer/ViewerHeader';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme/tokens';
 import { useAssetCache } from '../hooks/useAssetCache';
 import { assetService } from '../services/assetService';
 
 export default function Building3DViewerScreen() {
-    const { buildingId, buildingName, modelUrl } = useLocalSearchParams();
+    const { buildingId, buildingName, buildingDescription, modelUrl } = useLocalSearchParams();
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState(null);
     const [webViewReady, setWebViewReady] = useState(false);
     const [localModelUrl, setLocalModelUrl] = useState(null);
     const webViewRef = useRef(null);
-    const { loadAsset, isLoading: isAssetLoading, progress: assetProgress, error: assetError } = useAssetCache();
+    const { loadAsset, isLoading: isAssetLoading, progress: assetProgress } = useAssetCache();
 
     useEffect(() => {
         const initAsset = async () => {
@@ -37,7 +38,6 @@ export default function Building3DViewerScreen() {
                     const uri = await loadAsset(modelAsset);
                     setLocalModelUrl(uri);
                 } else if (modelUrl) {
-                    // Fallback to legacy modelUrl from building
                     setLocalModelUrl(modelUrl);
                 } else {
                     setError('3D model not available');
@@ -57,7 +57,6 @@ export default function Building3DViewerScreen() {
         initAsset();
     }, [buildingId, modelUrl]);
 
-    // Only send the init message when BOTH the URL is available AND the WebView is fully ready
     useEffect(() => {
         if (webViewReady && webViewRef.current && localModelUrl) {
             console.log('Loading model from URL:', localModelUrl);
@@ -93,37 +92,62 @@ export default function Building3DViewerScreen() {
 
     return (
         <View style={styles.container}>
-            <ViewerHeader title={buildingName || 'Building 3D View'} />
-            
-            {error ? (
-                <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
+            {/* Fullscreen 3D Canvas */}
+            <WebView
+                ref={webViewRef}
+                source={viewerHtml}
+                style={styles.webview}
+                onMessage={handleMessage}
+                onLoadEnd={() => setWebViewReady(true)}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                allowFileAccess={true}
+                allowFileAccessFromFileURLs={true}
+                allowUniversalAccessFromFileURLs={true}
+                mixedContentMode="always"
+                originWhitelist={['*']}
+            />
+
+            {/* Floating Back Button */}
+            <TouchableOpacity style={styles.floatingBackButton} onPress={() => router.back()}>
+                <Ionicons name="arrow-back" size={24} color={theme.colors.white} />
+            </TouchableOpacity>
+
+            {/* Gamified WMSU HUD Overlay - Title (Top) */}
+            <View style={styles.hudTopContainer} pointerEvents="none">
+                <Text style={styles.buildingName}>{buildingName || 'Building 3D View'}</Text>
+            </View>
+
+            {/* Gamified WMSU HUD Overlay - Description (Bottom) */}
+            {buildingDescription ? (
+                <View style={styles.hudBottomContainer} pointerEvents="box-none">
+                    <ScrollView style={styles.descriptionScroll} showsVerticalScrollIndicator={false}>
+                        <Text style={styles.buildingDescription}>{buildingDescription}</Text>
+                    </ScrollView>
                 </View>
-            ) : (
-                <>
-                    {(loading || isAssetLoading) && (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color={theme.colors.arHighlight} />
-                            <Text style={styles.loadingText}>
-                                {isAssetLoading 
-                                    ? `Downloading Asset... ${Math.round(assetProgress * 100)}%` 
-                                    : `Loading 3D Model... ${progress}%`}
-                            </Text>
-                        </View>
-                    )}
-                    <WebView
-                        ref={webViewRef}
-                        source={viewerHtml}
-                        style={styles.webview}
-                        onMessage={handleMessage}
-                        onLoadEnd={() => setWebViewReady(true)} // Wait for HTML to load before passing messages
-                        javaScriptEnabled={true}
-                        domStorageEnabled={true}
-                        allowFileAccess={true}
-                        allowUniversalAccessFromFileURLs={true}
-                        mixedContentMode="always"
-                    />
-                </>
+            ) : null}
+
+            {/* Overlays for Loading / Errors */}
+            {error && (
+                <View style={styles.errorOverlay}>
+                    <View style={styles.errorCard}>
+                        <Ionicons name="warning-outline" size={32} color={theme.colors.error} />
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                </View>
+            )}
+
+            {(loading || isAssetLoading) && !error && (
+                <View style={styles.loadingOverlay}>
+                    <View style={styles.loadingCard}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                        <Text style={styles.loadingText}>
+                            {isAssetLoading 
+                                ? `Downloading Asset... ${Math.round(assetProgress * 100)}%` 
+                                : `Rendering 3D Model... ${progress}%`}
+                        </Text>
+                    </View>
+                </View>
             )}
         </View>
     );
@@ -132,37 +156,111 @@ export default function Building3DViewerScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: '#f5f5f5',
     },
     webview: {
-        flex: 1,
-        backgroundColor: '#000',
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'transparent',
     },
-    loadingContainer: {
+    floatingBackButton: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        top: 50,
+        left: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: theme.colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#000',
-        zIndex: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 5,
+        zIndex: 20,
+    },
+    hudTopContainer: {
+        position: 'absolute',
+        top: 100,
+        left: 20,
+        right: 20,
+        zIndex: 10,
+        alignItems: 'center',
+    },
+    hudBottomContainer: {
+        position: 'absolute',
+        bottom: 100,
+        left: 20,
+        right: 20,
+        zIndex: 10,
+    },
+    buildingName: {
+        fontSize: theme.typography.xl,
+        fontWeight: '900',
+        color: theme.colors.primary,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        textAlign: 'center',
+        textShadowColor: 'rgba(255,255,255,0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    descriptionScroll: {
+        maxHeight: 180,
+        backgroundColor: 'transparent',
+    },
+    buildingDescription: {
+        fontSize: theme.typography.md,
+        color: theme.colors.textPrimary,
+        lineHeight: 22,
+        textAlign: 'justify',
+        textShadowColor: 'rgba(255,255,255,0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(245, 245, 245, 0.8)',
+        zIndex: 30,
+    },
+    loadingCard: {
+        backgroundColor: '#fff',
+        padding: theme.spacing.xl,
+        borderRadius: theme.radius.lg,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 10,
     },
     loadingText: {
-        color: '#fff',
+        color: theme.colors.primary,
         marginTop: theme.spacing.md,
         fontSize: 16,
+        fontWeight: 'bold',
     },
-    errorContainer: {
-        flex: 1,
+    errorOverlay: {
+        ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: theme.spacing.lg,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        zIndex: 30,
+    },
+    errorCard: {
+        backgroundColor: '#fff',
+        padding: theme.spacing.xl,
+        borderRadius: theme.radius.lg,
+        alignItems: 'center',
+        maxWidth: '80%',
     },
     errorText: {
-        color: '#fff',
+        color: theme.colors.error,
+        marginTop: theme.spacing.md,
         fontSize: 16,
         textAlign: 'center',
+        fontWeight: 'bold',
     },
 });

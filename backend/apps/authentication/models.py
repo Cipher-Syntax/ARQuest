@@ -18,6 +18,7 @@ class User(AbstractUser):
         default=Role.VISITOR
     )
     email_verified = models.BooleanField(default=False)
+    exploration_points = models.IntegerField(default=0, help_text="Points earned from discovering AR targets and completing quests")
     
     @property
     def is_admin_role(self):
