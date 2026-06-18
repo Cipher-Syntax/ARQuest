@@ -46,28 +46,30 @@ const LoginPage = () => {
 	return (
 		<div className="min-h-screen flex w-full bg-white">
 			{/* Left Side - Branding (Hidden on mobile) */}
-			<div className="hidden lg:flex lg:w-1/2 bg-brand flex-col justify-center items-center p-12 relative overflow-hidden">
+			<div className="hidden lg:flex lg:w-1/2 bg-brand flex-col p-12 relative overflow-hidden">
 				<div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,transparent_100%)]"></div>
 
-				<div className="z-10 flex flex-col items-center text-center w-full max-w-md">
-					<div className="w-48 h-48 bg-white/10 border-2 border-white/20 border-dashed rounded-2xl flex items-center justify-center mb-8 backdrop-blur-sm shadow-xl relative group transition-all duration-300 hover:bg-white/20">
-						<span className="text-white/60 font-bold uppercase tracking-widest text-sm absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
+				<div className="z-10 flex flex-col w-full h-full">
+					<div className="w-full h-80 bg-white/10 border-2 border-white/20 border-dashed rounded-md flex items-center justify-center mb-12 backdrop-blur-sm shadow-xl relative group transition-all duration-300 hover:bg-white/20 mt-4">
+						<span className="text-white/60 font-bold uppercase tracking-widest text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
 							Logo Here
 						</span>
 						<img
 							src="/logo.png"
 							alt="ARQuest Logo"
-							className="w-24 h-24 object-contain opacity-50 group-hover:opacity-100 transition-opacity"
+							className="w-40 h-40 object-contain opacity-50 group-hover:opacity-100 transition-opacity"
 						/>
 					</div>
 
-					<h1 className="text-5xl font-extrabold text-white tracking-tight mb-4 drop-shadow-md">
-						ARQuest
-					</h1>
-					<p className="text-white/80 text-lg font-medium leading-relaxed">
-						The ultimate campus exploration platform. Manage your 3D buildings,
-						geofences, and trivia quests in one place.
-					</p>
+					<div className="mt-auto mb-12">
+						<h1 className="text-5xl font-extrabold text-white tracking-tight mb-4 drop-shadow-md">
+							ARQuest
+						</h1>
+						<p className="text-white/80 text-lg font-medium leading-relaxed max-w-lg">
+							The ultimate campus exploration platform. Manage your 3D buildings,
+							geofences, and trivia quests in one place.
+						</p>
+					</div>
 				</div>
 
 				{/* Decorative elements */}
@@ -77,9 +79,9 @@ const LoginPage = () => {
 
 			{/* Right Side - Login Form */}
 			<div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-brand-light/30">
-				<div className="w-full max-w-md space-y-8 bg-white p-8 sm:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+				<div className="w-full max-w-md space-y-8 bg-white p-8 sm:p-10 rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
 					<div className="text-center space-y-2">
-						<div className="w-12 h-12 bg-brand/10 text-brand rounded-xl flex items-center justify-center mx-auto mb-4 lg:hidden">
+						<div className="w-12 h-12 bg-brand/10 text-brand rounded-md flex items-center justify-center mx-auto mb-4 lg:hidden">
 							<img src="/logo.png" alt="ARQuest" className="w-8 h-8 object-contain" />
 						</div>
 						<h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
@@ -101,7 +103,7 @@ const LoginPage = () => {
 								onChange={(e) => setUsername(e.target.value)}
 								required
 								placeholder="Enter your username"
-								className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all placeholder:text-gray-400"
+								className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all placeholder:text-gray-400"
 							/>
 						</div>
 
@@ -116,7 +118,7 @@ const LoginPage = () => {
 									onChange={(e) => setPassword(e.target.value)}
 									required
 									placeholder="Enter your password"
-									className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all placeholder:text-gray-400"
+									className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all placeholder:text-gray-400"
 								/>
 								<button
 									type="button"
@@ -129,7 +131,7 @@ const LoginPage = () => {
 						</div>
 
 						{error && (
-							<div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+							<div className="p-4 bg-red-50 border border-red-100 rounded-md flex items-start gap-3">
 								<div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 shrink-0"></div>
 								<p className="text-sm font-medium text-red-700 leading-snug">
 									{error}
@@ -140,7 +142,7 @@ const LoginPage = () => {
 						<button
 							type="submit"
 							disabled={loading}
-							className="w-full py-3.5 px-4 bg-brand hover:bg-brand/90 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-brand/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							className="w-full py-3.5 px-4 bg-brand hover:bg-brand/90 text-white font-bold rounded-md text-sm transition-all shadow-md shadow-brand/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 						>
 							{loading ? (
 								<>
