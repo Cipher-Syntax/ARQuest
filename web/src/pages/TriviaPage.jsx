@@ -1,23 +1,18 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, X, Search, Filter, MoreVertical, Edit3, Trash2, Lightbulb } from 'lucide-react'
-import { Card, Badge, Button, Input, ConfirmDeleteModal } from '../components/ui'
+import { Card, Badge, Button, ConfirmDeleteModal } from '../components/ui'
 import { buildingService } from '../services/buildingService'
-
-const INITIAL_FACTS = [
-  { id: 1, building: 'CCS', fact: 'The CCS building was established in 2000, making it one of the newer academic facilities on campus.' },
-  { id: 2, building: 'CCS', fact: 'It houses 10 fully-equipped computer laboratories with high-performance workstations and dual-monitor setups.' },
-  { id: 3, building: 'CCS', fact: 'The department offers programs in Computer Science, IT, and Information Systems — accredited by CHED.' },
-]
+import { triviaService } from '../services/triviaService'
 
 export default function Trivia({ hideHeader }) {
   const [buildingsList, setBuildingsList] = useState([])
-  const [facts, setFacts] = useState(INITIAL_FACTS)
+  const [facts, setFacts] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [factToDelete, setFactToDelete] = useState(null)
   const [editingFact, setEditingFact] = useState(null)
   const [activeMenu, setActiveMenu] = useState(null)
-  const [newBuilding, setNewBuilding] = useState('CCS')
+  const [newBuildingId, setNewBuildingId] = useState('')
   const [newFact, setNewFact] = useState('')
   const [selectedBuilding, setSelectedBuilding] = useState('All Buildings')
   const [searchTerm, setSearchTerm] = useState('')
@@ -34,43 +29,61 @@ export default function Trivia({ hideHeader }) {
   }, [])
 
   useEffect(() => {
-    const loadBuildings = async () => {
+    const loadData = async () => {
       try {
-        const buildings = await buildingService.getBuildings()
-        setBuildingsList(buildings)
+        const [buildings, trivias] = await Promise.all([
+          buildingService.getBuildings(),
+          triviaService.getTrivias()
+        ]);
+        setBuildingsList(buildings);
+        if (buildings.length > 0) {
+          setNewBuildingId(buildings[0].id.toString());
+        }
+        setFacts(trivias);
       } catch (error) {
-        console.error('Failed to load buildings', error)
+        console.error('Failed to load data', error);
       }
-    }
-    loadBuildings()
+    };
+    loadData();
   }, [])
 
   const handleOpenAddModal = () => {
     setEditingFact(null)
     setNewFact('')
+    if (buildingsList.length > 0) setNewBuildingId(buildingsList[0].id.toString())
     setIsModalOpen(true)
   }
 
   const handleOpenEditModal = (item) => {
     setEditingFact(item)
-    setNewBuilding(item.building)
+    setNewBuildingId(item.building.toString())
     setNewFact(item.fact)
     setActiveMenu(null)
     setIsModalOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!newFact.trim()) return
-    
-    if (editingFact) {
-      setFacts(facts.map(f => f.id === editingFact.id ? { ...f, building: newBuilding, fact: newFact } : f))
-    } else {
-      const newId = facts.length > 0 ? Math.max(...facts.map(f => f.id)) + 1 : 1
-      setFacts([{ id: newId, building: newBuilding, fact: newFact }, ...facts])
+
+    try {
+      if (editingFact) {
+        const updatedTrivia = await triviaService.updateTrivia(editingFact.id, {
+          building: newBuildingId,
+          fact: newFact
+        });
+        setFacts(facts.map(f => f.id === editingFact.id ? updatedTrivia : f))
+      } else {
+        const newTrivia = await triviaService.createTrivia({
+          building: newBuildingId,
+          fact: newFact
+        });
+        setFacts([newTrivia, ...facts])
+      }
+      setIsModalOpen(false)
+    } catch (error) {
+      console.error('Failed to save trivia', error);
+      alert('Failed to save trivia fact');
     }
-    
-    setNewFact('')
-    setIsModalOpen(false)
   }
 
   const handleDeleteClick = (id) => {
@@ -79,18 +92,24 @@ export default function Trivia({ hideHeader }) {
     setIsDeleteModalOpen(true)
   }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (factToDelete) {
-      setFacts(facts.filter(f => f.id !== factToDelete))
-      setFactToDelete(null)
-      setIsDeleteModalOpen(false)
+      try {
+        await triviaService.deleteTrivia(factToDelete);
+        setFacts(facts.filter(f => f.id !== factToDelete))
+        setFactToDelete(null)
+        setIsDeleteModalOpen(false)
+      } catch (error) {
+        console.error('Failed to delete trivia', error);
+        alert('Failed to delete trivia');
+      }
     }
   }
 
   const filteredFacts = facts.filter(f => {
     const matchesSearch = f.fact.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          f.building.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesBuilding = selectedBuilding === 'All Buildings' || f.building === selectedBuilding
+                          (f.building_name && f.building_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesBuilding = selectedBuilding === 'All Buildings' || f.building_name === selectedBuilding
     return matchesSearch && matchesBuilding
   })
 
@@ -150,7 +169,7 @@ export default function Trivia({ hideHeader }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="brand" className="text-[9px] px-1.5">{item.building}</Badge>
+                  <Badge variant="brand" className="text-[9px] px-1.5">{item.building_name}</Badge>
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed font-medium">{item.fact}</p>
               </div>
@@ -199,11 +218,11 @@ export default function Trivia({ hideHeader }) {
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Building</label>
                 <select
-                  value={newBuilding}
-                  onChange={(e) => setNewBuilding(e.target.value)}
+                  value={newBuildingId}
+                  onChange={(e) => setNewBuildingId(e.target.value)}
                   className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
                 >
-                  {buildingsList.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                  {buildingsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
               <div className="space-y-2">

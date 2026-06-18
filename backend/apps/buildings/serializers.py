@@ -1,7 +1,19 @@
 from rest_framework import serializers
-from .models import Building, Geofence, BuildingUnlock, BuildingAsset
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Quest, TriviaFact
 
+class QuestSerializer(serializers.ModelSerializer):
+    target_building_name = serializers.CharField(source='target_building.name', read_only=True)
 
+    class Meta:
+        model = Quest
+        fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'is_active', 'created_at']
+
+class TriviaFactSerializer(serializers.ModelSerializer):
+    building_name = serializers.CharField(source='building.name', read_only=True)
+
+    class Meta:
+        model = TriviaFact
+        fields = ['id', 'building', 'building_name', 'fact', 'is_active', 'created_at', 'updated_at']
 class GeofenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Geofence

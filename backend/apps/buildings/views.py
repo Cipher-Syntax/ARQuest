@@ -228,3 +228,79 @@ def asset_metadata(request, id):
 
     serializer = BuildingAssetSerializer(asset, context={'request': request})
     return success_response(serializer.data)
+
+
+# Quests and Trivias
+
+from .models import Quest, TriviaFact
+from .serializers import QuestSerializer, TriviaFactSerializer
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def quest_list_create(request):
+    if request.method == 'GET':
+        quests = Quest.objects.all().order_by('-created_at')
+        return success_response(QuestSerializer(quests, many=True).data)
+    elif request.method == 'POST':
+        if not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        serializer = QuestSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
+        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def quest_detail(request, id):
+    if not request.user.is_admin_role:
+        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    try:
+        quest = Quest.objects.get(id=id)
+    except Quest.DoesNotExist:
+        return error_response('not_found', 'Quest not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'PATCH':
+        serializer = QuestSerializer(quest, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(serializer.data)
+        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+    elif request.method == 'DELETE':
+        quest.delete()
+        return success_response({'message': 'Quest deleted'})
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def trivia_list_create(request):
+    if request.method == 'GET':
+        trivias = TriviaFact.objects.all().order_by('-created_at')
+        return success_response(TriviaFactSerializer(trivias, many=True).data)
+    elif request.method == 'POST':
+        if not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        serializer = TriviaFactSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
+        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def trivia_detail(request, id):
+    if not request.user.is_admin_role:
+        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    try:
+        trivia = TriviaFact.objects.get(id=id)
+    except TriviaFact.DoesNotExist:
+        return error_response('not_found', 'Trivia not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'PATCH':
+        serializer = TriviaFactSerializer(trivia, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(serializer.data)
+        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+    elif request.method == 'DELETE':
+        trivia.delete()
+        return success_response({'message': 'Trivia deleted'})

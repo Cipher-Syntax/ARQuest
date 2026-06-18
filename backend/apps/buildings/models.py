@@ -139,3 +139,17 @@ class UserQuestProgress(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.quest.title}"
+
+
+class TriviaFact(models.Model):
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='trivia_facts')
+    fact = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Trivia for {self.building.name}"
