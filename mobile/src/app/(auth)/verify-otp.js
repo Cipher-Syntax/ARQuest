@@ -7,10 +7,14 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import theme from "../../theme/tokens";
 import { api } from "../../services/api";
+import ARGlassCard from "../../components/ARGlassCard";
+import ARButton from "../../components/ARButton";
 
 export default function VerifyOtpScreen() {
     const router = useRouter();
@@ -25,7 +29,7 @@ export default function VerifyOtpScreen() {
 
     const handleVerify = async () => {
         if (!otp || otp.length !== 6) {
-            setError("Please enter the 6-digit OTP code");
+            setError("Access code must be 6 digits.");
             return;
         }
 
@@ -35,11 +39,11 @@ export default function VerifyOtpScreen() {
         try {
             await api.post("/api/auth/verify-otp/", { email, otp });
             Alert.alert(
-                "Success",
-                "Email verified successfully. You can now login.",
+                "Identity Verified",
+                "Your comm channel is confirmed. You may now initialize your quest.",
                 [
                     {
-                        text: "OK",
+                        text: "Proceed",
                         onPress: () => router.replace("/(auth)/login"),
                     },
                 ],
@@ -49,7 +53,7 @@ export default function VerifyOtpScreen() {
             setError(
                 err.data?.detail ||
                     err.data?.non_field_errors?.[0] ||
-                    "Invalid or expired OTP.",
+                    "Invalid or expired code.",
             );
         } finally {
             setIsLoading(false);
@@ -63,66 +67,75 @@ export default function VerifyOtpScreen() {
 
         try {
             await api.post("/api/auth/resend-otp/", { email });
-            setMessage("A new OTP has been sent to your email.");
+            setMessage("A new transmission has been sent to your channel.");
         } catch (err) {
-            setError(err.data?.detail || "Failed to resend OTP.");
+            setError(err.data?.detail || "Failed to resend transmission.");
         } finally {
             setIsResending(false);
         }
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Verify Email</Text>
-            <Text style={styles.subtitle}>
-                Enter the 6-digit code sent to {email}
-            </Text>
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.container}
+        >
+            <View style={styles.glowOrbTop} />
+            <View style={styles.glowOrbBottom} />
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            {message ? <Text style={styles.message}>{message}</Text> : null}
+            <View style={styles.content}>
+                <View style={styles.header}>
+                    <Text style={styles.title}>Verify Comm Link</Text>
+                    <Text style={styles.subtitle}>
+                        Enter the 6-digit code sent to {email}
+                    </Text>
+                </View>
 
-            <TextInput
-                style={styles.input}
-                placeholder="Enter OTP"
-                placeholderTextColor={theme.colors.textMuted}
-                value={otp}
-                onChangeText={setOtp}
-                keyboardType="numeric"
-                maxLength={6}
-                textAlign="center"
-            />
+                <ARGlassCard style={styles.card}>
+                    {error ? <Text style={styles.error}>{error}</Text> : null}
+                    {message ? <Text style={styles.message}>{message}</Text> : null}
 
-            <TouchableOpacity
-                style={styles.button}
-                onPress={handleVerify}
-                disabled={isLoading || isResending}
-            >
-                {isLoading ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                    <Text style={styles.buttonText}>Verify</Text>
-                )}
-            </TouchableOpacity>
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Transmission Code</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="000000"
+                            placeholderTextColor={theme.colors.textMuted}
+                            value={otp}
+                            onChangeText={setOtp}
+                            keyboardType="numeric"
+                            maxLength={6}
+                            textAlign="center"
+                        />
+                    </View>
 
-            <TouchableOpacity
-                style={styles.resendButton}
-                onPress={handleResend}
-                disabled={isLoading || isResending}
-            >
-                {isResending ? (
-                    <ActivityIndicator color={theme.colors.primary} />
-                ) : (
-                    <Text style={styles.resendText}>Resend Code</Text>
-                )}
-            </TouchableOpacity>
+                    <ARButton
+                        title="Verify Identity"
+                        onPress={handleVerify}
+                        isLoading={isLoading}
+                        disabled={isResending}
+                        variant="accent"
+                        style={styles.verifyButton}
+                    />
 
-            <TouchableOpacity
-                style={styles.link}
-                onPress={() => router.replace("/(auth)/login")}
-            >
-                <Text style={styles.linkText}>Back to Login</Text>
-            </TouchableOpacity>
-        </View>
+                    <ARButton
+                        title="Resend Code"
+                        onPress={handleResend}
+                        isLoading={isResending}
+                        disabled={isLoading}
+                        variant="outline"
+                        style={styles.resendButton}
+                    />
+
+                    <TouchableOpacity
+                        style={styles.link}
+                        onPress={() => router.replace("/(auth)/login")}
+                    >
+                        <Text style={styles.linkText}>Abort & Return to Login</Text>
+                    </TouchableOpacity>
+                </ARGlassCard>
+            </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -130,74 +143,112 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.bgPrimary,
+    },
+    glowOrbTop: {
+        position: 'absolute',
+        top: -100,
+        left: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: theme.colors.primaryDark,
+        opacity: 0.5,
+    },
+    glowOrbBottom: {
+        position: 'absolute',
+        bottom: -150,
+        right: -100,
+        width: 400,
+        height: 400,
+        borderRadius: 200,
+        backgroundColor: "#EAB30810",
+    },
+    content: {
+        flex: 1,
         justifyContent: "center",
         padding: theme.spacing.lg,
+        zIndex: 1,
     },
-    title: {
-        color: theme.colors.primary,
-        fontSize: theme.typography.xxl,
-        fontWeight: "bold",
-        textAlign: "center",
-        marginBottom: theme.spacing.sm,
-    },
-    subtitle: {
-        color: theme.colors.textSecondary,
-        fontSize: theme.typography.md,
-        textAlign: "center",
+    header: {
+        alignItems: "center",
         marginBottom: theme.spacing.xl,
     },
+    title: {
+        color: theme.colors.textPrimary,
+        fontSize: 32,
+        fontWeight: "900",
+        letterSpacing: 2,
+        textTransform: "uppercase",
+        textShadowColor: "rgba(234, 179, 8, 0.4)",
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    subtitle: {
+        color: theme.colors.accent,
+        fontSize: theme.typography.sm,
+        fontWeight: "600",
+        textAlign: "center",
+    },
+    card: {
+        paddingTop: theme.spacing.xl,
+    },
+    inputGroup: {
+        marginBottom: theme.spacing.lg,
+    },
+    inputLabel: {
+        color: theme.colors.textMuted,
+        fontSize: 10,
+        fontWeight: "bold",
+        textTransform: "uppercase",
+        letterSpacing: 1,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
     input: {
-        backgroundColor: theme.colors.surface,
+        backgroundColor: "rgba(0,0,0,0.3)",
         color: theme.colors.textPrimary,
         padding: theme.spacing.md,
         borderRadius: theme.radius.md,
-        marginBottom: theme.spacing.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        fontSize: theme.typography.xl,
-        letterSpacing: 8,
+        fontSize: 32,
+        letterSpacing: 12,
     },
-    button: {
-        backgroundColor: theme.colors.primary,
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        alignItems: "center",
-        marginTop: theme.spacing.md,
-    },
-    buttonText: {
-        color: "#FFFFFF",
-        fontSize: theme.typography.md,
-        fontWeight: "bold",
+    verifyButton: {
+        marginTop: theme.spacing.sm,
     },
     resendButton: {
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        alignItems: "center",
-        marginTop: theme.spacing.sm,
-        borderWidth: 1,
-        borderColor: theme.colors.primary,
-    },
-    resendText: {
-        color: theme.colors.primary,
-        fontSize: theme.typography.md,
-        fontWeight: "bold",
+        marginTop: theme.spacing.md,
     },
     error: {
         color: theme.colors.error,
         marginBottom: theme.spacing.md,
         textAlign: "center",
+        fontSize: theme.typography.sm,
+        fontWeight: "600",
+        backgroundColor: "rgba(239, 68, 68, 0.1)",
+        padding: 10,
+        borderRadius: theme.radius.sm,
     },
     message: {
         color: theme.colors.success,
         marginBottom: theme.spacing.md,
         textAlign: "center",
+        fontSize: theme.typography.sm,
+        fontWeight: "600",
+        backgroundColor: "rgba(16, 185, 129, 0.1)",
+        padding: 10,
+        borderRadius: theme.radius.sm,
     },
     link: {
         marginTop: theme.spacing.xl,
         alignItems: "center",
     },
     linkText: {
-        color: theme.colors.textSecondary,
-        fontSize: theme.typography.md,
+        color: theme.colors.textMuted,
+        fontSize: theme.typography.sm,
+        fontWeight: "500",
     },
 });

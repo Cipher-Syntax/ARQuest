@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, Ale
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import theme from "../../theme/tokens";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
+import { Crosshair, ShieldAlert } from "lucide-react-native";
 
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading: isUnlockedLoading } = useUnlockedBuildings();
@@ -39,7 +41,6 @@ export default function BuildingsScreen() {
         fetchBuildings();
     }, []);
 
-    // Sync data to WebView
     useEffect(() => {
         if (webViewReady && webViewRef.current && allBuildings.length > 0) {
             const unlockedIds = unlockedBuildings.map(b => b.id);
@@ -59,7 +60,6 @@ export default function BuildingsScreen() {
             if (data.type === 'building_click') {
                 if (data.isUnlocked || role === 'visitor') {
                     const building = allBuildings.find(b => b.id === data.buildingId);
-                    // Add unlock source from unlockedBuildings if available
                     const unlockedData = unlockedBuildings.find(b => b.id === data.buildingId) || {};
                     if (building) {
                         setSelectedBuilding({ ...building, ...unlockedData });
@@ -67,9 +67,9 @@ export default function BuildingsScreen() {
                     }
                 } else {
                     Alert.alert(
-                        "Building Locked",
-                        `You must visit ${data.name} to unlock its AR features. Walk to its location on campus!`,
-                        [{ text: "OK" }]
+                        "ZONE LOCKED",
+                        `You must physically deploy to ${data.name} to unlock its AR capabilities.`,
+                        [{ text: "ACKNOWLEDGE" }]
                     );
                 }
             }
@@ -106,10 +106,12 @@ export default function BuildingsScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar style="light" />
+            
             {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
                 <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color={theme.colors.primary} />
-                    <Text style={styles.loadingText}>Loading Map...</Text>
+                    <ActivityIndicator size="large" color={theme.colors.arHighlight} />
+                    <Text style={styles.loadingText}>INITIALIZING MAP GRID...</Text>
                 </View>
             )}
 
@@ -126,15 +128,20 @@ export default function BuildingsScreen() {
                 originWhitelist={['*']}
             />
 
-            {/* Top Bar Overlay */}
-            <View style={styles.topBar}>
-                <Text style={styles.topBarTitle}>Campus Map</Text>
-                <Text style={styles.topBarSubtitle}>
-                    {unlockedBuildings.length} of {allBuildings.length} Unlocked
-                </Text>
+            {/* Gamified HUD Top Bar Overlay */}
+            <View style={styles.hudTopBar}>
+                <View style={styles.hudContent}>
+                    <Crosshair color={theme.colors.arHighlight} size={20} />
+                    <View style={styles.hudTextContainer}>
+                        <Text style={styles.topBarTitle}>CAMPUS BUILDINGS</Text>
+                        <Text style={styles.topBarSubtitle}>
+                            ZONES SECURED: <Text style={{color: theme.colors.accent}}>{unlockedBuildings.length} / {allBuildings.length}</Text>
+                        </Text>
+                    </View>
+                </View>
             </View>
 
-            {/* Bottom Sheet Modal for Unlocked Building */}
+            {/* AR Gamified Bottom Sheet Modal */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -151,7 +158,7 @@ export default function BuildingsScreen() {
                                     <Text style={styles.buildingName}>{selectedBuilding.name}</Text>
                                     <View style={[styles.badge, selectedBuilding.unlock_source === 'role_access' && styles.badgeRole]}>
                                         <Text style={styles.badgeText}>
-                                            {selectedBuilding.unlock_source === 'geofence' ? '✓ Unlocked' : '★ Role Access'}
+                                            {selectedBuilding.unlock_source === 'geofence' ? 'SECURED' : 'OVERRIDE'}
                                         </Text>
                                     </View>
                                 </View>
@@ -164,25 +171,26 @@ export default function BuildingsScreen() {
                                     <View style={styles.actionButtons}>
                                         {selectedBuilding.model_active && selectedBuilding.model_url && canView3D ? (
                                             <TouchableOpacity style={styles.view3dButton} onPress={handleView3D}>
-                                                <Ionicons name="cube-outline" size={20} color={theme.colors.white} />
-                                                <Text style={styles.view3dText}>View 3D Model</Text>
+                                                <Ionicons name="cube-outline" size={20} color="#000" />
+                                                <Text style={styles.view3dText}>DEPLOY 3D MODEL</Text>
                                             </TouchableOpacity>
                                         ) : (
                                             <View style={styles.no3dContainer}>
-                                                <Text style={styles.no3dText}>3D model not available</Text>
+                                                <Text style={styles.no3dText}>3D assets currently offline</Text>
                                             </View>
                                         )}
                                         
                                         {canViewPanorama && (
                                             <TouchableOpacity style={styles.viewPanoramaButton} onPress={handleViewPanorama}>
-                                                <Ionicons name="camera-outline" size={20} color={theme.colors.primary} />
-                                                <Text style={styles.viewPanoramaText}>360° Walkthrough</Text>
+                                                <Ionicons name="camera-outline" size={20} color={theme.colors.arHighlight} />
+                                                <Text style={styles.viewPanoramaText}>ENTER 360° SIMULATION</Text>
                                             </TouchableOpacity>
                                         )}
                                     </View>
                                 ) : (
                                     <View style={styles.restrictedContainer}>
-                                        <Text style={styles.restrictedText}>Advanced view features restricted by role</Text>
+                                        <ShieldAlert color={theme.colors.error} size={20} style={{marginBottom: 4}} />
+                                        <Text style={styles.restrictedText}>CLEARANCE LEVEL INSUFFICIENT</Text>
                                     </View>
                                 )}
                             </>
@@ -205,58 +213,74 @@ const styles = StyleSheet.create({
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#000',
+        backgroundColor: 'rgba(26, 4, 11, 0.9)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
     },
     loadingText: {
-        color: '#fff',
+        color: theme.colors.arHighlight,
         marginTop: 10,
         fontWeight: 'bold',
+        letterSpacing: 2,
     },
-    topBar: {
+    hudTopBar: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(255,255,255,0.9)',
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
         paddingTop: 50, // Safe area top
         paddingBottom: 15,
-        alignItems: 'center',
         borderBottomWidth: 1,
-        borderBottomColor: '#ddd',
+        borderBottomColor: 'rgba(0, 229, 255, 0.3)',
+    },
+    hudContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    hudTextContainer: {
+        marginLeft: 10,
+        alignItems: 'flex-start',
     },
     topBarTitle: {
-        color: theme.colors.textPrimary,
-        fontSize: 18,
-        fontWeight: 'bold',
+        color: theme.colors.arHighlight,
+        fontSize: 16,
+        fontWeight: '900',
+        letterSpacing: 2,
     },
     topBarSubtitle: {
-        color: theme.colors.textSecondary,
-        fontSize: 12,
+        color: theme.colors.textMuted,
+        fontSize: 11,
+        fontWeight: 'bold',
         marginTop: 2,
+        letterSpacing: 1,
     },
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
     },
     bottomSheet: {
-        backgroundColor: theme.colors.surface,
+        backgroundColor: theme.colors.bgPrimary,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: theme.spacing.lg,
-        shadowColor: '#000',
+        borderTopWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderColor: 'rgba(0, 229, 255, 0.3)',
+        shadowColor: theme.colors.arHighlight,
         shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.2,
         shadowRadius: 10,
         elevation: 10,
     },
     sheetHandle: {
         width: 40,
         height: 5,
-        backgroundColor: theme.colors.border,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         borderRadius: 3,
         alignSelf: 'center',
         marginBottom: theme.spacing.md,
@@ -268,30 +292,36 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.sm,
     },
     buildingName: {
-        fontSize: theme.typography.xl,
-        fontWeight: "bold",
+        fontSize: 22,
+        fontWeight: "900",
         color: theme.colors.textPrimary,
         flex: 1,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
     badge: {
-        backgroundColor: theme.colors.success,
+        backgroundColor: "rgba(16, 185, 129, 0.2)",
+        borderColor: theme.colors.success,
+        borderWidth: 1,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 4,
         borderRadius: theme.radius.sm,
     },
     badgeRole: {
-        backgroundColor: theme.colors.accent,
+        backgroundColor: "rgba(234, 179, 8, 0.2)",
+        borderColor: theme.colors.accent,
     },
     badgeText: {
-        color: theme.colors.white,
-        fontSize: theme.typography.xs,
-        fontWeight: "600",
+        color: theme.colors.textPrimary,
+        fontSize: 10,
+        fontWeight: "bold",
+        letterSpacing: 1,
     },
     description: {
-        fontSize: theme.typography.md,
-        color: theme.colors.textSecondary,
+        fontSize: 13,
+        color: theme.colors.textMuted,
         marginBottom: theme.spacing.lg,
-
+        lineHeight: 20,
     },
     actionButtons: {
         gap: theme.spacing.sm,
@@ -300,14 +330,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: theme.colors.arHighlight,
         paddingVertical: 14,
         borderRadius: theme.radius.md,
     },
     view3dText: {
-        color: theme.colors.white,
-        fontSize: theme.typography.md,
-        fontWeight: "bold",
+        color: "#000",
+        fontSize: 14,
+        fontWeight: "900",
+        letterSpacing: 1,
         marginLeft: theme.spacing.sm,
     },
     no3dContainer: {
@@ -315,7 +346,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     no3dText: {
-        fontSize: theme.typography.sm,
+        fontSize: 12,
         color: theme.colors.textMuted,
         fontStyle: "italic",
     },
@@ -323,27 +354,31 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.bgPrimary,
-        borderWidth: 2,
-        borderColor: theme.colors.primary,
+        backgroundColor: "transparent",
+        borderWidth: 1,
+        borderColor: theme.colors.arHighlight,
         paddingVertical: 12,
         borderRadius: theme.radius.md,
     },
     viewPanoramaText: {
-        color: theme.colors.primary,
-        fontSize: theme.typography.md,
+        color: theme.colors.arHighlight,
+        fontSize: 14,
         fontWeight: "bold",
+        letterSpacing: 1,
         marginLeft: theme.spacing.sm,
     },
     restrictedContainer: {
         paddingVertical: theme.spacing.md,
-        backgroundColor: theme.colors.bgSecondary,
+        backgroundColor: "rgba(239, 68, 68, 0.1)",
+        borderWidth: 1,
+        borderColor: theme.colors.error,
         borderRadius: theme.radius.md,
         alignItems: 'center',
     },
     restrictedText: {
-        fontSize: theme.typography.sm,
+        fontSize: 12,
         color: theme.colors.error,
-        fontStyle: "italic",
+        fontWeight: "bold",
+        letterSpacing: 1,
     },
 });

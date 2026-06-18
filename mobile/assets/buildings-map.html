@@ -47,10 +47,21 @@
     <div id="map"></div>
 
     <script>
+        // Bounding box for WMSU
+        const wmsuBounds = [
+            [6.9155, 122.0575], // NW
+            [6.9155, 122.0640], // NE
+            [6.9095, 122.0640], // SE
+            [6.9095, 122.0575]  // SW
+        ];
+
         const WMSU_CENTER = [6.9122, 122.0605];
         const map = L.map('map', {
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            maxBounds: wmsuBounds,
+            maxBoundsViscosity: 1.0,
+            minZoom: 15
         }).setView(WMSU_CENTER, 16);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -60,14 +71,6 @@
         let fogLayer = null;
         let markersGroup = L.layerGroup().addTo(map);
         let userMarker = null;
-
-        // Bounding box for WMSU
-        const wmsuBounds = [
-            [6.9155, 122.0575], // NW
-            [6.9155, 122.0640], // NE
-            [6.9095, 122.0640], // SE
-            [6.9095, 122.0575]  // SW
-        ];
 
         // Function to create a circular hole in the fog
         function getCirclePoints(center, radiusMeters, points = 32) {
@@ -106,7 +109,8 @@
                 if (userMarker) map.removeLayer(userMarker);
                 const userIcon = L.divIcon({ className: 'user-marker', iconSize: [16, 16] });
                 userMarker = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon }).addTo(map);
-                boundsElements.push(userMarker);
+                
+                // Do NOT push userMarker to boundsElements so we stay focused on WMSU
                 
                 const isOutside = userLocation.latitude > 6.9155 || userLocation.latitude < 6.9095 || userLocation.longitude > 122.0640 || userLocation.longitude < 122.0575;
                 if (isOutside) {
