@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Building2, Users, Navigation, HelpCircle, ArrowUpRight, MoreVertical, ChevronRight } from 'lucide-react'
+import {
+  Building2,
+  Users,
+  Navigation,
+  HelpCircle,
+  ArrowUpRight,
+  MoreVertical,
+  ChevronRight
+} from 'lucide-react'
 import { Card, Badge } from '../components/ui'
 import { dashboardService } from '../services/dashboardService'
 
@@ -11,25 +19,49 @@ export default function Dashboard() {
     gps_unlocks_today: 0,
     weekly_data: [],
     building_status: []
-  });
+  })
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const data = await dashboardService.getStats();
-        setStats(data);
+        const data = await dashboardService.getStats()
+        setStats(data)
       } catch (error) {
-        console.error('Failed to load dashboard stats', error);
+        console.error('Failed to load dashboard stats', error)
       }
-    };
-    fetchStats();
-  }, []);
+    }
+    fetchStats()
+  }, [])
 
   const STATS = [
-    { label: 'Total Buildings', value: stats.total_buildings, icon: Building2, trend: 'Total Live', color: 'bg-brand-light text-brand' },
-    { label: 'Active Students', value: stats.active_students, icon: Users, trend: 'Enrolled', color: 'bg-brand-light text-brand' },
-    { label: 'GPS Unlocks Today', value: stats.gps_unlocks_today, icon: Navigation, trend: 'Today', color: 'bg-brand-light text-brand' },
-    { label: 'Trivia Facts', value: stats.trivia_facts, icon: HelpCircle, trend: 'Live', color: 'bg-brand-light text-brand' },
+    {
+      label: 'Total Buildings',
+      value: stats.total_buildings,
+      icon: Building2,
+      trend: 'Total Live',
+      color: 'bg-brand-light text-brand'
+    },
+    {
+      label: 'Active Students',
+      value: stats.active_students,
+      icon: Users,
+      trend: 'Enrolled',
+      color: 'bg-brand-light text-brand'
+    },
+    {
+      label: 'GPS Unlocks Today',
+      value: stats.gps_unlocks_today,
+      icon: Navigation,
+      trend: 'Today',
+      color: 'bg-brand-light text-brand'
+    },
+    {
+      label: 'Trivia Facts',
+      value: stats.trivia_facts,
+      icon: HelpCircle,
+      trend: 'Live',
+      color: 'bg-brand-light text-brand'
+    }
   ]
 
   return (
@@ -48,9 +80,7 @@ export default function Dashboard() {
               <div className={`p-2.5 rounded-md ${stat.color}`}>
                 <stat.icon size={18} />
               </div>
-              <Badge variant="success">
-                {stat.trend}
-              </Badge>
+              <Badge variant="success">{stat.trend}</Badge>
             </div>
             <div className="mt-3">
               <h3 className="text-2xl font-bold text-gray-900 tracking-tight">{stat.value}</h3>
@@ -61,7 +91,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
         {/* Chart Section */}
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
@@ -74,12 +103,12 @@ export default function Dashboard() {
               <ChevronRight size={12} />
             </button>
           </div>
-          
+
           <div className="h-48 flex items-end justify-between gap-3 px-2">
             {stats.weekly_data.map((data, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
                 <div className="w-full relative">
-                   <div 
+                  <div
                     className={`w-full rounded-t-lg transition-all duration-300 ${data.day === 'Sat' ? 'bg-brand' : 'bg-brand-light group-hover:bg-brand/30'}`}
                     style={{ height: `${Math.max(data.value * 15, 4)}px` }}
                   >
@@ -98,11 +127,16 @@ export default function Dashboard() {
         <Card>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-gray-900">Building Status</h3>
-            <button className="text-gray-400 hover:text-brand transition-colors"><MoreVertical size={18} /></button>
+            <button className="text-gray-400 hover:text-brand transition-colors">
+              <MoreVertical size={18} />
+            </button>
           </div>
           <div className="space-y-1">
             {stats.building_status.map((b, i) => (
-              <div key={i} className="flex items-center justify-between py-2.5 border-b border-brand-border last:border-0">
+              <div
+                key={i}
+                className="flex items-center justify-between py-2.5 border-b border-brand-border last:border-0"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-md bg-brand-light flex items-center justify-center text-brand font-bold text-[10px] shrink-0">
                     {b.code}

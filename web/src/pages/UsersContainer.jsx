@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import UserManagement from './UserManagement';
-import LeaderboardPage from './LeaderboardPage';
-import { Users, Trophy } from 'lucide-react';
+import React, { useState } from 'react'
+import UserManagement from './UserManagement'
+import LeaderboardPage from './LeaderboardPage'
+import { Users, Trophy } from 'lucide-react'
 
 export default function UsersContainer() {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('users')
 
   return (
     <div className="space-y-6">
@@ -43,5 +43,5 @@ export default function UsersContainer() {
         {activeTab === 'leaderboard' && <LeaderboardPage hideHeader={true} />}
       </div>
     </div>
-  );
+  )
 }

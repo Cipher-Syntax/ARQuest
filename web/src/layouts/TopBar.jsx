@@ -7,7 +7,6 @@ export default function TopBar({ user }) {
   return (
     <header className="h-16 bg-brand-light border-b border-brand-border px-4 lg:px-8 flex items-center justify-between sticky top-0 z-10">
       <div className="flex items-center gap-6 flex-1">
-        
         {/* Spacer for mobile sidebar toggle */}
         <div className="w-12 lg:hidden" />
       </div>
@@ -20,8 +19,12 @@ export default function TopBar({ user }) {
 
         <div className="flex items-center gap-3 pl-4 border-l border-brand-border">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold text-gray-900 leading-none">{user?.name || 'Admin User'}</p>
-            <p className="text-[10px] font-bold text-brand mt-1 uppercase tracking-wider">{user?.role || 'Administrator'}</p>
+            <p className="text-sm font-bold text-gray-900 leading-none">
+              {user?.name || 'Admin User'}
+            </p>
+            <p className="text-[10px] font-bold text-brand mt-1 uppercase tracking-wider">
+              {user?.role || 'Administrator'}
+            </p>
           </div>
           <div className="w-10 h-10 rounded-full bg-white border border-brand-border flex items-center justify-center text-brand shadow-sm">
             <User size={20} />

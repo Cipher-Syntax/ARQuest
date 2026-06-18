@@ -1,94 +1,96 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Image as ImageIcon, X } from 'lucide-react';
-import { Card } from '../components/ui';
-import { buildingService } from '../services/buildingService';
-import { panoramaService } from '../services/panoramaService';
-import '@google/model-viewer';
-import { ReactPhotoSphereViewer } from 'react-photo-sphere-viewer';
-import { VirtualTourPlugin } from '@photo-sphere-viewer/virtual-tour-plugin';
-import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
-import '@photo-sphere-viewer/core/index.css';
-import '@photo-sphere-viewer/virtual-tour-plugin/index.css';
-import '@photo-sphere-viewer/markers-plugin/index.css';
+import React, { useState, useEffect } from 'react'
+import { Box, Image as ImageIcon, X } from 'lucide-react'
+import { Card } from '../components/ui'
+import { buildingService } from '../services/buildingService'
+import { panoramaService } from '../services/panoramaService'
+import '@google/model-viewer'
+import { ReactPhotoSphereViewer } from 'react-photo-sphere-viewer'
+import { VirtualTourPlugin } from '@photo-sphere-viewer/virtual-tour-plugin'
+import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin'
+import '@photo-sphere-viewer/core/index.css'
+import '@photo-sphere-viewer/virtual-tour-plugin/index.css'
+import '@photo-sphere-viewer/markers-plugin/index.css'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const getFullUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${API_BASE_URL}${url}`;
-};
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${API_BASE_URL}${url}`
+}
 
 export default function Media() {
-  const [buildings, setBuildings] = useState([]);
-  const [viewTab, setViewTab] = useState('3d'); // '3d' or 'panorama'
-  const [loading, setLoading] = useState(true);
+  const [buildings, setBuildings] = useState([])
+  const [viewTab, setViewTab] = useState('3d') // '3d' or 'panorama'
+  const [loading, setLoading] = useState(true)
 
   // Viewer state
-  const [activeModel, setActiveModel] = useState(null); // building object
-  const [activePanorama, setActivePanorama] = useState(null); // building object
-  const [panoScenes, setPanoScenes] = useState([]);
+  const [activeModel, setActiveModel] = useState(null) // building object
+  const [activePanorama, setActivePanorama] = useState(null) // building object
+  const [panoScenes, setPanoScenes] = useState([])
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData()
+  }, [])
 
   const loadData = async () => {
     try {
-      const data = await buildingService.getBuildings();
-      const buildingsWithScenes = await Promise.all(data.map(async (b) => {
-        try {
-          const scenes = await panoramaService.getBuildingScenes(b.id);
-          return { ...b, scenes: scenes || [] };
-        } catch (e) {
-          return { ...b, scenes: [] };
-        }
-      }));
-      setBuildings(buildingsWithScenes);
+      const data = await buildingService.getBuildings()
+      const buildingsWithScenes = await Promise.all(
+        data.map(async (b) => {
+          try {
+            const scenes = await panoramaService.getBuildingScenes(b.id)
+            return { ...b, scenes: scenes || [] }
+          } catch (e) {
+            return { ...b, scenes: [] }
+          }
+        })
+      )
+      setBuildings(buildingsWithScenes)
     } catch (error) {
-      console.error('Error loading buildings:', error);
+      console.error('Error loading buildings:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const open3DViewer = (building) => {
-    setActiveModel(building);
-  };
+    setActiveModel(building)
+  }
 
   const openPanoramaViewer = (building) => {
     if (building.scenes && building.scenes.length > 0) {
-      setPanoScenes(building.scenes);
-      setActivePanorama(building);
+      setPanoScenes(building.scenes)
+      setActivePanorama(building)
     }
-  };
+  }
 
   const closeViewer = () => {
-    setActiveModel(null);
-    setActivePanorama(null);
-    setPanoScenes([]);
-  };
+    setActiveModel(null)
+    setActivePanorama(null)
+    setPanoScenes([])
+  }
 
-  const has3DModel = (b) => !!b.model_url;
+  const has3DModel = (b) => !!b.model_url
 
   const handlePanoReady = (instance) => {
-    const vtPlugin = instance.getPlugin(VirtualTourPlugin);
-    if (!vtPlugin || panoScenes.length === 0) return;
+    const vtPlugin = instance.getPlugin(VirtualTourPlugin)
+    if (!vtPlugin || panoScenes.length === 0) return
 
-    const startScene = panoScenes.find(s => s.is_start_scene) || panoScenes[0];
+    const startScene = panoScenes.find((s) => s.is_start_scene) || panoScenes[0]
 
-    const nodes = panoScenes.map(scene => ({
+    const nodes = panoScenes.map((scene) => ({
       id: scene.id.toString(),
       panorama: getFullUrl(scene.image_url),
       name: scene.title,
-      links: (scene.hotspots || []).map(h => ({
+      links: (scene.hotspots || []).map((h) => ({
         nodeId: h.target_scene_id.toString(),
         position: { pitch: h.pitch, yaw: h.yaw },
-        name: h.label || h.target_scene_title,
+        name: h.label || h.target_scene_title
       }))
-    }));
+    }))
 
-    vtPlugin.setNodes(nodes, startScene.id.toString());
-  };
+    vtPlugin.setNodes(nodes, startScene.id.toString())
+  }
 
   return (
     <div className="space-y-6">
@@ -109,7 +111,9 @@ export default function Media() {
           <button
             onClick={() => setViewTab('panorama')}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-colors ${
-              viewTab === 'panorama' ? 'bg-brand text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'
+              viewTab === 'panorama'
+                ? 'bg-brand text-white shadow-md'
+                : 'text-gray-500 hover:bg-gray-50'
             }`}
           >
             <ImageIcon size={16} /> Panorama Walkthroughs
@@ -124,18 +128,18 @@ export default function Media() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {buildings.map((b) => {
-            const is3D = viewTab === '3d';
-            const hasModel = has3DModel(b);
-            const hasPanoramas = b.scenes && b.scenes.length > 0;
-            const hasContent = is3D ? hasModel : hasPanoramas;
+            const is3D = viewTab === '3d'
+            const hasModel = has3DModel(b)
+            const hasPanoramas = b.scenes && b.scenes.length > 0
+            const hasContent = is3D ? hasModel : hasPanoramas
 
             return (
-              <Card 
-                key={b.id} 
+              <Card
+                key={b.id}
                 className={`group transition-all duration-300 ${hasContent ? 'cursor-pointer hover:border-brand hover:shadow-xl' : 'opacity-70'}`}
                 onClick={() => {
-                  if (is3D && hasModel) open3DViewer(b);
-                  if (!is3D && hasPanoramas) openPanoramaViewer(b);
+                  if (is3D && hasModel) open3DViewer(b)
+                  if (!is3D && hasPanoramas) openPanoramaViewer(b)
                 }}
               >
                 <div className="aspect-video bg-gray-100 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
@@ -154,24 +158,26 @@ export default function Media() {
                     ) : (
                       <div className="text-gray-400 flex flex-col items-center">
                         <Box size={32} className="mb-2 opacity-50" />
-                        <span className="text-xs font-bold uppercase tracking-wider">No 3D Model</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">
+                          No 3D Model
+                        </span>
                       </div>
                     )
+                  ) : hasPanoramas ? (
+                    <div className="w-full h-full">
+                      <img
+                        src={getFullUrl(b.scenes[0].image_url)}
+                        alt={b.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   ) : (
-                    hasPanoramas ? (
-                      <div className="w-full h-full">
-                        <img 
-                          src={getFullUrl(b.scenes[0].image_url)} 
-                          alt={b.name} 
-                          className="w-full h-full object-cover" 
-                        />
-                      </div>
-                    ) : (
-                      <div className="text-gray-400 flex flex-col items-center">
-                        <ImageIcon size={32} className="mb-2 opacity-50" />
-                        <span className="text-xs font-bold uppercase tracking-wider">No Panoramas</span>
-                      </div>
-                    )
+                    <div className="text-gray-400 flex flex-col items-center">
+                      <ImageIcon size={32} className="mb-2 opacity-50" />
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        No Panoramas
+                      </span>
+                    </div>
                   )}
 
                   {hasContent && (
@@ -184,10 +190,12 @@ export default function Media() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 truncate">{b.name}</h3>
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{b.description || 'No description available'}</p>
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    {b.description || 'No description available'}
+                  </p>
                 </div>
               </Card>
-            );
+            )
           })}
         </div>
       )}
@@ -201,8 +209,8 @@ export default function Media() {
                 {activeModel ? <Box size={16} /> : <ImageIcon size={16} />}
                 {(activeModel || activePanorama).name}
               </div>
-              <button 
-                onClick={closeViewer} 
+              <button
+                onClick={closeViewer}
                 className="bg-black/50 backdrop-blur-md p-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all"
               >
                 <X size={20} />
@@ -222,16 +230,21 @@ export default function Media() {
 
               {activePanorama && panoScenes.length > 0 && (
                 <ReactPhotoSphereViewer
-                  src={getFullUrl((panoScenes.find(s => s.is_start_scene) || panoScenes[0]).image_url)}
+                  src={getFullUrl(
+                    (panoScenes.find((s) => s.is_start_scene) || panoScenes[0]).image_url
+                  )}
                   height={'100%'}
                   width={'100%'}
                   littlePlanet={true}
                   plugins={[
                     [MarkersPlugin, {}],
-                    [VirtualTourPlugin, {
-                      positionMode: 'manual',
-                      renderMode: '3d',
-                    }]
+                    [
+                      VirtualTourPlugin,
+                      {
+                        positionMode: 'manual',
+                        renderMode: '3d'
+                      }
+                    ]
                   ]}
                   onReady={handlePanoReady}
                 />
@@ -241,5 +254,5 @@ export default function Media() {
         </div>
       )}
     </div>
-  );
+  )
 }

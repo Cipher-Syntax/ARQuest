@@ -37,7 +37,7 @@ export default function BuildingsPage() {
     try {
       const data = await buildingService.getBuildings()
       // Map backend fields to UI fields
-      const mapped = data.map(b => ({
+      const mapped = data.map((b) => ({
         id: b.id,
         name: b.name,
         code: b.slug,
@@ -46,7 +46,7 @@ export default function BuildingsPage() {
         lng: b.longitude,
         status: b.is_active ? 'active' : 'inactive',
         models: b.model_file ? 1 : 0,
-        panos: 0,
+        panos: 0
       }))
       setBuildings(mapped)
     } catch (err) {
@@ -94,9 +94,10 @@ export default function BuildingsPage() {
     }
   }
 
-  const filteredBuildings = buildings.filter(b => {
-    const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         b.code.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredBuildings = buildings.filter((b) => {
+    const matchesSearch =
+      b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.code.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || b.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -120,9 +121,9 @@ export default function BuildingsPage() {
         <div className="p-4 border-b border-brand-border flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search buildings..." 
+            <input
+              type="text"
+              placeholder="Search buildings..."
               className="w-full pl-10 pr-4 py-2 bg-brand-light/30 border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand transition-all font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -138,7 +139,10 @@ export default function BuildingsPage() {
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none" size={16} />
+            <Filter
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none"
+              size={16}
+            />
           </div>
         </div>
 
@@ -149,10 +153,18 @@ export default function BuildingsPage() {
             <table className="w-full text-left min-w-200">
               <thead>
                 <tr className="bg-brand-light/20">
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Building</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Coordinates</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    Building
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    Coordinates
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-border/50">
@@ -164,12 +176,16 @@ export default function BuildingsPage() {
                           <Building2 size={18} />
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 text-sm group-hover:text-brand transition-colors">{b.name}</p>
+                          <p className="font-bold text-gray-900 text-sm group-hover:text-brand transition-colors">
+                            {b.name}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs font-mono text-gray-500">{b.lat}, {b.lng}</span>
+                      <span className="text-xs font-mono text-gray-500">
+                        {b.lat}, {b.lng}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <Badge variant={b.status === 'active' ? 'success' : 'gray'}>
@@ -177,23 +193,29 @@ export default function BuildingsPage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="relative inline-block text-left" ref={openMenu === b.id ? menuRef : null}>
-                        <button 
+                      <div
+                        className="relative inline-block text-left"
+                        ref={openMenu === b.id ? menuRef : null}
+                      >
+                        <button
                           onClick={() => setOpenMenu(openMenu === b.id ? null : b.id)}
                           className="p-2 text-gray-400 hover:text-brand transition-colors rounded-lg hover:bg-brand-light"
                         >
                           <MoreVertical size={18} />
                         </button>
-                        
+
                         {openMenu === b.id && (
                           <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                            <button 
-                              onClick={() => { handleEditClick(b); setOpenMenu(null); }}
+                            <button
+                              onClick={() => {
+                                handleEditClick(b)
+                                setOpenMenu(null)
+                              }}
                               className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
                             >
                               <Edit3 size={14} /> Edit Building
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDeleteClick(b.id)}
                               className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
                             >
@@ -216,10 +238,10 @@ export default function BuildingsPage() {
             </table>
           </div>
         )}
-        <div className="h-20" /> 
+        <div className="h-20" />
       </Card>
 
-      <ConfirmDeleteModal 
+      <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}

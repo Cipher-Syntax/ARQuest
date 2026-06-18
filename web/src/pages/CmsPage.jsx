@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
-import TriviaPage from './TriviaPage';
-import QuestsPage from './QuestsPage';
-import { FileText, HelpCircle } from 'lucide-react';
+import React, { useState } from 'react'
+import TriviaPage from './TriviaPage'
+import QuestsPage from './QuestsPage'
+import { FileText, HelpCircle } from 'lucide-react'
 
 export default function CmsPage() {
-  const [activeTab, setActiveTab] = useState('quests');
+  const [activeTab, setActiveTab] = useState('quests')
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Quests & Trivias</h2>
-          <p className="text-gray-500 mt-1">Manage interactive content, learning challenges, and building trivia.</p>
+          <p className="text-gray-500 mt-1">
+            Manage interactive content, learning challenges, and building trivia.
+          </p>
         </div>
       </div>
 
@@ -43,5 +45,5 @@ export default function CmsPage() {
         {activeTab === 'trivias' && <TriviaPage hideHeader={true} />}
       </div>
     </div>
-  );
+  )
 }

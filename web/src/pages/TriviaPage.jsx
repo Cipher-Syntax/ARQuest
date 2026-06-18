@@ -34,17 +34,17 @@ export default function Trivia({ hideHeader }) {
         const [buildings, trivias] = await Promise.all([
           buildingService.getBuildings(),
           triviaService.getTrivias()
-        ]);
-        setBuildingsList(buildings);
+        ])
+        setBuildingsList(buildings)
         if (buildings.length > 0) {
-          setNewBuildingId(buildings[0].id.toString());
+          setNewBuildingId(buildings[0].id.toString())
         }
-        setFacts(trivias);
+        setFacts(trivias)
       } catch (error) {
-        console.error('Failed to load data', error);
+        console.error('Failed to load data', error)
       }
-    };
-    loadData();
+    }
+    loadData()
   }, [])
 
   const handleOpenAddModal = () => {
@@ -70,19 +70,19 @@ export default function Trivia({ hideHeader }) {
         const updatedTrivia = await triviaService.updateTrivia(editingFact.id, {
           building: newBuildingId,
           fact: newFact
-        });
-        setFacts(facts.map(f => f.id === editingFact.id ? updatedTrivia : f))
+        })
+        setFacts(facts.map((f) => (f.id === editingFact.id ? updatedTrivia : f)))
       } else {
         const newTrivia = await triviaService.createTrivia({
           building: newBuildingId,
           fact: newFact
-        });
+        })
         setFacts([newTrivia, ...facts])
       }
       setIsModalOpen(false)
     } catch (error) {
-      console.error('Failed to save trivia', error);
-      alert('Failed to save trivia fact');
+      console.error('Failed to save trivia', error)
+      alert('Failed to save trivia fact')
     }
   }
 
@@ -95,21 +95,23 @@ export default function Trivia({ hideHeader }) {
   const handleConfirmDelete = async () => {
     if (factToDelete) {
       try {
-        await triviaService.deleteTrivia(factToDelete);
-        setFacts(facts.filter(f => f.id !== factToDelete))
+        await triviaService.deleteTrivia(factToDelete)
+        setFacts(facts.filter((f) => f.id !== factToDelete))
         setFactToDelete(null)
         setIsDeleteModalOpen(false)
       } catch (error) {
-        console.error('Failed to delete trivia', error);
-        alert('Failed to delete trivia');
+        console.error('Failed to delete trivia', error)
+        alert('Failed to delete trivia')
       }
     }
   }
 
-  const filteredFacts = facts.filter(f => {
-    const matchesSearch = f.fact.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (f.building_name && f.building_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesBuilding = selectedBuilding === 'All Buildings' || f.building_name === selectedBuilding
+  const filteredFacts = facts.filter((f) => {
+    const matchesSearch =
+      f.fact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (f.building_name && f.building_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesBuilding =
+      selectedBuilding === 'All Buildings' || f.building_name === selectedBuilding
     return matchesSearch && matchesBuilding
   })
 
@@ -139,9 +141,9 @@ export default function Trivia({ hideHeader }) {
       <div className="flex flex-col md:flex-row items-center gap-4">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search trivia..." 
+          <input
+            type="text"
+            placeholder="Search trivia..."
             className="w-full pl-10 pr-4 py-3 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -154,9 +156,16 @@ export default function Trivia({ hideHeader }) {
             className="w-full pl-4 pr-10 py-3 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
           >
             <option value="All Buildings">All Buildings</option>
-            {buildingsList.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+            {buildingsList.map((b) => (
+              <option key={b.id} value={b.name}>
+                {b.name}
+              </option>
+            ))}
           </select>
-          <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none" size={16} />
+          <Filter
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none"
+            size={16}
+          />
         </div>
       </div>
 
@@ -169,28 +178,30 @@ export default function Trivia({ hideHeader }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="brand" className="text-[9px] px-1.5">{item.building_name}</Badge>
+                  <Badge variant="brand" className="text-[9px] px-1.5">
+                    {item.building_name}
+                  </Badge>
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed font-medium">{item.fact}</p>
               </div>
-              
+
               <div className="relative shrink-0" ref={activeMenu === item.id ? menuRef : null}>
-                <button 
+                <button
                   onClick={() => setActiveMenu(activeMenu === item.id ? null : item.id)}
                   className="p-2 text-gray-400 hover:text-brand transition-colors rounded-lg hover:bg-brand-light"
                 >
                   <MoreVertical size={18} />
                 </button>
-                
+
                 {activeMenu === item.id && (
                   <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <button 
+                    <button
                       onClick={() => handleOpenEditModal(item)}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
                     >
                       <Edit3 size={14} /> Edit Fact
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteClick(item.id)}
                       className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
                     >
@@ -209,24 +220,37 @@ export default function Trivia({ hideHeader }) {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="px-6 py-4 border-b border-brand-border flex items-center justify-between">
-              <h3 className="font-bold text-gray-900">{editingFact ? 'Edit Trivia Fact' : 'Add Trivia Fact'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-brand-light rounded-lg text-gray-400 hover:text-brand transition-colors">
+              <h3 className="font-bold text-gray-900">
+                {editingFact ? 'Edit Trivia Fact' : 'Add Trivia Fact'}
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 hover:bg-brand-light rounded-lg text-gray-400 hover:text-brand transition-colors"
+              >
                 <X size={20} />
               </button>
             </div>
             <div className="p-6 space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Building</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Building
+                </label>
                 <select
                   value={newBuildingId}
                   onChange={(e) => setNewBuildingId(e.target.value)}
                   className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
                 >
-                  {buildingsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {buildingsList.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Trivia Fact</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Trivia Fact
+                </label>
                 <textarea
                   value={newFact}
                   onChange={(e) => setNewFact(e.target.value)}
@@ -237,7 +261,9 @@ export default function Trivia({ hideHeader }) {
               </div>
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-brand-border flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
               <Button onClick={handleSave} className="gap-2">
                 {editingFact ? <Edit3 size={16} /> : <Plus size={16} />}
                 {editingFact ? 'Update Fact' : 'Add Fact'}
@@ -247,7 +273,7 @@ export default function Trivia({ hideHeader }) {
         </div>
       )}
 
-      <ConfirmDeleteModal 
+      <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
