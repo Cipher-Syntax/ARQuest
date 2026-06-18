@@ -44,17 +44,24 @@ class GeofenceWriteSerializer(serializers.ModelSerializer):
 class BuildingSerializer(serializers.ModelSerializer):
     geofences = GeofenceSerializer(many=True, read_only=True)
     model_url = serializers.SerializerMethodField()
+    qr_code_secret = serializers.SerializerMethodField()
     
     class Meta:
         model = Building
         fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_active', 'geofences', 
-                  'model_url', 'model_version', 'model_file_size', 'model_active', 'created_at', 'updated_at']
+                  'model_url', 'model_version', 'model_file_size', 'model_active', 'qr_code_secret', 'created_at', 'updated_at']
     
     def get_model_url(self, obj):
         if obj.model_file:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.model_file.url)
+        return None
+
+    def get_qr_code_secret(self, obj):
+        request = self.context.get('request')
+        if request and getattr(request.user, 'is_admin_role', False):
+            return str(obj.qr_code_secret)
         return None
 
 

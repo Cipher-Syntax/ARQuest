@@ -5,6 +5,8 @@ import { settingsService } from '../services/settingsService'
 
 export default function Settings() {
 	const [isSaving, setIsSaving] = useState(false)
+	const [successMessage, setSuccessMessage] = useState('')
+	const [errorMessage, setErrorMessage] = useState('')
 	const [settings, setSettings] = useState({
 		app_name: 'ARQuest',
 		maintenance_mode: false,
@@ -36,12 +38,16 @@ export default function Settings() {
 
 	const handleSave = async () => {
 		try {
+			setErrorMessage('')
+			setSuccessMessage('')
 			setIsSaving(true)
 			await settingsService.updateSettings(settings)
-			alert('Settings saved successfully!')
+			setSuccessMessage('Settings saved successfully!')
+			setTimeout(() => setSuccessMessage(''), 3000)
 		} catch (error) {
 			console.error('Failed to save settings', error)
-			alert('Failed to save settings. Please try again.')
+			setErrorMessage('Failed to save settings. Please try again.')
+			setTimeout(() => setErrorMessage(''), 3000)
 		} finally {
 			setIsSaving(false)
 		}
@@ -55,6 +61,18 @@ export default function Settings() {
 					Configure and update system features and behaviors.
 				</p>
 			</div>
+
+			{successMessage && (
+				<div className="bg-green-50 text-green-700 p-4 rounded-md border border-green-200 font-medium">
+					{successMessage}
+				</div>
+			)}
+			
+			{errorMessage && (
+				<div className="bg-red-50 text-red-700 p-4 rounded-md border border-red-200 font-medium">
+					{errorMessage}
+				</div>
+			)}
 
 			<Card>
 				<h3 className="text-sm font-bold text-gray-900 mb-5">General Settings</h3>
@@ -200,9 +218,10 @@ export default function Settings() {
 						<input
 							type="number"
 							value={settings.default_quest_reward}
-							onChange={(e) =>
-								handleChange('default_quest_reward', parseInt(e.target.value) || 0)
-							}
+							onChange={(e) => {
+								const val = e.target.value
+								handleChange('default_quest_reward', val === '' ? '' : parseInt(val))
+							}}
 							className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium max-w-[150px]"
 						/>
 					</div>

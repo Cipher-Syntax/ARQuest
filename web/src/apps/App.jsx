@@ -4,15 +4,16 @@ import { AuthProvider } from '../hooks/useAuth'
 import ProtectedRoute from '../components/ProtectedRoute'
 import LoginPage from '../pages/LoginPage'
 
-// Layouts
+
 import AppLayout from '../layouts/AppLayout'
 
-// Pages
+
 import DashboardPage from '../pages/DashboardPage'
 import BuildingsPage from '../pages/BuildingsPage'
 import BuildingEditorPage from '../pages/BuildingEditorPage'
 import GeofencesPage from '../pages/GeofencesPage'
 import MediaPage from '../pages/MediaPage'
+import PanoramasPage from '../pages/PanoramasPage'
 import PanoramaManagerPage from '../pages/PanoramaManagerPage'
 import CmsPage from '../pages/CmsPage'
 import UsersContainer from '../pages/UsersContainer'
@@ -39,6 +40,7 @@ const App = () => {
 						<Route path="buildings/:id" element={<BuildingEditorPage />} />
 						<Route path="geofences" element={<GeofencesPage />} />
 						<Route path="media" element={<MediaPage />} />
+						<Route path="panoramas" element={<PanoramasPage />} />
 						<Route path="panoramas/:id" element={<PanoramaManagerPage />} />
 						<Route path="cms" element={<CmsPage />} />
 						<Route path="users" element={<UsersContainer />} />

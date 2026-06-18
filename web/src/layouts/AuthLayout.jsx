@@ -5,7 +5,7 @@ export default function AuthLayout({ children }) {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[#FFF0F3] via-white to-[#FFD6DE] flex items-center justify-center p-4">
 			<div className="w-full max-w-md">
-				{/* Brand header */}
+				{}
 				<div className="flex flex-col items-center mb-8">
 					<div className="w-14 h-14 bg-[#DC143C] rounded-lg flex items-center justify-center shadow-lg mb-3">
 						<Target size={28} className="text-white" />
@@ -14,7 +14,7 @@ export default function AuthLayout({ children }) {
 					<p className="text-sm text-[#6B7280]">WMSU Campus Admin</p>
 				</div>
 
-				{/* Card */}
+				{}
 				<div className="bg-white rounded-lg border border-[#FFD6DE] shadow-sm p-8">
 					{children || <Outlet />}
 				</div>

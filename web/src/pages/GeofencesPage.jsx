@@ -37,9 +37,9 @@ const parseCoordinate = (coordStr) => {
 }
 
 const parseRadius = (radiusStr) => {
-	if (!radiusStr) return 50
+	if (!radiusStr) return 20
 	const match = String(radiusStr).match(/([0-9]*\.?[0-9]+)/)
-	return match ? parseFloat(match[1]) : 50
+	return match ? parseFloat(match[1]) : 20
 }
 
 export default function Geofences() {
@@ -87,16 +87,27 @@ export default function Geofences() {
 	const fetchGeofences = async () => {
 		try {
 			const buildings = await buildingService.getBuildings()
-			const formatted = buildings.map((b) => ({
-				id: b.id,
-				name: b.slug || b.code || (b.name ? b.name.substring(0, 4).toUpperCase() : 'BLDG'),
-				building: b.name || '',
-				fullBuilding: b.description || b.name || '',
-				lat: b.latitude ? `${b.latitude}° N` : '0.0000° N',
-				lng: b.longitude ? `${b.longitude}° E` : '0.0000° E',
-				radius: b.radius ? `${b.radius}m` : '50m',
-				active: b.is_active !== undefined ? b.is_active : false
-			}))
+			const formatted = await Promise.all(
+				buildings.map(async (b) => {
+					let geoData = null
+					try {
+						geoData = await buildingService.getGeofence(b.id)
+					} catch (e) {
+						
+					}
+					return {
+						id: b.id,
+						geofence_id: geoData ? geoData.id : null,
+						name: b.slug || b.code || (b.name ? b.name.substring(0, 4).toUpperCase() : 'BLDG'),
+						building: b.name || '',
+						fullBuilding: b.description || b.name || '',
+						lat: b.latitude ? `${b.latitude}° N` : '0.0000° N',
+						lng: b.longitude ? `${b.longitude}° E` : '0.0000° E',
+						radius: geoData && geoData.radius_meters ? `${geoData.radius_meters}m` : '20m',
+						active: b.is_active !== undefined ? b.is_active : false
+					}
+				})
+			)
 			setGeofences(formatted)
 		} catch (error) {
 			console.error('Failed to fetch geofences:', error)
@@ -122,7 +133,7 @@ export default function Geofences() {
 		setNewFullBuilding('')
 		setNewLat('')
 		setNewLng('')
-		setNewRadius('50m')
+		setNewRadius('20m')
 		setIsModalOpen(true)
 	}
 
@@ -150,11 +161,27 @@ export default function Geofences() {
 				}
 				await buildingService.updateBuilding(editingGeo.id, payload)
 
+				const geoPayload = {
+					latitude: parseCoordinate(newLat),
+					longitude: parseCoordinate(newLng),
+					radius_meters: parseRadius(newRadius),
+					is_active: editingGeo.active
+				}
+				
+				let updatedGeofenceId = editingGeo.geofence_id
+				if (updatedGeofenceId) {
+					await buildingService.updateGeofence(updatedGeofenceId, geoPayload)
+				} else {
+					const newGeo = await buildingService.createGeofence(editingGeo.id, geoPayload)
+					updatedGeofenceId = newGeo.id
+				}
+
 				setGeofences((prev) =>
 					prev.map((g) =>
 						g.id === editingGeo.id
 							? {
 									...g,
+									geofence_id: updatedGeofenceId,
 									name: newName.trim(),
 									fullBuilding: newFullBuilding.trim(),
 									lat: newLat,
@@ -176,15 +203,24 @@ export default function Geofences() {
 				}
 				const newBuilding = await buildingService.createBuilding(payload)
 
+				const geoPayload = {
+					latitude: parseCoordinate(newLat),
+					longitude: parseCoordinate(newLng),
+					radius_meters: parseRadius(newRadius),
+					is_active: false
+				}
+				const newGeo = await buildingService.createGeofence(newBuilding.id, geoPayload)
+
 				setGeofences((prev) => [
 					...prev,
 					{
 						id: newBuilding.id || Date.now(),
+						geofence_id: newGeo.id,
 						name: newName.trim(),
 						fullBuilding: newFullBuilding.trim(),
 						lat: newLat || '0.0000° N',
 						lng: newLng || '0.0000° E',
-						radius: newRadius || '50m',
+						radius: newRadius || '20m',
 						building: newName.trim(),
 						active: false
 					}
@@ -277,7 +313,7 @@ export default function Geofences() {
 
 			{view === 'card' ? (
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-					{/* Left Column: Map */}
+					{}
 					<div className="flex flex-col h-[600px] bg-white rounded-lg border border-brand-border overflow-hidden lg:col-span-2">
 						<div className="p-4 border-b border-brand-border flex justify-between items-center z-10 relative bg-white">
 							<h3 className="font-bold text-gray-900">Campus Map</h3>
@@ -334,7 +370,7 @@ export default function Geofences() {
 						</div>
 					</div>
 
-					{/* Right Column: Card List */}
+					{}
 					<div className="flex flex-col gap-4 h-full lg:col-span-1">
 						{!selectedGeoId && (
 							<div className="flex flex-col items-center justify-center h-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-8 text-center">
@@ -466,7 +502,7 @@ export default function Geofences() {
 											</div>
 										</div>
 
-										{/* Background design */}
+										{}
 										<div className="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-light/30 rounded-full blur-3xl pointer-events-none" />
 									</Card>
 								))}
@@ -574,7 +610,7 @@ export default function Geofences() {
 				</Card>
 			)}
 
-			{/* Add/Edit Geofence Modal */}
+			{}
 			{isModalOpen && (
 				<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
 					<div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">

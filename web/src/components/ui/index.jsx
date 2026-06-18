@@ -199,3 +199,68 @@ export function ConfirmDeleteModal({
 		</Modal>
 	)
 }
+
+export function Pagination({ currentPage, totalPages, onPageChange }) {
+	if (totalPages <= 1) return null;
+	return (
+		<div className="flex items-center justify-between px-4 py-3 bg-white border-t border-brand-border sm:px-6 rounded-b-lg">
+			<div className="flex justify-between flex-1 sm:hidden">
+				<Button 
+					variant="secondary" 
+					disabled={currentPage === 1} 
+					onClick={() => onPageChange(currentPage - 1)}
+				>
+					Previous
+				</Button>
+				<Button 
+					variant="secondary" 
+					disabled={currentPage === totalPages} 
+					onClick={() => onPageChange(currentPage + 1)}
+				>
+					Next
+				</Button>
+			</div>
+			<div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+				<div>
+					<p className="text-sm text-gray-500">
+						Page <span className="font-bold text-gray-900">{currentPage}</span> of <span className="font-bold text-gray-900">{totalPages}</span>
+					</p>
+				</div>
+				<div>
+					<nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+						<button
+							onClick={() => onPageChange(currentPage - 1)}
+							disabled={currentPage === 1}
+							className="relative inline-flex items-center px-3 py-2 text-gray-400 rounded-l-md ring-1 ring-inset ring-brand-border hover:bg-brand-light focus:z-20 focus:outline-offset-0 disabled:opacity-50 transition-colors"
+						>
+							<span className="sr-only">Previous</span>
+							<span className="font-bold">&lsaquo;</span>
+						</button>
+						{[...Array(totalPages)].map((_, i) => (
+							<button
+								key={i + 1}
+								onClick={() => onPageChange(i + 1)}
+								className={cn(
+									"relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-brand-border focus:z-20 focus:outline-offset-0 transition-colors",
+									currentPage === i + 1 
+										? "z-10 bg-brand text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" 
+										: "text-gray-600 hover:bg-brand-light hover:text-brand"
+								)}
+							>
+								{i + 1}
+							</button>
+						))}
+						<button
+							onClick={() => onPageChange(currentPage + 1)}
+							disabled={currentPage === totalPages}
+							className="relative inline-flex items-center px-3 py-2 text-gray-400 rounded-r-md ring-1 ring-inset ring-brand-border hover:bg-brand-light focus:z-20 focus:outline-offset-0 disabled:opacity-50 transition-colors"
+						>
+							<span className="sr-only">Next</span>
+							<span className="font-bold">&rsaquo;</span>
+						</button>
+					</nav>
+				</div>
+			</div>
+		</div>
+	)
+}

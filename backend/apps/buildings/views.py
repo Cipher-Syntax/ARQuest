@@ -156,6 +156,39 @@ def unlock_building(request):
     return error_response('NOT_IN_GEOFENCE', 'Not inside any building geofence', status_code=400)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def unlock_building_qr(request):
+    if request.user.is_visitor_role:
+        return error_response('permission_denied', 'Visitors cannot unlock buildings', status_code=status.HTTP_403_FORBIDDEN)
+
+    qr_secret = request.data.get('qr_code_secret')
+    if not qr_secret:
+        return error_response('invalid_input', 'QR code secret is required', status_code=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        building = Building.objects.get(qr_code_secret=qr_secret, is_active=True)
+    except Building.DoesNotExist:
+        return error_response('invalid_qr', 'Invalid or inactive QR code', status_code=status.HTTP_404_NOT_FOUND)
+
+    unlock, created = BuildingUnlock.objects.get_or_create(
+        user=request.user,
+        building=building,
+        defaults={'source': 'qr'}
+    )
+    if not created:
+        unlock.last_validated_at = timezone.now()
+        # Ensure source is updated to 'qr' if it was previously geofence
+        if unlock.source != 'qr':
+            unlock.source = 'qr'
+            unlock.save(update_fields=['last_validated_at', 'source'])
+        else:
+            unlock.save(update_fields=['last_validated_at'])
+
+    serializer = BuildingUnlockSerializer(unlock)
+    return success_response(serializer.data)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def unlocked_buildings(request):

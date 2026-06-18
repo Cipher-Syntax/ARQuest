@@ -7,7 +7,7 @@ export default function TopBar({ user }) {
 	return (
 		<header className="h-16 bg-brand-light border-b border-brand-border px-4 lg:px-8 flex items-center justify-between sticky top-0 z-10">
 			<div className="flex items-center gap-6 flex-1">
-				{/* Spacer for mobile sidebar toggle */}
+				{}
 				<div className="w-12 lg:hidden" />
 			</div>
 

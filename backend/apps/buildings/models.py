@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
@@ -14,6 +15,7 @@ class Building(models.Model):
     model_version = models.CharField(max_length=50, blank=True)
     model_file_size = models.PositiveIntegerField(blank=True, null=True, help_text='File size in bytes')
     model_active = models.BooleanField(default=False)
+    qr_code_secret = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -66,6 +68,7 @@ class BuildingUnlock(models.Model):
         ('geofence', 'Geofence'),
         ('admin', 'Admin'),
         ('role_access', 'Role Access'),
+        ('qr', 'QR Scan'),
     ]
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='building_unlocks')

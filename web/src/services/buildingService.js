@@ -1,4 +1,4 @@
-// src/services/buildingService.js
+
 import api from './api'
 
 export const buildingService = {
@@ -13,7 +13,7 @@ export const buildingService = {
 	},
 
 	createBuilding: async (buildingData) => {
-		// Axios requires multipart/form-data to send physical files
+		
 		const isFormData = buildingData instanceof FormData
 		const config = isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
 
