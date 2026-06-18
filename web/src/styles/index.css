@@ -1,59 +1,60 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap');
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  --color-brand: #B21830;
-  --color-brand-light: #FDF7F8;
-  --color-brand-border: #EBCBCF;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-:root {
-  background-color: #FDF7F8;
-  color: #2D3748;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
+	--color-brand: #b21830;
+	--color-brand-light: #fdf7f8;
+	--color-brand-border: #ebcbcf;
+	--font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* --- Essential Custom Animations --- */
 
-@keyframes blink { 
-  0%, 100% { opacity: 1; } 
-  50% { opacity: 0; } 
+@keyframes blink {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0;
+	}
 }
 
 @keyframes floatStack {
-  0%, 100% { transform: translateY(0) rotateX(0deg); }
-  50% { transform: translateY(-20px) rotateX(2deg); }
+	0%,
+	100% {
+		transform: translateY(0) rotateX(0deg);
+	}
+	50% {
+		transform: translateY(-20px) rotateX(2deg);
+	}
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+	width: 6px;
+	height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+	background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-brand-border);
-  border-radius: 10px;
+	background: var(--color-brand-border);
+	border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-brand);
+	background: var(--color-brand);
 }
 
 /* --- Scroll Reveal Utilities --- */
-.reveal { 
-  opacity: 0; 
-  transform: translateY(20px); 
-  transition: opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1), 
-              transform 0.8s cubic-bezier(0.23, 1, 0.32, 1); 
+.reveal {
+	opacity: 0;
+	transform: translateY(20px);
+	transition:
+		opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1),
+		transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 }
-.reveal.visible { 
-  opacity: 1; 
-  transform: none; 
+.reveal.visible {
+	opacity: 1;
+	transform: none;
 }
