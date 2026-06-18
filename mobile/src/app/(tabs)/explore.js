@@ -252,7 +252,7 @@ export default function ExploreScreen() {
                                             "{quest.hint}"
                                         </Text>
                                         <View style={styles.compassContainer}>
-                                            <Ionicons name="star" size={20} color="#eab308" />
+                                            <Ionicons name="star" size={20} color={theme.colors.primary} />
                                             <Text style={styles.compassText}>Reward: {quest.reward_points} Points</Text>
                                         </View>
                                     </View>
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     },
     challengeProgress: {
         fontSize: theme.typography.sm,
-        color: '#eab308',
+        color: theme.colors.primary,
         fontWeight: 'bold',
     },
     logItem: {

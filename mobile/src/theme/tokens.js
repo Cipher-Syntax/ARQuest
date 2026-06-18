@@ -5,8 +5,8 @@ export const colors = {
     surfaceSoft: "#F9F9F9",
     primary: "#B21830", // Web Exact Primary
     primaryDark: "#850F22",
-    accent: "#00E5FF", // Web Accent Cyan
-    accentSoft: "#E0F7FA",
+    accent: "#1A1A1A", // Dark Grey Accent
+    accentSoft: "#E0E0E0",
     textPrimary: "#1A1A1A",
     textSecondary: "#666666",
     textMuted: "#9CA3AF",
@@ -15,7 +15,7 @@ export const colors = {
     warning: "#F57C00",
     error: "#D32F2F",
     info: "#3B82F6",
-    arHighlight: "#00E5FF", 
+    arHighlight: "#B21830", // Use Primary Red for AR
     geofenceActive: "#388E3C",
     geofenceInactive: "#D32F2F",
 };

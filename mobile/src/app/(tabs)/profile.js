@@ -80,7 +80,7 @@ export default function ProfileScreen() {
                                 </View>
                                 <View style={styles.statDivider} />
                                 <View style={styles.statBox}>
-                                    <Medal color="#eab308" size={24} />
+                                    <Medal color={theme.colors.primary} size={24} />
                                     <Text style={styles.statValue}>{myStats ? `#${myStats.rank}` : 'Unranked'}</Text>
                                     <Text style={styles.statLabel}>Global Rank</Text>
                                 </View>

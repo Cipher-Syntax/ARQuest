@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     recentPoints: {
-        color: '#eab308',
+        color: theme.colors.primary,
         fontSize: 12,
         fontWeight: 'bold',
     },

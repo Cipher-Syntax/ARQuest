@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     triviaBuildingName: {
-        color: '#fff',
+        color: theme.colors.textPrimary,
         fontSize: 12,
         fontWeight: 'bold',
         marginBottom: 8,
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     triviaText: {
-        color: '#00E5FF',
+        color: theme.colors.textSecondary,
         fontSize: 15,
         lineHeight: 24,
         fontFamily: 'monospace',
