@@ -11,6 +11,7 @@ import AppLayout from '../layouts/AppLayout';
 // Pages
 import DashboardPage from '../pages/DashboardPage';
 import BuildingsPage from '../pages/BuildingsPage';
+import BuildingEditorPage from '../pages/BuildingEditorPage';
 import GeofencesPage from '../pages/GeofencesPage';
 import MediaPage from '../pages/MediaPage';
 import PanoramaManagerPage from '../pages/PanoramaManagerPage';
@@ -36,6 +37,7 @@ const App = () => {
                         >
                             <Route path="dashboard" element={<DashboardPage />} />
                             <Route path="buildings" element={<BuildingsPage />} />
+                            <Route path="buildings/:id" element={<BuildingEditorPage />} />
                             <Route path="geofences" element={<GeofencesPage />} />
                             <Route path="media" element={<MediaPage />} />
                             <Route path="panoramas/:id" element={<PanoramaManagerPage />} />
