@@ -14,7 +14,7 @@ import BuildingEditorPage from '../pages/BuildingEditorPage';
 import GeofencesPage from '../pages/GeofencesPage';
 import MediaPage from '../pages/MediaPage';
 import PanoramaManagerPage from '../pages/PanoramaManagerPage';
-import TriviaPage from '../pages/TriviaPage';
+import CmsPage from '../pages/CmsPage';
 import UsersPage from '../pages/UsersPage';
 import SettingsPage from '../pages/SettingsPage';
 
@@ -39,7 +39,7 @@ const App = () => {
                         <Route path="geofences" element={<GeofencesPage />} />
                         <Route path="media" element={<MediaPage />} />
                         <Route path="panoramas/:id" element={<PanoramaManagerPage />} />
-                        <Route path="trivia" element={<TriviaPage />} />
+                        <Route path="cms" element={<CmsPage />} />
                         <Route path="users" element={<UsersPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                     </Route>

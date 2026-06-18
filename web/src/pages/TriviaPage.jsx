@@ -9,7 +9,7 @@ const INITIAL_FACTS = [
   { id: 3, building: 'CCS', fact: 'The department offers programs in Computer Science, IT, and Information Systems — accredited by CHED.' },
 ]
 
-export default function Trivia() {
+export default function Trivia({ hideHeader }) {
   const [buildingsList, setBuildingsList] = useState([])
   const [facts, setFacts] = useState(INITIAL_FACTS)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -48,27 +48,25 @@ export default function Trivia() {
   const handleOpenAddModal = () => {
     setEditingFact(null)
     setNewFact('')
-    setNewBuilding(buildingsList[0]?.name || 'CCS')
     setIsModalOpen(true)
   }
 
   const handleOpenEditModal = (item) => {
     setEditingFact(item)
-    setNewFact(item.fact)
     setNewBuilding(item.building)
-    setIsModalOpen(true)
+    setNewFact(item.fact)
     setActiveMenu(null)
+    setIsModalOpen(true)
   }
 
   const handleSave = () => {
     if (!newFact.trim()) return
     
     if (editingFact) {
-      setFacts(prev => prev.map(f => 
-        f.id === editingFact.id ? { ...f, building: newBuilding, fact: newFact.trim() } : f
-      ))
+      setFacts(facts.map(f => f.id === editingFact.id ? { ...f, building: newBuilding, fact: newFact } : f))
     } else {
-      setFacts(prev => [...prev, { id: Date.now(), building: newBuilding, fact: newFact.trim() }])
+      const newId = facts.length > 0 ? Math.max(...facts.map(f => f.id)) + 1 : 1
+      setFacts([{ id: newId, building: newBuilding, fact: newFact }, ...facts])
     }
     
     setNewFact('')
@@ -77,36 +75,47 @@ export default function Trivia() {
 
   const handleDeleteClick = (id) => {
     setFactToDelete(id)
-    setIsDeleteModalOpen(true)
     setActiveMenu(null)
+    setIsDeleteModalOpen(true)
   }
 
   const handleConfirmDelete = () => {
     if (factToDelete) {
-      setFacts(prev => prev.filter(f => f.id !== factToDelete))
+      setFacts(facts.filter(f => f.id !== factToDelete))
       setFactToDelete(null)
       setIsDeleteModalOpen(false)
     }
   }
 
-  const filteredFacts = facts.filter(item => {
-    const matchesSearch = item.fact.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesBuilding = selectedBuilding === 'All Buildings' || item.building === selectedBuilding
+  const filteredFacts = facts.filter(f => {
+    const matchesSearch = f.fact.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          f.building.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesBuilding = selectedBuilding === 'All Buildings' || f.building === selectedBuilding
     return matchesSearch && matchesBuilding
   })
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Trivia</h2>
-          <p className="text-gray-500 mt-1">Manage building-based trivia facts for students.</p>
+      {!hideHeader && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Trivia</h2>
+            <p className="text-gray-500 mt-1">Manage building-based trivia facts for students.</p>
+          </div>
+          <Button onClick={handleOpenAddModal} className="gap-2 justify-center">
+            <Plus size={18} />
+            Add Fact
+          </Button>
         </div>
-        <Button onClick={handleOpenAddModal} className="gap-2 justify-center">
-          <Plus size={18} />
-          Add Fact
-        </Button>
-      </div>
+      )}
+      {hideHeader && (
+        <div className="flex justify-end">
+          <Button onClick={handleOpenAddModal} className="gap-2 justify-center">
+            <Plus size={18} />
+            Add Fact
+          </Button>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row items-center gap-4">
         <div className="relative flex-1 w-full">

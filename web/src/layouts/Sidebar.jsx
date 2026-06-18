@@ -13,8 +13,7 @@ const NAV = [
   { to: '/users', icon: Users, label: 'Users' },
   { to: '/media', icon: FileVideo, label: 'Content & Media' },
   { to: '/geofences', icon: Map, label: 'Geofences' },
-  { to: '/trivia', icon: HelpCircle, label: 'Trivia' },
-  { to: '/cms', icon: MonitorPlay, label: 'CMS' },
+  { to: '/cms', icon: MonitorPlay, label: 'Quests & Trivias' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
