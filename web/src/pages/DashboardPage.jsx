@@ -3,29 +3,14 @@ import { Building2, Users, Navigation, HelpCircle, ArrowUpRight, MoreVertical, C
 import { Card, Badge } from '../components/ui'
 import { dashboardService } from '../services/dashboardService'
 
-const WEEKLY_DATA = [
-  { day: 'Mon', value: 30 },
-  { day: 'Tue', value: 25 },
-  { day: 'Wed', value: 35 },
-  { day: 'Thu', value: 28 },
-  { day: 'Fri', value: 32 },
-  { day: 'Sat', value: 90 },
-  { day: 'Sun', value: 38 },
-]
-
-const BUILDING_STATUS = [
-  { code: 'CCS', name: 'College of Computer Studies', status: 'Live' },
-  { code: 'LIB', name: 'University Library', status: 'Upload' },
-  { code: 'ADMIN', name: 'Administration Building', status: 'Live' },
-  { code: 'SEH', name: 'Science & Engineering Hall', status: 'Upload' },
-]
-
 export default function Dashboard() {
   const [stats, setStats] = useState({
     total_buildings: 0,
     active_students: 0,
     trivia_facts: 0,
-    gps_unlocks_today: 0
+    gps_unlocks_today: 0,
+    weekly_data: [],
+    building_status: []
   });
 
   useEffect(() => {
@@ -91,15 +76,15 @@ export default function Dashboard() {
           </div>
           
           <div className="h-48 flex items-end justify-between gap-3 px-2">
-            {WEEKLY_DATA.map((data, i) => (
+            {stats.weekly_data.map((data, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
                 <div className="w-full relative">
                    <div 
                     className={`w-full rounded-t-lg transition-all duration-300 ${data.day === 'Sat' ? 'bg-brand' : 'bg-brand-light group-hover:bg-brand/30'}`}
-                    style={{ height: `${data.value * 1.5}px` }}
+                    style={{ height: `${Math.max(data.value * 15, 4)}px` }}
                   >
-                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                      {data.value}
+                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      {data.value} unlocks
                     </div>
                   </div>
                 </div>
@@ -116,7 +101,7 @@ export default function Dashboard() {
             <button className="text-gray-400 hover:text-brand transition-colors"><MoreVertical size={18} /></button>
           </div>
           <div className="space-y-1">
-            {BUILDING_STATUS.map((b, i) => (
+            {stats.building_status.map((b, i) => (
               <div key={i} className="flex items-center justify-between py-2.5 border-b border-brand-border last:border-0">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-md bg-brand-light flex items-center justify-center text-brand font-bold text-[10px] shrink-0">

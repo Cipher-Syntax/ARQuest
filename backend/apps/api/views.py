@@ -15,6 +15,7 @@ def health_check(request):
 
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
+from datetime import timedelta
 from apps.buildings.models import Building, BuildingUnlock, TriviaFact
 from apps.authentication.models import User
 from .responses import success_response, error_response
@@ -35,9 +36,40 @@ def dashboard_stats(request):
         source='geofence'
     ).count()
 
+    # Weekly GPS Unlocks
+    weekly_data = []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        count = BuildingUnlock.objects.filter(
+            unlocked_at__date=day,
+            source='geofence'
+        ).count()
+        weekly_data.append({
+            'day': day.strftime('%a'),
+            'value': count
+        })
+
+    # Building Status
+    buildings = Building.objects.all().order_by('-updated_at')[:4]
+    building_status = []
+    for b in buildings:
+        words = b.name.split()
+        if len(words) > 1:
+            code = "".join([word[0] for word in words if word[0].isalpha()]).upper()
+        else:
+            code = b.name[:3].upper()
+            
+        building_status.append({
+            'code': code[:4],
+            'name': b.name,
+            'status': 'Live' if b.is_active else 'Draft'
+        })
+
     return success_response({
         'total_buildings': total_buildings,
         'active_students': active_students,
         'trivia_facts': trivia_facts,
-        'gps_unlocks_today': gps_unlocks_today
+        'gps_unlocks_today': gps_unlocks_today,
+        'weekly_data': weekly_data,
+        'building_status': building_status
     })
