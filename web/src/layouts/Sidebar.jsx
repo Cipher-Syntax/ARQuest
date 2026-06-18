@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import {
   LayoutDashboard, Building2, Users, FileVideo, Map, 
   HelpCircle, Settings, LogOut, Menu, X, Target, MonitorPlay,
