@@ -11,6 +11,7 @@ const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/buildings', icon: Building2, label: 'Buildings' },
   { to: '/users', icon: Users, label: 'Users' },
+  { to: '/media', icon: FileVideo, label: 'Content & Media' },
   { to: '/geofences', icon: Map, label: 'Geofences' },
   { to: '/trivia', icon: HelpCircle, label: 'Trivia' },
   { to: '/cms', icon: MonitorPlay, label: 'CMS' },
