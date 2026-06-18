@@ -324,7 +324,7 @@ export default function ARScreen() {
                             <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
                                 <Ionicons name="hardware-chip" size={24} color="#000" />
                                 <View style={{marginLeft: 8}}>
-                                    <Text style={styles.claimQuestBtnText}>EXTRACT DATA FRAGMENT</Text>
+                                    <Text style={styles.claimQuestBtnText}>CLAIM REWARD</Text>
                                     <Text style={styles.claimPointsText}>REWARD: +{matchingQuest.reward_points} EXP</Text>
                                 </View>
                             </TouchableOpacity>
@@ -346,7 +346,7 @@ export default function ARScreen() {
                     <View style={styles.triviaModalHeader}>
                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
                             <Ionicons name="finger-print" color={theme.colors.arHighlight} size={22} style={{marginRight: 8}} />
-                            <Text style={styles.triviaTitle}>DATA LOG DECRYPTED</Text>
+                            <Text style={styles.triviaTitle}>NEW DISCOVERY</Text>
                         </View>
                         <TouchableOpacity onPress={closeTriviaModal} style={styles.closeTriviaBtn}>
                             <X color={theme.colors.arHighlight} size={20} />
@@ -354,7 +354,7 @@ export default function ARScreen() {
                     </View>
                     
                     <View style={styles.triviaContentBorder}>
-                        <Text style={styles.triviaBuildingName}>ARCHIVE: {nearbyBuildingFull?.name || "UNKNOWN"}</Text>
+                        <Text style={styles.triviaBuildingName}>{nearbyBuildingFull?.name || "UNKNOWN"}</Text>
                         <Text style={styles.triviaText}>
                             {claimedQuest.hint || nearbyBuildingFull?.description || "No archived data available for this node."}
                         </Text>
@@ -362,7 +362,7 @@ export default function ARScreen() {
                     
                     <View style={styles.rewardBadge}>
                         <Ionicons name="flash" color="#10B981" size={24} />
-                        <Text style={styles.rewardText}>EXP DEPOSITED: +{claimedQuest.reward_points}</Text>
+                        <Text style={styles.rewardText}>EXP GAINED: +{claimedQuest.reward_points}</Text>
                     </View>
                 </Animated.View>
             )}
