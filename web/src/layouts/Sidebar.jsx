@@ -31,7 +31,6 @@ const NAV = [
 function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }) {
 	return (
 		<div className="flex flex-col h-full bg-brand relative transition-all duration-300">
-			{/* Logo / Brand */}
 			<div
 				className={`px-5 py-6 flex items-center transition-all duration-300 border-b border-white/10 ${isCollapsed ? 'justify-center px-0' : 'justify-between'}`}
 			>
@@ -56,7 +55,6 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
 				</div>
 			</div>
 
-			{/* Toggle Button for Desktop */}
 			<button
 				onClick={() => setIsCollapsed(!isCollapsed)}
 				className="absolute -right-3.5 top-8 bg-white border border-gray-200 text-brand hover:bg-brand-light rounded-md p-1.5 shadow-md transition-all lg:flex hidden items-center justify-center z-50 group"
@@ -74,7 +72,6 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
 				)}
 			</button>
 
-			{/* Nav */}
 			<nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto scrollbar-none">
 				<p
 					className={`text-[10px] font-bold text-white/50 uppercase tracking-wider mb-4 px-3 transition-opacity ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}
@@ -115,7 +112,6 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
 				))}
 			</nav>
 
-			{/* Footer / Logout */}
 			<div
 				className={`p-4 border-t border-white/10 transition-all duration-300 ${isCollapsed ? 'flex justify-center' : ''}`}
 			>

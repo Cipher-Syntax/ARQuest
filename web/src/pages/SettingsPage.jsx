@@ -56,7 +56,6 @@ export default function Settings() {
 				</p>
 			</div>
 
-			{/* General Settings */}
 			<Card>
 				<h3 className="text-sm font-bold text-gray-900 mb-5">General Settings</h3>
 				<div className="space-y-5">
@@ -102,7 +101,6 @@ export default function Settings() {
 				</div>
 			</Card>
 
-			{/* App Features */}
 			<Card>
 				<h3 className="text-sm font-bold text-gray-900 mb-5">App Features</h3>
 				<div className="space-y-5">
@@ -177,7 +175,6 @@ export default function Settings() {
 				</div>
 			</Card>
 
-			{/* Gamification */}
 			<Card>
 				<h3 className="text-sm font-bold text-gray-900 mb-5">Gamification</h3>
 				<div className="space-y-5">

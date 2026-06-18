@@ -66,7 +66,6 @@ export default function Dashboard() {
 
 	return (
 		<div className="space-y-6">
-			{/* Header */}
 			<div>
 				<h2 className="text-2xl font-bold text-gray-900">Overview</h2>
 				<p className="text-gray-500 mt-1">
@@ -74,7 +73,6 @@ export default function Dashboard() {
 				</p>
 			</div>
 
-			{/* Stats Row */}
 			<div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
 				{STATS.map((stat, i) => (
 					<Card key={i} className="relative overflow-hidden">
@@ -95,7 +93,6 @@ export default function Dashboard() {
 			</div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Chart Section */}
 				<Card className="lg:col-span-2">
 					<div className="flex items-center justify-between mb-6">
 						<div>
@@ -131,7 +128,6 @@ export default function Dashboard() {
 					</div>
 				</Card>
 
-				{/* Building Status */}
 				<Card>
 					<div className="flex items-center justify-between mb-4">
 						<h3 className="font-bold text-gray-900">Building Status</h3>
