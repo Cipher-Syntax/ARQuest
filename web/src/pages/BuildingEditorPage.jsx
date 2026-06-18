@@ -226,7 +226,7 @@ const BuildingEditorPage = () => {
                 </h1>
 
                 {/* Dedicated button added here to link to PanoramaManagerPage */}
-                {!isNew && (
+                {!isNew ? (
                     <button
                         type="button"
                         onClick={() => navigate(`/panoramas/${id}`)}
@@ -245,6 +245,28 @@ const BuildingEditorPage = () => {
                     >
                         <ImageIcon size={18} />
                         Manage Panoramas
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        disabled
+                        title="Save the building first to enable panorama management"
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: theme.colors.surface,
+                            color: theme.colors.text.muted,
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: theme.radius.sm,
+                            cursor: 'not-allowed',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            opacity: 0.6
+                        }}
+                    >
+                        <ImageIcon size={18} />
+                        Save to Add Panoramas
                     </button>
                 )}
             </div>
