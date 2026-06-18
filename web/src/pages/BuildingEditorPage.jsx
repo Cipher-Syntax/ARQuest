@@ -285,7 +285,7 @@ const BuildingEditorPage = () => {
                                 name="description"
                                 value={building.description || ''}
                                 onChange={handleChange}
-                                rows={3}
+                                rows={8}
                                 style={{ width: '100%', padding: theme.spacing.sm, border: `1px solid ${theme.colors.border}`, borderRadius: theme.radius.sm, fontSize: '14px', fontFamily: 'inherit' }}
                             />
                         </div>
