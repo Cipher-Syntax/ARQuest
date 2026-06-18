@@ -274,7 +274,11 @@ def quest_detail(request, id):
 @permission_classes([IsAuthenticated])
 def trivia_list_create(request):
     if request.method == 'GET':
-        trivias = TriviaFact.objects.all().order_by('-created_at')
+        building_id = request.query_params.get('building_id')
+        if building_id:
+            trivias = TriviaFact.objects.filter(building_id=building_id).order_by('-created_at')
+        else:
+            trivias = TriviaFact.objects.all().order_by('-created_at')
         return success_response(TriviaFactSerializer(trivias, many=True).data)
     elif request.method == 'POST':
         if not request.user.is_admin_role:
