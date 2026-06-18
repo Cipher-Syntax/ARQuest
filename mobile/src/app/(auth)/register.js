@@ -197,10 +197,10 @@ export default function RegisterScreen() {
                     </View>
 
                     <ARButton
-                        title="Create Identity"
+                        title="Create Account"
                         onPress={handleRegister}
                         isLoading={isLoading}
-                        variant="accent"
+                        variant="primary"
                         style={styles.registerButton}
                     />
 
