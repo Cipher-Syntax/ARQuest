@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(26, 4, 11, 0.9)',
+        backgroundColor: theme.colors.bgPrimary,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -229,11 +229,11 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: theme.colors.surface,
         paddingTop: 50, // Safe area top
         paddingBottom: 15,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0, 229, 255, 0.3)',
+        borderBottomColor: theme.colors.border,
     },
     hudContent: {
         flexDirection: 'row',
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: theme.colors.surfaceSoft,
     },
     bottomSheet: {
         backgroundColor: theme.colors.bgPrimary,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderLeftWidth: 1,
         borderRightWidth: 1,
-        borderColor: 'rgba(0, 229, 255, 0.3)',
+        borderColor: theme.colors.border,
         shadowColor: theme.colors.arHighlight,
         shadowOffset: { width: 0, height: -3 },
         shadowOpacity: 0.2,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     sheetHandle: {
         width: 40,
         height: 5,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: theme.colors.bgSecondary,
         borderRadius: 3,
         alignSelf: 'center',
         marginBottom: theme.spacing.md,

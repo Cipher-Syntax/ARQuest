@@ -148,8 +148,8 @@ const styles = StyleSheet.create({
     },
     hudCard: {
         marginBottom: theme.spacing.xl,
-        backgroundColor: "rgba(0, 229, 255, 0.05)",
-        borderColor: "rgba(0, 229, 255, 0.2)",
+        backgroundColor: theme.colors.surface,
+        borderColor: theme.colors.border,
     },
     statsRow: {
         flexDirection: "row",

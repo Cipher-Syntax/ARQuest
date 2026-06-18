@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     podiumRank: {
         fontSize: 24,
         fontWeight: '900',
-        color: 'rgba(0,0,0,0.6)',
+        color: theme.colors.textSecondary,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
     },
     myRankRow: {
-        backgroundColor: 'rgba(138, 21, 56, 0.1)',
+        backgroundColor: 'rgba(178, 24, 48, 0.1)',
         borderColor: theme.colors.primary,
         borderWidth: 2,
     },

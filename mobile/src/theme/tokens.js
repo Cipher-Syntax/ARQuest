@@ -3,8 +3,8 @@ export const colors = {
     bgSecondary: "#F5F5F5",
     surface: "#FFFFFF",
     surfaceSoft: "#F9F9F9",
-    primary: "#8A1538", // WMSU Red
-    primaryDark: "#6B0F2A",
+    primary: "#B21830", // Web Exact Primary
+    primaryDark: "#850F22",
     accent: "#00E5FF", // Web Accent Cyan
     accentSoft: "#E0F7FA",
     textPrimary: "#1A1A1A",
