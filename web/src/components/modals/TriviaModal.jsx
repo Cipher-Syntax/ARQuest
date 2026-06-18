@@ -33,7 +33,7 @@ export default function TriviaModal({
           <select
             value={newBuilding}
             onChange={(e) => setNewBuilding(e.target.value)}
-            className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
+            className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
           >
             {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
           </select>
@@ -45,7 +45,7 @@ export default function TriviaModal({
             onChange={(e) => setNewFact(e.target.value)}
             rows={4}
             placeholder="Enter an interesting fact about this building..."
-            className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 resize-none placeholder-gray-400 font-medium"
+            className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 resize-none placeholder-gray-400 font-medium"
           />
         </div>
       </div>

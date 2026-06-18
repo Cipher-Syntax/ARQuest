@@ -41,7 +41,7 @@ export default function GeofenceModal({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. CCS" 
-              className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
+              className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
             />
           </div>
           <div className="col-span-1">
@@ -51,7 +51,7 @@ export default function GeofenceModal({
               value={newRadius}
               onChange={(e) => setNewRadius(e.target.value)}
               placeholder="e.g. 50m" 
-              className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
+              className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
             />
           </div>
         </div>
@@ -63,7 +63,7 @@ export default function GeofenceModal({
             value={newFullBuilding}
             onChange={(e) => setNewFullBuilding(e.target.value)}
             placeholder="e.g. College of Computer Studies" 
-            className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+            className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
           />
         </div>
 
@@ -75,7 +75,7 @@ export default function GeofenceModal({
               value={newLat}
               onChange={(e) => setNewLat(e.target.value)}
               placeholder="14.5547° N" 
-              className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono"
+              className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono"
             />
           </div>
           <div>
@@ -85,7 +85,7 @@ export default function GeofenceModal({
               value={newLng}
               onChange={(e) => setNewLng(e.target.value)}
               placeholder="121.0244° E" 
-              className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono"
+              className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono"
             />
           </div>
         </div>

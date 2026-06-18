@@ -45,7 +45,7 @@ export default function BuildingModal({
             <select
               value={formData.department}
               onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer font-bold"
+              className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer font-bold"
             >
               <option value="Uncategorized">Uncategorized</option>
               {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -76,7 +76,7 @@ export default function BuildingModal({
                 key={s}
                 type="button"
                 onClick={() => setFormData({ ...formData, status: s })}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-bold capitalize transition-all ${
+                className={`flex-1 py-2.5 rounded-md text-sm font-bold capitalize transition-all ${
                   formData.status === s ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'
                 }`}
               >
@@ -91,7 +91,7 @@ export default function BuildingModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">3D Model / GLB</label>
-              <div className="border-2 border-dashed border-brand-border rounded-2xl p-8 flex flex-col items-center justify-center gap-2 bg-brand-light/20 hover:bg-brand-light/40 transition-all cursor-pointer group">
+              <div className="border-2 border-dashed border-brand-border rounded-lg p-8 flex flex-col items-center justify-center gap-2 bg-brand-light/20 hover:bg-brand-light/40 transition-all cursor-pointer group">
                 <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 group-hover:text-brand shadow-sm transition-colors">
                   <Box size={20} />
                 </div>
@@ -100,7 +100,7 @@ export default function BuildingModal({
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">360° Panorama</label>
-              <div className="border-2 border-dashed border-brand-border rounded-2xl p-8 flex flex-col items-center justify-center gap-2 bg-brand-light/20 hover:bg-brand-light/40 transition-all cursor-pointer group">
+              <div className="border-2 border-dashed border-brand-border rounded-lg p-8 flex flex-col items-center justify-center gap-2 bg-brand-light/20 hover:bg-brand-light/40 transition-all cursor-pointer group">
                 <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 group-hover:text-brand shadow-sm transition-colors">
                   <ImageIcon size={20} />
                 </div>

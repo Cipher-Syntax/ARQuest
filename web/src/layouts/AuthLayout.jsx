@@ -7,7 +7,7 @@ export default function AuthLayout({ children }) {
       <div className="w-full max-w-md">
         {/* Brand header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 bg-[#DC143C] rounded-2xl flex items-center justify-center shadow-lg mb-3">
+          <div className="w-14 h-14 bg-[#DC143C] rounded-lg flex items-center justify-center shadow-lg mb-3">
             <Target size={28} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-[#111827]">ARQuest</h1>
@@ -15,7 +15,7 @@ export default function AuthLayout({ children }) {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-[#FFD6DE] shadow-sm p-8">
+        <div className="bg-white rounded-lg border border-[#FFD6DE] shadow-sm p-8">
           {children || <Outlet />}
         </div>
 

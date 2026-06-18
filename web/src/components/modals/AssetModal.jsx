@@ -45,7 +45,7 @@ export default function AssetModal({
           <select 
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
-            className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
+            className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
           >
             {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
           </select>
@@ -56,13 +56,13 @@ export default function AssetModal({
           <div className="flex gap-2">
             <button 
               onClick={() => setNewType('3D Model')}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${newType === '3D Model' ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'}`}
+              className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${newType === '3D Model' ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'}`}
             >
               3D Model
             </button>
             <button 
               onClick={() => setNewType('360° Panorama')}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${newType === '360° Panorama' ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'}`}
+              className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${newType === '360° Panorama' ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'}`}
             >
               360° Panorama
             </button>
@@ -72,7 +72,7 @@ export default function AssetModal({
         {!editingAsset && (
           <div 
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-brand-border rounded-2xl p-8 flex flex-col items-center justify-center gap-2 bg-brand-light/20 hover:bg-brand-light/40 transition-colors cursor-pointer group"
+            className="border-2 border-dashed border-brand-border rounded-lg p-8 flex flex-col items-center justify-center gap-2 bg-brand-light/20 hover:bg-brand-light/40 transition-colors cursor-pointer group"
           >
             <input 
               type="file" 
