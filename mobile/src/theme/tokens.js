@@ -1,21 +1,21 @@
 export const colors = {
-    bgPrimary: "#FFFFFF",
-    bgSecondary: "#F3F4F6",
-    surface: "#FFFFFF",
-    surfaceSoft: "#F9FAFB",
+    bgPrimary: "#1a040b", // Deep dark red/black
+    bgSecondary: "#2a0a14",
+    surface: "rgba(255, 255, 255, 0.05)", // Glassmorphism base
+    surfaceSoft: "rgba(255, 255, 255, 0.02)",
     primary: "#8A1538", // WMSU Red
     primaryDark: "#6B0F2A",
     accent: "#EAB308", // Gold/Yellow accent
     accentSoft: "#FEF08A",
-    textPrimary: "#111827",
-    textSecondary: "#4B5563",
+    textPrimary: "#FFFFFF",
+    textSecondary: "#E5E7EB",
     textMuted: "#9CA3AF",
-    border: "#E5E7EB",
+    border: "rgba(255, 255, 255, 0.15)", // Glowing border
     success: "#10B981",
     warning: "#F59E0B",
     error: "#EF4444",
     info: "#3B82F6",
-    arHighlight: "#00E5FF",
+    arHighlight: "#00E5FF", // Cyan for active HUD
     geofenceActive: "#10B981",
     geofenceInactive: "#EF4444",
 };
@@ -39,10 +39,10 @@ export const spacing = {
 };
 
 export const radius = {
-    sm: 6,
-    md: 12,
-    lg: 18,
-    xl: 24,
+    sm: 4,
+    md: 6, // Match web rounded-md
+    lg: 8,
+    xl: 12,
     full: 999,
 };
 

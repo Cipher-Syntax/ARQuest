@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     },
     recentContainer: {
         backgroundColor: theme.colors.surface,
-        borderRadius: 16,
+        borderRadius: theme.radius.md,
         padding: 16,
         borderWidth: 1,
         borderColor: theme.colors.border,

@@ -3,7 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Text, Image } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { theme } from '../theme/tokens';
 
-export default function AR3DModelOverlay({ modelUrl, buildingName, capturing, onSnapshotReady }) {
+export default function AR3DModelOverlay({ modelUrl, buildingName, capturing, onSnapshotReady, style }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [webViewReady, setWebViewReady] = useState(false);
@@ -55,7 +55,7 @@ export default function AR3DModelOverlay({ modelUrl, buildingName, capturing, on
     const viewerHtml = require('../../assets/ar-viewer.html');
 
     return (
-        <View style={styles.container} pointerEvents="none">
+        <View style={[styles.container, style]} pointerEvents="none">
             <WebView
                 ref={webViewRef}
                 source={viewerHtml}

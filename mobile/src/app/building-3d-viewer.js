@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import { theme } from '../theme/tokens';
 import { useAssetCache } from '../hooks/useAssetCache';
 import { assetService } from '../services/assetService';
@@ -92,6 +93,8 @@ export default function Building3DViewerScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar style="light" />
+            
             {/* Fullscreen 3D Canvas */}
             <WebView
                 ref={webViewRef}
@@ -108,14 +111,15 @@ export default function Building3DViewerScreen() {
                 originWhitelist={['*']}
             />
 
-            {/* Floating Back Button */}
+            {/* Gamified Floating Back Button */}
             <TouchableOpacity style={styles.floatingBackButton} onPress={() => router.back()}>
-                <Ionicons name="arrow-back" size={24} color={theme.colors.white} />
+                <Ionicons name="close" size={24} color={theme.colors.arHighlight} />
             </TouchableOpacity>
 
             {/* Gamified WMSU HUD Overlay - Title (Top) */}
             <View style={styles.hudTopContainer} pointerEvents="none">
-                <Text style={styles.buildingName}>{buildingName || 'Building 3D View'}</Text>
+                <Text style={styles.buildingName}>{buildingName || 'UNKNOWN'}</Text>
+                <Text style={styles.hudSubtitle}>3D MODEL INITIALIZED</Text>
             </View>
 
             {/* Gamified WMSU HUD Overlay - Description (Bottom) */}
@@ -156,7 +160,7 @@ export default function Building3DViewerScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#000',
     },
     webview: {
         ...StyleSheet.absoluteFillObject,
@@ -165,18 +169,15 @@ const styles = StyleSheet.create({
     floatingBackButton: {
         position: 'absolute',
         top: 50,
-        left: 20,
+        right: 20,
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 229, 255, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 5,
         zIndex: 20,
     },
     hudTopContainer: {
@@ -195,52 +196,53 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     buildingName: {
-        fontSize: theme.typography.xl,
+        fontSize: 16,
         fontWeight: '900',
-        color: theme.colors.primary,
-        letterSpacing: 1,
+        color: theme.colors.arHighlight,
+        letterSpacing: 3,
         textTransform: 'uppercase',
         textAlign: 'center',
-        textShadowColor: 'rgba(255,255,255,0.8)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+    },
+    hudSubtitle: {
+        fontSize: 10,
+        color: theme.colors.success,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+        marginTop: 4,
     },
     descriptionScroll: {
-        maxHeight: 180,
-        backgroundColor: 'transparent',
+        maxHeight: 150,
+        backgroundColor: 'rgba(10, 10, 15, 0.85)',
+        padding: 16,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 229, 255, 0.3)',
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.arHighlight,
     },
     buildingDescription: {
-        fontSize: theme.typography.md,
-        color: theme.colors.textPrimary,
-        lineHeight: 22,
-        textAlign: 'justify',
-        textShadowColor: 'rgba(255,255,255,0.8)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+        fontSize: 13,
+        color: '#ddd',
+        lineHeight: 20,
+        fontFamily: 'monospace',
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(245, 245, 245, 0.8)',
+        backgroundColor: 'rgba(10, 10, 15, 0.95)',
         zIndex: 30,
     },
     loadingCard: {
-        backgroundColor: '#fff',
-        padding: theme.spacing.xl,
-        borderRadius: theme.radius.lg,
+        backgroundColor: 'transparent',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 10,
     },
     loadingText: {
-        color: theme.colors.primary,
+        color: theme.colors.arHighlight,
         marginTop: theme.spacing.md,
-        fontSize: 16,
+        fontSize: 12,
         fontWeight: 'bold',
+        letterSpacing: 2,
     },
     errorOverlay: {
         ...StyleSheet.absoluteFillObject,

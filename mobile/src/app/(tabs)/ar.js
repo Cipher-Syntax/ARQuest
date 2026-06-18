@@ -268,36 +268,65 @@ export default function ARScreen() {
                     <CameraView style={styles.camera} facing="back" ref={cameraRef} />
                 )}
                 
-                {/* 2. Middle Layer: Absolute 3D Model */}
-                {(() => {
-                    return isModelVisible ? (
-                        <AR3DModelOverlay
-                            modelUrl={nearbyBuildingFull.model_url}
-                            buildingName={nearbyBuildingFull.name}
-                            capturing={capturing}
-                            onSnapshotReady={() => setModelReady(true)}
-                        />
-                    ) : null;
-                })()}
+                {/* 2. Middle Layer removed (Model moved into targetCard) */}
 
-                {/* 3. Top Layer: Absolute Geofence Status Label */}
+                {/* 3. Gamified HUD Overlays */}
+                <View style={styles.reticleContainer} pointerEvents="none">
+                    <View style={styles.reticleTopLeft} />
+                    <View style={styles.reticleTopRight} />
+                    <View style={styles.reticleBottomLeft} />
+                    <View style={styles.reticleBottomRight} />
+                    <View style={styles.reticleCenterPoint} />
+                </View>
+
                 {nearbyBuilding && (
                     <View style={styles.topOverlay}>
-                        <View style={styles.buildingLabelContainer}>
+                        {/* Target Identification */}
+                        <View style={styles.targetCard}>
+                            <Text style={styles.targetLabel}>TARGET IDENTIFIED</Text>
                             <Text style={styles.buildingLabel}>{nearbyBuilding.name}</Text>
-                            {geofenceStatus?.status && (
+                            
+                            {geofenceStatus?.status === 'inside' ? (
+                                <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
+                                    ✓ ZONE SECURED
+                                </Text>
+                            ) : (
                                 <Text style={styles.buildingStatus}>
-                                    {geofenceStatus.status === 'inside' && '✓ Inside'}
-                                    {geofenceStatus.status === 'nearby' && `📍 ${Math.round(geofenceStatus.distance)}m away`}
+                                    📍 PROXIMITY WARNING: {Math.round(geofenceStatus?.distance || 0)}m
                                 </Text>
                             )}
+
+                            {/* 3D Model Miniature Projection */}
+                            {isModelVisible && (
+                                <AR3DModelOverlay
+                                    modelUrl={nearbyBuildingFull.model_url}
+                                    buildingName={nearbyBuildingFull.name}
+                                    capturing={capturing}
+                                    onSnapshotReady={() => setModelReady(true)}
+                                    style={{
+                                        position: 'relative',
+                                        top: -10,
+                                        left: 0,
+                                        width: 100,
+                                        height: 100,
+                                        marginLeft: 0,
+                                        alignSelf: 'center',
+                                        marginTop: 0,
+                                        marginBottom: -10,
+                                    }}
+                                />
+                            )}
+
                         </View>
                         
-                        {/* Claim Button */}
+                        {/* Gamified Claim Button (Uses existing Quest API) */}
                         {matchingQuest && geofenceStatus?.status === 'inside' && !triviaModalVisible && !capturing && (
                             <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
-                                <Ionicons name="gift" size={20} color="#000" />
-                                <Text style={styles.claimQuestBtnText}>Claim {matchingQuest.reward_points} Points & Trivia!</Text>
+                                <Ionicons name="hardware-chip" size={24} color="#000" />
+                                <View style={{marginLeft: 8}}>
+                                    <Text style={styles.claimQuestBtnText}>EXTRACT DATA FRAGMENT</Text>
+                                    <Text style={styles.claimPointsText}>REWARD: +{matchingQuest.reward_points} EXP</Text>
+                                </View>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -311,23 +340,29 @@ export default function ARScreen() {
             </View>
             {/* --- END CAPTURE TARGET --- */}
 
-            {/* --- TRIVIA MODAL --- */}
+            {/* --- TRIVIA MODAL (GAMIFIED) --- */}
             {triviaModalVisible && claimedQuest && (
                 <Animated.View style={[styles.triviaModal, { transform: [{ translateY: slideAnim }] }]}>
                     <View style={styles.triviaModalHeader}>
                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                            <Ionicons name="gift" color="#fff" size={20} style={{marginRight: 6}} />
-                            <Text style={styles.triviaTitle}>TRIVIA UNLOCKED!</Text>
+                            <Ionicons name="finger-print" color={theme.colors.arHighlight} size={22} style={{marginRight: 8}} />
+                            <Text style={styles.triviaTitle}>DATA LOG DECRYPTED</Text>
                         </View>
-                        <TouchableOpacity onPress={closeTriviaModal}>
-                            <X color="#fff" size={24} />
+                        <TouchableOpacity onPress={closeTriviaModal} style={styles.closeTriviaBtn}>
+                            <X color={theme.colors.arHighlight} size={20} />
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.triviaBuildingName}>{nearbyBuildingFull?.name}</Text>
-                    <Text style={styles.triviaText}>{nearbyBuildingFull?.description || claimedQuest.hint}</Text>
+                    
+                    <View style={styles.triviaContentBorder}>
+                        <Text style={styles.triviaBuildingName}>ARCHIVE: {nearbyBuildingFull?.name || "UNKNOWN"}</Text>
+                        <Text style={styles.triviaText}>
+                            {claimedQuest.hint || nearbyBuildingFull?.description || "No archived data available for this node."}
+                        </Text>
+                    </View>
+                    
                     <View style={styles.rewardBadge}>
-                        <Ionicons name="star" color="#eab308" size={24} />
-                        <Text style={styles.rewardText}>+{claimedQuest.reward_points} Points Earned!</Text>
+                        <Ionicons name="flash" color="#10B981" size={24} />
+                        <Text style={styles.rewardText}>EXP DEPOSITED: +{claimedQuest.reward_points}</Text>
                     </View>
                 </Animated.View>
             )}
@@ -402,39 +437,41 @@ const styles = StyleSheet.create({
     },
     topOverlay: {
         position: 'absolute',
-        top: 380, // Positioned right under the 3D model (80 + 320 = 400, so slightly overlapping or just below)
-        left: 0,
-        right: 0,
-        alignItems: 'center',
+        top: 60,
+        left: 20,
+        right: 20,
         zIndex: 10,
     },
-    buildingLabelContainer: {
-        backgroundColor: 'rgba(138, 21, 56, 0.85)', // WMSU Crimson with opacity
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.xl,
-        borderRadius: 30, // Pill shape
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.4)',
+    targetCard: {
+        backgroundColor: 'rgba(10, 10, 15, 0.85)',
+        borderWidth: 1,
+        borderColor: theme.colors.arHighlight,
+        borderRadius: theme.radius.md,
+        padding: 16,
         shadowColor: theme.colors.arHighlight,
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 15,
-        elevation: 5,
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+    },
+    targetLabel: {
+        color: theme.colors.arHighlight,
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+        marginBottom: 4,
     },
     buildingLabel: {
         color: '#fff',
-        fontSize: theme.typography.lg,
+        fontSize: 22,
         fontWeight: '900',
         letterSpacing: 1.5,
-        textAlign: 'center',
         textTransform: 'uppercase',
     },
     buildingStatus: {
-        color: theme.colors.arHighlight,
-        fontSize: theme.typography.sm,
+        color: theme.colors.accent,
+        fontSize: 12,
         fontWeight: 'bold',
         marginTop: 4,
-        textAlign: 'center',
         letterSpacing: 1,
     },
     controls: {
@@ -470,15 +507,35 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    intelFeed: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0, 229, 255, 0.3)',
+    },
+    intelHeader: {
+        color: theme.colors.textMuted,
+        fontSize: 9,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    intelText: {
+        color: '#ddd',
+        fontSize: 12,
+        lineHeight: 18,
+        fontFamily: 'monospace',
+    },
     claimQuestBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#00E5FF',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.arHighlight,
         paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 25,
-        marginTop: 20,
-        shadowColor: '#00E5FF',
+        paddingHorizontal: 20,
+        borderRadius: theme.radius.md,
+        marginTop: 16,
+        shadowColor: theme.colors.arHighlight,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.8,
         shadowRadius: 15,
@@ -486,24 +543,50 @@ const styles = StyleSheet.create({
     },
     claimQuestBtnText: {
         color: '#000',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '900',
-        marginLeft: 8,
-        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
+    claimPointsText: {
+        color: '#000',
+        fontSize: 10,
+        fontWeight: 'bold',
+        opacity: 0.8,
+    },
+    reticleContainer: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        width: 200,
+        height: 200,
+        marginLeft: -100,
+        marginTop: -100,
+        zIndex: 5,
+    },
+    reticleTopLeft: { position: 'absolute', top: 0, left: 0, width: 30, height: 30, borderTopWidth: 3, borderLeftWidth: 3, borderColor: 'rgba(0, 229, 255, 0.6)' },
+    reticleTopRight: { position: 'absolute', top: 0, right: 0, width: 30, height: 30, borderTopWidth: 3, borderRightWidth: 3, borderColor: 'rgba(0, 229, 255, 0.6)' },
+    reticleBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 30, height: 30, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: 'rgba(0, 229, 255, 0.6)' },
+    reticleBottomRight: { position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderBottomWidth: 3, borderRightWidth: 3, borderColor: 'rgba(0, 229, 255, 0.6)' },
+    reticleCenterPoint: { position: 'absolute', top: '50%', left: '50%', width: 4, height: 4, marginLeft: -2, marginTop: -2, backgroundColor: 'rgba(234, 179, 8, 0.8)', borderRadius: 2 },
     triviaModal: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(10, 10, 15, 0.95)',
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
+        backgroundColor: 'rgba(10, 10, 15, 0.98)',
+        borderTopLeftRadius: theme.radius.lg,
+        borderTopRightRadius: theme.radius.lg,
         padding: 24,
         paddingBottom: 40,
         zIndex: 100,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderTopWidth: 2,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderColor: theme.colors.arHighlight,
+        shadowColor: theme.colors.arHighlight,
+        shadowOffset: { width: 0, height: -5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
     },
     triviaModalHeader: {
         flexDirection: 'row',
@@ -512,38 +595,53 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     triviaTitle: {
-        color: '#fff',
-        fontSize: 14,
+        color: theme.colors.arHighlight,
+        fontSize: 16,
         fontWeight: '900',
-        letterSpacing: 2,
+        letterSpacing: 3,
+    },
+    closeTriviaBtn: {
+        backgroundColor: 'rgba(0, 229, 255, 0.1)',
+        padding: 6,
+        borderRadius: 20,
+    },
+    triviaContentBorder: {
+        borderLeftWidth: 2,
+        borderLeftColor: 'rgba(0, 229, 255, 0.5)',
+        paddingLeft: 12,
+        marginBottom: 20,
     },
     triviaBuildingName: {
-        color: theme.colors.arHighlight,
-        fontSize: 22,
+        color: '#fff',
+        fontSize: 12,
         fontWeight: 'bold',
-        marginBottom: 12,
+        marginBottom: 8,
+        letterSpacing: 2,
+        opacity: 0.7,
     },
     triviaText: {
-        color: '#ddd',
-        fontSize: 16,
+        color: '#00E5FF',
+        fontSize: 15,
         lineHeight: 24,
-        marginBottom: 24,
+        fontFamily: 'monospace',
     },
     rewardBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(234, 179, 8, 0.1)',
-        alignSelf: 'flex-start',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 20,
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        alignSelf: 'center',
+        width: '100%',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        borderRadius: theme.radius.md,
         borderWidth: 1,
-        borderColor: 'rgba(234, 179, 8, 0.3)',
+        borderColor: 'rgba(16, 185, 129, 0.4)',
     },
     rewardText: {
-        color: '#eab308',
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginLeft: 8,
+        color: '#10B981',
+        fontSize: 16,
+        fontWeight: '900',
+        marginLeft: 10,
+        letterSpacing: 1,
     },
 });
