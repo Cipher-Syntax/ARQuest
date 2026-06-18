@@ -102,14 +102,14 @@ export default function LoginScreen() {
                         title="Game Start"
                         onPress={handleLogin}
                         isLoading={isLoading}
-                        variant="accent"
+                        variant="primary"
                         style={styles.loginButton}
                     />
 
                     <Link href="/(auth)/register" asChild>
                         <TouchableOpacity style={styles.registerLink}>
                             <Text style={styles.registerText}>
-                                New Player? Create Identity
+                                Don't have an account? Register
                             </Text>
                         </TouchableOpacity>
                     </Link>
@@ -147,8 +147,8 @@ const styles = StyleSheet.create({
         width: 300,
         height: 300,
         borderRadius: 150,
-        backgroundColor: theme.colors.primaryDark,
-        opacity: 0.5,
+        backgroundColor: theme.colors.primary, // Red glow
+        opacity: 0.3, // Make more vibrant
     },
     glowOrbBottom: {
         position: 'absolute',
@@ -157,7 +157,8 @@ const styles = StyleSheet.create({
         width: 400,
         height: 400,
         borderRadius: 200,
-        backgroundColor: "#EAB30810", // faint gold
+        backgroundColor: theme.colors.primary, // Also Red
+        opacity: 0.3,
     },
     content: {
         flex: 1,
@@ -169,9 +170,9 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         alignSelf: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        backgroundColor: theme.colors.surface,
         borderWidth: 2,
-        borderColor: "rgba(255, 255, 255, 0.2)",
+        borderColor: theme.colors.border,
         borderStyle: "dashed",
         borderRadius: theme.radius.md,
         alignItems: "center",
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.lg,
     },
     logoText: {
-        color: "rgba(255, 255, 255, 0.5)",
+        color: theme.colors.textMuted,
         fontSize: theme.typography.sm,
         fontWeight: "bold",
         textTransform: "uppercase",
@@ -190,18 +191,15 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xl,
     },
     title: {
-        color: theme.colors.textPrimary,
+        color: theme.colors.primary,
         fontSize: 32,
         fontWeight: "900",
         letterSpacing: 2,
         textTransform: "uppercase",
-        textShadowColor: "rgba(234, 179, 8, 0.4)",
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
         marginBottom: 4,
     },
     subtitle: {
-        color: theme.colors.accent,
+        color: theme.colors.textSecondary,
         fontSize: theme.typography.sm,
         fontWeight: "600",
         letterSpacing: 3,
@@ -222,7 +220,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     input: {
-        backgroundColor: "rgba(0,0,0,0.3)",
+        backgroundColor: theme.colors.surfaceSoft,
         color: theme.colors.textPrimary,
         padding: theme.spacing.md,
         borderRadius: theme.radius.md,
@@ -233,7 +231,7 @@ const styles = StyleSheet.create({
     passwordContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.3)",
+        backgroundColor: theme.colors.surfaceSoft,
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,

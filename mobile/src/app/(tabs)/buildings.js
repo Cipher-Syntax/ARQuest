@@ -106,7 +106,7 @@ export default function BuildingsScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             
             {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
                 <View style={styles.loadingOverlay}>
@@ -171,7 +171,7 @@ export default function BuildingsScreen() {
                                     <View style={styles.actionButtons}>
                                         {selectedBuilding.model_active && selectedBuilding.model_url && canView3D ? (
                                             <TouchableOpacity style={styles.view3dButton} onPress={handleView3D}>
-                                                <Ionicons name="cube-outline" size={20} color="#000" />
+                                                <Ionicons name="cube-outline" size={20} color="#FFFFFF" />
                                                 <Text style={styles.view3dText}>DEPLOY 3D MODEL</Text>
                                             </TouchableOpacity>
                                         ) : (
@@ -205,15 +205,15 @@ export default function BuildingsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: theme.colors.surfaceSoft,
     },
     webview: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: theme.colors.surfaceSoft,
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(26, 4, 11, 0.9)',
+        backgroundColor: theme.colors.bgPrimary,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -229,11 +229,11 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: theme.colors.surface,
         paddingTop: 50, // Safe area top
         paddingBottom: 15,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0, 229, 255, 0.3)',
+        borderBottomColor: theme.colors.border,
     },
     hudContent: {
         flexDirection: 'row',
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(255, 255, 255, 0.7)', // Transparent white to see map
     },
     bottomSheet: {
         backgroundColor: theme.colors.bgPrimary,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderLeftWidth: 1,
         borderRightWidth: 1,
-        borderColor: 'rgba(0, 229, 255, 0.3)',
+        borderColor: theme.colors.border,
         shadowColor: theme.colors.arHighlight,
         shadowOffset: { width: 0, height: -3 },
         shadowOpacity: 0.2,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     sheetHandle: {
         width: 40,
         height: 5,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: theme.colors.bgSecondary,
         borderRadius: 3,
         alignSelf: 'center',
         marginBottom: theme.spacing.md,
@@ -308,8 +308,8 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.sm,
     },
     badgeRole: {
-        backgroundColor: "rgba(234, 179, 8, 0.2)",
-        borderColor: theme.colors.accent,
+        backgroundColor: theme.colors.surfaceSoft,
+        borderColor: theme.colors.textSecondary,
     },
     badgeText: {
         color: theme.colors.textPrimary,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
     },
     view3dText: {
-        color: "#000",
+        color: "#FFFFFF",
         fontSize: 14,
         fontWeight: "900",
         letterSpacing: 1,

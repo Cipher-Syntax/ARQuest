@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
+import { StatusBar } from 'expo-status-bar';
 import ViewerHeader from '../components/viewer/ViewerHeader';
 import { theme } from '../theme/tokens';
 import api from '../services/api';
@@ -93,6 +94,7 @@ export default function PanoramaViewerScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar style="light" />
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.arHighlight} />

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Animated } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { captureRef } from 'react-native-view-shot';
@@ -253,6 +254,7 @@ export default function ARScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar style="light" />
             {/* --- CAPTURE TARGET --- */}
             <View ref={arViewRef} style={styles.captureContainer} collapsable={false}>
                 
@@ -324,7 +326,7 @@ export default function ARScreen() {
                             <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
                                 <Ionicons name="hardware-chip" size={24} color="#000" />
                                 <View style={{marginLeft: 8}}>
-                                    <Text style={styles.claimQuestBtnText}>EXTRACT DATA FRAGMENT</Text>
+                                    <Text style={styles.claimQuestBtnText}>CLAIM REWARD</Text>
                                     <Text style={styles.claimPointsText}>REWARD: +{matchingQuest.reward_points} EXP</Text>
                                 </View>
                             </TouchableOpacity>
@@ -346,7 +348,7 @@ export default function ARScreen() {
                     <View style={styles.triviaModalHeader}>
                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
                             <Ionicons name="finger-print" color={theme.colors.arHighlight} size={22} style={{marginRight: 8}} />
-                            <Text style={styles.triviaTitle}>DATA LOG DECRYPTED</Text>
+                            <Text style={styles.triviaTitle}>NEW DISCOVERY</Text>
                         </View>
                         <TouchableOpacity onPress={closeTriviaModal} style={styles.closeTriviaBtn}>
                             <X color={theme.colors.arHighlight} size={20} />
@@ -354,7 +356,7 @@ export default function ARScreen() {
                     </View>
                     
                     <View style={styles.triviaContentBorder}>
-                        <Text style={styles.triviaBuildingName}>ARCHIVE: {nearbyBuildingFull?.name || "UNKNOWN"}</Text>
+                        <Text style={styles.triviaBuildingName}>{nearbyBuildingFull?.name || "UNKNOWN"}</Text>
                         <Text style={styles.triviaText}>
                             {claimedQuest.hint || nearbyBuildingFull?.description || "No archived data available for this node."}
                         </Text>
@@ -362,7 +364,7 @@ export default function ARScreen() {
                     
                     <View style={styles.rewardBadge}>
                         <Ionicons name="flash" color="#10B981" size={24} />
-                        <Text style={styles.rewardText}>EXP DEPOSITED: +{claimedQuest.reward_points}</Text>
+                        <Text style={styles.rewardText}>EXP GAINED: +{claimedQuest.reward_points}</Text>
                     </View>
                 </Animated.View>
             )}
@@ -371,7 +373,7 @@ export default function ARScreen() {
             {!capturing && (
                 <View style={styles.controls}>
                     <TouchableOpacity style={styles.exitButton} onPress={() => router.back()}>
-                        <X size={24} color="#fff" />
+                        <X size={24} color={theme.colors.primary} />
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.captureButton} onPress={handleCaptureSelfie}>
@@ -443,7 +445,7 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     targetCard: {
-        backgroundColor: 'rgba(10, 10, 15, 0.85)',
+        backgroundColor: theme.colors.surfaceSoft,
         borderWidth: 1,
         borderColor: theme.colors.arHighlight,
         borderRadius: theme.radius.md,
@@ -461,7 +463,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     buildingLabel: {
-        color: '#fff',
+        color: theme.colors.textPrimary,
         fontSize: 22,
         fontWeight: '900',
         letterSpacing: 1.5,
@@ -489,7 +491,7 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: theme.colors.surface,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -511,7 +513,7 @@ const styles = StyleSheet.create({
         marginTop: 12,
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0, 229, 255, 0.3)',
+        borderTopColor: theme.colors.border,
     },
     intelHeader: {
         color: theme.colors.textMuted,
@@ -521,7 +523,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     intelText: {
-        color: '#ddd',
+        color: theme.colors.textSecondary,
         fontSize: 12,
         lineHeight: 18,
         fontFamily: 'monospace',
@@ -563,17 +565,17 @@ const styles = StyleSheet.create({
         marginTop: -100,
         zIndex: 5,
     },
-    reticleTopLeft: { position: 'absolute', top: 0, left: 0, width: 30, height: 30, borderTopWidth: 3, borderLeftWidth: 3, borderColor: 'rgba(0, 229, 255, 0.6)' },
-    reticleTopRight: { position: 'absolute', top: 0, right: 0, width: 30, height: 30, borderTopWidth: 3, borderRightWidth: 3, borderColor: 'rgba(0, 229, 255, 0.6)' },
-    reticleBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 30, height: 30, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: 'rgba(0, 229, 255, 0.6)' },
-    reticleBottomRight: { position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderBottomWidth: 3, borderRightWidth: 3, borderColor: 'rgba(0, 229, 255, 0.6)' },
-    reticleCenterPoint: { position: 'absolute', top: '50%', left: '50%', width: 4, height: 4, marginLeft: -2, marginTop: -2, backgroundColor: 'rgba(234, 179, 8, 0.8)', borderRadius: 2 },
+    reticleTopLeft: { position: 'absolute', top: 0, left: 0, width: 30, height: 30, borderTopWidth: 3, borderLeftWidth: 3, borderColor: theme.colors.primary },
+    reticleTopRight: { position: 'absolute', top: 0, right: 0, width: 30, height: 30, borderTopWidth: 3, borderRightWidth: 3, borderColor: theme.colors.primary },
+    reticleBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 30, height: 30, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: theme.colors.primary },
+    reticleBottomRight: { position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderBottomWidth: 3, borderRightWidth: 3, borderColor: theme.colors.primary },
+    reticleCenterPoint: { position: 'absolute', top: '50%', left: '50%', width: 4, height: 4, marginLeft: -2, marginTop: -2, backgroundColor: theme.colors.primary, borderRadius: 2 },
     triviaModal: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(10, 10, 15, 0.98)',
+        backgroundColor: theme.colors.surfaceSoft,
         borderTopLeftRadius: theme.radius.lg,
         borderTopRightRadius: theme.radius.lg,
         padding: 24,
@@ -601,18 +603,18 @@ const styles = StyleSheet.create({
         letterSpacing: 3,
     },
     closeTriviaBtn: {
-        backgroundColor: 'rgba(0, 229, 255, 0.1)',
+        backgroundColor: theme.colors.bgSecondary,
         padding: 6,
         borderRadius: 20,
     },
     triviaContentBorder: {
         borderLeftWidth: 2,
-        borderLeftColor: 'rgba(0, 229, 255, 0.5)',
+        borderLeftColor: theme.colors.border,
         paddingLeft: 12,
         marginBottom: 20,
     },
     triviaBuildingName: {
-        color: '#fff',
+        color: theme.colors.textPrimary,
         fontSize: 12,
         fontWeight: 'bold',
         marginBottom: 8,
@@ -620,7 +622,7 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     triviaText: {
-        color: '#00E5FF',
+        color: theme.colors.textSecondary,
         fontSize: 15,
         lineHeight: 24,
         fontFamily: 'monospace',

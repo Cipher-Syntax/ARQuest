@@ -93,8 +93,8 @@ export default function RegisterScreen() {
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>New Player</Text>
-                    <Text style={styles.subtitle}>Identity Registration</Text>
+                    <Text style={styles.title}>Create Account</Text>
+                    <Text style={styles.subtitle}>Register a new account</Text>
                 </View>
 
                 <ARGlassCard style={styles.card}>
@@ -104,7 +104,7 @@ export default function RegisterScreen() {
                         <Text style={styles.inputLabel}>Username</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Player Handle"
+                            placeholder="Username"
                             placeholderTextColor={theme.colors.textMuted}
                             value={formData.username}
                             onChangeText={(text) => handleChange("username", text)}
@@ -113,10 +113,10 @@ export default function RegisterScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Comm Channel (Email)</Text>
+                        <Text style={styles.inputLabel}>Email</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Email Address"
+                            placeholder="Email"
                             placeholderTextColor={theme.colors.textMuted}
                             value={formData.email}
                             onChangeText={(text) => handleChange("email", text)}
@@ -149,7 +149,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Access Code</Text>
+                        <Text style={styles.inputLabel}>Password</Text>
                         <View style={styles.passwordContainer}>
                             <TextInput
                                 style={styles.passwordInput}
@@ -173,7 +173,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Confirm Access Code</Text>
+                        <Text style={styles.inputLabel}>Confirm Password</Text>
                         <View style={styles.passwordContainer}>
                             <TextInput
                                 style={styles.passwordInput}
@@ -197,10 +197,10 @@ export default function RegisterScreen() {
                     </View>
 
                     <ARButton
-                        title="Create Identity"
+                        title="Create Account"
                         onPress={handleRegister}
                         isLoading={isLoading}
-                        variant="accent"
+                        variant="primary"
                         style={styles.registerButton}
                     />
 
@@ -225,21 +225,22 @@ const styles = StyleSheet.create({
     glowOrbTop: {
         position: 'absolute',
         top: -100,
-        right: -100,
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        backgroundColor: theme.colors.primaryDark,
-        opacity: 0.5,
-    },
-    glowOrbBottom: {
-        position: 'absolute',
-        bottom: -100,
         left: -100,
         width: 300,
         height: 300,
         borderRadius: 150,
-        backgroundColor: "#EAB30810",
+        backgroundColor: theme.colors.primary,
+        opacity: 0.3,
+    },
+    glowOrbBottom: {
+        position: 'absolute',
+        bottom: -150,
+        right: -100,
+        width: 400,
+        height: 400,
+        borderRadius: 200,
+        backgroundColor: theme.colors.primary,
+        opacity: 0.3,
     },
     scrollContent: {
         flexGrow: 1,
@@ -253,14 +254,11 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xl,
     },
     title: {
-        color: theme.colors.textPrimary,
-        fontSize: 32,
+        color: theme.colors.primary,
+        fontSize: 28,
         fontWeight: "900",
         letterSpacing: 2,
         textTransform: "uppercase",
-        textShadowColor: "rgba(234, 179, 8, 0.4)",
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
         marginBottom: 4,
     },
     subtitle: {
@@ -280,6 +278,13 @@ const styles = StyleSheet.create({
     inputGroup: {
         marginBottom: theme.spacing.md,
     },
+    logoText: {
+        color: theme.colors.textMuted,
+        fontSize: theme.typography.xs,
+        fontWeight: "bold",
+        textTransform: "uppercase",
+        textAlign: "center",
+    },
     inputLabel: {
         color: theme.colors.textMuted,
         fontSize: 10,
@@ -289,7 +294,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     input: {
-        backgroundColor: "rgba(0,0,0,0.3)",
+        backgroundColor: theme.colors.surfaceSoft,
         color: theme.colors.textPrimary,
         padding: theme.spacing.md,
         borderRadius: theme.radius.md,
@@ -300,7 +305,7 @@ const styles = StyleSheet.create({
     passwordContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.3)",
+        backgroundColor: theme.colors.surfaceSoft,
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
@@ -326,6 +331,19 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(239, 68, 68, 0.1)",
         padding: 10,
         borderRadius: theme.radius.sm,
+    },
+    logoBox: {
+        width: 80,
+        height: 80,
+        alignSelf: "center",
+        backgroundColor: theme.colors.surface,
+        borderWidth: 2,
+        borderColor: theme.colors.border,
+        borderStyle: "dashed",
+        borderRadius: theme.radius.md,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: theme.spacing.md,
     },
     link: {
         marginTop: theme.spacing.lg,

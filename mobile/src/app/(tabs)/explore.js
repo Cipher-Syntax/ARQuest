@@ -252,7 +252,7 @@ export default function ExploreScreen() {
                                             "{quest.hint}"
                                         </Text>
                                         <View style={styles.compassContainer}>
-                                            <Ionicons name="star" size={20} color="#eab308" />
+                                            <Ionicons name="star" size={20} color={theme.colors.primary} />
                                             <Text style={styles.compassText}>Reward: {quest.reward_points} Points</Text>
                                         </View>
                                     </View>
@@ -333,8 +333,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.02)',
     },
     radarRingActive: {
-        borderColor: 'rgba(138, 21, 56, 0.4)',
-        backgroundColor: 'rgba(138, 21, 56, 0.05)',
+        borderColor: 'rgba(178, 24, 48, 0.4)', // Web Red
+        backgroundColor: 'rgba(178, 24, 48, 0.05)',
     },
     radarButton: {
         width: 140,
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     },
     challengeProgress: {
         fontSize: theme.typography.sm,
-        color: '#eab308',
+        color: theme.colors.primary,
         fontWeight: 'bold',
     },
     logItem: {

@@ -93,7 +93,7 @@ export default function Building3DViewerScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             
             {/* Fullscreen 3D Canvas */}
             <WebView
@@ -160,7 +160,7 @@ export default function Building3DViewerScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: theme.colors.surfaceSoft,
     },
     webview: {
         ...StyleSheet.absoluteFillObject,
@@ -173,9 +173,9 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: theme.colors.surfaceSoft,
         borderWidth: 1,
-        borderColor: 'rgba(0, 229, 255, 0.3)',
+        borderColor: theme.colors.border,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 20,
@@ -212,25 +212,22 @@ const styles = StyleSheet.create({
     },
     descriptionScroll: {
         maxHeight: 150,
-        backgroundColor: 'rgba(10, 10, 15, 0.85)',
+        backgroundColor: theme.colors.surface,
         padding: 16,
         borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 229, 255, 0.3)',
-        borderLeftWidth: 3,
-        borderLeftColor: theme.colors.arHighlight,
     },
     buildingDescription: {
         fontSize: 13,
-        color: '#ddd',
+        color: theme.colors.textSecondary,
         lineHeight: 20,
         fontFamily: 'monospace',
+        textAlign: 'justify',
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(10, 10, 15, 0.95)',
+        backgroundColor: theme.colors.surface,
         zIndex: 30,
     },
     loadingCard: {
@@ -248,7 +245,7 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: theme.colors.surfaceSoft,
         zIndex: 30,
     },
     errorCard: {
