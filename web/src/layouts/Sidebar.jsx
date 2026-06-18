@@ -19,33 +19,34 @@ const NAV = [
 
 function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }) {
   return (
-    <div className="flex flex-col h-full bg-brand">
+    <div className="flex flex-col h-full bg-white border-r border-gray-100 shadow-sm relative transition-all duration-300">
       
-      {/* Logo / Brand - white header */}
-      <div className={`px-6 py-6 flex items-center bg-white transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'justify-between'}`}>
+      {/* Logo / Brand */}
+      <div className={`px-5 py-6 flex items-center transition-all duration-300 border-b border-gray-50 ${isCollapsed ? 'justify-center px-0' : 'justify-between'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 p-1 shadow-sm border border-gray-100">
-            <img src="/logo.png" alt="ARQuest Logo" className="w-full h-full object-contain" />
+          <div className="w-10 h-10 bg-brand/10 text-brand rounded-xl flex items-center justify-center shrink-0 p-2 border border-brand/20 shadow-sm">
+            <img src="/logo.png" alt="ARQuest" className="w-full h-full object-contain" />
           </div>
           {!isCollapsed && (
             <div className="animate-in fade-in duration-500">
-              <p className="font-bold text-gray-900 text-base tracking-tight leading-tight">ARQuest</p>
-              <p className="text-[10px] uppercase tracking-widest text-brand font-semibold leading-none mt-0.5">Admin Panel</p>
+              <p className="font-extrabold text-gray-900 text-lg tracking-tight leading-none">ARQuest</p>
+              <p className="text-[10px] uppercase tracking-widest text-brand font-bold leading-none mt-1">Admin Panel</p>
             </div>
           )}
         </div>
-        
-        {/* Toggle Button - always at the right side of the header area when expanded, or center when collapsed */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`text-gray-400 hover:text-brand hover:bg-brand-light rounded-lg transition-all lg:block hidden ${isCollapsed ? 'p-1 mt-2' : 'p-1.5'}`}
-        >
-          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
       </div>
 
+      {/* Toggle Button for Desktop */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3.5 top-8 bg-white border border-gray-200 text-gray-400 hover:text-brand hover:border-brand/30 rounded-full p-1.5 shadow-sm transition-all lg:flex hidden items-center justify-center z-50 group"
+      >
+        {isCollapsed ? <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" /> : <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />}
+      </button>
+
       {/* Nav */}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto mt-4">
+      <nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto scrollbar-none">
+        <p className={`text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-4 px-3 transition-opacity ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Menu</p>
         {NAV.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -53,29 +54,36 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
             onClick={onMobileClose}
             title={isCollapsed ? label : ''}
             className={({ isActive }) =>
-              `relative flex items-center rounded-lg text-sm font-medium transition-all duration-200
-              ${isCollapsed ? 'justify-center px-2 py-3' : 'px-4 py-2.5 gap-3'}
+              `relative flex items-center rounded-xl text-sm font-semibold transition-all duration-200 group
+              ${isCollapsed ? 'justify-center px-2 py-3' : 'px-4 py-3 gap-3'}
               ${isActive
-                ? 'bg-white text-brand'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                ? 'bg-brand text-white shadow-md shadow-brand/20'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
               }`
             }
           >
-            <Icon size={18} className="shrink-0" />
-            {!isCollapsed && <span className="animate-in fade-in duration-300">{label}</span>}
+            {({ isActive }) => (
+              <>
+                <Icon size={18} className={`shrink-0 transition-colors ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-brand'}`} />
+                {!isCollapsed && <span className="animate-in fade-in duration-300">{label}</span>}
+                {isActive && !isCollapsed && (
+                  <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                )}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer / Logout - white footer */}
-      <div className={`px-3 py-4 bg-white transition-all duration-300 ${isCollapsed ? 'flex justify-center' : ''}`}>
+      {/* Footer / Logout */}
+      <div className={`p-4 border-t border-gray-50 bg-gray-50/50 transition-all duration-300 ${isCollapsed ? 'flex justify-center' : ''}`}>
         <button
           onClick={onLogout}
           title={isCollapsed ? 'Logout' : ''}
-          className={`flex items-center text-sm font-medium text-brand hover:bg-brand-light rounded-lg transition-all duration-200
-            ${isCollapsed ? 'p-2' : 'w-full px-4 py-2.5 gap-3'}`}
+          className={`flex items-center text-sm font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-200 group
+            ${isCollapsed ? 'p-3' : 'w-full px-4 py-3 gap-3'}`}
         >
-          <LogOut size={18} className="shrink-0" />
+          <LogOut size={18} className="shrink-0 text-gray-400 group-hover:text-red-500 transition-colors" />
           {!isCollapsed && <span>Logout</span>}
         </button>
       </div>
