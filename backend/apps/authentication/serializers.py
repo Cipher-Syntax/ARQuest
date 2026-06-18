@@ -6,8 +6,8 @@ from .models import User, EmailOTP
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name', 'email_verified']
-        read_only_fields = ['id', 'role', 'email_verified']
+        fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name', 'email_verified', 'exploration_points', 'is_active', 'date_joined']
+        read_only_fields = ['id', 'role', 'email_verified', 'exploration_points', 'date_joined']
 
 
 class RegisterSerializer(serializers.Serializer):

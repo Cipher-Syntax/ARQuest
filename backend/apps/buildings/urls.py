@@ -11,4 +11,8 @@ urlpatterns = [
     path('unlocked/', views.unlocked_buildings, name='unlocked_buildings'),
     path('<int:id>/panorama/', panorama_views.building_panorama_walkthrough, name='building_panorama'),
     path('<int:id>/assets/', views.building_assets, name='building_assets'),
+    path('quests/', views.quest_list_create, name='quest_list_create'),
+    path('quests/<int:id>/', views.quest_detail, name='quest_detail'),
+    path('trivias/', views.trivia_list_create, name='trivia_list_create'),
+    path('trivias/<int:id>/', views.trivia_detail, name='trivia_detail'),
 ]

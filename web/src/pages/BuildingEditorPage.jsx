@@ -144,7 +144,7 @@ const BuildingEditorPage = () => {
                 await buildingService.createGeofence(savedBuilding.id, formattedGeofenceData);
 
                 setSuccessMessage('Building and Geofence created successfully!');
-                setTimeout(() => navigate('/buildings'), 1500);
+                setTimeout(() => navigate(`/buildings/${savedBuilding.id}`), 1500);
             } else {
                 const savedBuilding = await buildingService.updateBuilding(id, formData);
                 setBuilding(savedBuilding);
@@ -226,7 +226,7 @@ const BuildingEditorPage = () => {
                 </h1>
 
                 {/* Dedicated button added here to link to PanoramaManagerPage */}
-                {!isNew && (
+                {!isNew ? (
                     <button
                         type="button"
                         onClick={() => navigate(`/panoramas/${id}`)}
@@ -245,6 +245,28 @@ const BuildingEditorPage = () => {
                     >
                         <ImageIcon size={18} />
                         Manage Panoramas
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        disabled
+                        title="Save the building first to enable panorama management"
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: theme.colors.surface,
+                            color: theme.colors.text.muted,
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: theme.radius.sm,
+                            cursor: 'not-allowed',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            opacity: 0.6
+                        }}
+                    >
+                        <ImageIcon size={18} />
+                        Save to Add Panoramas
                     </button>
                 )}
             </div>
@@ -285,7 +307,7 @@ const BuildingEditorPage = () => {
                                 name="description"
                                 value={building.description || ''}
                                 onChange={handleChange}
-                                rows={3}
+                                rows={8}
                                 style={{ width: '100%', padding: theme.spacing.sm, border: `1px solid ${theme.colors.border}`, borderRadius: theme.radius.sm, fontSize: '14px', fontFamily: 'inherit' }}
                             />
                         </div>

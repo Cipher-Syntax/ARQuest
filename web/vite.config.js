@@ -8,4 +8,9 @@ export default defineConfig({
 		react(), 
 		tailwindcss()
 	],
+	test: {
+		environment: 'jsdom',
+		setupFiles: ['./tests/setup.js'],
+		globals: true
+	}
 })

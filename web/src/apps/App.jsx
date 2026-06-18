@@ -3,13 +3,20 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../hooks/useAuth';
 import ProtectedRoute from '../components/ProtectedRoute';
 import LoginPage from '../pages/LoginPage';
-import DashboardLayout from '../layouts/DashboardLayout';
+
+// Layouts
+import AppLayout from '../layouts/AppLayout';
+
+// Pages
 import DashboardPage from '../pages/DashboardPage';
 import BuildingsPage from '../pages/BuildingsPage';
 import BuildingEditorPage from '../pages/BuildingEditorPage';
-import PanoramasPage from '../pages/PanoramasPage';
+import GeofencesPage from '../pages/GeofencesPage';
+import MediaPage from '../pages/MediaPage';
 import PanoramaManagerPage from '../pages/PanoramaManagerPage';
-
+import CmsPage from '../pages/CmsPage';
+import UsersContainer from '../pages/UsersContainer';
+import SettingsPage from '../pages/SettingsPage';
 
 const App = () => {
     return (
@@ -22,15 +29,19 @@ const App = () => {
                         path="/"
                         element={
                             <ProtectedRoute>
-                                <DashboardLayout />
+                                <AppLayout />
                             </ProtectedRoute>
                         }
                     >
                         <Route path="dashboard" element={<DashboardPage />} />
                         <Route path="buildings" element={<BuildingsPage />} />
                         <Route path="buildings/:id" element={<BuildingEditorPage />} />
-                        <Route path="panoramas" element={<PanoramasPage />} />
+                        <Route path="geofences" element={<GeofencesPage />} />
+                        <Route path="media" element={<MediaPage />} />
                         <Route path="panoramas/:id" element={<PanoramaManagerPage />} />
+                        <Route path="cms" element={<CmsPage />} />
+                        <Route path="users" element={<UsersContainer />} />
+                        <Route path="settings" element={<SettingsPage />} />
                     </Route>
                 </Routes>
             </AuthProvider>

@@ -32,6 +32,8 @@
         let currentHotspots = [];
         let hotspotMeshes = [];
         let fov = 75;
+        let maxFov = 75;
+        let maxLat = 0;
         
         function init(imageUrl, hotspots) {
             currentHotspots = hotspots || [];
@@ -65,18 +67,38 @@
             }
             
             document.getElementById('loading').style.display = 'block';
-            const geometry = new THREE.CylinderGeometry(500, 500, 1500, 60, 1, true);
-            geometry.scale(-1, 1, 1);
             
             const loader = new THREE.TextureLoader();
             loader.setCrossOrigin('anonymous');
             loader.load(imageUrl, (loadedTexture) => {
                 texture = loadedTexture;
-                texture.minFilter = THREE.LinearFilter;
+                // Better quality filtering
+                texture.minFilter = THREE.LinearMipmapLinearFilter;
                 texture.magFilter = THREE.LinearFilter;
+                
+                // Dynamically calculate cylinder height to perfectly match image aspect ratio
+                const imgWidth = texture.image.width || 4000;
+                const imgHeight = texture.image.height || 1000;
+                const radius = 500;
+                const circumference = 2 * Math.PI * radius;
+                const cylinderHeight = (imgHeight / imgWidth) * circumference;
+                
+                const geometry = new THREE.CylinderGeometry(radius, radius, cylinderHeight, 60, 1, true);
+                geometry.scale(-1, 1, 1);
+                
                 const material = new THREE.MeshBasicMaterial({ map: texture });
                 sphere = new THREE.Mesh(geometry, material);
                 scene.add(sphere);
+                
+                // Calculate Max FOV to prevent seeing above/below the cylinder
+                maxFov = 2 * Math.atan((cylinderHeight / 2) / radius) * (180 / Math.PI);
+                fov = Math.min(75, maxFov); // start at 75 or maxFov
+                camera.fov = fov;
+                camera.updateProjectionMatrix();
+                
+                maxLat = Math.max(0, (maxFov - fov) / 2);
+                lat = 0;
+                
                 document.getElementById('loading').style.display = 'none';
                 create3DHotspots();
                 window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'loaded' }));
@@ -109,16 +131,20 @@
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     const delta = distance - initialPinchDistance;
                     fov -= delta * 0.1;
-                    fov = Math.max(30, Math.min(100, fov));
+                    fov = Math.max(30, Math.min(maxFov, fov));
                     camera.fov = fov;
                     camera.updateProjectionMatrix();
                     initialPinchDistance = distance;
+                    
+                    // Update maxLat based on new fov
+                    maxLat = Math.max(0, (maxFov - fov) / 2);
+                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
                 } else if (isDragging && e.touches.length === 1) {
                     const deltaX = e.touches[0].clientX - previousMousePosition.x;
                     const deltaY = e.touches[0].clientY - previousMousePosition.y;
                     lon -= deltaX * 0.1;
                     lat += deltaY * 0.1;
-                    lat = Math.max(-85, Math.min(85, lat));
+                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
                     previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 }
             });
