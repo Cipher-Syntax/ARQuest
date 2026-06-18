@@ -5,6 +5,7 @@ import { useCategories } from '../context/CategoryContext'
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../utils/leafletConfig'
+import { buildingService } from '../services/buildingService'
 
 const parseCoordinate = (coordStr) => {
   if (!coordStr) return 0;
@@ -22,16 +23,9 @@ const parseRadius = (radiusStr) => {
   return match ? parseFloat(match[1]) : 50;
 };
 
-const GEOFENCES = [
-  { id: 1, name: 'CCS', building: 'CCS', fullBuilding: 'College of Computer Studies', lat: '14.5547° N', lng: '121.0244° E', radius: '50m', active: true },
-  { id: 2, name: 'LIB', building: 'Library', fullBuilding: 'University Library', lat: '14.5550° N', lng: '121.0246° E', radius: '40m', active: false },
-  { id: 3, name: 'ADMIN', building: 'ADMIN', fullBuilding: 'Administration Building', lat: '14.5538° N', lng: '121.0239° E', radius: '40m', active: false },
-  { id: 4, name: 'SEH', building: 'SEH', fullBuilding: 'Science & Engineering Hall', lat: '14.5560° N', lng: '121.0258° E', radius: '50m', active: false },
-]
-
 export default function Geofences() {
   const { categories } = useCategories()
-  const [geofences, setGeofences] = useState(GEOFENCES)
+  const [geofences, setGeofences] = useState([])
   const [view, setView] = useState('card')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -59,10 +53,40 @@ export default function Geofences() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleToggle = (id) => {
-    setGeofences(prev => prev.map(geo => 
-      geo.id === id ? { ...geo, active: !geo.active } : geo
-    ))
+  useEffect(() => {
+    fetchGeofences()
+  }, [])
+
+  const fetchGeofences = async () => {
+    try {
+      const buildings = await buildingService.getBuildings()
+      const formatted = buildings.map(b => ({
+        id: b.id,
+        name: b.slug || b.code || (b.name ? b.name.substring(0, 4).toUpperCase() : 'BLDG'),
+        building: b.name || '',
+        fullBuilding: b.description || b.name || '',
+        lat: b.latitude ? `${b.latitude}° N` : '0.0000° N',
+        lng: b.longitude ? `${b.longitude}° E` : '0.0000° E',
+        radius: b.radius ? `${b.radius}m` : '50m',
+        active: b.is_active !== undefined ? b.is_active : false
+      }))
+      setGeofences(formatted)
+    } catch (error) {
+      console.error("Failed to fetch geofences:", error)
+    }
+  }
+
+  const handleToggle = async (id) => {
+    const geo = geofences.find(g => g.id === id)
+    if (!geo) return
+    try {
+      await buildingService.updateBuilding(id, { is_active: !geo.active })
+      setGeofences(prev => prev.map(g => 
+        g.id === id ? { ...g, active: !geo.active } : g
+      ))
+    } catch (error) {
+      console.error("Failed to toggle geofence:", error)
+    }
   }
 
   const handleOpenAddModal = () => {
@@ -86,34 +110,56 @@ export default function Geofences() {
     setActiveMenu(null)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!newName.trim()) return
     
-    if (editingGeo) {
-      setGeofences(prev => prev.map(g => 
-        g.id === editingGeo.id ? { 
-          ...g, 
+    try {
+      if (editingGeo) {
+        const payload = {
+          name: newName.trim(),
+          description: newFullBuilding.trim(),
+          latitude: parseCoordinate(newLat),
+          longitude: parseCoordinate(newLng)
+        }
+        await buildingService.updateBuilding(editingGeo.id, payload)
+        
+        setGeofences(prev => prev.map(g => 
+          g.id === editingGeo.id ? { 
+            ...g, 
+            name: newName.trim(), 
+            fullBuilding: newFullBuilding.trim(),
+            lat: newLat,
+            lng: newLng,
+            radius: newRadius,
+            building: newName.trim()
+          } : g
+        ))
+      } else {
+        const payload = {
+          name: newName.trim(),
+          slug: newName.trim().toLowerCase().replace(/\s+/g, '-'),
+          description: newFullBuilding.trim(),
+          latitude: parseCoordinate(newLat),
+          longitude: parseCoordinate(newLng),
+          is_active: false
+        }
+        const newBuilding = await buildingService.createBuilding(payload)
+        
+        setGeofences(prev => [...prev, { 
+          id: newBuilding.id || Date.now(), 
           name: newName.trim(), 
           fullBuilding: newFullBuilding.trim(),
-          lat: newLat,
-          lng: newLng,
-          radius: newRadius,
-          building: newName.trim()
-        } : g
-      ))
-    } else {
-      setGeofences(prev => [...prev, { 
-        id: Date.now(), 
-        name: newName.trim(), 
-        fullBuilding: newFullBuilding.trim(),
-        lat: newLat || '0.0000° N',
-        lng: newLng || '0.0000° E',
-        radius: newRadius,
-        building: newName.trim(),
-        active: false
-      }])
+          lat: newLat || '0.0000° N',
+          lng: newLng || '0.0000° E',
+          radius: newRadius || '50m',
+          building: newName.trim(),
+          active: false
+        }])
+      }
+      setIsModalOpen(false)
+    } catch (error) {
+      console.error("Failed to save geofence:", error)
     }
-    setIsModalOpen(false)
   }
 
   const handleDeleteClick = (id) => {
@@ -122,11 +168,16 @@ export default function Geofences() {
     setActiveMenu(null)
   }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (geoToDelete) {
-      setGeofences(prev => prev.filter(g => g.id !== geoToDelete))
-      setGeoToDelete(null)
-      setIsDeleteModalOpen(false)
+      try {
+        await buildingService.deleteBuilding(geoToDelete)
+        setGeofences(prev => prev.filter(g => g.id !== geoToDelete))
+        setGeoToDelete(null)
+        setIsDeleteModalOpen(false)
+      } catch (error) {
+        console.error("Failed to delete geofence:", error)
+      }
     }
   }
 
