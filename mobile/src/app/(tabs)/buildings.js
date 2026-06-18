@@ -171,7 +171,7 @@ export default function BuildingsScreen() {
                                     <View style={styles.actionButtons}>
                                         {selectedBuilding.model_active && selectedBuilding.model_url && canView3D ? (
                                             <TouchableOpacity style={styles.view3dButton} onPress={handleView3D}>
-                                                <Ionicons name="cube-outline" size={20} color="#000" />
+                                                <Ionicons name="cube-outline" size={20} color="#FFFFFF" />
                                                 <Text style={styles.view3dText}>DEPLOY 3D MODEL</Text>
                                             </TouchableOpacity>
                                         ) : (
@@ -205,11 +205,11 @@ export default function BuildingsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: theme.colors.surfaceSoft,
     },
     webview: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: theme.colors.surfaceSoft,
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: 'rgba(255, 255, 255, 0.7)', // Transparent white to see map
     },
     bottomSheet: {
         backgroundColor: theme.colors.bgPrimary,
@@ -308,8 +308,8 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.sm,
     },
     badgeRole: {
-        backgroundColor: "rgba(234, 179, 8, 0.2)",
-        borderColor: theme.colors.accent,
+        backgroundColor: theme.colors.surfaceSoft,
+        borderColor: theme.colors.textSecondary,
     },
     badgeText: {
         color: theme.colors.textPrimary,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
     },
     view3dText: {
-        color: "#000",
+        color: "#FFFFFF",
         fontSize: 14,
         fontWeight: "900",
         letterSpacing: 1,

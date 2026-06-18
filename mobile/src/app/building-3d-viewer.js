@@ -160,7 +160,7 @@ export default function Building3DViewerScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: theme.colors.surfaceSoft,
     },
     webview: {
         ...StyleSheet.absoluteFillObject,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     },
     buildingDescription: {
         fontSize: 13,
-        color: '#ddd',
+        color: theme.colors.textSecondary,
         lineHeight: 20,
         fontFamily: 'monospace',
     },
