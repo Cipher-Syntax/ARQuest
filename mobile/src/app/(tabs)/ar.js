@@ -371,7 +371,7 @@ export default function ARScreen() {
             {!capturing && (
                 <View style={styles.controls}>
                     <TouchableOpacity style={styles.exitButton} onPress={() => router.back()}>
-                        <X size={24} color="#fff" />
+                        <X size={24} color={theme.colors.primary} />
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.captureButton} onPress={handleCaptureSelfie}>
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     buildingLabel: {
-        color: '#fff',
+        color: theme.colors.textPrimary,
         fontSize: 22,
         fontWeight: '900',
         letterSpacing: 1.5,
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     intelText: {
-        color: '#ddd',
+        color: theme.colors.textSecondary,
         fontSize: 12,
         lineHeight: 18,
         fontFamily: 'monospace',
