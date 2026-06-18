@@ -31,7 +31,15 @@ export default function Media() {
   const loadData = async () => {
     try {
       const data = await buildingService.getBuildings();
-      setBuildings(data);
+      const buildingsWithScenes = await Promise.all(data.map(async (b) => {
+        try {
+          const scenes = await panoramaService.getBuildingScenes(b.id);
+          return { ...b, scenes: scenes || [] };
+        } catch (e) {
+          return { ...b, scenes: [] };
+        }
+      }));
+      setBuildings(buildingsWithScenes);
     } catch (error) {
       console.error('Error loading buildings:', error);
     } finally {
@@ -43,18 +51,10 @@ export default function Media() {
     setActiveModel(building);
   };
 
-  const openPanoramaViewer = async (building) => {
-    try {
-      const scenes = await panoramaService.getBuildingScenes(building.id);
-      if (scenes && scenes.length > 0) {
-        setPanoScenes(scenes);
-        setActivePanorama(building);
-      } else {
-        alert('No panorama scenes available for this building.');
-      }
-    } catch (error) {
-      console.error('Error loading scenes', error);
-      alert('Failed to load panorama scenes');
+  const openPanoramaViewer = (building) => {
+    if (building.scenes && building.scenes.length > 0) {
+      setPanoScenes(building.scenes);
+      setActivePanorama(building);
     }
   };
 
@@ -101,36 +101,62 @@ export default function Media() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {buildings.map((b) => {
             const is3D = viewTab === '3d';
-            
-            // Only show buildings that might have the respective content
-            if (is3D && !has3DModel(b)) return null;
+            const hasModel = has3DModel(b);
+            const hasPanoramas = b.scenes && b.scenes.length > 0;
+            const hasContent = is3D ? hasModel : hasPanoramas;
 
             return (
               <Card 
                 key={b.id} 
-                className="group cursor-pointer hover:border-brand hover:shadow-xl transition-all duration-300"
-                onClick={() => is3D ? open3DViewer(b) : openPanoramaViewer(b)}
+                className={`group transition-all duration-300 ${hasContent ? 'cursor-pointer hover:border-brand hover:shadow-xl' : 'opacity-70'}`}
+                onClick={() => {
+                  if (is3D && hasModel) open3DViewer(b);
+                  if (!is3D && hasPanoramas) openPanoramaViewer(b);
+                }}
               >
                 <div className="aspect-video bg-gray-100 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                   {is3D ? (
-                    <div className="w-full h-full pointer-events-none">
-                      <model-viewer
-                        src={getFullUrl(b.model_url)}
-                        auto-rotate="true"
-                        camera-controls="false"
-                        interaction-prompt="none"
-                        shadow-intensity="1"
-                        style={{ width: '100%', height: '100%', backgroundColor: '#f3f4f6' }}
-                      />
-                    </div>
+                    hasModel ? (
+                      <div className="w-full h-full pointer-events-none">
+                        <model-viewer
+                          src={getFullUrl(b.model_url)}
+                          auto-rotate="true"
+                          camera-controls="false"
+                          interaction-prompt="none"
+                          shadow-intensity="1"
+                          style={{ width: '100%', height: '100%', backgroundColor: '#f3f4f6' }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 flex flex-col items-center">
+                        <Box size={32} className="mb-2 opacity-50" />
+                        <span className="text-xs font-bold uppercase tracking-wider">No 3D Model</span>
+                      </div>
+                    )
                   ) : (
-                    <ImageIcon size={48} className="text-brand/30 group-hover:scale-110 transition-transform duration-500" />
+                    hasPanoramas ? (
+                      <div className="w-full h-full">
+                        <img 
+                          src={getFullUrl(b.scenes[0].image_url)} 
+                          alt={b.name} 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 flex flex-col items-center">
+                        <ImageIcon size={32} className="mb-2 opacity-50" />
+                        <span className="text-xs font-bold uppercase tracking-wider">No Panoramas</span>
+                      </div>
+                    )
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 bg-white/90 backdrop-blur-sm text-brand font-bold text-sm px-4 py-2 rounded-full transition-all transform translate-y-4 group-hover:translate-y-0 shadow-lg">
-                      {is3D ? 'Interact in 3D' : 'View Panoramas'}
+
+                  {hasContent && (
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center pointer-events-none">
+                      <div className="opacity-0 group-hover:opacity-100 bg-white/90 backdrop-blur-sm text-brand font-bold text-sm px-4 py-2 rounded-full transition-all transform translate-y-4 group-hover:translate-y-0 shadow-lg">
+                        {is3D ? 'Interact in 3D' : 'View Panoramas'}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 truncate">{b.name}</h3>
@@ -139,12 +165,6 @@ export default function Media() {
               </Card>
             );
           })}
-          
-          {buildings.filter(b => viewTab === '3d' ? has3DModel(b) : true).length === 0 && (
-            <div className="col-span-full h-48 flex items-center justify-center text-gray-400 bg-gray-50 border-2 border-dashed border-brand-border rounded-xl font-bold">
-              No {viewTab === '3d' ? '3D models' : 'panoramas'} found.
-            </div>
-          )}
         </div>
       )}
 
