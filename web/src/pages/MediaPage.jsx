@@ -3,19 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { Grid3x3, List, Upload, Box, Image as ImageIcon, MoreVertical, Trash2, Edit3, Download, Search, Filter, X } from 'lucide-react'
 import { Card, Badge, Button, Input, Modal, ConfirmDeleteModal } from '../components/ui'
 import { useCategories } from '../context/CategoryContext'
-
-const INITIAL_ASSETS = [
-  { id: 1, name: 'ccs_building_v2.glb', type: '3D Model', building: 'CCS', size: '14.2 MB', status: 'ready', icon: Box },
-  { id: 2, name: 'library_model.glb', type: '3D Model', building: 'Library', size: '8.5 MB', status: 'ready', icon: Box },
-  { id: 3, name: 'ccs_entrance_360.jpg', type: '360° Panorama', building: 'CCS', size: '6.1 MB', status: 'ready', icon: ImageIcon },
-  { id: 4, name: 'ccs_lab_360.jpg', type: '360° Panorama', building: 'CCS', size: '5.3 MB', status: 'ready', icon: ImageIcon },
-  { id: 5, name: 'library_hall_360.jpg', type: '360° Panorama', building: 'Library', size: '7.2 MB', status: 'ready', icon: ImageIcon },
-]
+import { buildingService } from '../services/buildingService'
+import { panoramaService } from '../services/panoramaService'
 
 export default function Media() {
   const navigate = useNavigate()
   const { categories } = useCategories()
-  const [assets, setAssets] = useState(INITIAL_ASSETS)
+  const [assets, setAssets] = useState([])
   const [view, setView] = useState('grid')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -30,6 +24,33 @@ export default function Media() {
   const [selectedFile, setSelectedFile] = useState(null)
   const fileInputRef = useRef(null)
   const menuRef = useRef(null)
+
+  const loadMedia = async () => {
+    try {
+      const buildings = await buildingService.getBuildings()
+      const allAssets = buildings.flatMap(b => (b.assets || []).map(a => {
+        const isPano = a.asset_type === 'panorama'
+        return {
+          id: a.id,
+          name: a.file ? a.file.split('/').pop() : b.name + ' - ' + a.asset_type,
+          building: b.name,
+          type: isPano ? '360° Panorama' : '3D Model',
+          size: a.file_size ? (a.file_size / 1024 / 1024).toFixed(1) + ' MB' : 'Unknown',
+          date: new Date(a.created_at).toLocaleDateString(),
+          url: a.file,
+          status: a.is_active ? 'active' : 'ready',
+          icon: isPano ? ImageIcon : Box
+        }
+      }))
+      setAssets(allAssets)
+    } catch (error) {
+      console.error('Error loading media assets:', error)
+    }
+  }
+
+  useEffect(() => {
+    loadMedia()
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -70,8 +91,11 @@ export default function Media() {
     setActiveMenu(null)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!newName.trim()) return
+    
+    // TODO: Call actual API endpoint to save/upload the media asset
+    // e.g., await buildingService.uploadBuildingAsset(...) or panoramaService...
     
     if (editingAsset) {
       setAssets(prev => prev.map(a => 
@@ -103,8 +127,10 @@ export default function Media() {
     setActiveMenu(null)
   }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (assetToDelete) {
+      // TODO: Call actual API endpoint to delete the media asset
+      // e.g., await buildingService.deleteBuildingAsset(assetToDelete)
       setAssets(prev => prev.filter(a => a.id !== assetToDelete))
       setAssetToDelete(null)
       setIsDeleteModalOpen(false)
