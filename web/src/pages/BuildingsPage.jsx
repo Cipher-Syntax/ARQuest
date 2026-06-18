@@ -1,8 +1,8 @@
 import { Search, Filter, Plus, MoreVertical, Building2, Edit3, Trash2, Settings as SettingsIcon } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, Badge, Button, ConfirmDeleteModal } from '../components/ui'
 import { useCategories } from '../context/CategoryContext'
-import BuildingModal from '../components/modals/BuildingModal'
 import CategoryModal from '../components/modals/CategoryModal'
 import { buildingService } from '../services/buildingService'
 
@@ -34,6 +34,8 @@ export default function BuildingsPage() {
     lng: '',
     status: 'active'
   })
+
+  const navigate = useNavigate()
 
   useEffect(() => {
     loadBuildings()
@@ -73,41 +75,12 @@ export default function BuildingsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleOpenModal = (building = null) => {
-    if (building) {
-      setEditBuilding(building)
-      setFormData(building)
-    } else {
-      setEditBuilding(null)
-      setFormData({ name: '', code: '', department: categories[0]?.name || 'Uncategorized', lat: '', lng: '', status: 'active' })
-    }
-    setIsModalOpen(true)
+  const handleAddClick = () => {
+    navigate('/buildings/new')
   }
 
-  const handleSave = async () => {
-    if (!formData.name || !formData.code) return
-    
-    // Map UI fields back to backend fields
-    const payload = {
-      name: formData.name,
-      slug: formData.code,
-      latitude: formData.lat,
-      longitude: formData.lng,
-      is_active: formData.status === 'active',
-    }
-
-    try {
-      if (editingBuilding) {
-        await buildingService.updateBuilding(editingBuilding.id, payload)
-      } else {
-        await buildingService.createBuilding(payload)
-      }
-      setIsModalOpen(false)
-      await loadBuildings()
-    } catch (err) {
-      console.error('Failed to save building', err)
-      alert('Failed to save building. Please check input.')
-    }
+  const handleEditClick = (building) => {
+    navigate(`/buildings/${building.id}`)
   }
 
   const handleDeleteClick = (id) => {
@@ -168,7 +141,7 @@ export default function BuildingsPage() {
           <p className="text-gray-500 mt-1">Manage campus buildings, coordinates, and content.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <Button onClick={() => handleOpenModal()} className="gap-2 justify-center">
+          <Button onClick={handleAddClick} className="gap-2 justify-center">
             <Plus size={18} />
             Add Building
           </Button>
@@ -255,7 +228,7 @@ export default function BuildingsPage() {
                         {openMenu === b.id && (
                           <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
                             <button 
-                              onClick={() => { handleOpenModal(b); setOpenMenu(null); }}
+                              onClick={() => { handleEditClick(b); setOpenMenu(null); }}
                               className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
                             >
                               <Edit3 size={14} /> Edit Building
@@ -285,16 +258,6 @@ export default function BuildingsPage() {
         )}
         <div className="h-20" /> 
       </Card>
-
-      <BuildingModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-        editingBuilding={editingBuilding}
-        formData={formData}
-        setFormData={setFormData}
-        categories={categories}
-      />
 
       <CategoryModal 
         isOpen={isCatModalOpen}
