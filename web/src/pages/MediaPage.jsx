@@ -5,6 +5,14 @@ import { buildingService } from '../services/buildingService';
 import { panoramaService } from '../services/panoramaService';
 import '@google/model-viewer';
 import { ReactPhotoSphereViewer } from 'react-photo-sphere-viewer';
+import '@photo-sphere-viewer/core/index.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const getFullUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${API_BASE_URL}${url}`;
+};
 
 export default function Media() {
   const [buildings, setBuildings] = useState([]);
@@ -105,11 +113,24 @@ export default function Media() {
               >
                 <div className="aspect-video bg-gray-100 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                   {is3D ? (
-                    <Box size={48} className="text-brand/30 group-hover:scale-110 transition-transform duration-500" />
+                    <div className="w-full h-full pointer-events-none">
+                      <model-viewer
+                        src={getFullUrl(b.model_url)}
+                        auto-rotate="true"
+                        camera-controls="false"
+                        interaction-prompt="none"
+                        shadow-intensity="1"
+                        style={{ width: '100%', height: '100%', backgroundColor: '#f3f4f6' }}
+                      />
+                    </div>
                   ) : (
                     <ImageIcon size={48} className="text-brand/30 group-hover:scale-110 transition-transform duration-500" />
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 bg-white/90 backdrop-blur-sm text-brand font-bold text-sm px-4 py-2 rounded-full transition-all transform translate-y-4 group-hover:translate-y-0 shadow-lg">
+                      {is3D ? 'Interact in 3D' : 'View Panoramas'}
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 truncate">{b.name}</h3>
@@ -146,7 +167,7 @@ export default function Media() {
             <div className="flex-1 w-full h-full relative">
               {activeModel && (
                 <model-viewer
-                  src={activeModel.model_url}
+                  src={getFullUrl(activeModel.model_url)}
                   auto-rotate="true"
                   camera-controls="true"
                   ar="true"
@@ -157,7 +178,7 @@ export default function Media() {
 
               {activePanorama && panoScenes.length > 0 && (
                 <ReactPhotoSphereViewer
-                  src={panoScenes[0].image_url}
+                  src={getFullUrl(panoScenes[0].image_url)}
                   height={'100%'}
                   width={'100%'}
                   littlePlanet={true}
