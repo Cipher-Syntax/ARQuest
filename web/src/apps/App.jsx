@@ -19,34 +19,34 @@ import UsersContainer from '../pages/UsersContainer'
 import SettingsPage from '../pages/SettingsPage'
 
 const App = () => {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="buildings" element={<BuildingsPage />} />
-            <Route path="buildings/:id" element={<BuildingEditorPage />} />
-            <Route path="geofences" element={<GeofencesPage />} />
-            <Route path="media" element={<MediaPage />} />
-            <Route path="panoramas/:id" element={<PanoramaManagerPage />} />
-            <Route path="cms" element={<CmsPage />} />
-            <Route path="users" element={<UsersContainer />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
-  )
+	return (
+		<BrowserRouter>
+			<AuthProvider>
+				<Routes>
+					<Route path="/login" element={<LoginPage />} />
+					<Route path="/" element={<Navigate to="/dashboard" replace />} />
+					<Route
+						path="/"
+						element={
+							<ProtectedRoute>
+								<AppLayout />
+							</ProtectedRoute>
+						}
+					>
+						<Route path="dashboard" element={<DashboardPage />} />
+						<Route path="buildings" element={<BuildingsPage />} />
+						<Route path="buildings/:id" element={<BuildingEditorPage />} />
+						<Route path="geofences" element={<GeofencesPage />} />
+						<Route path="media" element={<MediaPage />} />
+						<Route path="panoramas/:id" element={<PanoramaManagerPage />} />
+						<Route path="cms" element={<CmsPage />} />
+						<Route path="users" element={<UsersContainer />} />
+						<Route path="settings" element={<SettingsPage />} />
+					</Route>
+				</Routes>
+			</AuthProvider>
+		</BrowserRouter>
+	)
 }
 
 export default App
