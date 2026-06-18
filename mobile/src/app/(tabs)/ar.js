@@ -32,6 +32,7 @@ export default function ARScreen() {
     const [activeQuests, setActiveQuests] = useState([]);
     const [triviaModalVisible, setTriviaModalVisible] = useState(false);
     const [claimedQuest, setClaimedQuest] = useState(null);
+    const [fetchedTrivia, setFetchedTrivia] = useState(null);
     const slideAnim = useRef(new Animated.Value(400)).current;
 
     const cameraRef = useRef(null);
@@ -96,6 +97,22 @@ export default function ARScreen() {
             if (res.data.success) {
                 setClaimedQuest(matchingQuest);
                 setActiveQuests(prev => prev.map(q => q.id === matchingQuest.id ? { ...q, is_completed: true } : q));
+                
+                // Fetch Trivia Fact
+                try {
+                    const triviaRes = await api.get(`/api/buildings/trivias/?building_id=${nearbyBuildingFull.id}`);
+                    if (triviaRes.data.success && triviaRes.data.data.length > 0) {
+                        const trivias = triviaRes.data.data;
+                        const randomTrivia = trivias[Math.floor(Math.random() * trivias.length)];
+                        setFetchedTrivia(randomTrivia.fact);
+                    } else {
+                        setFetchedTrivia(null);
+                    }
+                } catch (e) {
+                    console.error('Error fetching trivia', e);
+                    setFetchedTrivia(null);
+                }
+
                 setTriviaModalVisible(true);
                 Animated.spring(slideAnim, {
                     toValue: 0,
@@ -358,7 +375,7 @@ export default function ARScreen() {
                     <View style={styles.triviaContentBorder}>
                         <Text style={styles.triviaBuildingName}>{nearbyBuildingFull?.name || "UNKNOWN"}</Text>
                         <Text style={styles.triviaText}>
-                            {claimedQuest.hint || nearbyBuildingFull?.description || "No archived data available for this node."}
+                            {fetchedTrivia || claimedQuest.hint || nearbyBuildingFull?.description || "No archived data available for this node."}
                         </Text>
                     </View>
                     
