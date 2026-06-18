@@ -1,10 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
 import { Navigation, MapPin, Lock, Unlock, Grid3x3, List, Plus, MoreVertical, Search, Filter, Edit3, Trash2, X } from 'lucide-react'
 import { Card, Badge, Toggle, Button, ConfirmDeleteModal } from '../components/ui'
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Circle, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../utils/leafletConfig'
 import { buildingService } from '../services/buildingService'
+
+const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
+const WMSU_BOUNDS = [
+    [6.9095, 122.0575],
+    [6.9155, 122.0640],
+];
 
 const parseCoordinate = (coordStr) => {
   if (!coordStr) return 0;
@@ -38,6 +44,15 @@ export default function Geofences() {
   const [newLat, setNewLat] = useState('')
   const [newLng, setNewLng] = useState('')
   const [newRadius, setNewRadius] = useState('')
+  const [selectedGeoId, setSelectedGeoId] = useState(null)
+  
+  const handleMarkerClick = (id) => {
+    setSelectedGeoId(id)
+    const element = document.getElementById(`geo-card-${id}`)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
   
   const menuRef = useRef(null)
 
@@ -229,18 +244,22 @@ export default function Geofences() {
       </div>
 
       {view === 'card' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Map */}
-          <div className="flex flex-col h-[600px] bg-white rounded-lg border border-brand-border overflow-hidden">
+          <div className="flex flex-col h-[600px] bg-white rounded-lg border border-brand-border overflow-hidden lg:col-span-2">
             <div className="p-4 border-b border-brand-border flex justify-between items-center z-10 relative bg-white">
               <h3 className="font-bold text-gray-900">Campus Map</h3>
               <Badge variant="brand">Live View</Badge>
             </div>
             <div className="flex-1 relative z-0">
               <MapContainer
-                  center={filteredGeofences.length > 0 ? [parseCoordinate(filteredGeofences[0].lat), parseCoordinate(filteredGeofences[0].lng)] : [14.5547, 121.0244]}
+                  center={[WMSU_CENTER.lat, WMSU_CENTER.lng]}
                   zoom={17}
                   style={{ height: '100%', width: '100%', zIndex: 0 }}
+                  maxBounds={WMSU_BOUNDS}
+                  maxBoundsViscosity={1.0}
+                  minZoom={16}
+                  maxZoom={19}
               >
                   <TileLayer
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -261,7 +280,14 @@ export default function Geofences() {
                           fillOpacity: 0.2
                         }}
                       >
-                        <Marker position={[lat, lng]} />
+                        <Marker 
+                          position={[lat, lng]} 
+                          eventHandlers={{ click: () => handleMarkerClick(geo.id) }}
+                        >
+                          <Tooltip permanent direction="top" offset={[0, -10]} className="text-xs font-bold text-gray-900 shadow-sm border-0">
+                            {geo.name}
+                          </Tooltip>
+                        </Marker>
                       </Circle>
                     );
                   })}
@@ -270,9 +296,13 @@ export default function Geofences() {
           </div>
 
           {/* Right Column: Card List */}
-          <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar lg:col-span-1">
             {filteredGeofences.map((geo) => (
-              <Card key={geo.id} className="relative overflow-visible group shrink-0">
+              <Card 
+                key={geo.id} 
+                id={`geo-card-${geo.id}`}
+                className={`relative overflow-visible group shrink-0 transition-all duration-300 ${selectedGeoId === geo.id ? 'ring-2 ring-brand shadow-md scale-[1.02]' : ''}`}
+              >
                 <div className="flex justify-between items-start relative z-10">
                   <div className="space-y-4 flex-1">
                     <div className="flex items-center justify-between">
