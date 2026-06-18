@@ -72,13 +72,13 @@ export function Input({ label, error, icon: Icon, className, ...props }) {
   )
 }
 
-export function Card({ children, className, noPadding = false }) {
+export function Card({ children, className, noPadding = false, ...props }) {
   return (
     <div className={cn(
       'bg-white border border-brand-border rounded-lg shadow-sm',
       !noPadding && 'p-6',
       className
-    )}>
+    )} {...props}>
       {children}
     </div>
   )
