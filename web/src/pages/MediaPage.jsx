@@ -162,7 +162,7 @@ export default function Media() {
           <input 
             type="text" 
             placeholder="Search assets..." 
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -172,14 +172,14 @@ export default function Media() {
             <select
               value={selectedBuilding}
               onChange={(e) => setSelectedBuilding(e.target.value)}
-              className="w-full pl-4 pr-10 py-2.5 bg-white border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
+              className="w-full pl-4 pr-10 py-2.5 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
             >
               <option value="All Buildings">All Buildings</option>
               {buildingsList.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
             </select>
             <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none" size={16} />
           </div>
-          <div className="flex items-center justify-center bg-white border border-brand-border rounded-xl p-1 shadow-sm">
+          <div className="flex items-center justify-center bg-white border border-brand-border rounded-md p-1 shadow-sm">
             <button
               onClick={() => setView('grid')}
               className={`p-2 rounded-lg transition-colors ${view === 'grid' ? 'bg-brand-light text-brand' : 'text-gray-400 hover:text-gray-600'}`}
@@ -205,7 +205,7 @@ export default function Media() {
               onClick={() => asset.type === '360° Panorama' && navigate(`/panoramas/${asset.id}`)}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-brand-light rounded-xl text-brand">
+                <div className="p-3 bg-brand-light rounded-md text-brand">
                   <asset.icon size={22} />
                 </div>
                 <div className="relative" ref={activeMenu === asset.id ? menuRef : null}>
@@ -219,7 +219,7 @@ export default function Media() {
                     <MoreVertical size={18} />
                   </button>
                   {activeMenu === asset.id && (
-                    <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation()
@@ -304,7 +304,7 @@ export default function Media() {
                           <MoreVertical size={18} />
                         </button>
                         {activeMenu === asset.id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -329,7 +329,7 @@ export default function Media() {
       {/* Upload/Edit Asset Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="px-6 py-4 border-b border-brand-border flex items-center justify-between">
               <h3 className="font-bold text-gray-900">{editingAsset ? 'Edit Asset' : 'Upload Asset'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-brand-light rounded-lg text-gray-400 hover:text-brand transition-colors">
@@ -349,7 +349,7 @@ export default function Media() {
                 <select 
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
+                  className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
                 >
                   {buildingsList.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
@@ -360,13 +360,13 @@ export default function Media() {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setNewType('3D Model')}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${newType === '3D Model' ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'}`}
+                    className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${newType === '3D Model' ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'}`}
                   >
                     3D Model
                   </button>
                   <button 
                     onClick={() => setNewType('360° Panorama')}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${newType === '360° Panorama' ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'}`}
+                    className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${newType === '360° Panorama' ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-brand-light'}`}
                   >
                     360° Panorama
                   </button>
@@ -376,7 +376,7 @@ export default function Media() {
               {!editingAsset && (
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-brand-border rounded-2xl p-8 flex flex-col items-center justify-center gap-2 bg-brand-light/20 hover:bg-brand-light/40 transition-colors cursor-pointer group"
+                  className="border-2 border-dashed border-brand-border rounded-lg p-8 flex flex-col items-center justify-center gap-2 bg-brand-light/20 hover:bg-brand-light/40 transition-colors cursor-pointer group"
                 >
                   <input 
                     type="file" 

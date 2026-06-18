@@ -31,7 +31,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center rounded-md font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
         variants[variant],
         sizes[size],
         className
@@ -59,7 +59,7 @@ export function Input({ label, error, icon: Icon, className, ...props }) {
         )}
         <input
           className={cn(
-            'w-full border rounded-xl bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all py-3',
+            'w-full border rounded-md bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all py-3',
             Icon ? 'pl-10 pr-4' : 'px-4',
             error ? 'border-red-400' : 'border-brand-border',
             className
@@ -75,7 +75,7 @@ export function Input({ label, error, icon: Icon, className, ...props }) {
 export function Card({ children, className, noPadding = false }) {
   return (
     <div className={cn(
-      'bg-white border border-brand-border rounded-2xl shadow-sm',
+      'bg-white border border-brand-border rounded-lg shadow-sm',
       !noPadding && 'p-6',
       className
     )}>
@@ -134,7 +134,7 @@ export function Modal({ isOpen, onClose, title, children, footer, variant = 'def
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className={cn(
-        "bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200",
+        "bg-white rounded-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200",
         variant === 'danger' ? 'max-w-sm' : 'max-w-md w-full'
       )}>
         <div className="px-6 py-4 border-b border-brand-border flex items-center justify-between">

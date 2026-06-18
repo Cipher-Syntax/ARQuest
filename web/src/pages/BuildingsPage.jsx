@@ -123,7 +123,7 @@ export default function BuildingsPage() {
             <input 
               type="text" 
               placeholder="Search buildings..." 
-              className="w-full pl-10 pr-4 py-2 bg-brand-light/30 border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand transition-all font-medium"
+              className="w-full pl-10 pr-4 py-2 bg-brand-light/30 border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand transition-all font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -132,7 +132,7 @@ export default function BuildingsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-4 pr-10 py-2 bg-white border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
+              className="w-full pl-4 pr-10 py-2 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -160,7 +160,7 @@ export default function BuildingsPage() {
                   <tr key={b.id} className="hover:bg-brand-light/30 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center text-brand shrink-0">
+                        <div className="w-10 h-10 rounded-md bg-brand-light flex items-center justify-center text-brand shrink-0">
                           <Building2 size={18} />
                         </div>
                         <div>
@@ -186,7 +186,7 @@ export default function BuildingsPage() {
                         </button>
                         
                         {openMenu === b.id && (
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
                             <button 
                               onClick={() => { handleEditClick(b); setOpenMenu(null); }}
                               className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"

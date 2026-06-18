@@ -144,7 +144,7 @@ const BuildingEditorPage = () => {
                 await buildingService.createGeofence(savedBuilding.id, formattedGeofenceData);
 
                 setSuccessMessage('Building and Geofence created successfully!');
-                setTimeout(() => navigate('/buildings'), 1500);
+                setTimeout(() => navigate(`/buildings/${savedBuilding.id}`), 1500);
             } else {
                 const savedBuilding = await buildingService.updateBuilding(id, formData);
                 setBuilding(savedBuilding);

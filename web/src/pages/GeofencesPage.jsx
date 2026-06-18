@@ -205,13 +205,13 @@ export default function Geofences() {
           <input 
             type="text" 
             placeholder="Search geofences..." 
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-          <div className="flex items-center justify-center bg-white border border-brand-border rounded-xl p-1 shadow-sm">
+          <div className="flex items-center justify-center bg-white border border-brand-border rounded-md p-1 shadow-sm">
             <button
               onClick={() => setView('card')}
               className={`p-2 rounded-lg transition-colors ${view === 'card' ? 'bg-brand-light text-brand' : 'text-gray-400 hover:text-gray-600'}`}
@@ -231,7 +231,7 @@ export default function Geofences() {
       {view === 'card' ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column: Map */}
-          <div className="flex flex-col h-[600px] bg-white rounded-2xl border border-brand-border overflow-hidden">
+          <div className="flex flex-col h-[600px] bg-white rounded-lg border border-brand-border overflow-hidden">
             <div className="p-4 border-b border-brand-border flex justify-between items-center z-10 relative bg-white">
               <h3 className="font-bold text-gray-900">Campus Map</h3>
               <Badge variant="brand">Live View</Badge>
@@ -318,7 +318,7 @@ export default function Geofences() {
                       <MoreVertical size={18} />
                     </button>
                     {activeMenu === geo.id && (
-                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
                         <button 
                           onClick={() => handleOpenEditModal(geo)}
                           className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
@@ -387,7 +387,7 @@ export default function Geofences() {
                           <MoreVertical size={18} />
                         </button>
                         {activeMenu === geo.id && (
-                          <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                          <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
                             <button 
                               onClick={() => handleOpenEditModal(geo)}
                               className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
@@ -415,7 +415,7 @@ export default function Geofences() {
       {/* Add/Edit Geofence Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="px-6 py-4 border-b border-brand-border flex items-center justify-between">
               <h3 className="font-bold text-gray-900">{editingGeo ? 'Edit Boundary' : 'Define Boundary'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-brand-light rounded-lg text-gray-400 hover:text-brand transition-colors">
@@ -431,7 +431,7 @@ export default function Geofences() {
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="e.g. CCS" 
-                    className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
+                    className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
                   />
                 </div>
                 <div className="col-span-1">
@@ -441,7 +441,7 @@ export default function Geofences() {
                     value={newRadius}
                     onChange={(e) => setNewRadius(e.target.value)}
                     placeholder="e.g. 50m" 
-                    className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
+                    className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
                   />
                 </div>
               </div>
@@ -453,7 +453,7 @@ export default function Geofences() {
                   value={newFullBuilding}
                   onChange={(e) => setNewFullBuilding(e.target.value)}
                   placeholder="e.g. College of Computer Studies" 
-                  className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+                  className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
                 />
               </div>
 
@@ -465,7 +465,7 @@ export default function Geofences() {
                     value={newLat}
                     onChange={(e) => setNewLat(e.target.value)}
                     placeholder="14.5547° N" 
-                    className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono"
+                    className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono"
                   />
                 </div>
                 <div>
@@ -475,7 +475,7 @@ export default function Geofences() {
                     value={newLng}
                     onChange={(e) => setNewLng(e.target.value)}
                     placeholder="121.0244° E" 
-                    className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono"
+                    className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono"
                   />
                 </div>
               </div>

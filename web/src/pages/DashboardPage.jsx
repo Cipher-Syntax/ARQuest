@@ -39,7 +39,7 @@ export default function Dashboard() {
         {STATS.map((stat, i) => (
           <Card key={i} className="relative overflow-hidden">
             <div className="flex items-start justify-between">
-              <div className={`p-2.5 rounded-xl ${stat.color}`}>
+              <div className={`p-2.5 rounded-md ${stat.color}`}>
                 <stat.icon size={18} />
               </div>
               <Badge variant="success">
@@ -98,7 +98,7 @@ export default function Dashboard() {
             {BUILDING_STATUS.map((b, i) => (
               <div key={i} className="flex items-center justify-between py-2.5 border-b border-brand-border last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-brand-light flex items-center justify-center text-brand font-bold text-[10px] shrink-0">
+                  <div className="w-9 h-9 rounded-md bg-brand-light flex items-center justify-center text-brand font-bold text-[10px] shrink-0">
                     {b.code}
                   </div>
                   <p className="text-sm font-semibold text-gray-700 leading-tight">{b.name}</p>
