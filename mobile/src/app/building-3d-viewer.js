@@ -217,8 +217,6 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        borderLeftWidth: 3,
-        borderLeftColor: theme.colors.arHighlight,
     },
     buildingDescription: {
         fontSize: 13,
