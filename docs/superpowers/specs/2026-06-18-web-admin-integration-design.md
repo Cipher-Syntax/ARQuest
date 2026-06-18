@@ -5,7 +5,7 @@ The goal of this project is to integrate the modern, beautiful UI design and new
 
 ## 2. Architecture & Data Flow
 - **Base Application**: The existing `web` project.
-- **UI Framework**: React + Vite + Tailwind CSS.
+- **UI Fraewmork**: React + Vite + Tailwind CSS.
 - **Icons**: Lucide React.
 - **Data Fetching**: Existing Axios setup (`services/api.js`). Static dummy data from the reference designs (e.g., `INITIAL_BUILDINGS`, `GEOFENCES`) will be entirely removed and replaced with dynamic API calls to the Django backend.
 

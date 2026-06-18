@@ -6,6 +6,22 @@ import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-lea
 import 'leaflet/dist/leaflet.css'
 import '../utils/leafletConfig'
 
+const parseCoordinate = (coordStr) => {
+  if (!coordStr) return 0;
+  const match = String(coordStr).match(/([-+]?[0-9]*\.?[0-9]+)/);
+  let parsed = match ? parseFloat(match[1]) : 0;
+  if (String(coordStr).includes('S') || String(coordStr).includes('W')) {
+    parsed = -parsed;
+  }
+  return parsed;
+};
+
+const parseRadius = (radiusStr) => {
+  if (!radiusStr) return 50;
+  const match = String(radiusStr).match(/([0-9]*\.?[0-9]+)/);
+  return match ? parseFloat(match[1]) : 50;
+};
+
 const GEOFENCES = [
   { id: 1, name: 'CCS', building: 'CCS', fullBuilding: 'College of Computer Studies', lat: '14.5547° N', lng: '121.0244° E', radius: '50m', active: true },
   { id: 2, name: 'LIB', building: 'Library', fullBuilding: 'University Library', lat: '14.5550° N', lng: '121.0246° E', radius: '40m', active: false },
@@ -184,22 +200,33 @@ export default function Geofences() {
             </div>
             <div className="flex-1 relative z-0">
               <MapContainer
-                  center={[6.9122, 122.0605]}
+                  center={filteredGeofences.length > 0 ? [parseCoordinate(filteredGeofences[0].lat), parseCoordinate(filteredGeofences[0].lng)] : [14.5547, 121.0244]}
                   zoom={17}
                   style={{ height: '100%', width: '100%', zIndex: 0 }}
-                  maxBounds={[
-                      [6.9095, 122.0575],
-                      [6.9155, 122.0640],
-                  ]}
-                  maxBoundsViscosity={1.0}
-                  minZoom={16}
-                  maxZoom={19}
               >
                   <TileLayer
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   />
-                  {/* Optional: we could map over geofences and put circles here if coordinates parse nicely */}
+                  {filteredGeofences.map(geo => {
+                    const lat = parseCoordinate(geo.lat);
+                    const lng = parseCoordinate(geo.lng);
+                    const radius = parseRadius(geo.radius);
+                    return (
+                      <Circle
+                        key={geo.id}
+                        center={[lat, lng]}
+                        radius={radius}
+                        pathOptions={{
+                          color: geo.active ? '#10b981' : '#6b7280',
+                          fillColor: geo.active ? '#10b981' : '#6b7280',
+                          fillOpacity: 0.2
+                        }}
+                      >
+                        <Marker position={[lat, lng]} />
+                      </Circle>
+                    );
+                  })}
               </MapContainer>
             </div>
           </div>
