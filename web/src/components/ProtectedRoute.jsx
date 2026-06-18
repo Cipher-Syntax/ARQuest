@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children, requireAdmin = true }) => {
 		return <Navigate to="/login" replace />
 	}
 
-	// Handle both flat and nested user objects from the API
+	
 	const role = user?.user?.role || user?.role
 
 	if (requireAdmin && role !== 'admin') {

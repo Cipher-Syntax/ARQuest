@@ -15,7 +15,8 @@ import {
 	MonitorPlay,
 	ChevronLeft,
 	ChevronRight,
-	Briefcase
+	Briefcase,
+	Camera
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -24,6 +25,7 @@ const NAV = [
 	{ to: '/buildings', icon: Building2, label: 'Buildings' },
 	{ to: '/professionals', icon: Briefcase, label: 'Professional Accounts' },
 	{ to: '/users', icon: Users, label: 'Users & Leaderboard' },
+	{ to: '/panoramas', icon: Camera, label: 'Panoramas' },
 	{ to: '/media', icon: FileVideo, label: 'Content & Media' },
 	{ to: '/geofences', icon: Map, label: 'Geofences' },
 	{ to: '/cms', icon: MonitorPlay, label: 'Quests & Trivias' },
@@ -151,7 +153,7 @@ export default function Sidebar() {
 				<Menu size={20} />
 			</button>
 
-			{/* Mobile overlay */}
+			{}
 			{mobileOpen && (
 				<div className="lg:hidden fixed inset-0 z-50 flex">
 					<div
@@ -175,7 +177,7 @@ export default function Sidebar() {
 				</div>
 			)}
 
-			{/* Desktop sidebar */}
+			{}
 			<aside
 				className={`hidden lg:flex flex-col bg-brand h-screen sticky top-0 flex-shrink-0 border-r-4 border-r-brand transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}
 			>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents, Tooltip } from 'react-leaflet'
 import { theme } from '../theme'
 import 'leaflet/dist/leaflet.css'
 import '../utils/leafletConfig'
@@ -19,14 +19,14 @@ const MapClickHandler = ({ onMapClick }) => {
 	return null
 }
 
-const GeofenceEditor = ({ value, onChange, errors }) => {
+const GeofenceEditor = ({ value, onChange, errors, existingBuildings = [], currentBuildingId = null }) => {
 	const center = {
 		lat: value?.latitude || WMSU_CENTER.lat,
 		lng: value?.longitude || WMSU_CENTER.lng
 	}
 
 	const handleMapClick = (latlng) => {
-		// Round to 6 decimal places for cleaner text input fields
+		
 		const lat = latlng.lat.toFixed(6)
 		const lng = latlng.lng.toFixed(6)
 		onChange({ ...value, latitude: lat, longitude: lng })
@@ -112,6 +112,44 @@ const GeofenceEditor = ({ value, onChange, errors }) => {
 						attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 					/>
 					<MapClickHandler onMapClick={handleMapClick} />
+					
+					{}
+					{existingBuildings.map((b) => {
+						if (currentBuildingId && b.id === currentBuildingId) return null; 
+						if (!b.lat && !b.latitude) return null; 
+						const lat = parseFloat(b.lat || b.latitude);
+						const lng = parseFloat(b.lng || b.longitude);
+						const radius = b.geofences && b.geofences.length > 0 
+							? parseFloat(b.geofences[0].radius_meters) 
+							: 20;
+
+						const bldgName = b.name || "Building";
+
+						return (
+							<React.Fragment key={b.id}>
+								<Circle
+									center={[lat, lng]}
+									radius={radius}
+									pathOptions={{
+										color: '#ef4444',
+										fillColor: '#ef4444',
+										fillOpacity: 0.15,
+										dashArray: '5, 5'
+									}}
+								>
+									<Tooltip 
+										direction="top" 
+										permanent 
+										className="text-[10px] font-bold text-red-600 shadow-sm border-0 bg-white/80"
+									>
+										{bldgName}
+									</Tooltip>
+								</Circle>
+							</React.Fragment>
+						)
+					})}
+
+					{}
 					{value?.latitude && value?.longitude && (
 						<>
 							<Marker position={[value.latitude, value.longitude]} />

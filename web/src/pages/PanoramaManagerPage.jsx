@@ -57,7 +57,7 @@ const PanoramaManagerPage = () => {
 				setSelectedScene(scenesData[0])
 			}
 		} catch (error) {
-			alert('Failed to load panorama data.')
+			console.error('Failed to load panorama data', error)
 			navigate('/panoramas')
 		} finally {
 			setLoading(false)
@@ -119,7 +119,7 @@ const PanoramaManagerPage = () => {
 			showSuccess('Scene deleted')
 			loadData()
 		} catch (error) {
-			alert('Failed to delete scene')
+			console.error('Failed to delete scene', error)
 		}
 	}
 
@@ -133,7 +133,7 @@ const PanoramaManagerPage = () => {
 			setNewHotspot({ target_scene: '', label: '', yaw: 0, pitch: 0, is_active: true })
 			loadHotspots(selectedScene.id)
 		} catch (error) {
-			alert('Failed to create hotspot')
+			console.error('Failed to create hotspot', error)
 		}
 	}
 
@@ -144,7 +144,7 @@ const PanoramaManagerPage = () => {
 			setEditingHotspot(null)
 			loadHotspots(selectedScene.id)
 		} catch (error) {
-			alert('Failed to update hotspot')
+			console.error('Failed to update hotspot', error)
 		}
 	}
 
@@ -155,7 +155,7 @@ const PanoramaManagerPage = () => {
 			showSuccess('Hotspot deleted')
 			loadHotspots(selectedScene.id)
 		} catch (error) {
-			alert('Failed to delete hotspot')
+			console.error('Failed to delete hotspot', error)
 		}
 	}
 
@@ -218,7 +218,7 @@ const PanoramaManagerPage = () => {
 					height: 'calc(100vh - 200px)'
 				}}
 			>
-				{/* Scenes List */}
+				{}
 				<ScenesList
 					scenes={scenes}
 					selectedScene={selectedScene}
@@ -231,10 +231,10 @@ const PanoramaManagerPage = () => {
 					errors={errors}
 				/>
 
-				{/* Scene Preview */}
+				{}
 				<ScenePreview selectedScene={selectedScene} />
 
-				{/* Hotspots Panel */}
+				{}
 				<HotspotsPanel
 					hotspots={hotspots}
 					scenes={scenes}

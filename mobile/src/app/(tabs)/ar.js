@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { captureRef } from 'react-native-view-shot';
 import { router } from 'expo-router';
-import { X, Camera as CameraIcon } from 'lucide-react-native';
+import { X, Camera as CameraIcon, QrCode } from 'lucide-react-native';
 import { theme } from '../../theme/tokens';
 import { useLocationTracking } from '../../hooks/useLocationTracking';
 import { useUnlockedBuildings } from '../../hooks/useUnlockedBuildings';
@@ -27,6 +27,8 @@ export default function ARScreen() {
     const [capturedBg, setCapturedBg] = useState(null); 
     const [bgReady, setBgReady] = useState(false);
     const [modelReady, setModelReady] = useState(true);
+    const [isScanningQr, setIsScanningQr] = useState(false);
+    const [scannedData, setScannedData] = useState(null);
     
     // Trivia & Quest State
     const [activeQuests, setActiveQuests] = useState([]);
@@ -157,6 +159,30 @@ export default function ARScreen() {
 
     const isModelVisible = !!(nearbyBuildingFull && unlockedBuildings.some(b => b.id === nearbyBuildingFull.id) && nearbyBuildingFull.model_url);
 
+    const handleBarCodeScanned = async ({ type, data }) => {
+        if (!isScanningQr || scannedData === data) return;
+        setScannedData(data);
+        setIsScanningQr(false); // Stop scanning immediately after successful read
+        
+        try {
+            const res = await api.post('/api/buildings/unlock/qr/', { qr_code_secret: data });
+            if (res.data.success) {
+                Alert.alert('Unlocked!', `Successfully unlocked via QR code!`);
+                // Check if it matches nearby, if not we still unlocked it in the DB.
+                if (nearbyBuildingFull && nearbyBuildingFull.id === res.data.data.building) {
+                    setNearbyBuildingFull({...nearbyBuildingFull, is_unlocked: true});
+                }
+            } else {
+                Alert.alert('Scan Failed', res.data.error || 'Invalid QR Code');
+                setScannedData(null); // allow rescan
+            }
+        } catch (error) {
+            console.error('QR unlock error:', error);
+            Alert.alert('Error', 'Failed to connect to server.');
+            setScannedData(null); // allow rescan
+        }
+    };
+
     const handleCaptureSelfie = async () => {
         if (!nearbyBuildingFull || !cameraRef.current) {
             Alert.alert('No Building', 'Get closer to a building to take a branded selfie!');
@@ -284,19 +310,33 @@ export default function ARScreen() {
                         onLoad={onBackgroundImageLoad} 
                     />
                 ) : (
-                    <CameraView style={styles.camera} facing="back" ref={cameraRef} />
+                    <CameraView 
+                        style={styles.camera} 
+                        facing="back" 
+                        ref={cameraRef} 
+                        onBarcodeScanned={isScanningQr ? handleBarCodeScanned : undefined}
+                        barcodeScannerSettings={{
+                            barcodeTypes: ["qr"],
+                        }}
+                    />
                 )}
                 
                 {/* 2. Middle Layer removed (Model moved into targetCard) */}
 
                 {/* 3. Gamified HUD Overlays */}
-                <View style={styles.reticleContainer} pointerEvents="none">
-                    <View style={styles.reticleTopLeft} />
-                    <View style={styles.reticleTopRight} />
-                    <View style={styles.reticleBottomLeft} />
-                    <View style={styles.reticleBottomRight} />
-                    <View style={styles.reticleCenterPoint} />
-                </View>
+                {!isScanningQr ? (
+                    <View style={styles.reticleContainer} pointerEvents="none">
+                        <View style={styles.reticleTopLeft} />
+                        <View style={styles.reticleTopRight} />
+                        <View style={styles.reticleBottomLeft} />
+                        <View style={styles.reticleBottomRight} />
+                        <View style={styles.reticleCenterPoint} />
+                    </View>
+                ) : (
+                    <View style={[styles.reticleContainer, { borderColor: theme.colors.success, borderWidth: 2, backgroundColor: 'rgba(16, 185, 129, 0.1)' }]} pointerEvents="none">
+                        <Text style={{color: theme.colors.success, textAlign: 'center', marginTop: 85, fontWeight: 'bold'}}>SCANNING QR...</Text>
+                    </View>
+                )}
 
                 {nearbyBuilding && (
                     <View style={styles.topOverlay}>
@@ -397,6 +437,13 @@ export default function ARScreen() {
                         <View style={styles.captureButtonInner}>
                             <CameraIcon size={24} color={theme.colors.primary} />
                         </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={[styles.exitButton, isScanningQr && { backgroundColor: theme.colors.success }]} 
+                        onPress={() => setIsScanningQr(!isScanningQr)}
+                    >
+                        <QrCode size={24} color={isScanningQr ? '#fff' : theme.colors.primary} />
                     </TouchableOpacity>
                 </View>
             )}

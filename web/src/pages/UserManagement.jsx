@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Search, Filter } from 'lucide-react'
-import { Card, Badge } from '../components/ui'
+import { Card, Badge, Pagination } from '../components/ui'
 import { userService } from '../services/userService'
 
 export default function UserManagement({ hideHeader }) {
 	const [users, setUsers] = useState([])
 	const [searchTerm, setSearchTerm] = useState('')
 	const [roleFilter, setRoleFilter] = useState('All Roles')
+	const [currentPage, setCurrentPage] = useState(1)
+	const itemsPerPage = 5
 
 	useEffect(() => {
 		const fetchUsers = async () => {
@@ -27,11 +29,22 @@ export default function UserManagement({ hideHeader }) {
 			(user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
 			user.email.toLowerCase().includes(searchTerm.toLowerCase())
 
-		// Normalize role string for comparison (e.g., 'Student' vs 'student')
+		
 		const userRoleStr = user.role.charAt(0).toUpperCase() + user.role.slice(1)
 		const matchesRole = roleFilter === 'All Roles' || userRoleStr === roleFilter
 		return matchesSearch && matchesRole
 	})
+
+	const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+	const paginatedUsers = filteredUsers.slice(
+		(currentPage - 1) * itemsPerPage,
+		currentPage * itemsPerPage
+	)
+
+	
+	useEffect(() => {
+		setCurrentPage(1)
+	}, [searchTerm, roleFilter])
 
 	return (
 		<div className="space-y-6">
@@ -78,8 +91,8 @@ export default function UserManagement({ hideHeader }) {
 			</div>
 
 			<Card noPadding>
-				<div className="overflow-x-auto scrollbar-thin">
-					<table className="w-full text-left min-w-[700px]">
+				<div className="overflow-x-auto">
+					<table className="w-full text-left">
 						<thead>
 							<tr className="bg-gray-50/50 border-b border-brand-border">
 								<th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -97,7 +110,7 @@ export default function UserManagement({ hideHeader }) {
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-brand-border">
-							{filteredUsers.map((user) => (
+							{paginatedUsers.map((user) => (
 								<tr
 									key={user.id}
 									className="hover:bg-brand-light/30 transition-colors"
@@ -151,6 +164,13 @@ export default function UserManagement({ hideHeader }) {
 						</tbody>
 					</table>
 				</div>
+				{totalPages > 1 && (
+					<Pagination 
+						currentPage={currentPage}
+						totalPages={totalPages}
+						onPageChange={setCurrentPage}
+					/>
+				)}
 			</Card>
 		</div>
 	)

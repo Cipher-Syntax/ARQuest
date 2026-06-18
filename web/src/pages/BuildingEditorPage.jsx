@@ -10,6 +10,7 @@ const BuildingEditorPage = () => {
 	const { id } = useParams()
 	const navigate = useNavigate()
 	const isNew = id === 'new'
+	const [existingBuildings, setExistingBuildings] = useState([])
 
 	const [building, setBuilding] = useState({
 		name: '',
@@ -25,7 +26,7 @@ const BuildingEditorPage = () => {
 	const [geofence, setGeofence] = useState({
 		latitude: '',
 		longitude: '',
-		radius_meters: 50,
+		radius_meters: 20,
 		is_active: true
 	})
 
@@ -39,7 +40,17 @@ const BuildingEditorPage = () => {
 		if (!isNew) {
 			loadBuilding()
 		}
+		loadExistingBuildings()
 	}, [id])
+
+	const loadExistingBuildings = async () => {
+		try {
+			const data = await buildingService.getBuildings()
+			setExistingBuildings(data)
+		} catch (error) {
+			console.error('Failed to load existing buildings', error)
+		}
+	}
 
 	const loadBuilding = async () => {
 		try {
@@ -234,7 +245,7 @@ const BuildingEditorPage = () => {
 					{isNew ? 'New Building' : `Edit: ${building.name}`}
 				</h1>
 
-				{/* Dedicated button added here to link to PanoramaManagerPage */}
+				{}
 				{!isNew ? (
 					<button
 						type="button"
@@ -606,6 +617,8 @@ const BuildingEditorPage = () => {
 									setGeofenceErrors((prev) => ({ ...prev, center: null }))
 							}}
 							errors={geofenceErrors}
+							existingBuildings={existingBuildings}
+							currentBuildingId={id !== 'new' ? id : null}
 						/>
 					</div>
 				</div>

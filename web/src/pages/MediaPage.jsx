@@ -20,12 +20,12 @@ const getFullUrl = (url) => {
 
 export default function Media() {
 	const [buildings, setBuildings] = useState([])
-	const [viewTab, setViewTab] = useState('3d') // '3d' or 'panorama'
+	const [viewTab, setViewTab] = useState('3d') 
 	const [loading, setLoading] = useState(true)
 
-	// Viewer state
-	const [activeModel, setActiveModel] = useState(null) // building object
-	const [activePanorama, setActivePanorama] = useState(null) // building object
+	
+	const [activeModel, setActiveModel] = useState(null) 
+	const [activePanorama, setActivePanorama] = useState(null) 
 	const [panoScenes, setPanoScenes] = useState([])
 
 	useEffect(() => {
@@ -208,7 +208,7 @@ export default function Media() {
 				</div>
 			)}
 
-			{/* Full Screen Viewer Modal */}
+			{}
 			{(activeModel || activePanorama) && (
 				<div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/90 backdrop-blur-sm animate-in fade-in duration-200 p-4">
 					<div className="relative w-full max-w-6xl h-[85vh] bg-black rounded-2xl shadow-2xl overflow-hidden border border-white/10 flex flex-col">

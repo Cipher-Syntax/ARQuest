@@ -82,7 +82,6 @@ export default function Trivia({ hideHeader }) {
 			setIsModalOpen(false)
 		} catch (error) {
 			console.error('Failed to save trivia', error)
-			alert('Failed to save trivia fact')
 		}
 	}
 
@@ -101,7 +100,6 @@ export default function Trivia({ hideHeader }) {
 				setIsDeleteModalOpen(false)
 			} catch (error) {
 				console.error('Failed to delete trivia', error)
-				alert('Failed to delete trivia')
 			}
 		}
 	}
@@ -227,7 +225,7 @@ export default function Trivia({ hideHeader }) {
 				))}
 			</div>
 
-			{/* Add/Edit Fact Modal */}
+			{}
 			{isModalOpen && (
 				<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
 					<div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">

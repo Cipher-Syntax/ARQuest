@@ -13,7 +13,7 @@ export default function QuestsPage({ hideHeader }) {
 	const [questToDelete, setQuestToDelete] = useState(null)
 	const [editingQuest, setEditingQuest] = useState(null)
 
-	// Form State
+	
 	const [newTitle, setNewTitle] = useState('')
 	const [newHint, setNewHint] = useState('')
 	const [newReward, setNewReward] = useState(50)
@@ -71,7 +71,6 @@ export default function QuestsPage({ hideHeader }) {
 				setIsDeleteModalOpen(false)
 			} catch (error) {
 				console.error('Failed to delete quest', error)
-				alert('Failed to delete quest')
 			}
 		}
 	}
@@ -98,7 +97,6 @@ export default function QuestsPage({ hideHeader }) {
 			setIsModalOpen(false)
 		} catch (error) {
 			console.error('Failed to save quest', error)
-			alert('Failed to save quest')
 		}
 	}
 
