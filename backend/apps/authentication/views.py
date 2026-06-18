@@ -7,7 +7,7 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.core.mail import send_mail
 from django.conf import settings
 from apps.api.responses import success_response, error_response
-from .serializers import LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer, ResendOTPSerializer
+from .serializers import LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer, ResendOTPSerializer, CreateProfessionalSerializer
 from .models import User, EmailOTP
 
 
@@ -231,6 +231,27 @@ def user_list(request):
         return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
     users = User.objects.all().order_by('-date_joined')
     return success_response(UserSerializer(users, many=True).data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_professional(request):
+    if not request.user.is_admin_role:
+        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    
+    serializer = CreateProfessionalSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(
+            code='validation_error',
+            message='Failed to create professional account.',
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=serializer.errors
+        )
+    
+    user = serializer.save()
+    return success_response({
+        'message': 'Professional account created successfully.',
+        'user': UserSerializer(user).data
+    }, status_code=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

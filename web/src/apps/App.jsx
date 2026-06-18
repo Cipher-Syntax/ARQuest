@@ -16,6 +16,7 @@ import MediaPage from '../pages/MediaPage'
 import PanoramaManagerPage from '../pages/PanoramaManagerPage'
 import CmsPage from '../pages/CmsPage'
 import UsersContainer from '../pages/UsersContainer'
+import ProfessionalsPage from '../pages/ProfessionalsPage'
 import SettingsPage from '../pages/SettingsPage'
 
 const App = () => {
@@ -41,6 +42,7 @@ const App = () => {
 						<Route path="panoramas/:id" element={<PanoramaManagerPage />} />
 						<Route path="cms" element={<CmsPage />} />
 						<Route path="users" element={<UsersContainer />} />
+						<Route path="professionals" element={<ProfessionalsPage />} />
 						<Route path="settings" element={<SettingsPage />} />
 					</Route>
 				</Routes>

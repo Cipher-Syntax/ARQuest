@@ -10,5 +10,6 @@ urlpatterns = [
     path('me/', views.current_user, name='current_user'),
     path('token/refresh/', views.token_refresh, name='token_refresh'),
     path('users/', views.user_list, name='user_list'),
+    path('users/professional/', views.create_professional, name='create_professional'),
     path('leaderboard/', views.leaderboard, name='leaderboard'),
 ]
