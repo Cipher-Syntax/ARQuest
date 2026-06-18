@@ -14,13 +14,15 @@ import {
 	Target,
 	MonitorPlay,
 	ChevronLeft,
-	ChevronRight
+	ChevronRight,
+	Briefcase
 } from 'lucide-react'
 import { useState } from 'react'
 
 const NAV = [
 	{ to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
 	{ to: '/buildings', icon: Building2, label: 'Buildings' },
+	{ to: '/professionals', icon: Briefcase, label: 'Professional Accounts' },
 	{ to: '/users', icon: Users, label: 'Users & Leaderboard' },
 	{ to: '/media', icon: FileVideo, label: 'Content & Media' },
 	{ to: '/geofences', icon: Map, label: 'Geofences' },

@@ -8,5 +8,9 @@ export const userService = {
 	getLeaderboard: async () => {
 		const response = await api.get('/api/auth/leaderboard/')
 		return response.data.data
+	},
+	createProfessional: async (data) => {
+		const response = await api.post('/api/auth/users/professional/', data)
+		return response.data
 	}
 }
