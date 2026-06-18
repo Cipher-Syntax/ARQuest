@@ -5,7 +5,11 @@ import { buildingService } from '../services/buildingService';
 import { panoramaService } from '../services/panoramaService';
 import '@google/model-viewer';
 import { ReactPhotoSphereViewer } from 'react-photo-sphere-viewer';
+import { VirtualTourPlugin } from '@photo-sphere-viewer/virtual-tour-plugin';
+import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
 import '@photo-sphere-viewer/core/index.css';
+import '@photo-sphere-viewer/virtual-tour-plugin/index.css';
+import '@photo-sphere-viewer/markers-plugin/index.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const getFullUrl = (url) => {
@@ -65,6 +69,26 @@ export default function Media() {
   };
 
   const has3DModel = (b) => !!b.model_url;
+
+  const handlePanoReady = (instance) => {
+    const vtPlugin = instance.getPlugin(VirtualTourPlugin);
+    if (!vtPlugin || panoScenes.length === 0) return;
+
+    const startScene = panoScenes.find(s => s.is_start_scene) || panoScenes[0];
+
+    const nodes = panoScenes.map(scene => ({
+      id: scene.id.toString(),
+      panorama: getFullUrl(scene.image_url),
+      name: scene.title,
+      links: (scene.hotspots || []).map(h => ({
+        nodeId: h.target_scene_id.toString(),
+        position: { pitch: h.pitch, yaw: h.yaw },
+        name: h.label || h.target_scene_title,
+      }))
+    }));
+
+    vtPlugin.setNodes(nodes, startScene.id.toString());
+  };
 
   return (
     <div className="space-y-6">
@@ -198,10 +222,18 @@ export default function Media() {
 
               {activePanorama && panoScenes.length > 0 && (
                 <ReactPhotoSphereViewer
-                  src={getFullUrl(panoScenes[0].image_url)}
+                  src={getFullUrl((panoScenes.find(s => s.is_start_scene) || panoScenes[0]).image_url)}
                   height={'100%'}
                   width={'100%'}
                   littlePlanet={true}
+                  plugins={[
+                    [MarkersPlugin, {}],
+                    [VirtualTourPlugin, {
+                      positionMode: 'manual',
+                      renderMode: '3d',
+                    }]
+                  ]}
+                  onReady={handlePanoReady}
                 />
               )}
             </div>
