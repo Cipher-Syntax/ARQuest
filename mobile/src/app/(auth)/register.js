@@ -93,8 +93,8 @@ export default function RegisterScreen() {
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>New Player</Text>
-                    <Text style={styles.subtitle}>Identity Registration</Text>
+                    <Text style={styles.title}>Create Account</Text>
+                    <Text style={styles.subtitle}>Register a new account</Text>
                 </View>
 
                 <ARGlassCard style={styles.card}>
@@ -104,7 +104,7 @@ export default function RegisterScreen() {
                         <Text style={styles.inputLabel}>Username</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Player Handle"
+                            placeholder="Username"
                             placeholderTextColor={theme.colors.textMuted}
                             value={formData.username}
                             onChangeText={(text) => handleChange("username", text)}
@@ -113,10 +113,10 @@ export default function RegisterScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Comm Channel (Email)</Text>
+                        <Text style={styles.inputLabel}>Email</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Email Address"
+                            placeholder="Email"
                             placeholderTextColor={theme.colors.textMuted}
                             value={formData.email}
                             onChangeText={(text) => handleChange("email", text)}
@@ -149,7 +149,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Access Code</Text>
+                        <Text style={styles.inputLabel}>Password</Text>
                         <View style={styles.passwordContainer}>
                             <TextInput
                                 style={styles.passwordInput}
@@ -173,7 +173,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Confirm Access Code</Text>
+                        <Text style={styles.inputLabel}>Confirm Password</Text>
                         <View style={styles.passwordContainer}>
                             <TextInput
                                 style={styles.passwordInput}

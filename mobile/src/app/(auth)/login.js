@@ -109,7 +109,7 @@ export default function LoginScreen() {
                     <Link href="/(auth)/register" asChild>
                         <TouchableOpacity style={styles.registerLink}>
                             <Text style={styles.registerText}>
-                                New Player? Create Identity
+                                Don't have an account? Register
                             </Text>
                         </TouchableOpacity>
                     </Link>
