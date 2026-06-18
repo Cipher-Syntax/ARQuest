@@ -293,99 +293,97 @@ export default function Geofences() {
                   })}
               </MapContainer>
             </div>
+          </div>
+
           {/* Right Column: Card List */}
           <div className="flex flex-col gap-4 h-full lg:col-span-1">
-            {!selectedGeoId ? (
+            {!selectedGeoId && (
               <div className="flex flex-col items-center justify-center h-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-8 text-center">
                 <MapPin className="text-gray-300 mb-4" size={48} />
                 <h3 className="text-gray-900 font-bold mb-2">No Geofence Selected</h3>
                 <p className="text-gray-500 text-sm">Click on any map marker to view and manage its geofence boundary details.</p>
               </div>
-            ) : (
-              (() => {
-                const geo = filteredGeofences.find(g => g.id === selectedGeoId);
-                if (!geo) return null;
-                return (
-                  <Card 
-                    key={geo.id} 
-                    id={`geo-card-${geo.id}`}
-                    className="relative overflow-visible group shrink-0 transition-all duration-300 ring-2 ring-brand shadow-md"
-                  >
-                    <div className="flex justify-between items-start relative z-10">
-                      <div className="space-y-4 flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-md flex items-center justify-center ${geo.active ? 'bg-brand text-white' : 'bg-gray-100 text-gray-400'}`}>
-                              {geo.active ? <Unlock size={16} /> : <Lock size={16} />}
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-gray-900 text-sm">{geo.name}</h3>
-                              <p className="text-xs text-gray-400">{geo.fullBuilding}</p>
-                            </div>
-                          </div>
-                          <button 
-                            onClick={() => setSelectedGeoId(null)}
-                            className="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded-md hover:bg-gray-100"
-                          >
-                            <X size={16} />
-                          </button>
+            )}
+            
+            {selectedGeoId && filteredGeofences.filter(g => g.id === selectedGeoId).map(geo => (
+              <Card 
+                key={geo.id} 
+                id={`geo-card-${geo.id}`}
+                className="relative overflow-visible group shrink-0 transition-all duration-300 ring-2 ring-brand shadow-md"
+              >
+                <div className="flex justify-between items-start relative z-10">
+                  <div className="space-y-4 flex-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-md flex items-center justify-center ${geo.active ? 'bg-brand text-white' : 'bg-gray-100 text-gray-400'}`}>
+                          {geo.active ? <Unlock size={16} /> : <Lock size={16} />}
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Latitude</p>
-                            <p className="text-sm font-mono text-gray-600">{geo.lat}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Longitude</p>
-                            <p className="text-sm font-mono text-gray-600">{geo.lng}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Radius</p>
-                            <p className="text-sm font-bold text-gray-900">{geo.radius}</p>
-                          </div>
-                        </div>
-
-                        <div className="pt-2 flex items-center justify-between">
-                          <Toggle checked={geo.active} label="Enable geofence" onChange={() => handleToggle(geo.id)} />
-                          <Badge variant={geo.active ? 'success' : 'gray'}>{geo.active ? 'Active' : 'Locked'}</Badge>
+                        <div>
+                          <h3 className="font-bold text-gray-900 text-sm">{geo.name}</h3>
+                          <p className="text-xs text-gray-400">{geo.fullBuilding}</p>
                         </div>
                       </div>
-                      <div className="relative z-20 ml-2" ref={activeMenu === geo.id ? menuRef : null}>
-                        <button 
-                          onClick={() => setActiveMenu(activeMenu === geo.id ? null : geo.id)}
-                          className="p-1 text-gray-400 hover:text-brand transition-colors rounded-md hover:bg-brand-light"
-                        >
-                          <MoreVertical size={18} />
-                        </button>
-                        {activeMenu === geo.id && (
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                            <button 
-                              onClick={() => handleOpenEditModal(geo)}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
-                            >
-                              <Edit3 size={14} /> Edit Boundary
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteClick(geo.id)}
-                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
-                            >
-                              <Trash2 size={14} /> Delete Boundary
-                            </button>
-                          </div>
-                        )}
+                      <button 
+                        onClick={() => setSelectedGeoId(null)}
+                        className="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded-md hover:bg-gray-100"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Latitude</p>
+                        <p className="text-sm font-mono text-gray-600">{geo.lat}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Longitude</p>
+                        <p className="text-sm font-mono text-gray-600">{geo.lng}</p>
                       </div>
                     </div>
 
-                    {/* Background design */}
-                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-light/30 rounded-full blur-3xl pointer-events-none" />
-                  </Card>
-                );
-              })()
-            )}
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Radius</p>
+                        <p className="text-sm font-bold text-gray-900">{geo.radius}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between">
+                      <Toggle checked={geo.active} label="Enable geofence" onChange={() => handleToggle(geo.id)} />
+                      <Badge variant={geo.active ? 'success' : 'gray'}>{geo.active ? 'Active' : 'Locked'}</Badge>
+                    </div>
+                  </div>
+                  <div className="relative z-20 ml-2" ref={activeMenu === geo.id ? menuRef : null}>
+                    <button 
+                      onClick={() => setActiveMenu(activeMenu === geo.id ? null : geo.id)}
+                      className="p-1 text-gray-400 hover:text-brand transition-colors rounded-md hover:bg-brand-light"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    {activeMenu === geo.id && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <button 
+                          onClick={() => handleOpenEditModal(geo)}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
+                        >
+                          <Edit3 size={14} /> Edit Boundary
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteClick(geo.id)}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
+                        >
+                          <Trash2 size={14} /> Delete Boundary
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Background design */}
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-light/30 rounded-full blur-3xl pointer-events-none" />
+              </Card>
+            ))}
           </div>
         </div>
       ) : (
