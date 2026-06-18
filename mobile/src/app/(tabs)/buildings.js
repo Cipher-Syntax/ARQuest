@@ -106,7 +106,7 @@ export default function BuildingsScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             
             {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
                 <View style={styles.loadingOverlay}>

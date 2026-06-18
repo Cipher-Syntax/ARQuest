@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Animated } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { captureRef } from 'react-native-view-shot';
@@ -253,6 +254,7 @@ export default function ARScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar style="light" />
             {/* --- CAPTURE TARGET --- */}
             <View ref={arViewRef} style={styles.captureContainer} collapsable={false}>
                 

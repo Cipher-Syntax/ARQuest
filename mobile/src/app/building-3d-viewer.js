@@ -93,7 +93,7 @@ export default function Building3DViewerScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             
             {/* Fullscreen 3D Canvas */}
             <WebView
