@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
         height: 300,
         borderRadius: 150,
         backgroundColor: theme.colors.primary,
-        opacity: 0.1,
+        opacity: 0.3,
     },
     glowOrbBottom: {
         position: 'absolute',
@@ -239,8 +239,8 @@ const styles = StyleSheet.create({
         width: 400,
         height: 400,
         borderRadius: 200,
-        backgroundColor: theme.colors.accent,
-        opacity: 0.1,
+        backgroundColor: theme.colors.primary,
+        opacity: 0.3,
     },
     scrollContent: {
         flexGrow: 1,

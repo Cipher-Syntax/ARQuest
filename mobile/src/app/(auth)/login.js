@@ -102,7 +102,7 @@ export default function LoginScreen() {
                         title="Game Start"
                         onPress={handleLogin}
                         isLoading={isLoading}
-                        variant="accent"
+                        variant="primary"
                         style={styles.loginButton}
                     />
 
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
         height: 300,
         borderRadius: 150,
         backgroundColor: theme.colors.primary, // Red glow
-        opacity: 0.1,
+        opacity: 0.3, // Make more vibrant
     },
     glowOrbBottom: {
         position: 'absolute',
@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
         width: 400,
         height: 400,
         borderRadius: 200,
-        backgroundColor: theme.colors.accent, // Cyan glow
-        opacity: 0.1,
+        backgroundColor: theme.colors.primary, // Also Red
+        opacity: 0.3,
     },
     content: {
         flex: 1,
