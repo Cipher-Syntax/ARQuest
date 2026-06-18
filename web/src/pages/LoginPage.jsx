@@ -50,14 +50,14 @@ const LoginPage = () => {
 				<div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,transparent_100%)]"></div>
 
 				<div className="z-10 flex flex-col w-full h-full">
-					<div className="w-full h-80 bg-white/10 border-2 border-white/20 border-dashed rounded-md flex items-center justify-center mb-12 backdrop-blur-sm shadow-xl relative group transition-all duration-300 hover:bg-white/20 mt-4">
+					<div className="w-80 h-80 mx-auto bg-white/10 border-2 border-white/20 border-dashed rounded-md flex items-center justify-center mb-12 backdrop-blur-sm shadow-xl relative group transition-all duration-300 hover:bg-white/20 mt-12">
 						<span className="text-white/60 font-bold uppercase tracking-widest text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
 							Logo Here
 						</span>
 						<img
 							src="/logo.png"
 							alt="ARQuest Logo"
-							className="w-40 h-40 object-contain opacity-50 group-hover:opacity-100 transition-opacity"
+							className="w-64 h-64 object-contain opacity-50 group-hover:opacity-100 transition-opacity"
 						/>
 					</div>
 
