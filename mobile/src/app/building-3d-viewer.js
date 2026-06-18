@@ -215,14 +215,13 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.surface,
         padding: 16,
         borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
     },
     buildingDescription: {
         fontSize: 13,
         color: theme.colors.textSecondary,
         lineHeight: 20,
         fontFamily: 'monospace',
+        textAlign: 'justify',
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
