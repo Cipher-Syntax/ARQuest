@@ -73,3 +73,24 @@ def dashboard_stats(request):
         'weekly_data': weekly_data,
         'building_status': building_status
     })
+
+from .models import SystemSetting
+from .serializers import SystemSettingSerializer
+
+@api_view(['GET', 'PUT'])
+@permission_classes([AllowAny])
+def system_settings(request):
+    settings = SystemSetting.get_settings()
+    
+    if request.method == 'GET':
+        return success_response(SystemSettingSerializer(settings).data)
+        
+    elif request.method == 'PUT':
+        if request.user.is_anonymous or not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required to modify settings', status_code=403)
+            
+        serializer = SystemSettingSerializer(settings, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(serializer.data)
+        return error_response('validation_error', 'Invalid data', details=serializer.errors, status_code=400)
