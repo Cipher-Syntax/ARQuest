@@ -10,7 +10,7 @@ import { useState } from 'react'
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/buildings', icon: Building2, label: 'Buildings' },
-  { to: '/users', icon: Users, label: 'Users' },
+  { to: '/users', icon: Users, label: 'Users & Leaderboard' },
   { to: '/media', icon: FileVideo, label: 'Content & Media' },
   { to: '/geofences', icon: Map, label: 'Geofences' },
   { to: '/cms', icon: MonitorPlay, label: 'Quests & Trivias' },

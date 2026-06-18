@@ -1,12 +1,7 @@
+import { useState, useEffect } from 'react'
 import { Building2, Users, Navigation, HelpCircle, ArrowUpRight, MoreVertical, ChevronRight } from 'lucide-react'
 import { Card, Badge } from '../components/ui'
-
-const STATS = [
-  { label: 'Total Buildings', value: '4', icon: Building2, trend: '+1 this month', color: 'bg-brand-light text-brand' },
-  { label: 'Active Students', value: '128', icon: Users, trend: '+12% from last week', color: 'bg-brand-light text-brand' },
-  { label: 'GPS Unlocks Today', value: '34', icon: Navigation, trend: '+8', color: 'bg-brand-light text-brand' },
-  { label: 'Trivia Facts', value: '89', icon: HelpCircle, trend: '+15%', color: 'bg-brand-light text-brand' },
-]
+import { dashboardService } from '../services/dashboardService'
 
 const WEEKLY_DATA = [
   { day: 'Mon', value: 30 },
@@ -26,6 +21,32 @@ const BUILDING_STATUS = [
 ]
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({
+    total_buildings: 0,
+    active_students: 0,
+    trivia_facts: 0,
+    gps_unlocks_today: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await dashboardService.getStats();
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to load dashboard stats', error);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const STATS = [
+    { label: 'Total Buildings', value: stats.total_buildings, icon: Building2, trend: 'Total Live', color: 'bg-brand-light text-brand' },
+    { label: 'Active Students', value: stats.active_students, icon: Users, trend: 'Enrolled', color: 'bg-brand-light text-brand' },
+    { label: 'GPS Unlocks Today', value: stats.gps_unlocks_today, icon: Navigation, trend: 'Today', color: 'bg-brand-light text-brand' },
+    { label: 'Trivia Facts', value: stats.trivia_facts, icon: HelpCircle, trend: 'Live', color: 'bg-brand-light text-brand' },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}

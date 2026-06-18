@@ -15,7 +15,7 @@ import GeofencesPage from '../pages/GeofencesPage';
 import MediaPage from '../pages/MediaPage';
 import PanoramaManagerPage from '../pages/PanoramaManagerPage';
 import CmsPage from '../pages/CmsPage';
-import UsersPage from '../pages/UsersPage';
+import UsersContainer from '../pages/UsersContainer';
 import SettingsPage from '../pages/SettingsPage';
 
 const App = () => {
@@ -40,7 +40,7 @@ const App = () => {
                         <Route path="media" element={<MediaPage />} />
                         <Route path="panoramas/:id" element={<PanoramaManagerPage />} />
                         <Route path="cms" element={<CmsPage />} />
-                        <Route path="users" element={<UsersPage />} />
+                        <Route path="users" element={<UsersContainer />} />
                         <Route path="settings" element={<SettingsPage />} />
                     </Route>
                 </Routes>

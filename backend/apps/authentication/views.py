@@ -223,3 +223,17 @@ def current_user(request):
     return success_response({
         'user': UserSerializer(request.user).data
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_list(request):
+    if not request.user.is_admin_role:
+        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    users = User.objects.all().order_by('-date_joined')
+    return success_response(UserSerializer(users, many=True).data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def leaderboard(request):
+    users = User.objects.filter(role='student').order_by('-exploration_points')[:50]
+    return success_response(UserSerializer(users, many=True).data)
