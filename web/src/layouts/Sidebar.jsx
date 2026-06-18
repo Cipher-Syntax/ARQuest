@@ -24,7 +24,7 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
       {/* Logo / Brand */}
       <div className={`px-5 py-6 flex items-center transition-all duration-300 border-b border-white/10 ${isCollapsed ? 'justify-center px-0' : 'justify-between'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white text-brand rounded-xl flex items-center justify-center shrink-0 p-2 shadow-sm">
+          <div className="w-10 h-10 bg-white text-brand rounded-md flex items-center justify-center shrink-0 p-2 shadow-sm">
             <img src="/logo.png" alt="ARQuest" className="w-full h-full object-contain" />
           </div>
           {!isCollapsed && (
@@ -39,7 +39,7 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
       {/* Toggle Button for Desktop */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3.5 top-8 bg-white border border-gray-200 text-brand hover:bg-brand-light rounded-full p-1.5 shadow-md transition-all lg:flex hidden items-center justify-center z-50 group"
+        className="absolute -right-3.5 top-8 bg-white border border-gray-200 text-brand hover:bg-brand-light rounded-md p-1.5 shadow-md transition-all lg:flex hidden items-center justify-center z-50 group"
       >
         {isCollapsed ? <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" /> : <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />}
       </button>
@@ -54,7 +54,7 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
             onClick={onMobileClose}
             title={isCollapsed ? label : ''}
             className={({ isActive }) =>
-              `relative flex items-center rounded-xl text-sm font-semibold transition-all duration-200 group
+              `relative flex items-center rounded-md text-sm font-semibold transition-all duration-200 group
               ${isCollapsed ? 'justify-center px-2 py-3' : 'px-4 py-3 gap-3'}
               ${isActive
                 ? 'bg-white/20 text-white shadow-inner shadow-black/10'
@@ -80,7 +80,7 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
         <button
           onClick={onLogout}
           title={isCollapsed ? 'Logout' : ''}
-          className={`flex items-center text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200 group
+          className={`flex items-center text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white rounded-md transition-all duration-200 group
             ${isCollapsed ? 'p-3' : 'w-full px-4 py-3 gap-3'}`}
         >
           <LogOut size={18} className="shrink-0 transition-colors" />
