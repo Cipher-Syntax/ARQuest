@@ -1,23 +1,23 @@
 export const colors = {
-    bgPrimary: "#1a040b", // Deep dark red/black
-    bgSecondary: "#2a0a14",
-    surface: "rgba(255, 255, 255, 0.05)", // Glassmorphism base
-    surfaceSoft: "rgba(255, 255, 255, 0.02)",
+    bgPrimary: "#FFFFFF",
+    bgSecondary: "#F5F5F5",
+    surface: "#FFFFFF",
+    surfaceSoft: "#F9F9F9",
     primary: "#8A1538", // WMSU Red
     primaryDark: "#6B0F2A",
-    accent: "#EAB308", // Gold/Yellow accent
-    accentSoft: "#FEF08A",
-    textPrimary: "#FFFFFF",
-    textSecondary: "#E5E7EB",
+    accent: "#00E5FF", // Web Accent Cyan
+    accentSoft: "#E0F7FA",
+    textPrimary: "#1A1A1A",
+    textSecondary: "#666666",
     textMuted: "#9CA3AF",
-    border: "rgba(255, 255, 255, 0.15)", // Glowing border
-    success: "#10B981",
-    warning: "#F59E0B",
-    error: "#EF4444",
+    border: "#E0E0E0",
+    success: "#388E3C",
+    warning: "#F57C00",
+    error: "#D32F2F",
     info: "#3B82F6",
-    arHighlight: "#00E5FF", // Cyan for active HUD
-    geofenceActive: "#10B981",
-    geofenceInactive: "#EF4444",
+    arHighlight: "#00E5FF", 
+    geofenceActive: "#388E3C",
+    geofenceInactive: "#D32F2F",
 };
 
 export const typography = {

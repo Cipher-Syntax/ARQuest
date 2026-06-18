@@ -11,7 +11,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
         <SafeAreaView
             edges={["bottom"]}
             style={{
-                backgroundColor: "rgba(26, 4, 11, 0.95)", // Solid dark for tab bar base
+                backgroundColor: theme.colors.surface, // Light tab bar base
                 borderTopColor: theme.colors.border,
                 borderTopWidth: 1,
             }}
@@ -74,7 +74,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                     {options.tabBarIcon &&
                                         options.tabBarIcon({
                                             color: isFocused
-                                                ? theme.colors.arHighlight
+                                                ? theme.colors.primary // WMSU Red for active
                                                 : theme.colors.textMuted,
                                             size: 24,
                                         })}
@@ -82,12 +82,9 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                         style={{
                                             fontSize: 12,
                                             color: isFocused
-                                                ? theme.colors.arHighlight
+                                                ? theme.colors.primary // WMSU Red
                                                 : theme.colors.textMuted,
                                             fontWeight: isFocused ? "600" : "400",
-                                            textShadowColor: isFocused ? "rgba(0, 229, 255, 0.5)" : "transparent",
-                                            textShadowOffset: { width: 0, height: 0 },
-                                            textShadowRadius: isFocused ? 5 : 0,
                                         }}
                                     >
                                         {label}
@@ -113,14 +110,14 @@ export default function TabLayout() {
         <Tabs
             screenOptions={{
                 headerStyle: {
-                    backgroundColor: "rgba(26, 4, 11, 0.95)",
+                    backgroundColor: theme.colors.primary,
                 },
-                headerTintColor: theme.colors.textPrimary,
+                headerTintColor: "#FFFFFF",
                 tabBarStyle: {
-                    backgroundColor: "rgba(26, 4, 11, 0.95)",
+                    backgroundColor: theme.colors.surface,
                     borderTopColor: theme.colors.border,
                 },
-                tabBarActiveTintColor: theme.colors.arHighlight,
+                tabBarActiveTintColor: theme.colors.primary,
                 tabBarInactiveTintColor: theme.colors.textMuted,
             }}
             tabBar={(props) => <CustomTabBar {...props} />}

@@ -207,14 +207,15 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     input: {
-        backgroundColor: "rgba(0,0,0,0.3)",
+        backgroundColor: theme.colors.surfaceSoft,
         color: theme.colors.textPrimary,
         padding: theme.spacing.md,
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        fontSize: 32,
-        letterSpacing: 12,
+        fontSize: theme.typography.xl,
+        textAlign: "center",
+        letterSpacing: 10,
     },
     verifyButton: {
         marginTop: theme.spacing.sm,
