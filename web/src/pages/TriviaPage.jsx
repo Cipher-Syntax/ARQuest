@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, X, Search, Filter, MoreVertical, Edit3, Trash2, Lightbulb } from 'lucide-react'
 import { Card, Badge, Button, Input, ConfirmDeleteModal } from '../components/ui'
-import { useCategories } from '../context/CategoryContext'
+import { buildingService } from '../services/buildingService'
 
 const INITIAL_FACTS = [
   { id: 1, building: 'CCS', fact: 'The CCS building was established in 2000, making it one of the newer academic facilities on campus.' },
@@ -10,7 +10,7 @@ const INITIAL_FACTS = [
 ]
 
 export default function Trivia() {
-  const { categories } = useCategories()
+  const [buildingsList, setBuildingsList] = useState([])
   const [facts, setFacts] = useState(INITIAL_FACTS)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -33,10 +33,22 @@ export default function Trivia() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    const loadBuildings = async () => {
+      try {
+        const buildings = await buildingService.getBuildings()
+        setBuildingsList(buildings)
+      } catch (error) {
+        console.error('Failed to load buildings', error)
+      }
+    }
+    loadBuildings()
+  }, [])
+
   const handleOpenAddModal = () => {
     setEditingFact(null)
     setNewFact('')
-    setNewBuilding(categories[0]?.name || 'CCS')
+    setNewBuilding(buildingsList[0]?.name || 'CCS')
     setIsModalOpen(true)
   }
 
@@ -102,7 +114,7 @@ export default function Trivia() {
           <input 
             type="text" 
             placeholder="Search trivia..." 
-            className="w-full pl-10 pr-4 py-3 bg-white border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
+            className="w-full pl-10 pr-4 py-3 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -111,10 +123,10 @@ export default function Trivia() {
           <select
             value={selectedBuilding}
             onChange={(e) => setSelectedBuilding(e.target.value)}
-            className="w-full pl-4 pr-10 py-3 bg-white border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
+            className="w-full pl-4 pr-10 py-3 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
           >
-            <option value="All Buildings">All Categories</option>
-            {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+            <option value="All Buildings">All Buildings</option>
+            {buildingsList.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
           </select>
           <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none" size={16} />
         </div>
@@ -124,7 +136,7 @@ export default function Trivia() {
         {filteredFacts.map((item) => (
           <Card key={item.id} className="p-0 overflow-visible">
             <div className="flex items-start p-5 gap-4">
-              <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center text-brand shrink-0">
+              <div className="w-10 h-10 rounded-md bg-brand-light flex items-center justify-center text-brand shrink-0">
                 <Lightbulb size={20} />
               </div>
               <div className="flex-1 min-w-0">
@@ -143,7 +155,7 @@ export default function Trivia() {
                 </button>
                 
                 {activeMenu === item.id && (
-                  <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
                     <button 
                       onClick={() => handleOpenEditModal(item)}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
@@ -167,7 +179,7 @@ export default function Trivia() {
       {/* Add/Edit Fact Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="px-6 py-4 border-b border-brand-border flex items-center justify-between">
               <h3 className="font-bold text-gray-900">{editingFact ? 'Edit Trivia Fact' : 'Add Trivia Fact'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-brand-light rounded-lg text-gray-400 hover:text-brand transition-colors">
@@ -180,9 +192,9 @@ export default function Trivia() {
                 <select
                   value={newBuilding}
                   onChange={(e) => setNewBuilding(e.target.value)}
-                  className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
+                  className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
                 >
-                  {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+                  {buildingsList.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
@@ -192,7 +204,7 @@ export default function Trivia() {
                   onChange={(e) => setNewFact(e.target.value)}
                   rows={4}
                   placeholder="Enter an interesting fact about this building..."
-                  className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 resize-none placeholder-gray-400 font-medium"
+                  className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 resize-none placeholder-gray-400 font-medium"
                 />
               </div>
             </div>
