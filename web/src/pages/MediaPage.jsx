@@ -2,13 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Grid3x3, List, Upload, Box, Image as ImageIcon, MoreVertical, Trash2, Edit3, Download, Search, Filter, X } from 'lucide-react'
 import { Card, Badge, Button, Input, Modal, ConfirmDeleteModal } from '../components/ui'
-import { useCategories } from '../context/CategoryContext'
 import { buildingService } from '../services/buildingService'
 import { panoramaService } from '../services/panoramaService'
 
 export default function Media() {
   const navigate = useNavigate()
-  const { categories } = useCategories()
+  const [buildingsList, setBuildingsList] = useState([])
   const [assets, setAssets] = useState([])
   const [view, setView] = useState('grid')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -42,6 +41,7 @@ export default function Media() {
           icon: isPano ? ImageIcon : Box
         }
       }))
+      setBuildingsList(buildings)
       setAssets(allAssets)
     } catch (error) {
       console.error('Error loading media assets:', error)
@@ -76,7 +76,7 @@ export default function Media() {
     setEditingAsset(null)
     setNewName('')
     setNewType('3D Model')
-    setNewCategory(categories[0]?.name || '')
+    setNewCategory(buildingsList[0]?.name || '')
     setSelectedFile(null)
     setIsModalOpen(true)
   }
@@ -174,8 +174,8 @@ export default function Media() {
               onChange={(e) => setSelectedBuilding(e.target.value)}
               className="w-full pl-4 pr-10 py-2.5 bg-white border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
             >
-              <option value="All Buildings">All Categories</option>
-              {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+              <option value="All Buildings">All Buildings</option>
+              {buildingsList.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
             </select>
             <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none" size={16} />
           </div>
@@ -351,7 +351,7 @@ export default function Media() {
                   onChange={(e) => setNewCategory(e.target.value)}
                   className="w-full border border-brand-border rounded-xl bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold"
                 >
-                  {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+                  {buildingsList.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
               </div>
 

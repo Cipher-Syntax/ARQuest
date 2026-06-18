@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Navigation, MapPin, Lock, Unlock, Grid3x3, List, Plus, MoreVertical, Search, Filter, Edit3, Trash2, X } from 'lucide-react'
 import { Card, Badge, Toggle, Button, ConfirmDeleteModal } from '../components/ui'
-import { useCategories } from '../context/CategoryContext'
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../utils/leafletConfig'
@@ -24,7 +23,6 @@ const parseRadius = (radiusStr) => {
 };
 
 export default function Geofences() {
-  const { categories } = useCategories()
   const [geofences, setGeofences] = useState([])
   const [view, setView] = useState('card')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -213,17 +211,6 @@ export default function Geofences() {
           />
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-          <div className="relative flex-1">
-            <select
-              value={selectedBuilding}
-              onChange={(e) => setSelectedBuilding(e.target.value)}
-              className="w-full pl-4 pr-10 py-2.5 bg-white border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
-            >
-              <option value="All Buildings">All Categories</option>
-              {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
-            </select>
-            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none" size={16} />
-          </div>
           <div className="flex items-center justify-center bg-white border border-brand-border rounded-xl p-1 shadow-sm">
             <button
               onClick={() => setView('card')}

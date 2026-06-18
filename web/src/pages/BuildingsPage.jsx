@@ -1,17 +1,13 @@
-import { Search, Filter, Plus, MoreVertical, Building2, Edit3, Trash2, Settings as SettingsIcon } from 'lucide-react'
+import { Search, Filter, Plus, MoreVertical, Building2, Edit3, Trash2 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Badge, Button, ConfirmDeleteModal } from '../components/ui'
-import { useCategories } from '../context/CategoryContext'
-import CategoryModal from '../components/modals/CategoryModal'
 import { buildingService } from '../services/buildingService'
 
 export default function BuildingsPage() {
-  const { categories, addCategory, updateCategory, deleteCategory } = useCategories()
   const [buildings, setBuildings] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isCatModalOpen, setIsCatModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [buildingToDelete, setBuildingToDelete] = useState(null)
   const [editingBuilding, setEditBuilding] = useState(null)
@@ -19,11 +15,6 @@ export default function BuildingsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [openMenu, setOpenMenu] = useState(null)
   const menuRef = useRef(null)
-
-  // Category Management State
-  const [newCat, setNewCat] = useState('')
-  const [editingCatId, setEditingCatId] = useState(null)
-  const [editCatValue, setEditCatValue] = useState('')
 
   // Building Form State
   const [formData, setFormData] = useState({
@@ -103,29 +94,6 @@ export default function BuildingsPage() {
     }
   }
 
-  // Category Actions
-  const handleAddCategory = () => {
-    if (!newCat.trim()) return
-    addCategory({ name: newCat.trim() })
-    setNewCat('')
-  }
-
-  const handleUpdateCategory = (id, oldName) => {
-    if (!editCatValue.trim()) return
-    const newName = editCatValue.trim()
-    updateCategory(id, newName)
-    setBuildings(prev => prev.map(b => b.department === oldName ? { ...b, department: newName } : b))
-    setEditingCatId(null)
-    setEditCatValue('')
-  }
-
-  const handleDeleteCategory = (id, name) => {
-    if (confirm(`Delete category "${name}"? All buildings in this category will become "Uncategorized".`)) {
-      deleteCategory(id)
-      setBuildings(prev => prev.map(b => b.department === name ? { ...b, department: 'Uncategorized' } : b))
-    }
-  }
-
   const filteredBuildings = buildings.filter(b => {
     const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          b.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -144,10 +112,6 @@ export default function BuildingsPage() {
           <Button onClick={handleAddClick} className="gap-2 justify-center">
             <Plus size={18} />
             Add Building
-          </Button>
-          <Button variant="secondary" onClick={() => setIsCatModalOpen(true)} className="gap-2 justify-center">
-            <SettingsIcon size={18} />
-            Manage Categories
           </Button>
         </div>
       </div>
@@ -186,7 +150,6 @@ export default function BuildingsPage() {
               <thead>
                 <tr className="bg-brand-light/20">
                   <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Building</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Coordinates</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
@@ -204,9 +167,6 @@ export default function BuildingsPage() {
                           <p className="font-bold text-gray-900 text-sm group-hover:text-brand transition-colors">{b.name}</p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={b.department === 'Uncategorized' ? 'gray' : 'brand'}>{b.department}</Badge>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs font-mono text-gray-500">{b.lat}, {b.lng}</span>
@@ -258,21 +218,6 @@ export default function BuildingsPage() {
         )}
         <div className="h-20" /> 
       </Card>
-
-      <CategoryModal 
-        isOpen={isCatModalOpen}
-        onClose={() => setIsCatModalOpen(false)}
-        categories={categories}
-        newCat={newCat}
-        setNewCat={setNewCat}
-        handleAddCategory={handleAddCategory}
-        editingCatId={editingCatId}
-        setEditingCatId={setEditingCatId}
-        editCatValue={editCatValue}
-        setEditCatValue={setEditCatValue}
-        handleUpdateCategory={handleUpdateCategory}
-        handleDeleteCategory={handleDeleteCategory}
-      />
 
       <ConfirmDeleteModal 
         isOpen={isDeleteModalOpen}
