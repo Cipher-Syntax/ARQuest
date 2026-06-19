@@ -97,7 +97,7 @@ export default function BuildingsPage() {
 				lat: b.latitude,
 				lng: b.longitude,
 				status: b.is_active ? 'active' : 'inactive',
-				visible: b.is_visible,
+				status_display: b.status,
 				models: b.model_file ? 1 : 0,
 				panos: 0,
 				qr_code_secret: b.qr_code_secret
@@ -274,9 +274,9 @@ export default function BuildingsPage() {
 											</td>
 											<td className="px-6 py-4">
 												<Badge
-													variant={b.visible ? 'brand' : 'red'}
+													variant={b.status_display === 'VISIBLE' ? 'brand' : b.status_display === 'HIDDEN' ? 'red' : 'gray'}
 												>
-													{b.visible ? 'Visible' : 'Hidden'}
+													{b.status_display === 'VISIBLE' ? 'Visible' : b.status_display === 'HIDDEN' ? 'Hidden' : 'Draft'}
 												</Badge>
 											</td>
 											<td className="px-6 py-4 text-right">

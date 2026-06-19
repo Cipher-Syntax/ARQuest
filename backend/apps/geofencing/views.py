@@ -17,7 +17,7 @@ class ValidateLocationView(APIView):
         user_lon = serializer.validated_data['longitude']
         accuracy = serializer.validated_data['accuracy_meters']
 
-        visible_buildings = Building.objects.filter(is_visible=True).prefetch_related('geofences')
+        visible_buildings = Building.objects.filter(status='VISIBLE').prefetch_related('geofences')
         
         matched_building = None
         min_distance = float('inf')

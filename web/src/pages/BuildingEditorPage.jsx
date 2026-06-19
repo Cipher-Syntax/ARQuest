@@ -17,7 +17,7 @@ const BuildingEditorPage = () => {
 		description: '',
 		latitude: '',
 		longitude: '',
-		is_visible: true,
+		status: 'DRAFT',
 		is_active: true,
 		model_file: null,
 		model_version: '',
@@ -101,19 +101,26 @@ const BuildingEditorPage = () => {
 		const newGeofenceErrors = {}
 
 		if (!building.name.trim()) newErrors.name = 'Name is required'
-		if (!building.latitude) newErrors.latitude = 'Latitude is required'
-		if (!building.longitude) newErrors.longitude = 'Longitude is required'
+		
+		if (building.status !== 'DRAFT') {
+			if (!building.latitude) newErrors.latitude = 'Latitude is required to publish'
+			if (!building.longitude) newErrors.longitude = 'Longitude is required to publish'
 
-		const lat = parseFloat(building.latitude)
-		const lon = parseFloat(building.longitude)
-		if (lat < -90 || lat > 90) newErrors.latitude = 'Latitude must be between -90 and 90'
-		if (lon < -180 || lon > 180) newErrors.longitude = 'Longitude must be between -180 and 180'
-
-		if (!geofence.latitude || !geofence.longitude) {
-			newGeofenceErrors.center = 'Click on map to set geofence center'
+			if (!geofence.latitude || !geofence.longitude) {
+				newGeofenceErrors.center = 'Click on map to set geofence center to publish'
+			}
+			if (!geofence.radius_meters || geofence.radius_meters <= 0) {
+				newGeofenceErrors.radius = 'Radius must be greater than 0 to publish'
+			}
 		}
-		if (!geofence.radius_meters || geofence.radius_meters <= 0) {
-			newGeofenceErrors.radius = 'Radius must be greater than 0'
+
+		if (building.latitude) {
+			const lat = parseFloat(building.latitude)
+			if (lat < -90 || lat > 90) newErrors.latitude = 'Latitude must be between -90 and 90'
+		}
+		if (building.longitude) {
+			const lon = parseFloat(building.longitude)
+			if (lon < -180 || lon > 180) newErrors.longitude = 'Longitude must be between -180 and 180'
 		}
 
 		setErrors(newErrors)
@@ -137,9 +144,9 @@ const BuildingEditorPage = () => {
 			formData.append('name', building.name)
 			formData.append('slug', generatedSlug)
 			formData.append('description', building.description || '')
-			formData.append('latitude', building.latitude)
-			formData.append('longitude', building.longitude)
-			formData.append('is_visible', building.is_visible)
+			if (building.latitude) formData.append('latitude', building.latitude)
+			if (building.longitude) formData.append('longitude', building.longitude)
+			formData.append('status', building.status)
 			formData.append('is_active', building.is_active)
 			formData.append('model_version', building.model_version || '')
 			formData.append('model_active', building.model_active)
@@ -148,30 +155,37 @@ const BuildingEditorPage = () => {
 				formData.append('model_file', building.model_file)
 			}
 
-			const formattedGeofenceData = {
-				latitude: parseFloat(geofence.latitude),
-				longitude: parseFloat(geofence.longitude),
-				radius_meters: parseFloat(geofence.radius_meters),
-				is_active: geofence.is_active
+			let formattedGeofenceData = null
+			if (geofence.latitude && geofence.longitude) {
+				formattedGeofenceData = {
+					latitude: parseFloat(geofence.latitude),
+					longitude: parseFloat(geofence.longitude),
+					radius_meters: parseFloat(geofence.radius_meters || 20),
+					is_active: geofence.is_active
+				}
 			}
 
 			if (isNew) {
 				const savedBuilding = await buildingService.createBuilding(formData)
-				await buildingService.createGeofence(savedBuilding.id, formattedGeofenceData)
+				if (formattedGeofenceData) {
+					await buildingService.createGeofence(savedBuilding.id, formattedGeofenceData)
+				}
 
-				setSuccessMessage('Building and Geofence created successfully!')
+				setSuccessMessage('Building created successfully!')
 				setTimeout(() => navigate(`/buildings/${savedBuilding.id}`), 1500)
 			} else {
 				const savedBuilding = await buildingService.updateBuilding(id, formData)
 				setBuilding(savedBuilding)
 
-				if (geofence.id) {
-					await buildingService.updateGeofence(geofence.id, formattedGeofenceData)
-				} else {
-					await buildingService.createGeofence(id, formattedGeofenceData)
+				if (formattedGeofenceData) {
+					if (geofence.id) {
+						await buildingService.updateGeofence(geofence.id, formattedGeofenceData)
+					} else {
+						await buildingService.createGeofence(id, formattedGeofenceData)
+					}
 				}
 
-				setSuccessMessage('Building and Geofence updated successfully!')
+				setSuccessMessage('Building updated successfully!')
 				setTimeout(() => setSuccessMessage(''), 3000)
 			}
 		} catch (error) {
@@ -400,7 +414,7 @@ const BuildingEditorPage = () => {
 										fontWeight: '500'
 									}}
 								>
-									Latitude *
+									Latitude {building.status !== 'DRAFT' && '*'}
 								</label>
 								<input
 									type="number"
@@ -437,7 +451,7 @@ const BuildingEditorPage = () => {
 										fontWeight: '500'
 									}}
 								>
-									Longitude *
+									Longitude {building.status !== 'DRAFT' && '*'}
 								</label>
 								<input
 									type="number"
@@ -468,22 +482,34 @@ const BuildingEditorPage = () => {
 						</div>
 
 						<div style={{ marginBottom: theme.spacing.md, display: 'flex', gap: theme.spacing.xl }}>
-							<label
+							<div
 								style={{
 									display: 'flex',
-									alignItems: 'center',
-									gap: theme.spacing.sm,
-									fontSize: '14px'
+									flexDirection: 'column',
+									gap: theme.spacing.xs,
+									fontSize: '14px',
+									fontWeight: '500'
 								}}
 							>
-								<input
-									type="checkbox"
-									name="is_visible"
-									checked={building.is_visible}
+								<label>Status</label>
+								<select
+									name="status"
+									value={building.status}
 									onChange={handleChange}
-								/>{' '}
-								Visible in App
-							</label>
+									style={{
+										padding: theme.spacing.sm,
+										border: `1px solid ${theme.colors.border}`,
+										borderRadius: theme.radius.sm,
+										fontSize: '14px',
+										backgroundColor: 'white',
+										minWidth: '180px'
+									}}
+								>
+									<option value="DRAFT">Draft (Unpublished)</option>
+									<option value="HIDDEN">Published (Hidden)</option>
+									<option value="VISIBLE">Published (Visible)</option>
+								</select>
+							</div>
 
 							<label
 								style={{

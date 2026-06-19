@@ -5,12 +5,18 @@ from django.conf import settings
 
 
 class Building(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('HIDDEN', 'Published (Hidden)'),
+        ('VISIBLE', 'Published (Visible)'),
+    ]
+
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, blank=True)
     description = models.TextField(blank=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
-    is_visible = models.BooleanField(default=True, help_text='If false, completely hides building from app')
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT', help_text='Drafts can be saved without coordinates/slugs.')
     is_active = models.BooleanField(default=True, help_text='If false, shows building as closed/inactive')
     model_file = models.FileField(upload_to='models/', blank=True, null=True)
     model_version = models.CharField(max_length=50, blank=True)
@@ -25,15 +31,28 @@ class Building(models.Model):
         indexes = [
             models.Index(fields=['slug']),
             models.Index(fields=['is_active']),
+            models.Index(fields=['status']),
         ]
     
     def __str__(self):
         return self.name
     
     def clean(self):
-        if self.latitude < -90 or self.latitude > 90:
+        if self.status in ['HIDDEN', 'VISIBLE']:
+            errors = {}
+            if self.latitude is None:
+                errors['latitude'] = 'Latitude is required to publish.'
+            if self.longitude is None:
+                errors['longitude'] = 'Longitude is required to publish.'
+            if not self.slug:
+                errors['slug'] = 'Slug is required to publish.'
+            
+            if errors:
+                raise ValidationError(errors)
+
+        if self.latitude is not None and (self.latitude < -90 or self.latitude > 90):
             raise ValidationError({'latitude': 'Latitude must be between -90 and 90'})
-        if self.longitude < -180 or self.longitude > 180:
+        if self.longitude is not None and (self.longitude < -180 or self.longitude > 180):
             raise ValidationError({'longitude': 'Longitude must be between -180 and 180'})
 
 

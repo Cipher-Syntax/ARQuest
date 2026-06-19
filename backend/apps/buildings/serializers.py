@@ -48,7 +48,7 @@ class BuildingSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Building
-        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_visible', 'is_active', 'geofences', 
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active', 'geofences', 
                   'model_url', 'model_version', 'model_file_size', 'model_active', 'qr_code_secret', 'created_at', 'updated_at']
     
     def get_model_url(self, obj):
@@ -66,17 +66,21 @@ class BuildingSerializer(serializers.ModelSerializer):
 
 
 class BuildingWriteSerializer(serializers.ModelSerializer):
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    slug = serializers.SlugField(required=False, allow_blank=True)
+
     class Meta:
         model = Building
-        fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'is_visible', 'is_active', 'model_version', 'model_active', 'model_file']
+        fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active', 'model_version', 'model_active', 'model_file']
     
     def validate_latitude(self, value):
-        if value < -90 or value > 90:
+        if value is not None and (value < -90 or value > 90):
             raise serializers.ValidationError('Latitude must be between -90 and 90')
         return value
     
     def validate_longitude(self, value):
-        if value < -180 or value > 180:
+        if value is not None and (value < -180 or value > 180):
             raise serializers.ValidationError('Longitude must be between -180 and 180')
         return value
 
@@ -101,7 +105,7 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Building
-        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_visible', 'is_unlocked', 'unlock_source', 
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_unlocked', 'unlock_source', 
                   'unlocked_at', 'model_url', 'model_version', 'model_file_size', 'model_active']
     
     def get_model_url(self, obj):
