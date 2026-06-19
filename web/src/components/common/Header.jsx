@@ -54,11 +54,18 @@ const Header = () => {
 		>
 			<div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.lg }}>
 				{/* Notification Bell */}
-				<div 
-					style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} 
+				<button 
+					style={{ 
+						position: 'relative', 
+						cursor: 'pointer', 
+						display: 'flex', 
+						alignItems: 'center',
+						background: 'none',
+						border: 'none',
+						padding: '8px'
+					}} 
 					onClick={(e) => {
-						e.stopPropagation();
-						console.log("Bell clicked, opening drawer");
+						console.log("TEST: Bell button was clicked!");
 						setIsDrawerOpen(true);
 					}}
 				>
@@ -85,7 +92,7 @@ const Header = () => {
 							{unreadCount}
 						</div>
 					)}
-				</div>
+				</button>
 
 				<div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md, borderLeft: `1px solid ${theme.colors.border}`, paddingLeft: theme.spacing.lg }}>
 					<span
