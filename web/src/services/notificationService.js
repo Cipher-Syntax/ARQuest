@@ -10,7 +10,7 @@ export const notificationService = {
 		return response.data
 	},
 	markAllAsRead: async () => {
-		const response = await api.post('/api/notifications/read_all/')
+		const response = await api.post('/api/notifications/read-all/')
 		return response.data
 	}
 }
