@@ -36,9 +36,9 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
 	return (
 		<div className="flex flex-col h-full bg-brand relative transition-all duration-300">
 			<div
-				className={`px-5 py-6 flex items-center transition-all duration-300 border-b border-white/10 ${isCollapsed ? 'justify-center px-0' : 'justify-between'}`}
+				className={`px-5 py-6 flex items-center transition-all duration-300 border-b border-white/50 ${isCollapsed ? 'justify-center px-0' : 'justify-between'}`}
 			>
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-3 border-white">
 					<div className="w-10 h-10 bg-white text-brand rounded-md flex items-center justify-center shrink-0 p-2 shadow-sm">
 						<img
 							src="/logo.png"
@@ -91,11 +91,10 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
 						className={({ isActive }) =>
 							`relative flex items-center rounded-md text-sm font-semibold transition-all duration-200 group
               ${isCollapsed ? 'justify-center px-2 py-3' : 'px-4 py-3 gap-3'}
-              ${
-					isActive
-						? 'bg-white/20 text-white shadow-inner shadow-black/10'
-						: 'text-white/70 hover:bg-white/10 hover:text-white'
-				}`
+              ${isActive
+								? 'bg-white/20 text-white shadow-inner shadow-black/10'
+								: 'text-white/70 hover:bg-white/10 hover:text-white'
+							}`
 						}
 					>
 						{({ isActive }) => (
@@ -117,7 +116,7 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
 			</nav>
 
 			<div
-				className={`p-4 border-t border-white/10 transition-all duration-300 ${isCollapsed ? 'flex justify-center' : ''}`}
+				className={`p-4 border-t border-white/50 transition-all duration-300 ${isCollapsed ? 'flex justify-center' : ''}`}
 			>
 				<button
 					onClick={onLogout}
@@ -153,7 +152,7 @@ export default function Sidebar() {
 				<Menu size={20} />
 			</button>
 
-			{}
+			{ }
 			{mobileOpen && (
 				<div className="lg:hidden fixed inset-0 z-50 flex">
 					<div
@@ -171,13 +170,13 @@ export default function Sidebar() {
 							onLogout={handleLogout}
 							onMobileClose={() => setMobileOpen(false)}
 							isCollapsed={false}
-							setIsCollapsed={() => {}}
+							setIsCollapsed={() => { }}
 						/>
 					</div>
 				</div>
 			)}
 
-			{}
+			{ }
 			<aside
 				className={`hidden lg:flex flex-col bg-brand h-screen sticky top-0 flex-shrink-0 border-r-4 border-r-brand transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}
 			>
