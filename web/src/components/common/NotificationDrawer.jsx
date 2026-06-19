@@ -17,7 +17,7 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 
 	const handleMarkAllAsRead = async () => {
 		try {
-			await notificationService.markAllAsRead()
+			await notificationService.clearAllNotifications()
 			onNotificationsUpdate()
 		} catch (error) {
 			console.error('Failed to mark all as read:', error)
