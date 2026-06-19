@@ -3,7 +3,7 @@ import api from './api'
 export const notificationService = {
 	getNotifications: async () => {
 		const response = await api.get('/api/notifications/')
-		return response.data
+		return response.data.results || response.data
 	},
 	markAsRead: async (id) => {
 		const response = await api.post(`/api/notifications/${id}/read/`)
