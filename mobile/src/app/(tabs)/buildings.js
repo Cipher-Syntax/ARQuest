@@ -9,6 +9,7 @@ import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
+import { geofencingService } from "../../services/geofencingService";
 import { Crosshair, ShieldAlert, Navigation, Search, X } from "lucide-react-native";
 
 export default function BuildingsScreen() {
@@ -25,6 +26,12 @@ export default function BuildingsScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [routeTarget, setRouteTarget] = useState(null);
+    
+    const [originQuery, setOriginQuery] = useState('');
+    const [isOriginFocused, setIsOriginFocused] = useState(false);
+    const [routeOrigin, setRouteOrigin] = useState(null);
+    
+    const [routeDistance, setRouteDistance] = useState(null);
     
     const webViewRef = useRef(null);
     const [webViewReady, setWebViewReady] = useState(false);
@@ -118,10 +125,39 @@ export default function BuildingsScreen() {
         });
     };
 
-    const filteredBuildings = allBuildings.filter(b => 
+    const filteredTargetBuildings = allBuildings.filter(b => 
         b.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         (b.slug && b.slug.toLowerCase().includes(searchQuery.toLowerCase()))
     );
+
+    const filteredOriginBuildings = allBuildings.filter(b => 
+        b.name.toLowerCase().includes(originQuery.toLowerCase()) || 
+        (b.slug && b.slug.toLowerCase().includes(originQuery.toLowerCase()))
+    );
+
+    useEffect(() => {
+        if (routeTarget) {
+            let lat1, lon1;
+            if (routeOrigin) {
+                lat1 = parseFloat(routeOrigin.latitude);
+                lon1 = parseFloat(routeOrigin.longitude);
+            } else if (location) {
+                lat1 = location.latitude;
+                lon1 = location.longitude;
+            }
+
+            if (lat1 && lon1) {
+                const lat2 = parseFloat(routeTarget.latitude);
+                const lon2 = parseFloat(routeTarget.longitude);
+                const dist = geofencingService.calculateDistance(lat1, lon1, lat2, lon2);
+                setRouteDistance(Math.round(dist));
+            } else {
+                setRouteDistance(null);
+            }
+        } else {
+            setRouteDistance(null);
+        }
+    }, [routeTarget, routeOrigin, location]);
 
     const handleSelectRouteTarget = (building) => {
         setRouteTarget(building);
@@ -131,14 +167,36 @@ export default function BuildingsScreen() {
         if (webViewRef.current) {
             webViewRef.current.postMessage(JSON.stringify({
                 type: 'draw_route',
-                buildingId: building.id
+                buildingId: building.id,
+                sourceBuildingId: routeOrigin ? routeOrigin.id : null
             }));
         }
+    };
 
-        // Open bottom sheet
-        const unlockedData = unlockedBuildings.find(b => b.id === building.id) || {};
-        setSelectedBuilding({ ...building, ...unlockedData });
-        setModalVisible(true);
+    const handleSelectRouteOrigin = (building) => {
+        setRouteOrigin(building);
+        setOriginQuery(building.name);
+        setIsOriginFocused(false);
+
+        if (routeTarget && webViewRef.current) {
+            webViewRef.current.postMessage(JSON.stringify({
+                type: 'draw_route',
+                buildingId: routeTarget.id,
+                sourceBuildingId: building.id
+            }));
+        }
+    };
+
+    const handleClearOrigin = () => {
+        setRouteOrigin(null);
+        setOriginQuery('');
+        if (routeTarget && webViewRef.current) {
+            webViewRef.current.postMessage(JSON.stringify({
+                type: 'draw_route',
+                buildingId: routeTarget.id,
+                sourceBuildingId: null
+            }));
+        }
     };
 
     const handleClearRoute = () => {
@@ -150,7 +208,6 @@ export default function BuildingsScreen() {
                 type: 'clear_route'
             }));
         }
-        setModalVisible(false);
     };
 
     const mapHtml = require('../../../assets/buildings-map.html');
@@ -186,11 +243,20 @@ export default function BuildingsScreen() {
                         <Navigation color={theme.colors.success} size={18} />
                         <View style={styles.routeInputWrapper}>
                             <TextInput 
-                                style={[styles.routeInput, styles.routeInputDisabled]}
-                                value="Your Location (GPS)"
-                                editable={false}
+                                style={[styles.routeInput, !routeOrigin && styles.routeInputDisabled]}
+                                placeholder="Your Location (GPS)"
+                                placeholderTextColor={theme.colors.success}
+                                value={originQuery}
+                                onChangeText={setOriginQuery}
+                                onFocus={() => setIsOriginFocused(true)}
+                                onBlur={() => setTimeout(() => setIsOriginFocused(false), 200)}
                             />
                         </View>
+                        {routeOrigin && (
+                            <TouchableOpacity onPress={handleClearOrigin} style={styles.clearRouteBtn}>
+                                <X color={theme.colors.textMuted} size={18} />
+                            </TouchableOpacity>
+                        )}
                     </View>
                     
                     <View style={styles.routeDivider} />
@@ -200,7 +266,7 @@ export default function BuildingsScreen() {
                         <View style={styles.routeInputWrapper}>
                             <TextInput 
                                 style={styles.routeInput}
-                                placeholder="Search building to navigate..."
+                                placeholder="Search target building..."
                                 placeholderTextColor={theme.colors.textMuted}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
@@ -208,20 +274,47 @@ export default function BuildingsScreen() {
                                 onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                             />
                         </View>
-                        {searchQuery.length > 0 && (
+                        {routeTarget && (
                             <TouchableOpacity onPress={handleClearRoute} style={styles.clearRouteBtn}>
                                 <X color={theme.colors.textMuted} size={18} />
                             </TouchableOpacity>
                         )}
                     </View>
+
+                    {routeDistance !== null && (
+                        <View style={styles.distanceContainer}>
+                            <Text style={styles.distanceText}>Straight-line distance: {routeDistance}m</Text>
+                        </View>
+                    )}
                 </View>
+
+                {isOriginFocused && originQuery.length > 0 && (
+                    <View style={styles.searchResultsContainer}>
+                        <ScrollView style={styles.searchResultsList} keyboardShouldPersistTaps="handled">
+                            {filteredOriginBuildings.map(b => (
+                                <TouchableOpacity 
+                                    key={`origin-${b.id}`} 
+                                    style={styles.searchResultItem}
+                                    onPress={() => handleSelectRouteOrigin(b)}
+                                >
+                                    <View>
+                                        <Text style={styles.searchResultName}>{b.name}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                            {filteredOriginBuildings.length === 0 && (
+                                <Text style={styles.searchNoResult}>No buildings found.</Text>
+                            )}
+                        </ScrollView>
+                    </View>
+                )}
 
                 {isSearchFocused && searchQuery.length > 0 && (
                     <View style={styles.searchResultsContainer}>
                         <ScrollView style={styles.searchResultsList} keyboardShouldPersistTaps="handled">
-                            {filteredBuildings.map(b => (
+                            {filteredTargetBuildings.map(b => (
                                 <TouchableOpacity 
-                                    key={b.id} 
+                                    key={`target-${b.id}`} 
                                     style={styles.searchResultItem}
                                     onPress={() => handleSelectRouteTarget(b)}
                                 >
@@ -233,7 +326,7 @@ export default function BuildingsScreen() {
                                     </View>
                                 </TouchableOpacity>
                             ))}
-                            {filteredBuildings.length === 0 && (
+                            {filteredTargetBuildings.length === 0 && (
                                 <Text style={styles.searchNoResult}>No buildings found.</Text>
                             )}
                         </ScrollView>
@@ -432,6 +525,19 @@ const styles = StyleSheet.create({
         color: theme.colors.textMuted,
         fontStyle: 'italic',
         textAlign: 'center',
+    },
+    distanceContainer: {
+        marginTop: theme.spacing.sm,
+        paddingTop: theme.spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.surfaceSoft,
+        alignItems: 'center',
+    },
+    distanceText: {
+        color: theme.colors.arHighlight,
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 1,
     },
     modalOverlay: {
         flex: 1,

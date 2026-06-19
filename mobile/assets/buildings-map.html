@@ -71,6 +71,7 @@
         let userMarker = null;
         let routingLine = null;
         let targetBuildingId = null;
+        let sourceBuildingId = null;
 
         // Function to create a circular hole in the fog
         function getCirclePoints(center, radiusMeters, points = 32) {
@@ -160,18 +161,30 @@
                 });
             });
 
-            if (targetBuildingId && userLocation) {
+            let sourceLat = null;
+            let sourceLng = null;
+
+            if (sourceBuildingId) {
+                const sourceBuilding = buildings.find(b => b.id === sourceBuildingId);
+                if (sourceBuilding) {
+                    sourceLat = parseFloat(sourceBuilding.latitude);
+                    sourceLng = parseFloat(sourceBuilding.longitude);
+                }
+            } else if (userLocation) {
+                sourceLat = userLocation.latitude;
+                sourceLng = userLocation.longitude;
+            }
+
+            if (targetBuildingId && sourceLat !== null && sourceLng !== null) {
                 const targetBuilding = buildings.find(b => b.id === targetBuildingId);
                 if (targetBuilding) {
                     const targetLat = parseFloat(targetBuilding.latitude);
                     const targetLng = parseFloat(targetBuilding.longitude);
-                    const userLat = userLocation.latitude;
-                    const userLng = userLocation.longitude;
 
                     if (routingLine) {
-                        routingLine.setLatLngs([[userLat, userLng], [targetLat, targetLng]]);
+                        routingLine.setLatLngs([[sourceLat, sourceLng], [targetLat, targetLng]]);
                     } else {
-                        routingLine = L.polyline([[userLat, userLng], [targetLat, targetLng]], {
+                        routingLine = L.polyline([[sourceLat, sourceLng], [targetLat, targetLng]], {
                             color: '#B21830',
                             weight: 3,
                             dashArray: '8, 8'
@@ -203,9 +216,11 @@
                     updateMap(data);
                 } else if (data.type === 'draw_route') {
                     targetBuildingId = data.buildingId;
+                    sourceBuildingId = data.sourceBuildingId || null;
                     if (window.lastMapData) updateMap(window.lastMapData);
                 } else if (data.type === 'clear_route') {
                     targetBuildingId = null;
+                    sourceBuildingId = null;
                     if (routingLine) {
                         map.removeLayer(routingLine);
                         routingLine = null;
@@ -224,9 +239,11 @@
                     updateMap(data);
                 } else if (data.type === 'draw_route') {
                     targetBuildingId = data.buildingId;
+                    sourceBuildingId = data.sourceBuildingId || null;
                     if (window.lastMapData) updateMap(window.lastMapData);
                 } else if (data.type === 'clear_route') {
                     targetBuildingId = null;
+                    sourceBuildingId = null;
                     if (routingLine) {
                         map.removeLayer(routingLine);
                         routingLine = null;
