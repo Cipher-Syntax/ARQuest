@@ -1,5 +1,5 @@
 import React from 'react'
-import { Search, User } from 'lucide-react'
+import { Bell, Search, User } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
 export default function TopBar({ user }) {
@@ -15,7 +15,10 @@ export default function TopBar({ user }) {
 			</div>
 
 			<div className="flex items-center gap-3 lg:gap-6">
-
+				<button className="relative p-2 text-gray-500 hover:text-brand transition-colors bg-white rounded-full border border-brand-border shadow-sm">
+					<Bell size={18} />
+					<span className="absolute top-2 right-2 w-2 h-2 bg-brand rounded-full border-2 border-white"></span>
+				</button>
 
 				<div className="flex items-center gap-3 pl-4 border-l border-brand-border">
 					<div className="text-right hidden sm:block">
