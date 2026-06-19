@@ -63,6 +63,7 @@ export default function BuildingsPage() {
 	const [editingBuilding, setEditBuilding] = useState(null)
 	const [searchTerm, setSearchTerm] = useState('')
 	const [statusFilter, setStatusFilter] = useState('all')
+	const [visibilityFilter, setVisibilityFilter] = useState('all')
 	const [openMenu, setOpenMenu] = useState(null)
 	const [currentPage, setCurrentPage] = useState(1)
 	const itemsPerPage = 5
@@ -152,7 +153,8 @@ export default function BuildingsPage() {
 			b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			b.code.toLowerCase().includes(searchTerm.toLowerCase())
 		const matchesStatus = statusFilter === 'all' || b.status === statusFilter
-		return matchesSearch && matchesStatus
+		const matchesVisibility = visibilityFilter === 'all' || b.status_display === visibilityFilter
+		return matchesSearch && matchesStatus && matchesVisibility
 	})
 
 	const totalPages = Math.ceil(filteredBuildings.length / itemsPerPage)
@@ -164,7 +166,7 @@ export default function BuildingsPage() {
 	
 	useEffect(() => {
 		setCurrentPage(1)
-	}, [searchTerm, statusFilter])
+	}, [searchTerm, statusFilter, visibilityFilter])
 
 	return (
 		<div className="space-y-6">
@@ -200,13 +202,29 @@ export default function BuildingsPage() {
 					</div>
 					<div className="relative w-full md:w-48">
 						<select
+							value={visibilityFilter}
+							onChange={(e) => setVisibilityFilter(e.target.value)}
+							className="w-full pl-4 pr-10 py-2 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
+						>
+							<option value="all">All Visibility</option>
+							<option value="VISIBLE">Visible</option>
+							<option value="HIDDEN">Hidden</option>
+							<option value="DRAFT">Draft</option>
+						</select>
+						<Filter
+							className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none"
+							size={16}
+						/>
+					</div>
+					<div className="relative w-full md:w-48">
+						<select
 							value={statusFilter}
 							onChange={(e) => setStatusFilter(e.target.value)}
 							className="w-full pl-4 pr-10 py-2 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
 						>
-							<option value="all">All Status</option>
-							<option value="active">Active</option>
-							<option value="inactive">Inactive</option>
+							<option value="all">All Operations</option>
+							<option value="active">Active/Open</option>
+							<option value="inactive">Closed/Inactive</option>
 						</select>
 						<Filter
 							className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none"
