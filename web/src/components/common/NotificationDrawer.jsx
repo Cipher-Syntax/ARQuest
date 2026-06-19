@@ -24,7 +24,8 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 		setErrorMsg(null)
 		setIsMarking(true)
 		try {
-			await notificationService.clearAllNotifications()
+			const unreadIds = unreadNotifications.map(n => n.id)
+			await notificationService.clearAllNotifications(unreadIds)
 			await onNotificationsUpdate()
 			onClose() // Auto-close drawer on success
 		} catch (error) {
