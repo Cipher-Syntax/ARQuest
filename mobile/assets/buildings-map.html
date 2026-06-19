@@ -62,7 +62,8 @@
         }).setView(WMSU_CENTER, 16);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+            maxZoom: 20,
+            maxNativeZoom: 18
         }).addTo(map);
 
         let fogLayer = null;

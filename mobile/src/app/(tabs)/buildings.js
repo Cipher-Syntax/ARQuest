@@ -91,6 +91,18 @@ export default function BuildingsScreen() {
         });
     };
 
+    const handleVirtualTour = () => {
+        setModalVisible(false);
+        router.push({
+            pathname: '/virtual-tour-viewer',
+            params: {
+                buildingId: selectedBuilding.id,
+                buildingName: selectedBuilding.name,
+                modelUrl: selectedBuilding.model_url,
+            },
+        });
+    };
+
     const handleViewPanorama = () => {
         setModalVisible(false);
         router.push({
@@ -180,7 +192,16 @@ export default function BuildingsScreen() {
                                             </View>
                                         )}
                                         
-                                        {canViewPanorama && (
+                                        {/* Virtual Tour tailored for Professionals (and Admins) */}
+                                        {canViewPanorama && (role === 'professional' || role === 'admin') && selectedBuilding.model_active && selectedBuilding.model_url && (
+                                            <TouchableOpacity style={styles.viewPanoramaButton} onPress={handleVirtualTour}>
+                                                <Ionicons name="glasses-outline" size={20} color={theme.colors.arHighlight} />
+                                                <Text style={styles.viewPanoramaText}>ENTER VIRTUAL TOUR</Text>
+                                            </TouchableOpacity>
+                                        )}
+
+                                        {/* Original 360 Walkthrough for Students (and Admins) */}
+                                        {canViewPanorama && (role === 'student' || role === 'admin') && (
                                             <TouchableOpacity style={styles.viewPanoramaButton} onPress={handleViewPanorama}>
                                                 <Ionicons name="camera-outline" size={20} color={theme.colors.arHighlight} />
                                                 <Text style={styles.viewPanoramaText}>ENTER 360° SIMULATION</Text>

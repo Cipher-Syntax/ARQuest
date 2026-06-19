@@ -220,7 +220,7 @@ export default function BuildingsPage() {
 					</div>
 				) : (
 					<>
-						<div className="overflow-x-auto">
+						<div className="overflow-visible w-full">
 							<table className="w-full text-left">
 								<thead>
 									<tr className="bg-brand-light/20">

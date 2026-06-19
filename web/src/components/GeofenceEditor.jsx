@@ -110,6 +110,8 @@ const GeofenceEditor = ({ value, onChange, errors, existingBuildings = [], curre
 					<TileLayer
 						url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 						attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+						maxNativeZoom={18}
+						maxZoom={20}
 					/>
 					<MapClickHandler onMapClick={handleMapClick} />
 					

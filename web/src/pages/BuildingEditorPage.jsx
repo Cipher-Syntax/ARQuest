@@ -510,21 +510,25 @@ const BuildingEditorPage = () => {
 							</label>
 							<DragDropFileUpload
 								accept=".glb,.gltf"
-								value={building.model_file}
+								value={building.model_file instanceof File ? building.model_file : null}
 								onChange={(file) =>
 									setBuilding((prev) => ({ ...prev, model_file: file }))
 								}
 								placeholder="Drag & drop 3D model here or click to browse"
 							/>
-							{building.model_url && !building.model_file && (
+							{building.model_url && !(building.model_file instanceof File) && (
 								<div
 									style={{
 										fontSize: '12px',
-										color: theme.colors.text.secondary,
-										marginTop: theme.spacing.xs
+										color: theme.colors.primary,
+										marginTop: theme.spacing.xs,
+										padding: '8px',
+										backgroundColor: 'rgba(0, 229, 255, 0.1)',
+										borderRadius: '4px',
+										fontWeight: 'bold'
 									}}
 								>
-									Current model uploaded. Select a new file to replace it.
+									✓ Current model uploaded. Drop a new file above to replace it.
 								</div>
 							)}
 						</div>
