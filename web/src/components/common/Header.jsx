@@ -15,7 +15,12 @@ const Header = () => {
 	const fetchNotifications = async () => {
 		try {
 			const data = await notificationService.getNotifications()
-			setNotifications(data)
+			if (Array.isArray(data)) {
+				setNotifications(data)
+			} else {
+				console.error('API returned non-array:', data)
+				setNotifications([])
+			}
 		} catch (error) {
 			console.error('Failed to fetch notifications:', error)
 		}
@@ -32,7 +37,7 @@ const Header = () => {
 		navigate('/login')
 	}
 
-	const unreadCount = notifications.filter(n => !n.is_read).length
+	const unreadCount = Array.isArray(notifications) ? notifications.filter(n => !n.is_read).length : 0
 
 	return (
 		<div
@@ -49,7 +54,14 @@ const Header = () => {
 		>
 			<div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.lg }}>
 				{/* Notification Bell */}
-				<div style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setIsDrawerOpen(true)}>
+				<div 
+					style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} 
+					onClick={(e) => {
+						e.stopPropagation();
+						console.log("Bell clicked, opening drawer");
+						setIsDrawerOpen(true);
+					}}
+				>
 					<Bell size={20} color={theme.colors.text.secondary} />
 					{unreadCount > 0 && (
 						<div

@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, CheckCircle2, AlertCircle, Info } from 'lucide-react'
+import { X, AlertCircle, Info } from 'lucide-react'
 import { theme } from '../../theme'
 import { notificationService } from '../../services/notificationService'
 
@@ -36,7 +36,7 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 					right: 0,
 					bottom: 0,
 					backgroundColor: 'rgba(0, 0, 0, 0.4)',
-					zIndex: 40
+					zIndex: 9998
 				}}
 			/>
 
@@ -50,7 +50,7 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 					height: '100vh',
 					backgroundColor: theme.colors.surface,
 					boxShadow: '-4px 0 15px rgba(0,0,0,0.1)',
-					zIndex: 50,
+					zIndex: 9999,
 					display: 'flex',
 					flexDirection: 'column'
 				}}
