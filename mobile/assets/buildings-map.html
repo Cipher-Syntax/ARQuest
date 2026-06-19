@@ -69,6 +69,8 @@
         let fogLayer = null;
         let markersGroup = L.layerGroup().addTo(map);
         let userMarker = null;
+        let routingLine = null;
+        let targetBuildingId = null;
 
         // Function to create a circular hole in the fog
         function getCirclePoints(center, radiusMeters, points = 32) {
@@ -88,6 +90,7 @@
         }
 
         function updateMap(data) {
+            window.lastMapData = data;
             const { buildings, unlockedIds, userLocation } = data;
             
             // 1. Draw Fog of War
@@ -157,6 +160,32 @@
                 });
             });
 
+            if (targetBuildingId && userLocation) {
+                const targetBuilding = buildings.find(b => b.id === targetBuildingId);
+                if (targetBuilding) {
+                    const targetLat = parseFloat(targetBuilding.latitude);
+                    const targetLng = parseFloat(targetBuilding.longitude);
+                    const userLat = userLocation.latitude;
+                    const userLng = userLocation.longitude;
+
+                    if (routingLine) {
+                        routingLine.setLatLngs([[userLat, userLng], [targetLat, targetLng]]);
+                    } else {
+                        routingLine = L.polyline([[userLat, userLng], [targetLat, targetLng]], {
+                            color: '#B21830',
+                            weight: 3,
+                            dashArray: '8, 8'
+                        }).addTo(map);
+                    }
+                    boundsElements.push(routingLine);
+                }
+            } else {
+                if (routingLine) {
+                    map.removeLayer(routingLine);
+                    routingLine = null;
+                }
+            }
+
             fogLayer = L.polygon(polygonCoords, {
                 color: 'transparent',
                 fillColor: '#ffffff',
@@ -172,6 +201,16 @@
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 if (data.type === 'init' || data.type === 'update') {
                     updateMap(data);
+                } else if (data.type === 'draw_route') {
+                    targetBuildingId = data.buildingId;
+                    if (window.lastMapData) updateMap(window.lastMapData);
+                } else if (data.type === 'clear_route') {
+                    targetBuildingId = null;
+                    if (routingLine) {
+                        map.removeLayer(routingLine);
+                        routingLine = null;
+                    }
+                    if (window.lastMapData) updateMap(window.lastMapData);
                 }
             } catch (e) {
                 console.error("Parse error", e);
@@ -183,6 +222,16 @@
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 if (data.type === 'init' || data.type === 'update') {
                     updateMap(data);
+                } else if (data.type === 'draw_route') {
+                    targetBuildingId = data.buildingId;
+                    if (window.lastMapData) updateMap(window.lastMapData);
+                } else if (data.type === 'clear_route') {
+                    targetBuildingId = null;
+                    if (routingLine) {
+                        map.removeLayer(routingLine);
+                        routingLine = null;
+                    }
+                    if (window.lastMapData) updateMap(window.lastMapData);
                 }
             } catch (e) {
                 console.error("Parse error", e);

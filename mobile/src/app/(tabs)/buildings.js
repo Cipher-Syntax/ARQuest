@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, Alert } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, Alert, TextInput, ScrollView } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,7 +9,7 @@ import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
-import { Crosshair, ShieldAlert } from "lucide-react-native";
+import { Crosshair, ShieldAlert, Navigation, Search, X } from "lucide-react-native";
 
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading: isUnlockedLoading } = useUnlockedBuildings();
@@ -21,6 +21,10 @@ export default function BuildingsScreen() {
     const [isLoadingAll, setIsLoadingAll] = useState(true);
     const [selectedBuilding, setSelectedBuilding] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
+    
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [routeTarget, setRouteTarget] = useState(null);
     
     const webViewRef = useRef(null);
     const [webViewReady, setWebViewReady] = useState(false);
@@ -114,6 +118,41 @@ export default function BuildingsScreen() {
         });
     };
 
+    const filteredBuildings = allBuildings.filter(b => 
+        b.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (b.slug && b.slug.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
+    const handleSelectRouteTarget = (building) => {
+        setRouteTarget(building);
+        setSearchQuery(building.name);
+        setIsSearchFocused(false);
+        
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(JSON.stringify({
+                type: 'draw_route',
+                buildingId: building.id
+            }));
+        }
+
+        // Open bottom sheet
+        const unlockedData = unlockedBuildings.find(b => b.id === building.id) || {};
+        setSelectedBuilding({ ...building, ...unlockedData });
+        setModalVisible(true);
+    };
+
+    const handleClearRoute = () => {
+        setRouteTarget(null);
+        setSearchQuery('');
+        
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(JSON.stringify({
+                type: 'clear_route'
+            }));
+        }
+        setModalVisible(false);
+    };
+
     const mapHtml = require('../../../assets/buildings-map.html');
 
     return (
@@ -140,17 +179,66 @@ export default function BuildingsScreen() {
                 originWhitelist={['*']}
             />
 
-            {/* Gamified HUD Top Bar Overlay */}
+            {/* Routing Search Overlay */}
             <View style={styles.hudTopBar}>
-                <View style={styles.hudContent}>
-                    <Crosshair color={theme.colors.arHighlight} size={20} />
-                    <View style={styles.hudTextContainer}>
-                        <Text style={styles.topBarTitle}>CAMPUS BUILDINGS</Text>
-                        <Text style={styles.topBarSubtitle}>
-                            ZONES SECURED: <Text style={{color: theme.colors.accent}}>{unlockedBuildings.length} / {allBuildings.length}</Text>
-                        </Text>
+                <View style={styles.routeCard}>
+                    <View style={styles.routeInputRow}>
+                        <Navigation color={theme.colors.success} size={18} />
+                        <View style={styles.routeInputWrapper}>
+                            <TextInput 
+                                style={[styles.routeInput, styles.routeInputDisabled]}
+                                value="Your Location (GPS)"
+                                editable={false}
+                            />
+                        </View>
+                    </View>
+                    
+                    <View style={styles.routeDivider} />
+                    
+                    <View style={styles.routeInputRow}>
+                        <Search color={theme.colors.arHighlight} size={18} />
+                        <View style={styles.routeInputWrapper}>
+                            <TextInput 
+                                style={styles.routeInput}
+                                placeholder="Search building to navigate..."
+                                placeholderTextColor={theme.colors.textMuted}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                onFocus={() => setIsSearchFocused(true)}
+                                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                            />
+                        </View>
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={handleClearRoute} style={styles.clearRouteBtn}>
+                                <X color={theme.colors.textMuted} size={18} />
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
+
+                {isSearchFocused && searchQuery.length > 0 && (
+                    <View style={styles.searchResultsContainer}>
+                        <ScrollView style={styles.searchResultsList} keyboardShouldPersistTaps="handled">
+                            {filteredBuildings.map(b => (
+                                <TouchableOpacity 
+                                    key={b.id} 
+                                    style={styles.searchResultItem}
+                                    onPress={() => handleSelectRouteTarget(b)}
+                                >
+                                    <View>
+                                        <Text style={styles.searchResultName}>{b.name}</Text>
+                                        <Text style={[styles.searchResultStatus, b.is_active === false && styles.searchResultStatusInactive]}>
+                                            {b.is_active === false ? 'CLOSED / INACTIVE' : 'AVAILABLE'}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                            {filteredBuildings.length === 0 && (
+                                <Text style={styles.searchNoResult}>No buildings found.</Text>
+                            )}
+                        </ScrollView>
+                    </View>
+                )}
             </View>
 
             {/* AR Gamified Bottom Sheet Modal */}
@@ -262,33 +350,88 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        backgroundColor: theme.colors.surface,
         paddingTop: 50, // Safe area top
-        paddingBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        paddingHorizontal: theme.spacing.md,
     },
-    hudContent: {
+    routeCard: {
+        backgroundColor: theme.colors.bgPrimary,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        shadowColor: theme.colors.arHighlight,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    routeInputRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.sm,
     },
-    hudTextContainer: {
-        marginLeft: 10,
-        alignItems: 'flex-start',
+    routeInputWrapper: {
+        flex: 1,
+        marginLeft: theme.spacing.sm,
     },
-    topBarTitle: {
-        color: theme.colors.arHighlight,
-        fontSize: 16,
-        fontWeight: '900',
-        letterSpacing: 2,
+    routeInput: {
+        height: 40,
+        color: theme.colors.textPrimary,
+        fontSize: 15,
+        fontWeight: 'bold',
     },
-    topBarSubtitle: {
-        color: theme.colors.textMuted,
-        fontSize: 11,
+    routeInputDisabled: {
+        color: theme.colors.success,
+    },
+    routeDivider: {
+        height: 1,
+        backgroundColor: theme.colors.surfaceSoft,
+        marginVertical: 4,
+        marginLeft: 36,
+    },
+    clearRouteBtn: {
+        padding: theme.spacing.xs,
+    },
+    searchResultsContainer: {
+        marginTop: theme.spacing.sm,
+        backgroundColor: theme.colors.bgPrimary,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        maxHeight: 200,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    searchResultsList: {
+        flexGrow: 0,
+    },
+    searchResultItem: {
+        padding: theme.spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.surfaceSoft,
+    },
+    searchResultName: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: theme.colors.textPrimary,
+    },
+    searchResultStatus: {
+        fontSize: 10,
+        color: theme.colors.success,
         fontWeight: 'bold',
         marginTop: 2,
-        letterSpacing: 1,
+    },
+    searchResultStatusInactive: {
+        color: theme.colors.error,
+    },
+    searchNoResult: {
+        padding: theme.spacing.md,
+        color: theme.colors.textMuted,
+        fontStyle: 'italic',
+        textAlign: 'center',
     },
     modalOverlay: {
         flex: 1,
