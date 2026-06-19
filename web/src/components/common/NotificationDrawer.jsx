@@ -22,7 +22,8 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 		setIsMarking(true)
 		try {
 			await notificationService.clearAllNotifications()
-			onNotificationsUpdate()
+			await onNotificationsUpdate()
+			onClose() // Auto-close drawer on success
 		} catch (error) {
 			console.error('Failed to mark all as read:', error)
 			alert('Failed to mark all as read: ' + error.message)
@@ -31,7 +32,8 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 		}
 	}
 
-	const unreadCount = Array.isArray(notifications) ? notifications.filter(n => !n.is_read).length : 0;
+	const unreadNotifications = Array.isArray(notifications) ? notifications.filter(n => !n.is_read) : []
+	const unreadCount = unreadNotifications.length;
 
 	return (
 		<>
@@ -106,12 +108,12 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 
 				{/* List */}
 				<div style={{ flex: 1, overflowY: 'auto' }}>
-					{notifications.length === 0 ? (
+					{unreadNotifications.length === 0 ? (
 						<div style={{ padding: theme.spacing.xl, textAlign: 'center', color: theme.colors.text.secondary }}>
 							<p>No new notifications</p>
 						</div>
 					) : (
-						notifications.map((notif) => (
+						unreadNotifications.map((notif) => (
 							<div
 								key={notif.id}
 								onClick={() => !notif.is_read && handleMarkAsRead(notif.id)}
