@@ -24,6 +24,8 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 		}
 	}
 
+	const unreadCount = Array.isArray(notifications) ? notifications.filter(n => !n.is_read).length : 0;
+
 	return (
 		<>
 			{/* Backdrop */}
@@ -72,17 +74,20 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 				</div>
 
 				{/* Actions */}
-				{notifications.length > 0 && (
+				{unreadCount > 0 && (
 					<div style={{ padding: `${theme.spacing.sm} ${theme.spacing.lg}`, borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', justifyContent: 'flex-end' }}>
 						<button
 							onClick={handleMarkAllAsRead}
 							style={{
-								background: 'none',
-								border: 'none',
+								background: theme.colors.surface,
+								border: `1px solid ${theme.colors.border}`,
+								padding: '6px 12px',
+								borderRadius: '4px',
 								color: theme.colors.primary,
-								fontSize: '12px',
+								fontSize: '13px',
 								fontWeight: 'bold',
-								cursor: 'pointer'
+								cursor: 'pointer',
+								boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
 							}}
 						>
 							Mark all as read
