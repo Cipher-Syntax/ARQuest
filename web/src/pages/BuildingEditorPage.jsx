@@ -17,6 +17,7 @@ const BuildingEditorPage = () => {
 		description: '',
 		latitude: '',
 		longitude: '',
+		is_visible: true,
 		is_active: true,
 		model_file: null,
 		model_version: '',
@@ -138,6 +139,7 @@ const BuildingEditorPage = () => {
 			formData.append('description', building.description || '')
 			formData.append('latitude', building.latitude)
 			formData.append('longitude', building.longitude)
+			formData.append('is_visible', building.is_visible)
 			formData.append('is_active', building.is_active)
 			formData.append('model_version', building.model_version || '')
 			formData.append('model_active', building.model_active)
@@ -465,7 +467,24 @@ const BuildingEditorPage = () => {
 							</div>
 						</div>
 
-						<div style={{ marginBottom: theme.spacing.md }}>
+						<div style={{ marginBottom: theme.spacing.md, display: 'flex', gap: theme.spacing.xl }}>
+							<label
+								style={{
+									display: 'flex',
+									alignItems: 'center',
+									gap: theme.spacing.sm,
+									fontSize: '14px'
+								}}
+							>
+								<input
+									type="checkbox"
+									name="is_visible"
+									checked={building.is_visible}
+									onChange={handleChange}
+								/>{' '}
+								Visible in App
+							</label>
+
 							<label
 								style={{
 									display: 'flex',
@@ -480,7 +499,7 @@ const BuildingEditorPage = () => {
 									checked={building.is_active}
 									onChange={handleChange}
 								/>{' '}
-								Active
+								Active / Open
 							</label>
 						</div>
 

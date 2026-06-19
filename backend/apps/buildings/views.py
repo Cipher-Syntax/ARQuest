@@ -22,7 +22,10 @@ from .serializers import (
 @permission_classes([IsAuthenticated])
 def building_list_create(request):
     if request.method == 'GET':
-        buildings = Building.objects.filter(is_active=True)
+        if getattr(request.user, 'is_admin_role', False):
+            buildings = Building.objects.all()
+        else:
+            buildings = Building.objects.filter(is_visible=True)
         serializer = BuildingSerializer(buildings, many=True, context={'request': request})
         return success_response(serializer.data)
     
@@ -46,7 +49,7 @@ def building_detail(request, id):
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
-        if not building.is_active and not request.user.is_admin_role:
+        if not building.is_visible and not getattr(request.user, 'is_admin_role', False):
             return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         serializer = BuildingSerializer(building, context={'request': request})
         return success_response(serializer.data)
@@ -126,7 +129,7 @@ def unlock_building(request):
     user_lon = serializer.validated_data['longitude']
     accuracy = serializer.validated_data['accuracy_meters']
 
-    active_buildings = Building.objects.filter(is_active=True).prefetch_related('geofences')
+    active_buildings = Building.objects.filter(is_active=True, is_visible=True).prefetch_related('geofences')
     
     for building in active_buildings:
         geofence = building.geofences.filter(is_active=True).first()
@@ -167,7 +170,7 @@ def unlock_building_qr(request):
         return error_response('invalid_input', 'QR code secret is required', status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
-        building = Building.objects.get(qr_code_secret=qr_secret, is_active=True)
+        building = Building.objects.get(qr_code_secret=qr_secret, is_active=True, is_visible=True)
     except Building.DoesNotExist:
         return error_response('invalid_qr', 'Invalid or inactive QR code', status_code=status.HTTP_404_NOT_FOUND)
 
@@ -195,11 +198,11 @@ def unlocked_buildings(request):
     user = request.user
     
     if user.is_professional_role:
-        buildings = Building.objects.filter(is_active=True)
+        buildings = Building.objects.filter(is_visible=True)
         serializer = UnlockedBuildingSerializer(buildings, many=True, context={'request': request})
         return success_response(serializer.data)
     
-    unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__is_active=True)
+    unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__is_visible=True)
     buildings_data = []
     for unlock in unlocks:
         serializer = UnlockedBuildingSerializer(unlock.building, context={'request': request})
@@ -220,7 +223,7 @@ def building_assets(request, id):
     except Building.DoesNotExist:
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
-    if not building.is_active and not request.user.is_admin_role:
+    if not building.is_visible and not getattr(request.user, 'is_admin_role', False):
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.user.is_visitor_role:
@@ -245,7 +248,7 @@ def asset_metadata(request, id):
         return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
 
     building = asset.building
-    if not building.is_active and not request.user.is_admin_role:
+    if not building.is_visible and not getattr(request.user, 'is_admin_role', False):
          return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
          
     if request.user.is_visitor_role:

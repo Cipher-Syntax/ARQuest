@@ -168,9 +168,16 @@ export default function BuildingsScreen() {
                             <>
                                 <View style={styles.sheetHeader}>
                                     <Text style={styles.buildingName}>{selectedBuilding.name}</Text>
-                                    <View style={[styles.badge, selectedBuilding.unlock_source === 'role_access' && styles.badgeRole]}>
-                                        <Text style={styles.badgeText}>
-                                            {selectedBuilding.unlock_source === 'geofence' ? 'SECURED' : 'OVERRIDE'}
+                                    <View style={[
+                                        styles.badge, 
+                                        selectedBuilding.unlock_source === 'role_access' && styles.badgeRole,
+                                        selectedBuilding.is_active === false && styles.badgeInactive
+                                    ]}>
+                                        <Text style={[
+                                            styles.badgeText,
+                                            selectedBuilding.is_active === false && styles.badgeTextInactive
+                                        ]}>
+                                            {selectedBuilding.is_active === false ? 'INACTIVE' : (selectedBuilding.unlock_source === 'geofence' ? 'SECURED' : 'OVERRIDE')}
                                         </Text>
                                     </View>
                                 </View>
@@ -179,7 +186,12 @@ export default function BuildingsScreen() {
                                     <Text style={styles.description} numberOfLines={8} ellipsizeMode="tail" >{selectedBuilding.description}</Text>
                                 )}
                                 
-                                {canAccessBuildingFeatures(true) ? (
+                                {selectedBuilding.is_active === false ? (
+                                    <View style={styles.restrictedContainer}>
+                                        <ShieldAlert color={theme.colors.error} size={20} style={{marginBottom: 4}} />
+                                        <Text style={styles.restrictedText}>BUILDING CLOSED / UNDER RENOVATION</Text>
+                                    </View>
+                                ) : canAccessBuildingFeatures(true) ? (
                                     <View style={styles.actionButtons}>
                                         {selectedBuilding.model_active && selectedBuilding.model_url && canView3D ? (
                                             <TouchableOpacity style={styles.view3dButton} onPress={handleView3D}>
@@ -337,6 +349,13 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: "bold",
         letterSpacing: 1,
+    },
+    badgeInactive: {
+        backgroundColor: "rgba(239, 68, 68, 0.2)",
+        borderColor: theme.colors.error,
+    },
+    badgeTextInactive: {
+        color: theme.colors.error,
     },
     description: {
         fontSize: 13,

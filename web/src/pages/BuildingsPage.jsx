@@ -97,6 +97,7 @@ export default function BuildingsPage() {
 				lat: b.latitude,
 				lng: b.longitude,
 				status: b.is_active ? 'active' : 'inactive',
+				visible: b.is_visible,
 				models: b.model_file ? 1 : 0,
 				panos: 0,
 				qr_code_secret: b.qr_code_secret
@@ -233,6 +234,9 @@ export default function BuildingsPage() {
 										<th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
 											Status
 										</th>
+										<th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+											Visibility
+										</th>
 										<th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">
 											Actions
 										</th>
@@ -266,6 +270,13 @@ export default function BuildingsPage() {
 													variant={b.status === 'active' ? 'success' : 'gray'}
 												>
 													{b.status === 'active' ? 'Active' : 'Inactive'}
+												</Badge>
+											</td>
+											<td className="px-6 py-4">
+												<Badge
+													variant={b.visible ? 'brand' : 'red'}
+												>
+													{b.visible ? 'Visible' : 'Hidden'}
 												</Badge>
 											</td>
 											<td className="px-6 py-4 text-right">

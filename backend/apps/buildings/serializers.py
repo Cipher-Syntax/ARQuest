@@ -48,7 +48,7 @@ class BuildingSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Building
-        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_active', 'geofences', 
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_visible', 'is_active', 'geofences', 
                   'model_url', 'model_version', 'model_file_size', 'model_active', 'qr_code_secret', 'created_at', 'updated_at']
     
     def get_model_url(self, obj):
@@ -68,7 +68,7 @@ class BuildingSerializer(serializers.ModelSerializer):
 class BuildingWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
-        fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'is_active', 'model_version', 'model_active', 'model_file']
+        fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'is_visible', 'is_active', 'model_version', 'model_active', 'model_file']
     
     def validate_latitude(self, value):
         if value < -90 or value > 90:
@@ -101,7 +101,7 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Building
-        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_unlocked', 'unlock_source', 
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_visible', 'is_unlocked', 'unlock_source', 
                   'unlocked_at', 'model_url', 'model_version', 'model_file_size', 'model_active']
     
     def get_model_url(self, obj):
