@@ -6,21 +6,28 @@ import { notificationService } from '../../services/notificationService'
 const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpdate }) => {
 	if (!isOpen) return null
 
+	const [isMarking, setIsMarking] = React.useState(false)
+
 	const handleMarkAsRead = async (id) => {
 		try {
 			await notificationService.markAsRead(id)
 			onNotificationsUpdate()
 		} catch (error) {
 			console.error('Failed to mark notification as read:', error)
+			alert('Failed to mark notification as read. Check console.')
 		}
 	}
 
 	const handleMarkAllAsRead = async () => {
+		setIsMarking(true)
 		try {
 			await notificationService.clearAllNotifications()
 			onNotificationsUpdate()
 		} catch (error) {
 			console.error('Failed to mark all as read:', error)
+			alert('Failed to mark all as read: ' + error.message)
+		} finally {
+			setIsMarking(false)
 		}
 	}
 
@@ -78,6 +85,7 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 					<div style={{ padding: `${theme.spacing.sm} ${theme.spacing.lg}`, borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', justifyContent: 'flex-end' }}>
 						<button
 							onClick={handleMarkAllAsRead}
+							disabled={isMarking}
 							style={{
 								background: theme.colors.surface,
 								border: `1px solid ${theme.colors.border}`,
@@ -86,11 +94,12 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 								color: theme.colors.primary,
 								fontSize: '13px',
 								fontWeight: 'bold',
-								cursor: 'pointer',
+								cursor: isMarking ? 'wait' : 'pointer',
+								opacity: isMarking ? 0.7 : 1,
 								boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
 							}}
 						>
-							Mark all as read
+							{isMarking ? 'Marking...' : 'Mark all as read'}
 						</button>
 					</div>
 				)}

@@ -2,7 +2,8 @@ import api from './api'
 
 export const notificationService = {
 	getNotifications: async () => {
-		const response = await api.get('/api/notifications/')
+		const timestamp = new Date().getTime()
+		const response = await api.get(`/api/notifications/?_t=${timestamp}`)
 		return response.data.results || response.data
 	},
 	markAsRead: async (id) => {
