@@ -7,18 +7,21 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 	if (!isOpen) return null
 
 	const [isMarking, setIsMarking] = React.useState(false)
+	const [errorMsg, setErrorMsg] = React.useState(null)
 
 	const handleMarkAsRead = async (id) => {
+		setErrorMsg(null)
 		try {
 			await notificationService.markAsRead(id)
 			onNotificationsUpdate()
 		} catch (error) {
 			console.error('Failed to mark notification as read:', error)
-			alert('Failed to mark notification as read. Check console.')
+			setErrorMsg('Failed to mark as read: ' + error.message)
 		}
 	}
 
 	const handleMarkAllAsRead = async () => {
+		setErrorMsg(null)
 		setIsMarking(true)
 		try {
 			await notificationService.clearAllNotifications()
@@ -26,7 +29,7 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 			onClose() // Auto-close drawer on success
 		} catch (error) {
 			console.error('Failed to mark all as read:', error)
-			alert('Failed to mark all as read: ' + error.message)
+			setErrorMsg('Error marking all as read: ' + error.message)
 		} finally {
 			setIsMarking(false)
 		}
@@ -84,7 +87,7 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 
 				{/* Actions */}
 				{unreadCount > 0 && (
-					<div style={{ padding: `${theme.spacing.sm} ${theme.spacing.lg}`, borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', justifyContent: 'flex-end' }}>
+					<div style={{ padding: `${theme.spacing.sm} ${theme.spacing.lg}`, borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
 						<button
 							onClick={handleMarkAllAsRead}
 							disabled={isMarking}
@@ -103,6 +106,11 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, onNotificationsUpd
 						>
 							{isMarking ? 'Marking...' : 'Mark all as read'}
 						</button>
+						{errorMsg && (
+							<div style={{ color: theme.colors.error, fontSize: '12px', textAlign: 'right' }}>
+								{errorMsg}
+							</div>
+						)}
 					</div>
 				)}
 
