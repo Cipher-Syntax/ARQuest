@@ -1,8 +1,35 @@
+import React, { useState, useEffect } from 'react'
 import { Bell, Search, User } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
+import { notificationService } from '../services/notificationService'
+import NotificationDrawer from '../components/common/NotificationDrawer'
 
 export default function TopBar({ user }) {
 	const location = useLocation()
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+	const [notifications, setNotifications] = useState([])
+
+	const fetchNotifications = async () => {
+		try {
+			const data = await notificationService.getNotifications()
+			if (Array.isArray(data)) {
+				setNotifications(data)
+			} else {
+				console.error('API returned non-array:', data)
+				setNotifications([])
+			}
+		} catch (error) {
+			console.error('Failed to fetch notifications:', error)
+		}
+	}
+
+	useEffect(() => {
+		fetchNotifications()
+		const interval = setInterval(fetchNotifications, 30000)
+		return () => clearInterval(interval)
+	}, [])
+
+	const unreadCount = Array.isArray(notifications) ? notifications.filter(n => !n.is_read).length : 0
 
 	return (
 		<header className="h-16 bg-brand-light border-b border-brand-border px-4 lg:px-8 flex items-center justify-between sticky top-0 z-10">
@@ -12,9 +39,16 @@ export default function TopBar({ user }) {
 			</div>
 
 			<div className="flex items-center gap-3 lg:gap-6">
-				<button className="relative p-2 text-gray-500 hover:text-brand transition-colors bg-white rounded-full border border-brand-border shadow-sm">
+				<button 
+					className="relative p-2 text-gray-500 hover:text-brand transition-colors bg-white rounded-full border border-brand-border shadow-sm"
+					onClick={() => setIsDrawerOpen(true)}
+				>
 					<Bell size={18} />
-					<span className="absolute top-2 right-2 w-2 h-2 bg-brand rounded-full border-2 border-white"></span>
+					{unreadCount > 0 && (
+						<span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-brand rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold text-white px-1">
+							{unreadCount}
+						</span>
+					)}
 				</button>
 
 				<div className="flex items-center gap-3 pl-4 border-l border-brand-border">
@@ -31,6 +65,13 @@ export default function TopBar({ user }) {
 					</div>
 				</div>
 			</div>
+			
+			<NotificationDrawer
+				isOpen={isDrawerOpen}
+				onClose={() => setIsDrawerOpen(false)}
+				notifications={notifications}
+				onNotificationsUpdate={fetchNotifications}
+			/>
 		</header>
 	)
 }
