@@ -1,6 +1,8 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
+from rest_framework.response import Response
+from apps.api.models import SystemSetting
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -14,6 +16,9 @@ from .models import User, EmailOTP
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
+    if SystemSetting.get_settings().maintenance_mode:
+        return Response({'success': False, 'error': 'System is under maintenance. Registration disabled.'}, status=503)
+
     serializer = RegisterSerializer(data=request.data)
     
     if not serializer.is_valid():
@@ -159,6 +164,9 @@ def login(request):
         )
     
     user = serializer.validated_data['user']
+    if user and SystemSetting.get_settings().maintenance_mode and not user.is_staff:
+        return Response({'success': False, 'error': 'System is under maintenance.'}, status=503)
+        
     refresh = RefreshToken.for_user(user)
     
     return success_response({
