@@ -39,16 +39,7 @@ export default function Media() {
 				data.map(async (b) => {
 					try {
 						const scenes = await panoramaService.getBuildingScenes(b.id)
-						
-						// Fetch hotspots for each scene to enable the Virtual Tour walking
-						const scenesWithHotspots = await Promise.all(
-							(scenes || []).map(async (scene) => {
-								const hs = await panoramaService.getSceneHotspots(scene.id)
-								return { ...scene, hotspots: hs || [] }
-							})
-						)
-						
-						return { ...b, scenes: scenesWithHotspots }
+						return { ...b, scenes: scenes || [] }
 					} catch (e) {
 						return { ...b, scenes: [] }
 					}
@@ -92,7 +83,7 @@ export default function Media() {
 			panorama: getFullUrl(scene.image_url),
 			name: scene.title,
 			links: (scene.hotspots || []).map((h) => ({
-				nodeId: h.target_scene.toString(),
+				nodeId: h.target_scene_id.toString(),
 				position: { pitch: h.pitch, yaw: h.yaw },
 				name: h.label || h.target_scene_title
 			}))
