@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Box, Image as ImageIcon, X } from 'lucide-react'
 import { Card } from '../components/ui'
 import { buildingService } from '../services/buildingService'
@@ -23,7 +22,6 @@ export default function Media() {
 	const [buildings, setBuildings] = useState([])
 	const [viewTab, setViewTab] = useState('3d') 
 	const [loading, setLoading] = useState(true)
-	const navigate = useNavigate()
 
 	
 	const [activeModel, setActiveModel] = useState(null) 
@@ -61,12 +59,15 @@ export default function Media() {
 
 	const openPanoramaViewer = (building) => {
 		if (building.scenes && building.scenes.length > 0) {
-			navigate(`/panoramas/${building.id}/tour`)
+			setPanoScenes(building.scenes)
+			setActivePanorama(building)
 		}
 	}
 
 	const closeViewer = () => {
 		setActiveModel(null)
+		setActivePanorama(null)
+		setPanoScenes([])
 	}
 
 	const has3DModel = (b) => !!b.model_url
@@ -239,6 +240,28 @@ export default function Media() {
 								/>
 							)}
 
+							{activePanorama && panoScenes.length > 0 && (
+								<ReactPhotoSphereViewer
+									src={getFullUrl(
+										(panoScenes.find((s) => s.is_start_scene) || panoScenes[0])
+											.image_url
+									)}
+									height={'100%'}
+									width={'100%'}
+									littlePlanet={true}
+									plugins={[
+										[MarkersPlugin, {}],
+										[
+											VirtualTourPlugin,
+											{
+												positionMode: 'manual',
+												renderMode: '3d'
+											}
+										]
+									]}
+									onReady={handlePanoReady}
+								/>
+							)}
 						</div>
 					</div>
 				</div>

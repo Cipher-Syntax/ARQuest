@@ -185,41 +185,29 @@ const PanoramaManagerPage = () => {
 			<div
 				style={{
 					display: 'flex',
-					justifyContent: 'space-between',
 					alignItems: 'center',
+					gap: theme.spacing.md,
 					marginBottom: theme.spacing.lg
 				}}
 			>
-				<div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-					<button
-						onClick={() => navigate('/panoramas')}
-						style={{
-							padding: theme.spacing.sm,
-							border: `1px solid ${theme.colors.border}`,
-							borderRadius: theme.radius.sm,
-							display: 'flex',
-							alignItems: 'center',
-							gap: '4px',
-							cursor: 'pointer',
-							background: '#fff'
-						}}
-					>
-						<ArrowLeft size={20} /> Back
-					</button>
-					<h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>
-						Panoramas: {building?.name}
-					</h1>
-				</div>
-				
-				<div className="flex items-center gap-3">
-						<button
-							onClick={() => navigate(`/panoramas/${id}/tour`)}
-							className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-md hover:bg-brand/90 transition-colors font-bold shadow-md shadow-brand/20"
-						>
-							<Play size={16} />
-							Enter Virtual Tour
-						</button>
-				</div>
+				<button
+					onClick={() => navigate('/panoramas')}
+					style={{
+						padding: theme.spacing.sm,
+						border: `1px solid ${theme.colors.border}`,
+						borderRadius: theme.radius.sm,
+						display: 'flex',
+						alignItems: 'center',
+						gap: '4px',
+						cursor: 'pointer',
+						background: '#fff'
+					}}
+				>
+					<ArrowLeft size={20} /> Back
+				</button>
+				<h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>
+					Panoramas: {building?.name}
+				</h1>
 			</div>
 
 			<div
