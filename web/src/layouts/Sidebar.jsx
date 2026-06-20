@@ -17,7 +17,8 @@ import {
 	ChevronRight,
 	Briefcase,
 	Camera,
-	Layers
+	Layers,
+	ArchiveRestore
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -31,7 +32,8 @@ const NAV = [
 	{ to: '/media', icon: FileVideo, label: 'Content & Media' },
 	{ to: '/geofences', icon: Map, label: 'Geofences' },
 	{ to: '/cms', icon: MonitorPlay, label: 'Quests & Trivias' },
-	{ to: '/settings', icon: Settings, label: 'Settings' }
+	{ to: '/settings', icon: Settings, label: 'Settings' },
+	{ to: '/archives', icon: ArchiveRestore, label: 'Archives' }
 ]
 
 function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }) {

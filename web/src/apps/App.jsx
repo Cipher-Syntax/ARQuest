@@ -20,6 +20,7 @@ import UsersContainer from '../pages/UsersContainer'
 import ProfessionalsPage from '../pages/ProfessionalsPage'
 import SettingsPage from '../pages/SettingsPage'
 import DepartmentsPage from '../pages/DepartmentsPage'
+import ArchivePage from '../pages/ArchivePage'
 
 const App = () => {
 	return (
@@ -48,6 +49,7 @@ const App = () => {
 						<Route path="users" element={<UsersContainer />} />
 						<Route path="professionals" element={<ProfessionalsPage />} />
 						<Route path="settings" element={<SettingsPage />} />
+						<Route path="archives" element={<ArchivePage />} />
 					</Route>
 				</Routes>
 			</AuthProvider>
