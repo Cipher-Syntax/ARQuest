@@ -398,3 +398,55 @@ def trivia_detail(request, id):
     elif request.method == 'DELETE':
         trivia.delete()
         return success_response({'message': 'Trivia deleted'})
+
+from django.conf import settings
+from datetime import timedelta
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+@api_view(['GET'])
+def building_archived_list(request):
+    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
+        return Response({"error": "Forbidden"}, status=403)
+    archived = Building.all_objects.filter(deleted_at__isnull=False)
+    serializer = BuildingSerializer(archived, many=True, context={'request': request})
+    return Response({"success": True, "data": serializer.data})
+
+@api_view(['POST'])
+def building_restore(request, pk):
+    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
+        return Response({"error": "Forbidden"}, status=403)
+    try:
+        building = Building.all_objects.get(pk=pk, deleted_at__isnull=False)
+        building.restore()
+        return Response({"success": True})
+    except Building.DoesNotExist:
+        return Response({"error": "Not found"}, status=404)
+
+@api_view(['DELETE'])
+def building_hard_delete(request, pk):
+    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
+        return Response({"error": "Forbidden"}, status=403)
+    try:
+        building = Building.all_objects.get(pk=pk, deleted_at__isnull=False)
+        building.hard_delete()
+        return Response({"success": True})
+    except Building.DoesNotExist:
+        return Response({"error": "Not found"}, status=404)
+
+@api_view(['DELETE'])
+@permission_classes([AllowAny])
+def cron_cleanup(request):
+    secret = request.headers.get('X-Cron-Secret')
+    expected = getattr(settings, 'CRON_SECRET_KEY', 'arq_super_secret_xyz')
+    if secret != expected:
+        return Response({"error": "Forbidden"}, status=403)
+    
+    threshold = timezone.now() - timedelta(days=30)
+    old_buildings = Building.all_objects.filter(deleted_at__lt=threshold)
+    count = old_buildings.count()
+    for b in old_buildings:
+        b.hard_delete()
+        
+    return Response({"success": True, "deleted": count}, status=204)
