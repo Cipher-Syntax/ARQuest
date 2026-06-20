@@ -757,3 +757,29 @@ class DepartmentAPITests(APITestCase):
         response = self.client.post('/api/buildings/departments/', data)
         self.assertEqual(response.status_code, 400)
         self.assertFalse(response.data['success'])
+
+from django.utils import timezone
+from .models import Building, Quest, SoftDeleteManager
+
+class SoftDeleteTests(TestCase):
+    def test_soft_delete_building_and_cascade(self):
+        building = Building.objects.create(name="Test Archiving")
+        quest = Quest.objects.create(title="Find this", target_building=building, reward_points=10)
+        
+        building.delete()
+        
+        # Should not be in normal manager
+        self.assertEqual(Building.objects.count(), 0)
+        self.assertEqual(Quest.objects.count(), 0)
+        
+        # Should be in all_with_deleted manager
+        self.assertEqual(Building.all_objects.count(), 1)
+        self.assertEqual(Quest.all_objects.count(), 1)
+        
+        # Restore
+        building = Building.all_objects.get(id=building.id)
+        building.restore()
+        
+        self.assertEqual(Building.objects.count(), 1)
+        self.assertEqual(Quest.objects.count(), 1)
+

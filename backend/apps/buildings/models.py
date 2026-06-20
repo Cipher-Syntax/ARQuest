@@ -2,7 +2,39 @@ import uuid
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.utils import timezone
 
+class SoftDeleteManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+class SoftDeleteModel(models.Model):
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
+    class Meta:
+        abstract = True
+
+    def delete(self, *args, **kwargs):
+        self.deleted_at = timezone.now()
+        self.save(update_fields=['deleted_at'])
+        self.cascade_soft_delete()
+
+    def cascade_soft_delete(self):
+        pass
+
+    def restore(self):
+        self.deleted_at = None
+        self.save(update_fields=['deleted_at'])
+        self.cascade_restore()
+        
+    def cascade_restore(self):
+        pass
+
+    def hard_delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
 
 
 class Department(models.Model):
@@ -21,7 +53,7 @@ class Department(models.Model):
         return self.name
 
 
-class Building(models.Model):
+class Building(SoftDeleteModel):
     STATUS_CHOICES = [
         ('DRAFT', 'Draft'),
         ('HIDDEN', 'Published (Hidden)'),
@@ -74,6 +106,14 @@ class Building(models.Model):
             raise ValidationError({'latitude': 'Latitude must be between -90 and 90'})
         if self.longitude is not None and (self.longitude < -180 or self.longitude > 180):
             raise ValidationError({'longitude': 'Longitude must be between -180 and 180'})
+
+    def cascade_soft_delete(self):
+        self.quests.all().update(deleted_at=self.deleted_at)
+        self.trivia_facts.all().update(deleted_at=self.deleted_at)
+        
+    def cascade_restore(self):
+        self.quests.model.all_objects.filter(target_building=self, deleted_at__isnull=False).update(deleted_at=None)
+        self.trivia_facts.model.all_objects.filter(building=self, deleted_at__isnull=False).update(deleted_at=None)
 
 
 class Geofence(models.Model):
@@ -159,7 +199,7 @@ class BuildingAsset(models.Model):
         return f"{self.building.name} - {self.get_asset_type_display()}"
 
 
-class Quest(models.Model):
+class Quest(SoftDeleteModel):
     title = models.CharField(max_length=255)
     hint = models.TextField()
     target_building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='quests')
@@ -184,7 +224,7 @@ class UserQuestProgress(models.Model):
         return f"{self.user.username} - {self.quest.title}"
 
 
-class TriviaFact(models.Model):
+class TriviaFact(SoftDeleteModel):
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='trivia_facts')
     fact = models.TextField()
     is_active = models.BooleanField(default=True)
