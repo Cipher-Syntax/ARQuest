@@ -336,7 +336,7 @@ export default function BuildingsPage() {
 																onClick={() => handleDeleteClick(b.id)}
 																className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
 															>
-																<Trash2 size={14} /> Delete Building
+																<Trash2 size={14} /> Move to Archive
 															</button>
 														</div>
 													)}
@@ -372,8 +372,8 @@ export default function BuildingsPage() {
 				isOpen={isDeleteModalOpen}
 				onClose={() => setIsDeleteModalOpen(false)}
 				onConfirm={handleConfirmDelete}
-				title="Delete Building"
-				message="Are you sure you want to move this building to trash? This will remove its coordinates and association from the system."
+				title="Move to Archive"
+				message="This building will be moved to the Archive and permanently deleted after 30 days."
 			/>
 
 			<QRCodeModal
