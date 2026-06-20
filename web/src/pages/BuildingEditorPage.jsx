@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Image as ImageIcon, ChevronDown } from 'lucide-react'
 import { buildingService } from '../services/buildingService'
+import { departmentService } from '../services/departmentService'
 import GeofenceEditor from '../components/GeofenceEditor'
 import DragDropFileUpload from '../components/common/DragDropFileUpload'
 import { theme } from '../theme'
@@ -11,6 +12,7 @@ const BuildingEditorPage = () => {
 	const navigate = useNavigate()
 	const isNew = id === 'new'
 	const [existingBuildings, setExistingBuildings] = useState([])
+	const [departments, setDepartments] = useState([])
 
 	const [building, setBuilding] = useState({
 		name: '',
@@ -21,7 +23,9 @@ const BuildingEditorPage = () => {
 		is_active: true,
 		model_file: null,
 		model_version: '',
-		model_active: false
+		model_active: false,
+		primary_department_id: null,
+		department_ids: []
 	})
 
 	const [geofence, setGeofence] = useState({
@@ -37,11 +41,26 @@ const BuildingEditorPage = () => {
 	const [geofenceErrors, setGeofenceErrors] = useState({})
 	const [successMessage, setSuccessMessage] = useState('')
 
+	const [deptSearch, setDeptSearch] = useState('')
+	const [deptDropdownOpen, setDeptDropdownOpen] = useState(false)
+	const deptDropdownRef = useRef(null)
+
+	useEffect(() => {
+		const handleClickOutside = (e) => {
+			if (deptDropdownRef.current && !deptDropdownRef.current.contains(e.target)) {
+				setDeptDropdownOpen(false)
+			}
+		}
+		document.addEventListener('mousedown', handleClickOutside)
+		return () => document.removeEventListener('mousedown', handleClickOutside)
+	}, [])
+
 	useEffect(() => {
 		if (!isNew) {
 			loadBuilding()
 		}
 		loadExistingBuildings()
+		loadDepartments()
 	}, [id])
 
 	const loadExistingBuildings = async () => {
@@ -53,10 +72,23 @@ const BuildingEditorPage = () => {
 		}
 	}
 
+	const loadDepartments = async () => {
+		try {
+			const data = await departmentService.getDepartments()
+			setDepartments(data)
+		} catch (error) {
+			console.error('Failed to load departments', error)
+		}
+	}
+
 	const loadBuilding = async () => {
 		try {
 			const data = await buildingService.getBuilding(id)
-			setBuilding(data)
+			setBuilding({
+				...data,
+				primary_department_id: data.primary_department?.id ?? null,
+				department_ids: data.departments?.map(d => d.id) ?? []
+			})
 			try {
 				const geofenceData = await buildingService.getGeofence(id)
 				if (geofenceData) {
@@ -151,6 +183,18 @@ const BuildingEditorPage = () => {
 			formData.append('model_version', building.model_version || '')
 			formData.append('model_active', building.model_active)
 
+			if (building.primary_department_id) {
+				formData.append('primary_department_id', building.primary_department_id)
+			} else {
+				formData.append('primary_department_id', '')
+			}
+
+			if (building.department_ids && building.department_ids.length > 0) {
+				building.department_ids.forEach(id => {
+					formData.append('department_ids', id)
+				})
+			}
+
 			if (building.model_file instanceof File) {
 				formData.append('model_file', building.model_file)
 			}
@@ -175,7 +219,11 @@ const BuildingEditorPage = () => {
 				setTimeout(() => navigate(`/buildings/${savedBuilding.id}`), 1500)
 			} else {
 				const savedBuilding = await buildingService.updateBuilding(id, formData)
-				setBuilding(savedBuilding)
+				setBuilding({
+					...savedBuilding,
+					primary_department_id: savedBuilding.primary_department?.id ?? null,
+					department_ids: savedBuilding.departments?.map(d => d.id) ?? []
+				})
 
 				if (formattedGeofenceData) {
 					if (geofence.id) {
@@ -527,6 +575,167 @@ const BuildingEditorPage = () => {
 								/>{' '}
 								Active / Open
 							</label>
+						</div>
+
+						<div style={{ marginBottom: theme.spacing.md }}>
+							<label
+								style={{
+									display: 'block',
+									marginBottom: theme.spacing.xs,
+									fontSize: '14px',
+									fontWeight: '500'
+								}}
+							>
+								Primary College (Map Pin Color)
+							</label>
+							<div style={{ position: 'relative' }} ref={deptDropdownRef}>
+								<div 
+									onClick={() => setDeptDropdownOpen(!deptDropdownOpen)}
+									style={{
+										width: '100%',
+										padding: theme.spacing.sm,
+										border: `1px solid ${theme.colors.border}`,
+										borderRadius: theme.radius.sm,
+										fontSize: '14px',
+										backgroundColor: 'white',
+										cursor: 'pointer',
+										display: 'flex',
+										justifyContent: 'space-between',
+										alignItems: 'center'
+									}}
+								>
+									<span>
+										{building.primary_department_id 
+											? departments.find(d => d.id === building.primary_department_id)?.name || 'Unknown' 
+											: '— Default WMSU Red Pin —'}
+									</span>
+									<ChevronDown size={16} color={theme.colors.textMuted} />
+								</div>
+								
+								{deptDropdownOpen && (
+									<div style={{
+										position: 'absolute',
+										top: '100%',
+										left: 0,
+										right: 0,
+										marginTop: 4,
+										backgroundColor: 'white',
+										border: `1px solid ${theme.colors.border}`,
+										borderRadius: theme.radius.md,
+										boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+										zIndex: 50,
+										maxHeight: 250,
+										display: 'flex',
+										flexDirection: 'column'
+									}}>
+										<div style={{ padding: 8, borderBottom: `1px solid ${theme.colors.border}` }}>
+											<input
+												type="text"
+												placeholder="Search colleges..."
+												value={deptSearch}
+												onChange={(e) => setDeptSearch(e.target.value)}
+												onClick={(e) => e.stopPropagation()}
+												style={{
+													width: '100%',
+													padding: '6px 12px',
+													border: `1px solid ${theme.colors.border}`,
+													borderRadius: theme.radius.sm,
+													fontSize: '13px',
+													outline: 'none'
+												}}
+												autoFocus
+											/>
+										</div>
+										<div style={{ overflowY: 'auto' }}>
+											<div 
+												onClick={() => {
+													setBuilding(prev => ({ ...prev, primary_department_id: null }))
+													setDeptDropdownOpen(false)
+													setDeptSearch('')
+												}}
+												style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '13px', backgroundColor: building.primary_department_id === null ? theme.colors.surface : 'transparent' }}
+												onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
+												onMouseLeave={(e) => e.currentTarget.style.backgroundColor = building.primary_department_id === null ? theme.colors.surface : 'transparent'}
+											>
+												— Default WMSU Red Pin —
+											</div>
+											{departments.filter(d => d.name.toLowerCase().includes(deptSearch.toLowerCase()) || d.code.toLowerCase().includes(deptSearch.toLowerCase())).map(dept => (
+												<div 
+													key={dept.id}
+													onClick={() => {
+														setBuilding(prev => ({ 
+															...prev, 
+															primary_department_id: dept.id,
+															department_ids: prev.department_ids.includes(dept.id) ? prev.department_ids : [...prev.department_ids, dept.id]
+														}))
+														setDeptDropdownOpen(false)
+														setDeptSearch('')
+													}}
+													style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '13px', backgroundColor: building.primary_department_id === dept.id ? theme.colors.surface : 'transparent' }}
+													onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
+													onMouseLeave={(e) => e.currentTarget.style.backgroundColor = building.primary_department_id === dept.id ? theme.colors.surface : 'transparent'}
+												>
+													<div style={{ fontWeight: '500' }}>{dept.name}</div>
+													<div style={{ fontSize: '11px', color: theme.colors.textMuted }}>Code: {dept.code}</div>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+
+						<div style={{ marginBottom: theme.spacing.md }}>
+							<label
+								style={{
+									display: 'block',
+									marginBottom: theme.spacing.xs,
+									fontSize: '14px',
+									fontWeight: '500'
+								}}
+							>
+								Associated Colleges (Search Results & Grouping)
+							</label>
+							<div style={{ 
+								display: 'grid', 
+								gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+								gap: '8px',
+								maxHeight: '150px',
+								overflowY: 'auto',
+								padding: theme.spacing.sm,
+								border: `1px solid ${theme.colors.border}`,
+								borderRadius: theme.radius.sm,
+								backgroundColor: 'white'
+							}}>
+								{departments.map(dept => (
+									<label key={dept.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+										<input
+											type="checkbox"
+											checked={building.department_ids.includes(dept.id)}
+											onChange={(e) => {
+												const checked = e.target.checked;
+												setBuilding(prev => {
+													let newIds = prev.department_ids.filter(id => id !== dept.id);
+													if (checked) newIds.push(dept.id);
+													
+													let newPrimary = prev.primary_department_id;
+													if (!checked && newPrimary === dept.id) {
+														newPrimary = null;
+													}
+													
+													return {
+														...prev,
+														department_ids: newIds,
+														primary_department_id: newPrimary
+													};
+												});
+											}}
+										/>
+										<span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dept.name}</span>
+									</label>
+								))}
+								{departments.length === 0 && <span style={{ fontSize: '13px', color: theme.colors.textMuted }}>No colleges found</span>}
+							</div>
 						</div>
 
 						<h2

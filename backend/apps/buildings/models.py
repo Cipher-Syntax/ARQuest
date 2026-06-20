@@ -4,12 +4,32 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 
 
+
+class Department(models.Model):
+    name = models.CharField(max_length=200)
+    code = models.SlugField(unique=True)
+    description = models.TextField(blank=True)
+    color_hex = models.CharField(max_length=7, blank=True, help_text='Hex color for map pins, e.g. #7F0303')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Building(models.Model):
     STATUS_CHOICES = [
         ('DRAFT', 'Draft'),
         ('HIDDEN', 'Published (Hidden)'),
         ('VISIBLE', 'Published (Visible)'),
     ]
+
+    departments = models.ManyToManyField(Department, related_name='buildings', blank=True)
+    primary_department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='primary_buildings', help_text='Determines the map pin color')
 
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, blank=True)

@@ -6,16 +6,70 @@ from apps.authentication.permissions import IsAdminRole
 from apps.api.responses import success_response, error_response
 from apps.geofencing.serializers import LocationValidationSerializer
 from apps.geofencing.utils import calculate_distance
-from .models import Building, Geofence, BuildingUnlock, BuildingAsset
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Department
 from .serializers import (
-    BuildingSerializer, 
+    BuildingSerializer,
     BuildingWriteSerializer,
     GeofenceSerializer,
     GeofenceWriteSerializer,
     BuildingUnlockSerializer,
     UnlockedBuildingSerializer,
-    BuildingAssetSerializer
+    BuildingAssetSerializer,
+    DepartmentSerializer,
+    DepartmentWriteSerializer
 )
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def department_list_create(request):
+    if request.method == 'GET':
+        if getattr(request.user, 'is_admin_role', False):
+            departments = Department.objects.all()
+        else:
+            departments = Department.objects.filter(is_active=True)
+        serializer = DepartmentSerializer(departments, many=True)
+        return success_response(serializer.data)
+
+    elif request.method == 'POST':
+        if not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+        serializer = DepartmentWriteSerializer(data=request.data)
+        if serializer.is_valid():
+            department = serializer.save()
+            return success_response(DepartmentSerializer(department).data, status_code=status.HTTP_201_CREATED)
+        return error_response('validation_error', 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def department_detail(request, id):
+    try:
+        department = Department.objects.get(id=id)
+    except Department.DoesNotExist:
+        return error_response('not_found', 'Department not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = DepartmentSerializer(department)
+        return success_response(serializer.data)
+
+    elif request.method == 'PATCH':
+        if not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+        serializer = DepartmentWriteSerializer(department, data=request.data, partial=True)
+        if serializer.is_valid():
+            department = serializer.save()
+            return success_response(DepartmentSerializer(department).data)
+        return error_response('validation_error', 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+
+    elif request.method == 'DELETE':
+        if not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+        department.delete()
+        return success_response({'message': 'Department deleted successfully'}, status_code=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET', 'POST'])

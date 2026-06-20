@@ -16,12 +16,14 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Briefcase,
-	Camera
+	Camera,
+	Layers
 } from 'lucide-react'
 import { useState } from 'react'
 
 const NAV = [
 	{ to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+	{ to: '/departments', icon: Layers, label: 'Colleges' },
 	{ to: '/buildings', icon: Building2, label: 'Buildings' },
 	{ to: '/professionals', icon: Briefcase, label: 'Professional Accounts' },
 	{ to: '/users', icon: Users, label: 'Users & Leaderboard' },

@@ -70,7 +70,8 @@ class GeofenceModelTest(TestCase):
             name='Test Building',
             slug='test-building',
             latitude=14.599512,
-            longitude=120.984222
+            longitude=120.984222,
+            status='VISIBLE'
         )
     
     def test_geofence_creation(self):
@@ -153,14 +154,16 @@ class BuildingAPITest(APITestCase):
             description='Computer Science Building',
             latitude=14.599512,
             longitude=120.984222,
-            is_active=True
+            is_active=True,
+            status='VISIBLE'
         )
         self.inactive_building = Building.objects.create(
             name='Old Building',
             slug='old-building',
             latitude=14.599512,
             longitude=120.984222,
-            is_active=False
+            is_active=False,
+            status='HIDDEN'
         )
     
     def test_list_buildings_active_only(self):
@@ -298,7 +301,8 @@ class GeofenceAPITest(APITestCase):
             slug='ccs-building',
             latitude=14.599512,
             longitude=120.984222,
-            is_active=True
+            is_active=True,
+            status='VISIBLE'
         )
     
     def test_create_geofence_admin(self):
@@ -517,7 +521,8 @@ class BuildingUnlockTestCase(TestCase):
             slug='test-building',
             latitude=14.5995,
             longitude=120.9842,
-            is_active=True
+            is_active=True,
+            status='VISIBLE'
         )
         self.geofence = Geofence.objects.create(
             building=self.building,
@@ -576,9 +581,179 @@ class BuildingUnlockTestCase(TestCase):
         })
         self.assertEqual(response.status_code, 401)
 
+
     def test_professional_gets_all_buildings(self):
         self.client.force_authenticate(user=self.professional)
         response = self.client.get('/api/buildings/unlocked/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['data']), 1)
         self.assertEqual(response.data['data'][0]['unlock_source'], 'role_access')
+
+
+class DepartmentAPITests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='admin_dept',
+            email='admin_dept@test.com',
+            password='password123',
+            role='admin'
+        )
+        self.admin.email_verified = True
+        self.admin.save()
+
+        self.student = User.objects.create_user(
+            username='student_dept',
+            email='student_dept@test.com',
+            password='password123',
+            role='student'
+        )
+        self.student.email_verified = True
+        self.student.save()
+
+        from .models import Department
+        self.department = Department.objects.create(
+            name='College of Computer Studies',
+            code='ccs',
+            description='CS Department',
+            color_hex='#7F0303',
+            is_active=True
+        )
+
+        self.building = Building.objects.create(
+            name='CCS Building',
+            slug='ccs-building',
+            latitude=6.91,
+            longitude=122.06,
+            is_active=True,
+            status='VISIBLE',
+            primary_department=self.department
+        )
+        self.building.departments.add(self.department)
+
+    def test_admin_can_create_department(self):
+        self.client.force_authenticate(user=self.admin)
+        data = {
+            'name': 'College of Engineering',
+            'code': 'coe',
+            'description': 'Engineering Department',
+            'color_hex': '#003399',
+            'is_active': True
+        }
+        response = self.client.post('/api/buildings/departments/', data)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['data']['name'], 'College of Engineering')
+        self.assertEqual(response.data['data']['code'], 'coe')
+
+    def test_non_admin_cannot_create_department(self):
+        self.client.force_authenticate(user=self.student)
+        data = {
+            'name': 'Engineering',
+            'code': 'eng',
+            'is_active': True
+        }
+        response = self.client.post('/api/buildings/departments/', data)
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(response.data['success'])
+
+    def test_list_departments_returns_correct_data(self):
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get('/api/buildings/departments/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(len(response.data['data']), 1)
+        dept = response.data['data'][0]
+        self.assertEqual(dept['code'], 'ccs')
+        self.assertEqual(dept['building_count'], 1)
+
+    def test_admin_sees_inactive_departments(self):
+        from .models import Department
+        Department.objects.create(name='Inactive Dept', code='inactive', is_active=False)
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/buildings/departments/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['data']), 2)
+
+    def test_non_admin_does_not_see_inactive_departments(self):
+        from .models import Department
+        Department.objects.create(name='Inactive Dept', code='inactive', is_active=False)
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get('/api/buildings/departments/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['data']), 1)
+
+    def test_admin_can_update_department(self):
+        self.client.force_authenticate(user=self.admin)
+        data = {'name': 'CCS Updated', 'color_hex': '#112233'}
+        response = self.client.patch(f'/api/buildings/departments/{self.department.id}/', data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['data']['name'], 'CCS Updated')
+        self.assertEqual(response.data['data']['color_hex'], '#112233')
+
+    def test_admin_can_delete_department_buildings_become_uncategorized(self):
+        self.client.force_authenticate(user=self.admin)
+        dept_id = self.department.id
+        building_id = self.building.id
+        response = self.client.delete(f'/api/buildings/departments/{dept_id}/')
+        self.assertEqual(response.status_code, 204)
+        self.building.refresh_from_db()
+        self.assertIsNone(self.building.primary_department)
+        self.assertTrue(Building.objects.filter(id=building_id).exists())
+
+    def test_building_serializer_includes_department(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(f'/api/buildings/{self.building.id}/')
+        self.assertEqual(response.status_code, 200)
+        dept_data = response.data['data']['primary_department']
+        self.assertIsNotNone(dept_data)
+        self.assertEqual(dept_data['code'], 'ccs')
+        self.assertEqual(dept_data['name'], 'College of Computer Studies')
+
+    def test_building_patch_accepts_primary_department_id(self):
+        from .models import Department
+        new_dept = Department.objects.create(
+            name='College of Nursing',
+            code='con',
+            is_active=True
+        )
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(
+            f'/api/buildings/{self.building.id}/',
+            {'primary_department_id': new_dept.id},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['data']['primary_department']['code'], 'con')
+
+    def test_building_patch_accepts_null_primary_department_id(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(
+            f'/api/buildings/{self.building.id}/',
+            {'primary_department_id': None},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data['data']['primary_department'])
+
+    def test_duplicate_code_returns_400(self):
+        self.client.force_authenticate(user=self.admin)
+        data = {
+            'name': 'Another CCS',
+            'code': 'ccs',
+            'is_active': True
+        }
+        response = self.client.post('/api/buildings/departments/', data)
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.data['success'])
+
+    def test_invalid_slug_code_returns_400(self):
+        self.client.force_authenticate(user=self.admin)
+        data = {
+            'name': 'Bad Code',
+            'code': 'bad code with spaces!',
+            'is_active': True
+        }
+        response = self.client.post('/api/buildings/departments/', data)
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.data['success'])

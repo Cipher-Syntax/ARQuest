@@ -3,6 +3,8 @@ from . import views
 from apps.panorama import views as panorama_views
 
 urlpatterns = [
+    path('departments/', views.department_list_create, name='department_list_create'),
+    path('departments/<int:id>/', views.department_detail, name='department_detail'),
     path('', views.building_list_create, name='building_list_create'),
     path('<int:id>/', views.building_detail, name='building_detail'),
     path('<int:id>/geofence/', views.building_geofence, name='building_geofence'),

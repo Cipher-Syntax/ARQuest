@@ -297,8 +297,12 @@ export default function BuildingsScreen() {
                                     style={styles.searchResultItem}
                                     onPress={() => handleSelectRouteOrigin(b)}
                                 >
-                                    <View>
+                                    <View style={[styles.searchResultItemInner, b.primary_department && { borderLeftWidth: 4, borderLeftColor: b.primary_department.color_hex || '#B21830', paddingLeft: 8 }]}>
                                         <Text style={styles.searchResultName}>{b.name}</Text>
+                                        <Text style={[styles.searchResultStatus, b.is_active === false && styles.searchResultStatusInactive]}>
+                                            {b.primary_department ? `${b.primary_department.name} • ` : ''}
+                                            {b.is_active === false ? 'CLOSED / INACTIVE' : 'AVAILABLE'}
+                                        </Text>
                                     </View>
                                 </TouchableOpacity>
                             ))}
@@ -318,9 +322,10 @@ export default function BuildingsScreen() {
                                     style={styles.searchResultItem}
                                     onPress={() => handleSelectRouteTarget(b)}
                                 >
-                                    <View>
+                                    <View style={[styles.searchResultItemInner, b.primary_department && { borderLeftWidth: 4, borderLeftColor: b.primary_department.color_hex || '#B21830', paddingLeft: 8 }]}>
                                         <Text style={styles.searchResultName}>{b.name}</Text>
                                         <Text style={[styles.searchResultStatus, b.is_active === false && styles.searchResultStatusInactive]}>
+                                            {b.primary_department ? `${b.primary_department.name} • ` : ''}
                                             {b.is_active === false ? 'CLOSED / INACTIVE' : 'AVAILABLE'}
                                         </Text>
                                     </View>
@@ -362,6 +367,18 @@ export default function BuildingsScreen() {
                                         </Text>
                                     </View>
                                 </View>
+                                
+                                {selectedBuilding.departments && selectedBuilding.departments.length > 0 && (
+                                    <View style={{ marginVertical: 8, paddingHorizontal: 4 }}>
+                                        <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.colors.textMuted || '#888', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Colleges</Text>
+                                        {selectedBuilding.departments.map(dept => (
+                                            <View key={dept.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                                                <Text style={{ fontSize: 14, color: theme.colors.textPrimary || '#333' }}>• {dept.name} </Text>
+                                                <Text style={{ fontSize: 12, color: '#10b981', fontWeight: 'bold' }}>(Available)</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
                                 
                                 {selectedBuilding.description && (
                                     <Text style={styles.description} numberOfLines={8} ellipsizeMode="tail" >{selectedBuilding.description}</Text>

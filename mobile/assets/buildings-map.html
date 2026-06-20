@@ -17,6 +17,11 @@
             border: 2px solid white;
         }
 
+        .custom-dept-marker {
+            background: transparent;
+            border: none;
+        }
+        
         .locked-marker {
             background-color: #555;
             border-radius: 50%;
@@ -133,8 +138,12 @@
                     }
                 }
 
-                const iconClass = isUnlocked ? 'glow-marker' : 'locked-marker';
-                const icon = L.divIcon({ className: iconClass, iconSize: [16, 16] });
+                const deptColor = (b.primary_department && b.primary_department.color_hex) ? b.primary_department.color_hex : '#B21830';
+                const htmlStr = isUnlocked 
+                    ? `<div style="width:100%;height:100%;border-radius:50%;background-color:${deptColor};border:2px solid white;box-shadow:0 0 15px 5px ${deptColor}66;"></div>`
+                    : `<div style="width:100%;height:100%;border-radius:50%;background-color:#555;border:2px solid #888;"></div>`;
+                
+                const icon = L.divIcon({ className: 'custom-dept-marker', html: htmlStr, iconSize: [16, 16] });
 
                 const marker = L.marker([lat, lng], { icon }).addTo(markersGroup);
                 

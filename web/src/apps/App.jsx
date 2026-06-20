@@ -19,6 +19,7 @@ import CmsPage from '../pages/CmsPage'
 import UsersContainer from '../pages/UsersContainer'
 import ProfessionalsPage from '../pages/ProfessionalsPage'
 import SettingsPage from '../pages/SettingsPage'
+import DepartmentsPage from '../pages/DepartmentsPage'
 
 const App = () => {
 	return (
@@ -36,6 +37,7 @@ const App = () => {
 						}
 					>
 						<Route path="dashboard" element={<DashboardPage />} />
+						<Route path="departments" element={<DepartmentsPage />} />
 						<Route path="buildings" element={<BuildingsPage />} />
 						<Route path="buildings/:id" element={<BuildingEditorPage />} />
 						<Route path="geofences" element={<GeofencesPage />} />

@@ -29,7 +29,8 @@ class ValidateLocationViewTestCase(TestCase):
             slug='test-building',
             latitude=14.5995,
             longitude=120.9842,
-            is_active=True
+            is_active=True,
+            status='VISIBLE'
         )
         self.geofence = Geofence.objects.create(
             building=self.building,
