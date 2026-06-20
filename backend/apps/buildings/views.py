@@ -439,7 +439,7 @@ def building_hard_delete(request, pk):
 @permission_classes([AllowAny])
 def cron_cleanup(request):
     secret = request.headers.get('X-Cron-Secret')
-    expected = getattr(settings, 'CRON_SECRET_KEY', 'arq_super_secret_xyz')
+    expected = getattr(settings, 'CRON_SECRET_KEY')
     if secret != expected:
         return Response({"error": "Forbidden"}, status=403)
     
