@@ -35,6 +35,14 @@ api.interceptors.response.use(
 	(response) => response,
 	async (error) => {
 		const originalRequest = error.config
+
+		if (error.response?.status === 503) {
+			localStorage.removeItem('access_token')
+			localStorage.removeItem('refresh_token')
+			window.location.href = '/login?maintenance=true'
+			return Promise.reject(error)
+		}
+
 		if (error.response?.status === 401 && !originalRequest._retry) {
 			originalRequest._retry = true
 			const refreshToken = localStorage.getItem('refresh_token')

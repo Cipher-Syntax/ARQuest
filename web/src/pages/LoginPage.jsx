@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { theme } from '../theme'
 
@@ -10,8 +10,18 @@ const LoginPage = () => {
 	const [showPassword, setShowPassword] = useState(false)
 	const [error, setError] = useState('')
 	const [loading, setLoading] = useState(false)
+	const [isMaintenance, setIsMaintenance] = useState(false)
 	const { login, logout } = useAuth()
 	const navigate = useNavigate()
+	const location = useLocation()
+
+	useEffect(() => {
+		const searchParams = new URLSearchParams(location.search)
+		if (searchParams.get('maintenance') === 'true') {
+			setIsMaintenance(true)
+			setError('System is under maintenance. Student access is temporarily disabled.')
+		}
+	}, [location])
 
 	const handleSubmit = async (e) => {
 		e.preventDefault()
@@ -91,6 +101,16 @@ const LoginPage = () => {
 							Please sign in to your admin account
 						</p>
 					</div>
+
+					{isMaintenance && (
+						<div className="p-4 bg-orange-50 border border-orange-200 rounded-md flex items-start gap-3 mt-6">
+							<AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={20} />
+							<div>
+								<p className="text-sm font-bold text-orange-800">Maintenance Mode Active</p>
+								<p className="text-xs text-orange-700 mt-1">Only administrative accounts can log in at this time. All other sessions have been logged out.</p>
+							</div>
+						</div>
+					)}
 
 					<form onSubmit={handleSubmit} className="space-y-6 mt-8">
 						<div className="space-y-2">
