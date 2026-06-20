@@ -22,18 +22,43 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
-const NAV = [
-	{ to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-	{ to: '/departments', icon: Layers, label: 'Colleges' },
-	{ to: '/buildings', icon: Building2, label: 'Buildings' },
-	{ to: '/professionals', icon: Briefcase, label: 'Professional Accounts' },
-	{ to: '/users', icon: Users, label: 'Users & Leaderboard' },
-	{ to: '/panoramas', icon: Camera, label: 'Panoramas' },
-	{ to: '/media', icon: FileVideo, label: 'Content & Media' },
-	{ to: '/geofences', icon: Map, label: 'Geofences' },
-	{ to: '/cms', icon: MonitorPlay, label: 'Quests & Trivias' },
-	{ to: '/settings', icon: Settings, label: 'Settings' },
-	{ to: '/archives', icon: ArchiveRestore, label: 'Archives' }
+const NAV_GROUPS = [
+	{
+		label: 'Overview',
+		items: [
+			{ to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' }
+		]
+	},
+	{
+		label: 'Campus Map',
+		items: [
+			{ to: '/departments', icon: Layers, label: 'Colleges' },
+			{ to: '/buildings', icon: Building2, label: 'Buildings' },
+			{ to: '/geofences', icon: Map, label: 'Geofences' }
+		]
+	},
+	{
+		label: 'Content & Media',
+		items: [
+			{ to: '/panoramas', icon: Camera, label: 'Virtual Tours' },
+			{ to: '/media', icon: FileVideo, label: 'Media Library' }
+		]
+	},
+	{
+		label: 'Gamification',
+		items: [
+			{ to: '/cms', icon: MonitorPlay, label: 'Quests & Trivias' },
+			{ to: '/users', icon: Users, label: 'Student Rankings' }
+		]
+	},
+	{
+		label: 'System & Admin',
+		items: [
+			{ to: '/professionals', icon: Briefcase, label: 'Professionals' },
+			{ to: '/archives', icon: ArchiveRestore, label: 'Archives' },
+			{ to: '/settings', icon: Settings, label: 'Settings' }
+		]
+	}
 ]
 
 function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }) {
@@ -80,42 +105,46 @@ function SidebarContent({ onLogout, onMobileClose, isCollapsed, setIsCollapsed }
 				)}
 			</button>
 
-			<nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto scrollbar-none">
-				<p
-					className={`text-[10px] font-bold text-white/50 uppercase tracking-wider mb-4 px-3 transition-opacity ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}
-				>
-					Menu
-				</p>
-				{NAV.map(({ to, icon: Icon, label }) => (
-					<NavLink
-						key={to}
-						to={to}
-						onClick={onMobileClose}
-						title={isCollapsed ? label : ''}
-						className={({ isActive }) =>
-							`relative flex items-center rounded-md text-sm font-semibold transition-all duration-200 group
+			<nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-none pb-8">
+				{NAV_GROUPS.map((group, i) => (
+					<div key={i} className="space-y-1.5">
+						{!isCollapsed && (
+							<p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2 px-3 animate-in fade-in">
+								{group.label}
+							</p>
+						)}
+						{group.items.map(({ to, icon: Icon, label }) => (
+							<NavLink
+								key={to}
+								to={to}
+								onClick={onMobileClose}
+								title={isCollapsed ? label : ''}
+								className={({ isActive }) =>
+									`relative flex items-center rounded-md text-sm font-semibold transition-all duration-200 group
               ${isCollapsed ? 'justify-center px-2 py-3' : 'px-4 py-3 gap-3'}
               ${isActive
-								? 'bg-white/20 text-white shadow-inner shadow-black/10'
-								: 'text-white/70 hover:bg-white/10 hover:text-white'
-							}`
-						}
-					>
-						{({ isActive }) => (
-							<>
-								<Icon
-									size={18}
-									className={`shrink-0 transition-colors ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white'}`}
-								/>
-								{!isCollapsed && (
-									<span className="animate-in fade-in duration-300">{label}</span>
+										? 'bg-white/20 text-white shadow-inner shadow-black/10'
+										: 'text-white/70 hover:bg-white/10 hover:text-white'
+									}`
+								}
+							>
+								{({ isActive }) => (
+									<>
+										<Icon
+											size={18}
+											className={`shrink-0 transition-colors ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white'}`}
+										/>
+										{!isCollapsed && (
+											<span className="animate-in fade-in duration-300">{label}</span>
+										)}
+										{isActive && !isCollapsed && (
+											<div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+										)}
+									</>
 								)}
-								{isActive && !isCollapsed && (
-									<div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-								)}
-							</>
-						)}
-					</NavLink>
+							</NavLink>
+						))}
+					</div>
 				))}
 			</nav>
 
