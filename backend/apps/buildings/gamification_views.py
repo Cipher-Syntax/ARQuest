@@ -92,12 +92,26 @@ class CompleteQuestView(views.APIView):
         user.exploration_points += quest.reward_points
         user.save()
 
+        from apps.api.models import SystemSetting
+        from .serializers import TriviaFactSerializer
+
+        trivia_fact = None
+        if SystemSetting.get_settings().enable_trivia:
+            building = quest.target_building
+            if building:
+                trivia_fact = building.trivia_facts.order_by('?').first()
+
+        response_data = {
+            'message': f'Quest completed! You earned {quest.reward_points} points.',
+            'total_points': user.exploration_points
+        }
+        
+        if trivia_fact:
+            response_data['trivia'] = TriviaFactSerializer(trivia_fact).data
+
         return Response({
             'success': True,
-            'data': {
-                'message': f'Quest completed! You earned {quest.reward_points} points.',
-                'total_points': user.exploration_points
-            }
+            'data': response_data
         })
 
 class RecentActivityView(views.APIView):

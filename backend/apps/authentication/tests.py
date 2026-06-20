@@ -306,3 +306,20 @@ class RBACPermissionTestCase(TestCase):
             request = self.factory.get('/')
             request.user = user
             self.assertTrue(permission.has_permission(request, None))
+
+
+from apps.api.models import SystemSetting
+
+class FeatureToggleTests(TestCase):
+    def setUp(self):
+        self.student = User.objects.create_user(username='student_toggle', password='pwd', role='student')
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.student)
+        self.settings = SystemSetting.get_settings()
+        
+    def test_leaderboard_disabled_returns_403(self):
+        self.settings.enable_leaderboard = False
+        self.settings.save()
+        res = self.client.get('/api/auth/leaderboard/')
+        self.assertEqual(res.status_code, 403)
+        self.assertFalse(res.data['success'])

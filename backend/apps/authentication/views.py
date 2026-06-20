@@ -264,5 +264,7 @@ def create_professional(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def leaderboard(request):
+    if not SystemSetting.get_settings().enable_leaderboard:
+        return Response({'success': False, 'error': 'Leaderboard is currently disabled.'}, status=403)
     users = User.objects.filter(role='student').order_by('-exploration_points')[:50]
     return success_response(UserSerializer(users, many=True).data)

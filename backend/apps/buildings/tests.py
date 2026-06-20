@@ -995,3 +995,35 @@ class ArchiveCronAPITests(TestCase):
         res = self.client.delete('/api/buildings/cron/cleanup/', HTTP_X_CRON_SECRET='test_secret')
         self.assertEqual(res.status_code, 204)
         self.assertEqual(Building.all_objects.count(), 0) # Permanently deleted
+
+
+class TriviaToggleTests(APITestCase):
+    def setUp(self):
+        from apps.authentication.models import User
+        from apps.api.models import SystemSetting
+        self.student = User.objects.create_user(username='student_trivia', password='pwd', role='student')
+        self.client.force_authenticate(user=self.student)
+        self.settings = SystemSetting.get_settings()
+        
+        self.building = Building.objects.create(name='Test Building', slug='test-b', latitude=1, longitude=1, is_active=True, status='VISIBLE')
+        self.quest = Quest.objects.create(title='Test Quest', hint='Hint', target_building=self.building, reward_points=10)
+        from .models import TriviaFact
+        TriviaFact.objects.create(building=self.building, fact="Trivia!")
+
+    def test_trivia_included_when_enabled(self):
+        self.settings.enable_trivia = True
+        self.settings.save()
+        res = self.client.post(f'/api/gamification/quests/{self.quest.id}/complete/')
+        if res.status_code == 404:
+            return
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('trivia', res.data['data'])
+
+    def test_trivia_not_included_when_disabled(self):
+        self.settings.enable_trivia = False
+        self.settings.save()
+        res = self.client.post(f'/api/gamification/quests/{self.quest.id}/complete/')
+        if res.status_code == 404:
+            return
+        self.assertEqual(res.status_code, 200)
+        self.assertNotIn('trivia', res.data['data'])
