@@ -29,6 +29,12 @@ export default function CmsPage() {
 		loadData()
 	}, [])
 
+	useEffect(() => {
+		if (!isEditing && systemSettings) {
+			setFormReward(systemSettings.default_quest_reward || 50)
+		}
+	}, [systemSettings, isEditing])
+
 	const loadData = async () => {
 		try {
 			const [bData, qData, tData, sData] = await Promise.all([
