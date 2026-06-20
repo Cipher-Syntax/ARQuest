@@ -3,6 +3,7 @@ import { FileText, HelpCircle, Building2, Plus, Edit3, Trash2, X, Target, Lightb
 import { buildingService } from '../services/buildingService'
 import { questService } from '../services/questService'
 import { triviaService } from '../services/triviaService'
+import { settingsService } from '../services/settingsService'
 import { Card, Button, Badge } from '../components/ui'
 import '@google/model-viewer'
 
@@ -11,6 +12,7 @@ export default function CmsPage() {
 	const [quests, setQuests] = useState([])
 	const [trivias, setTrivias] = useState([])
 	const [selectedBuilding, setSelectedBuilding] = useState(null)
+	const [systemSettings, setSystemSettings] = useState(null)
 	
 	const [activeTab, setActiveTab] = useState('quests') // 'quests' | 'trivias'
 	
@@ -29,14 +31,16 @@ export default function CmsPage() {
 
 	const loadData = async () => {
 		try {
-			const [bData, qData, tData] = await Promise.all([
+			const [bData, qData, tData, sData] = await Promise.all([
 				buildingService.getBuildings(),
 				questService.getQuests(),
-				triviaService.getTrivias()
+				triviaService.getTrivias(),
+				settingsService.getSettings()
 			])
 			setBuildings(bData)
 			setQuests(qData)
 			setTrivias(tData)
+			setSystemSettings(sData)
 		} catch (error) {
 			console.error('Failed to load CMS data', error)
 		}
@@ -110,7 +114,7 @@ export default function CmsPage() {
 		setFormTitle('')
 		setFormHint('')
 		setFormFact('')
-		setFormReward(50)
+		setFormReward(systemSettings?.default_quest_reward || 50)
 	}
 
 	const filteredBuildings = buildings.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()))
