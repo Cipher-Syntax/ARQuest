@@ -334,6 +334,13 @@ def quest_list_create(request):
     elif request.method == 'POST':
         if not request.user.is_admin_role:
             return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        
+        from apps.api.models import SystemSetting
+        if 'reward_points' not in request.data or not request.data.get('reward_points'):
+            if hasattr(request.data, '_mutable'):
+                request.data._mutable = True
+            request.data['reward_points'] = SystemSetting.get_settings().default_quest_reward
+            
         serializer = QuestSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()

@@ -1027,3 +1027,24 @@ class TriviaToggleTests(APITestCase):
             return
         self.assertEqual(res.status_code, 200)
         self.assertNotIn('trivia', res.data['data'])
+
+
+class DefaultQuestRewardTests(APITestCase):
+    def setUp(self):
+        from apps.api.models import SystemSetting
+        from apps.authentication.models import User
+        from .models import Building
+        self.admin = User.objects.create_user(username='admin_reward_user', password='pwd', role='admin', is_staff=True)
+        self.client.force_authenticate(user=self.admin)
+        self.building = Building.objects.create(name='Test Reward', slug='test-reward', latitude=1, longitude=1)
+        self.settings = SystemSetting.get_settings()
+        self.settings.default_quest_reward = 75
+        self.settings.save()
+
+    def test_missing_reward_uses_default(self):
+        data = {'title': 'Find the secret', 'hint': 'Look hard', 'target_building': self.building.id}
+        res = self.client.post('/api/buildings/quests/', data)
+        if res.status_code != 201:
+            print("Response data:", res.data)
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data['data']['reward_points'], 75)
