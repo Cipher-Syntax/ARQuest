@@ -15,6 +15,7 @@ import GeofencesPage from '../pages/GeofencesPage'
 import MediaPage from '../pages/MediaPage'
 import PanoramasPage from '../pages/PanoramasPage'
 import PanoramaManagerPage from '../pages/PanoramaManagerPage'
+import VirtualTourPage from '../pages/VirtualTourPage'
 import CmsPage from '../pages/CmsPage'
 import UsersContainer from '../pages/UsersContainer'
 import ProfessionalsPage from '../pages/ProfessionalsPage'
@@ -45,6 +46,7 @@ const App = () => {
 						<Route path="media" element={<MediaPage />} />
 						<Route path="panoramas" element={<PanoramasPage />} />
 						<Route path="panoramas/:id" element={<PanoramaManagerPage />} />
+						<Route path="panoramas/:id/tour" element={<VirtualTourPage />} />
 						<Route path="cms" element={<CmsPage />} />
 						<Route path="users" element={<UsersContainer />} />
 						<Route path="professionals" element={<ProfessionalsPage />} />
