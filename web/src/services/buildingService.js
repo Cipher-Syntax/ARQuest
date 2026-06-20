@@ -46,5 +46,20 @@ export const buildingService = {
 	updateGeofence: async (geofenceId, geofenceData) => {
 		const response = await api.patch(`/api/buildings/geofence/${geofenceId}/`, geofenceData)
 		return response.data.data
+	},
+
+	getArchivedBuildings: async () => {
+		const response = await api.get('/api/buildings/archived/')
+		return response.data.data
+	},
+
+	restoreBuilding: async (id) => {
+		const response = await api.post(`/api/buildings/${id}/restore/`)
+		return response.data
+	},
+
+	hardDeleteBuilding: async (id) => {
+		const response = await api.delete(`/api/buildings/${id}/hard-delete/`)
+		return response.data
 	}
 }

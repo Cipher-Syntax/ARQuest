@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <style>
+        body { margin: 0; overflow: hidden; background: #000000; }
+        #canvas { width: 100%; height: 100%; display: block; }
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00E5FF; font-weight: bold; font-family: system-ui; letter-spacing: 2px; }
+        #joystick-zone { position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(0, 229, 255, 0.3); pointer-events: none; }
+        #instructions { position: absolute; bottom: 20px; right: 20px; text-align: right; color: rgba(255,255,255,0.7); font-family: system-ui; font-size: 12px; pointer-events: none; }
+        #ghost-btn { position: absolute; top: 80px; right: 20px; background: rgba(0, 229, 255, 0.2); color: #00E5FF; border: 1px solid #00E5FF; padding: 8px 12px; border-radius: 8px; font-family: system-ui; font-weight: bold; z-index: 100; }
+        #camera-zone { position: absolute; top: 0; right: 0; width: 50%; height: 100%; z-index: 10; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: rgba(255,255,255,0.8); border-radius: 50%; transform: translate(-50%, -50%); z-index: 50; pointer-events: none; }
+        #interact-btn { position: absolute; bottom: 40px; left: 50%; padding: 10px 20px; background: rgba(0, 229, 255, 0.9); color: black; font-weight: bold; border: none; border-radius: 8px; display: none; transform: translateX(-50%); z-index: 100; font-family: system-ui; }
+    </style>
+    <!-- Include nipplejs for Joystick -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
+</head>
+<body>
+    <div id="loading">INITIALIZING...</div>
+    <div id="instructions">Drag right side to look<br>Use joystick to move</div>
+    <div id="joystick-zone"></div>
+    <div id="camera-zone"></div>
+    <button id="ghost-btn" onclick="toggleGhostMode()">PHYSICS: ON</button>
+    <div id="crosshair"></div>
+    <button id="interact-btn" onclick="onInteractClick()">UNLOCK DOOR</button>
+    <canvas id="canvas"></canvas>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        let scene, camera, renderer, controls, model;
+        let moveForward = 0;
+        let moveRight = 0;
+        let joystickManager;
+        let ghostMode = false;
+        const MOVE_SPEED = 0.05;
+        const COLLISION_DISTANCE = 0.3; // Reduced from 0.5 to allow walking through narrower spaces
+        const raycaster = new THREE.Raycaster();
+        const centerRaycaster = new THREE.Raycaster();
+        const downVector = new THREE.Vector3(0, -1, 0);
+        let worldBounds;
+        let currentDoor = null;
+        
+        window.onInteractClick = () => {
+            if (currentDoor) {
+                window.ReactNativeWebView?.postMessage(JSON.stringify({
+                    type: 'interact_door',
+                    doorName: currentDoor.name
+                }));
+            }
+        };
+        
+        window.toggleGhostMode = () => {
+            ghostMode = !ghostMode;
+            document.getElementById('ghost-btn').textContent = ghostMode ? 'PHYSICS: OFF (GHOST)' : 'PHYSICS: ON';
+            document.getElementById('ghost-btn').style.background = ghostMode ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 229, 255, 0.2)';
+            document.getElementById('ghost-btn').style.color = ghostMode ? '#FF4444' : '#00E5FF';
+            document.getElementById('ghost-btn').style.borderColor = ghostMode ? '#FF4444' : '#00E5FF';
+        };
+
+        // Allow tapping anywhere on the screen when looking at a door to interact
+        document.addEventListener('pointerdown', (e) => {
+            if (e.target.id === 'canvas' || e.target.id === 'camera-zone') {
+                if (currentDoor) {
+                    window.onInteractClick();
+                }
+            }
+        });
+        
+        function init(modelUrl) {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb); // Sky color
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(5, 10, 7.5);
+            scene.add(directionalLight);
+            
+            // First-person look controls bound ONLY to the right half of the screen
+            controls = new OrbitControls(camera, document.getElementById('camera-zone'));
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableZoom = false;
+            controls.enablePan = false;
+            
+            initJoystick();
+            loadModel(modelUrl);
+            animate();
+            
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function initJoystick() {
+            const zone = document.getElementById('joystick-zone');
+            // make the zone active for touches
+            zone.style.pointerEvents = 'auto';
+            
+            joystickManager = nipplejs.create({
+                zone: zone,
+                mode: 'static',
+                position: { left: '50%', top: '50%' },
+                color: '#00E5FF',
+                size: 100
+            });
+            
+            joystickManager.on('move', (evt, data) => {
+                const angle = data.angle.radian;
+                const force = Math.min(data.force, 1);
+                // Nipplejs angles: 0 is right, PI/2 is up.
+                // We want: up joystick -> move forward -> -Z
+                // right joystick -> move right -> +X
+                moveForward = Math.sin(angle) * force * MOVE_SPEED;
+                moveRight = Math.cos(angle) * force * MOVE_SPEED;
+            });
+            
+            joystickManager.on('end', () => {
+                moveForward = 0;
+                moveRight = 0;
+            });
+        }
+        
+        function loadModel(url) {
+            console.log('Starting to load interior model from:', url);
+            const loader = new GLTFLoader();
+            loader.load(
+                url,
+                (gltf) => {
+                    console.log('Model loaded successfully');
+                    model = gltf.scene;
+                    scene.add(model);
+                    
+                    // Basic collision setup preparation
+                    // In a full implementation, we'd add raycasters against walls here.
+                    
+                    // Calculate bounding box to place camera
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    // Create world boundary (exact bounds of the exported 3D scene)
+                    worldBounds = box.clone();
+                    // Expand vertical bounds so jumping/stairs doesn't glitch the camera against the roof
+                    worldBounds.min.y -= 10;
+                    worldBounds.max.y += 10;
+                    
+                    // Spawn near the edge INSIDE the model's bounds so they are on the built-in ground
+                    const startX = center.x;
+                    const startY = box.min.y + 1.6; // 1.6m eye level
+                    const startZ = box.max.z - 2.0; // 2 meters inside the front boundary
+                    
+                    camera.position.set(startX, startY, startZ);
+                    // Set target very close to camera in the -Z direction to look towards the building center
+                    controls.target.set(startX, startY, startZ - 0.01);
+                    controls.update();
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'loaded' }));
+                },
+                (progress) => {
+                    if (progress.total > 0) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        const mb = (progress.loaded / 1048576).toFixed(1);
+                        document.getElementById('loading').textContent = `LOADING ${percent}% (${mb}MB)`;
+                        window.ReactNativeWebView?.postMessage(JSON.stringify({ 
+                            type: 'progress', 
+                            percent: percent 
+                        }));
+                    }
+                },
+                (error) => {
+                    console.error('Model loading error:', error);
+                    document.getElementById('loading').textContent = 'LOAD ERROR';
+                    window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'error', message: error.message || 'Unknown error' }));
+                }
+            );
+        }
+        
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (model) {
+                // Save the current look offset so we don't mess up the pitch/yaw angle
+                const targetOffset = controls.target.clone().sub(camera.position);
+
+                // Door Interaction Raycast (Center of screen)
+                centerRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                const interacts = centerRaycaster.intersectObject(model, true);
+                let foundDoor = null;
+                if (interacts.length > 0 && interacts[0].distance < 3.0) {
+                    let obj = interacts[0].object;
+                    while(obj) {
+                        if (obj.name && obj.name.toLowerCase().includes('interactivedoor') && !obj.userData.isOpen) {
+                            foundDoor = obj;
+                            break;
+                        }
+                        obj = obj.parent;
+                    }
+                }
+
+                if (foundDoor) {
+                    if (currentDoor !== foundDoor) {
+                        currentDoor = foundDoor;
+                        document.getElementById('crosshair').style.background = '#00E5FF';
+                        document.getElementById('crosshair').style.transform = 'translate(-50%, -50%) scale(1.5)';
+                        document.getElementById('interact-btn').style.display = 'block';
+                    }
+                } else {
+                    if (currentDoor) {
+                        currentDoor = null;
+                        document.getElementById('crosshair').style.background = 'rgba(255,255,255,0.8)';
+                        document.getElementById('crosshair').style.transform = 'translate(-50%, -50%) scale(1)';
+                        document.getElementById('interact-btn').style.display = 'none';
+                    }
+                }
+
+                // Animate opening doors
+                model.traverse((child) => {
+                    if (child.userData.isOpen && child.userData.targetRotationY !== undefined) {
+                        if (Math.abs(child.rotation.y - child.userData.targetRotationY) > 0.01) {
+                            child.rotation.y += (child.userData.targetRotationY - child.rotation.y) * 0.05;
+                        }
+                    }
+                });
+
+                // Downward Raycast for Floor Height (Stairs/Gravity)
+                const origin = camera.position.clone();
+                origin.y += 1.0; // Cast from slightly above eye level to detect climbing up stairs
+                raycaster.set(origin, downVector);
+                const floorHits = raycaster.intersectObject(model, true);
+                
+                if (floorHits.length > 0) {
+                    const floorY = floorHits[0].point.y;
+                    if (Math.abs(camera.position.y - (floorY + 1.6)) < 2.0) {
+                        camera.position.y += (floorY + 1.6 - camera.position.y) * 0.1;
+                    }
+                }
+
+                if (moveForward !== 0 || moveRight !== 0) {
+                    // Determine direction based on camera rotation
+                    const forwardVector = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    forwardVector.y = 0; // Keep movement on horizontal plane
+                    forwardVector.normalize();
+                    
+                    const rightVector = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                    rightVector.y = 0;
+                    rightVector.normalize();
+                    
+                    // Calculate translation
+                    let transX = (forwardVector.x * moveForward) + (rightVector.x * moveRight);
+                    let transZ = (forwardVector.z * moveForward) + (rightVector.z * moveRight);
+                    
+                    // Horizontal Raycast for Walls
+                    const moveVector = new THREE.Vector3(transX, 0, transZ);
+                    if (moveVector.lengthSq() > 0) {
+                        const moveDir = moveVector.clone().normalize();
+                        
+                        // Filter out open doors from collisions
+                        const isSolid = (hit) => {
+                            let obj = hit.object;
+                            while(obj) {
+                                if (obj.userData.isOpen) return false;
+                                obj = obj.parent;
+                            }
+                            return true;
+                        };
+
+                        // Check wall collision at eye level
+                        raycaster.set(camera.position, moveDir);
+                        const eyeHits = raycaster.intersectObject(model, true).filter(isSolid);
+                        
+                        // Check wall collision at knee level (0.5m above floor)
+                        const kneeOrigin = camera.position.clone();
+                        kneeOrigin.y -= 1.1; 
+                        raycaster.set(kneeOrigin, moveDir);
+                        const kneeHits = raycaster.intersectObject(model, true).filter(isSolid);
+                        
+                        const eyeHitDistance = eyeHits.length > 0 ? eyeHits[0].distance : Infinity;
+                        const kneeHitDistance = kneeHits.length > 0 ? kneeHits[0].distance : Infinity;
+                        
+                        if (!ghostMode && Math.min(eyeHitDistance, kneeHitDistance) < COLLISION_DISTANCE) {
+                            // Block movement
+                            transX = 0;
+                            transZ = 0;
+                        }
+                    }
+
+                    // Move camera
+                    camera.position.x += transX;
+                    camera.position.z += transZ;
+                    
+                    // Enforce World Bounds so player cannot wander off into infinity
+                    if (worldBounds) {
+                        camera.position.clamp(worldBounds.min, worldBounds.max);
+                    }
+                }
+
+                // Reapply the exact same look angle relative to the new camera position
+                controls.target.copy(camera.position).add(targetOffset);
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function dispose() {
+            window.removeEventListener('resize', onWindowResize);
+            if (model) {
+                scene.remove(model);
+                model.traverse((child) => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+            }
+            renderer.dispose();
+            controls.dispose();
+        }
+        
+        window.addEventListener('message', (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                console.log('Received message:', data);
+                if (data.type === 'init') {
+                    init(data.modelUrl);
+                } else if (data.type === 'dispose') {
+                    dispose();
+                } else if (data.type === 'unlock_door') {
+                    if (model) {
+                        model.traverse((child) => {
+                            if (child.name === data.doorName) {
+                                child.userData.isOpen = true;
+                                child.userData.targetRotationY = child.rotation.y + (Math.PI / 2);
+                            }
+                        });
+                        // Hide button since it's open now
+                        currentDoor = null;
+                        document.getElementById('crosshair').style.background = 'rgba(255,255,255,0.8)';
+                        document.getElementById('crosshair').style.transform = 'translate(-50%, -50%) scale(1)';
+                        document.getElementById('interact-btn').style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error('Message parse error:', e);
+            }
+        });
+        
+        document.addEventListener('message', (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                console.log('Received message:', data);
+                if (data.type === 'init') {
+                    init(data.modelUrl);
+                } else if (data.type === 'dispose') {
+                    dispose();
+                }
+            } catch (e) {
+                console.error('Message parse error:', e);
+            }
+        });
+    </script>
+</body>
+</html>

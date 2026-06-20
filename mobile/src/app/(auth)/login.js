@@ -34,8 +34,9 @@ export default function LoginScreen() {
             await login(username, password);
             router.replace("/(tabs)");
         } catch (err) {
-            setError("Access denied. Invalid credentials.");
             console.log("Login error:", err);
+            const serverMessage = err?.data?.error || err?.data?.message || err?.data?.detail;
+            setError(serverMessage || "Access denied. Invalid credentials.");
         }
     };
 

@@ -1,8 +1,11 @@
+import React from 'react'
 import { Bell, Search, User } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
 export default function TopBar({ user }) {
 	const location = useLocation()
+
+
 
 	return (
 		<header className="h-16 bg-brand-light border-b border-brand-border px-4 lg:px-8 flex items-center justify-between sticky top-0 z-10">
@@ -31,6 +34,8 @@ export default function TopBar({ user }) {
 					</div>
 				</div>
 			</div>
+			
+
 		</header>
 	)
 }

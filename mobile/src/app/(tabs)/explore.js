@@ -85,7 +85,9 @@ export default function ExploreScreen() {
 
             if (result.status === 'inside' && result.building) {
                 const buildingId = result.building.id;
-                if (lastUnlockAttempt !== buildingId) {
+                if (result.building.is_active === false) {
+                    // Building is closed, do not attempt to unlock
+                } else if (lastUnlockAttempt !== buildingId) {
                     try {
                         await attemptUnlock(location.latitude, location.longitude, location.accuracy || 10);
                         setLastUnlockAttempt(buildingId);
@@ -194,21 +196,21 @@ export default function ExploreScreen() {
                             <Text style={styles.loadingText}>Analyzing surroundings...</Text>
                         </View>
                     ) : validationResult?.building ? (
-                        <View style={[styles.targetBox, validationResult.status === 'inside' ? styles.targetUnlocked : styles.targetLocked]}>
+                        <View style={[styles.targetBox, validationResult.status === 'inside' ? (validationResult.building.is_active === false ? styles.targetLocked : styles.targetUnlocked) : styles.targetLocked]}>
                             <View style={styles.targetIcon}>
                                 <Ionicons 
-                                    name={validationResult.status === 'inside' ? "unlock" : "lock-closed"} 
+                                    name={validationResult.status === 'inside' ? (validationResult.building.is_active === false ? "warning" : "unlock") : "lock-closed"} 
                                     size={30} 
-                                    color={validationResult.status === 'inside' ? theme.colors.white : theme.colors.primary} 
+                                    color={validationResult.status === 'inside' && validationResult.building.is_active !== false ? theme.colors.white : theme.colors.primary} 
                                 />
                             </View>
                             <View style={styles.targetInfo}>
-                                <Text style={[styles.targetName, validationResult.status === 'inside' && styles.textWhite]}>
+                                <Text style={[styles.targetName, validationResult.status === 'inside' && validationResult.building.is_active !== false && styles.textWhite]}>
                                     {validationResult.building.name}
                                 </Text>
-                                <Text style={[styles.targetDistance, validationResult.status === 'inside' && styles.textWhite]}>
+                                <Text style={[styles.targetDistance, validationResult.status === 'inside' && validationResult.building.is_active !== false && styles.textWhite, validationResult.building.is_active === false && {color: theme.colors.error}]}>
                                     {validationResult.status === 'inside' 
-                                        ? 'AR Content Unlocked!' 
+                                        ? (validationResult.building.is_active === false ? 'Building Closed / Under Renovation' : 'AR Content Unlocked!') 
                                         : `Distance: ${validationResult.distance_meters}m away`}
                                 </Text>
                             </View>

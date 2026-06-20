@@ -2,15 +2,74 @@ import uuid
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.utils import timezone
+
+class SoftDeleteManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+class SoftDeleteModel(models.Model):
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
+    class Meta:
+        abstract = True
+
+    def delete(self, *args, **kwargs):
+        self.deleted_at = timezone.now()
+        self.save(update_fields=['deleted_at'])
+        self.cascade_soft_delete()
+
+    def cascade_soft_delete(self):
+        pass
+
+    def restore(self):
+        self.deleted_at = None
+        self.save(update_fields=['deleted_at'])
+        self.cascade_restore()
+        
+    def cascade_restore(self):
+        pass
+
+    def hard_delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
 
 
-class Building(models.Model):
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+class Department(models.Model):
+    name = models.CharField(max_length=200)
+    code = models.SlugField(unique=True)
     description = models.TextField(blank=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    color_hex = models.CharField(max_length=7, blank=True, help_text='Hex color for map pins, e.g. #7F0303')
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Building(SoftDeleteModel):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('HIDDEN', 'Published (Hidden)'),
+        ('VISIBLE', 'Published (Visible)'),
+    ]
+
+    departments = models.ManyToManyField(Department, related_name='buildings', blank=True)
+    primary_department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='primary_buildings', help_text='Determines the map pin color')
+
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, blank=True)
+    description = models.TextField(blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT', help_text='Drafts can be saved without coordinates/slugs.')
+    is_active = models.BooleanField(default=True, help_text='If false, shows building as closed/inactive')
     model_file = models.FileField(upload_to='models/', blank=True, null=True)
     model_version = models.CharField(max_length=50, blank=True)
     model_file_size = models.PositiveIntegerField(blank=True, null=True, help_text='File size in bytes')
@@ -24,16 +83,37 @@ class Building(models.Model):
         indexes = [
             models.Index(fields=['slug']),
             models.Index(fields=['is_active']),
+            models.Index(fields=['status']),
         ]
     
     def __str__(self):
         return self.name
     
     def clean(self):
-        if self.latitude < -90 or self.latitude > 90:
+        if self.status in ['HIDDEN', 'VISIBLE']:
+            errors = {}
+            if self.latitude is None:
+                errors['latitude'] = 'Latitude is required to publish.'
+            if self.longitude is None:
+                errors['longitude'] = 'Longitude is required to publish.'
+            if not self.slug:
+                errors['slug'] = 'Slug is required to publish.'
+            
+            if errors:
+                raise ValidationError(errors)
+
+        if self.latitude is not None and (self.latitude < -90 or self.latitude > 90):
             raise ValidationError({'latitude': 'Latitude must be between -90 and 90'})
-        if self.longitude < -180 or self.longitude > 180:
+        if self.longitude is not None and (self.longitude < -180 or self.longitude > 180):
             raise ValidationError({'longitude': 'Longitude must be between -180 and 180'})
+
+    def cascade_soft_delete(self):
+        self.quests.all().update(deleted_at=self.deleted_at)
+        self.trivia_facts.all().update(deleted_at=self.deleted_at)
+        
+    def cascade_restore(self):
+        self.quests.model.all_objects.filter(target_building=self, deleted_at__isnull=False).update(deleted_at=None)
+        self.trivia_facts.model.all_objects.filter(building=self, deleted_at__isnull=False).update(deleted_at=None)
 
 
 class Geofence(models.Model):
@@ -119,7 +199,7 @@ class BuildingAsset(models.Model):
         return f"{self.building.name} - {self.get_asset_type_display()}"
 
 
-class Quest(models.Model):
+class Quest(SoftDeleteModel):
     title = models.CharField(max_length=255)
     hint = models.TextField()
     target_building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='quests')
@@ -144,7 +224,7 @@ class UserQuestProgress(models.Model):
         return f"{self.user.username} - {self.quest.title}"
 
 
-class TriviaFact(models.Model):
+class TriviaFact(SoftDeleteModel):
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='trivia_facts')
     fact = models.TextField()
     is_active = models.BooleanField(default=True)

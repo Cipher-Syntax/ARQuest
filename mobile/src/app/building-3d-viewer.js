@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { theme } from '../theme/tokens';
 import { useAssetCache } from '../hooks/useAssetCache';
 import { assetService } from '../services/assetService';
+import api from '../services/api';
 
 export default function Building3DViewerScreen() {
     const { buildingId, buildingName, buildingDescription, modelUrl } = useLocalSearchParams();
@@ -16,8 +17,26 @@ export default function Building3DViewerScreen() {
     const [error, setError] = useState(null);
     const [webViewReady, setWebViewReady] = useState(false);
     const [localModelUrl, setLocalModelUrl] = useState(null);
+    const [fetchedTrivia, setFetchedTrivia] = useState(null);
     const webViewRef = useRef(null);
     const { loadAsset, isLoading: isAssetLoading, progress: assetProgress } = useAssetCache();
+
+    useEffect(() => {
+        const fetchTrivia = async () => {
+            if (!buildingId) return;
+            try {
+                const res = await api.get(`/api/buildings/trivias/?building_id=${buildingId}`);
+                if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
+                    const trivias = res.data.data;
+                    const randomTrivia = trivias[Math.floor(Math.random() * trivias.length)];
+                    setFetchedTrivia(randomTrivia.fact);
+                }
+            } catch (err) {
+                console.error('Failed to fetch trivia:', err);
+            }
+        };
+        fetchTrivia();
+    }, [buildingId]);
 
     useEffect(() => {
         const initAsset = async () => {
@@ -122,12 +141,20 @@ export default function Building3DViewerScreen() {
                 <Text style={styles.hudSubtitle}>3D MODEL INITIALIZED</Text>
             </View>
 
-            {/* Gamified WMSU HUD Overlay - Description (Bottom) */}
-            {buildingDescription ? (
+            {/* Gamified WMSU HUD Overlay - Description & Trivia (Bottom) */}
+            {(buildingDescription || fetchedTrivia) ? (
                 <View style={styles.hudBottomContainer} pointerEvents="box-none">
-                    <ScrollView style={styles.descriptionScroll} showsVerticalScrollIndicator={false}>
-                        <Text style={styles.buildingDescription}>{buildingDescription}</Text>
-                    </ScrollView>
+                    {fetchedTrivia && (
+                        <View style={styles.triviaContainer}>
+                            <Text style={styles.triviaTitle}>DID YOU KNOW?</Text>
+                            <Text style={styles.triviaText}>{fetchedTrivia}</Text>
+                        </View>
+                    )}
+                    {buildingDescription && (
+                        <ScrollView style={styles.descriptionScroll} showsVerticalScrollIndicator={false}>
+                            <Text style={styles.buildingDescription}>{buildingDescription}</Text>
+                        </ScrollView>
+                    )}
                 </View>
             ) : null}
 
@@ -261,5 +288,26 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textAlign: 'center',
         fontWeight: 'bold',
+    },
+    triviaContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 12,
+        borderRadius: theme.radius.md,
+        marginBottom: 8,
+        borderLeftWidth: 4,
+        borderColor: theme.colors.arHighlight,
+    },
+    triviaTitle: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: theme.colors.arHighlight,
+        letterSpacing: 2,
+        marginBottom: 4,
+    },
+    triviaText: {
+        fontSize: 13,
+        color: theme.colors.textSecondary,
+        fontStyle: 'italic',
+        fontFamily: 'monospace',
     },
 });

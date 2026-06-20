@@ -22,7 +22,8 @@ class RoleFeatureControlTests(TestCase):
             description='Test Desc', 
             latitude=10.0, 
             longitude=20.0, 
-            is_active=True
+            is_active=True,
+            status='VISIBLE'
         )
         self.geofence = Geofence.objects.create(building=self.building, latitude=10.0, longitude=20.0, radius_meters=50.0, is_active=True)
         self.asset = BuildingAsset.objects.create(building=self.building, version=1, file='test.glb', asset_type='model', is_active=True)

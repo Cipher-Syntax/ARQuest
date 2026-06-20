@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { Card, Badge } from '../components/ui'
 import { dashboardService } from '../services/dashboardService'
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function Dashboard() {
 	const [stats, setStats] = useState({
@@ -64,6 +65,14 @@ export default function Dashboard() {
 		}
 	]
 
+	const statusCounts = stats.building_status.reduce((acc, b) => {
+		acc[b.status] = (acc[b.status] || 0) + 1
+		return acc
+	}, {})
+	
+	const statusData = Object.keys(statusCounts).map(key => ({ name: key, value: statusCounts[key] }))
+	const STATUS_COLORS = { 'Live': '#10B981', 'Draft': '#9CA3AF', 'Hidden': '#EF4444' }
+
 	return (
 		<div className="space-y-6">
 			<div>
@@ -107,24 +116,29 @@ export default function Dashboard() {
 						</button>
 					</div>
 
-					<div className="h-48 flex items-end justify-between gap-3 px-2">
-						{stats.weekly_data.map((data, i) => (
-							<div key={i} className="flex-1 flex flex-col items-center gap-3 group">
-								<div className="w-full relative">
-									<div
-										className={`w-full rounded-t-lg transition-all duration-300 ${data.day === 'Sat' ? 'bg-brand' : 'bg-brand-light group-hover:bg-brand/30'}`}
-										style={{ height: `${Math.max(data.value * 15, 4)}px` }}
-									>
-										<div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-											{data.value} unlocks
-										</div>
-									</div>
-								</div>
-								<span className="text-[11px] font-bold text-gray-400 uppercase">
-									{data.day}
-								</span>
-							</div>
-						))}
+					<div className="h-48 mt-4">
+						<ResponsiveContainer width="100%" height="100%">
+							<BarChart data={stats.weekly_data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+								<XAxis 
+									dataKey="day" 
+									axisLine={false} 
+									tickLine={false} 
+									tick={{ fontSize: 11, fill: '#9CA3AF', fontWeight: 'bold' }} 
+									dy={10}
+								/>
+								<Tooltip 
+									cursor={{ fill: 'rgba(138, 21, 56, 0.05)' }}
+									contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+									labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
+								/>
+								<Bar 
+									dataKey="value" 
+									fill="#8A1538" 
+									radius={[4, 4, 0, 0]} 
+									barSize={32}
+								/>
+							</BarChart>
+						</ResponsiveContainer>
 					</div>
 				</Card>
 
@@ -135,6 +149,30 @@ export default function Dashboard() {
 							<MoreVertical size={18} />
 						</button>
 					</div>
+
+					{statusData.length > 0 && (
+						<div className="h-40 mb-6">
+							<ResponsiveContainer width="100%" height="100%">
+								<PieChart>
+									<Pie 
+										data={statusData} 
+										innerRadius={45} 
+										outerRadius={70} 
+										paddingAngle={2}
+										dataKey="value"
+									>
+										{statusData.map((entry, index) => (
+											<Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#8A1538'} />
+										))}
+									</Pie>
+									<Tooltip 
+										contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+									/>
+								</PieChart>
+							</ResponsiveContainer>
+						</div>
+					)}
+
 					<div className="space-y-1">
 						{stats.building_status.map((b, i) => (
 							<div

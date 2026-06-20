@@ -6,23 +6,80 @@ from apps.authentication.permissions import IsAdminRole
 from apps.api.responses import success_response, error_response
 from apps.geofencing.serializers import LocationValidationSerializer
 from apps.geofencing.utils import calculate_distance
-from .models import Building, Geofence, BuildingUnlock, BuildingAsset
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Department
 from .serializers import (
-    BuildingSerializer, 
+    BuildingSerializer,
     BuildingWriteSerializer,
     GeofenceSerializer,
     GeofenceWriteSerializer,
     BuildingUnlockSerializer,
     UnlockedBuildingSerializer,
-    BuildingAssetSerializer
+    BuildingAssetSerializer,
+    DepartmentSerializer,
+    DepartmentWriteSerializer
 )
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def department_list_create(request):
+    if request.method == 'GET':
+        if getattr(request.user, 'is_admin_role', False):
+            departments = Department.objects.all()
+        else:
+            departments = Department.objects.filter(is_active=True)
+        serializer = DepartmentSerializer(departments, many=True)
+        return success_response(serializer.data)
+
+    elif request.method == 'POST':
+        if not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+        serializer = DepartmentWriteSerializer(data=request.data)
+        if serializer.is_valid():
+            department = serializer.save()
+            return success_response(DepartmentSerializer(department).data, status_code=status.HTTP_201_CREATED)
+        return error_response('validation_error', 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def department_detail(request, id):
+    try:
+        department = Department.objects.get(id=id)
+    except Department.DoesNotExist:
+        return error_response('not_found', 'Department not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = DepartmentSerializer(department)
+        return success_response(serializer.data)
+
+    elif request.method == 'PATCH':
+        if not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+        serializer = DepartmentWriteSerializer(department, data=request.data, partial=True)
+        if serializer.is_valid():
+            department = serializer.save()
+            return success_response(DepartmentSerializer(department).data)
+        return error_response('validation_error', 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+
+    elif request.method == 'DELETE':
+        if not request.user.is_admin_role:
+            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+        department.delete()
+        return success_response({'message': 'Department deleted successfully'}, status_code=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def building_list_create(request):
     if request.method == 'GET':
-        buildings = Building.objects.filter(is_active=True)
+        if getattr(request.user, 'is_admin_role', False):
+            buildings = Building.objects.all()
+        else:
+            buildings = Building.objects.filter(status='VISIBLE')
         serializer = BuildingSerializer(buildings, many=True, context={'request': request})
         return success_response(serializer.data)
     
@@ -46,7 +103,7 @@ def building_detail(request, id):
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
-        if not building.is_active and not request.user.is_admin_role:
+        if building.status != 'VISIBLE' and not getattr(request.user, 'is_admin_role', False):
             return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         serializer = BuildingSerializer(building, context={'request': request})
         return success_response(serializer.data)
@@ -126,7 +183,7 @@ def unlock_building(request):
     user_lon = serializer.validated_data['longitude']
     accuracy = serializer.validated_data['accuracy_meters']
 
-    active_buildings = Building.objects.filter(is_active=True).prefetch_related('geofences')
+    active_buildings = Building.objects.filter(is_active=True, status='VISIBLE').prefetch_related('geofences')
     
     for building in active_buildings:
         geofence = building.geofences.filter(is_active=True).first()
@@ -167,7 +224,7 @@ def unlock_building_qr(request):
         return error_response('invalid_input', 'QR code secret is required', status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
-        building = Building.objects.get(qr_code_secret=qr_secret, is_active=True)
+        building = Building.objects.get(qr_code_secret=qr_secret, is_active=True, status='VISIBLE')
     except Building.DoesNotExist:
         return error_response('invalid_qr', 'Invalid or inactive QR code', status_code=status.HTTP_404_NOT_FOUND)
 
@@ -195,11 +252,11 @@ def unlocked_buildings(request):
     user = request.user
     
     if user.is_professional_role:
-        buildings = Building.objects.filter(is_active=True)
+        buildings = Building.objects.filter(status='VISIBLE')
         serializer = UnlockedBuildingSerializer(buildings, many=True, context={'request': request})
         return success_response(serializer.data)
     
-    unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__is_active=True)
+    unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__status='VISIBLE')
     buildings_data = []
     for unlock in unlocks:
         serializer = UnlockedBuildingSerializer(unlock.building, context={'request': request})
@@ -220,7 +277,7 @@ def building_assets(request, id):
     except Building.DoesNotExist:
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
-    if not building.is_active and not request.user.is_admin_role:
+    if building.status != 'VISIBLE' and not getattr(request.user, 'is_admin_role', False):
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.user.is_visitor_role:
@@ -245,7 +302,7 @@ def asset_metadata(request, id):
         return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
 
     building = asset.building
-    if not building.is_active and not request.user.is_admin_role:
+    if building.status != 'VISIBLE' and not getattr(request.user, 'is_admin_role', False):
          return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
          
     if request.user.is_visitor_role:
@@ -277,6 +334,13 @@ def quest_list_create(request):
     elif request.method == 'POST':
         if not request.user.is_admin_role:
             return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        
+        from apps.api.models import SystemSetting
+        if 'reward_points' not in request.data or not request.data.get('reward_points'):
+            if hasattr(request.data, '_mutable'):
+                request.data._mutable = True
+            request.data['reward_points'] = SystemSetting.get_settings().default_quest_reward
+            
         serializer = QuestSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -341,3 +405,55 @@ def trivia_detail(request, id):
     elif request.method == 'DELETE':
         trivia.delete()
         return success_response({'message': 'Trivia deleted'})
+
+from django.conf import settings
+from datetime import timedelta
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+@api_view(['GET'])
+def building_archived_list(request):
+    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
+        return Response({"error": "Forbidden"}, status=403)
+    archived = Building.all_objects.filter(deleted_at__isnull=False)
+    serializer = BuildingSerializer(archived, many=True, context={'request': request})
+    return Response({"success": True, "data": serializer.data})
+
+@api_view(['POST'])
+def building_restore(request, pk):
+    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
+        return Response({"error": "Forbidden"}, status=403)
+    try:
+        building = Building.all_objects.get(pk=pk, deleted_at__isnull=False)
+        building.restore()
+        return Response({"success": True})
+    except Building.DoesNotExist:
+        return Response({"error": "Not found"}, status=404)
+
+@api_view(['DELETE'])
+def building_hard_delete(request, pk):
+    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
+        return Response({"error": "Forbidden"}, status=403)
+    try:
+        building = Building.all_objects.get(pk=pk, deleted_at__isnull=False)
+        building.hard_delete()
+        return Response({"success": True})
+    except Building.DoesNotExist:
+        return Response({"error": "Not found"}, status=404)
+
+@api_view(['DELETE'])
+@permission_classes([AllowAny])
+def cron_cleanup(request):
+    secret = request.headers.get('X-Cron-Secret')
+    expected = getattr(settings, 'CRON_SECRET_KEY')
+    if secret != expected:
+        return Response({"error": "Forbidden"}, status=403)
+    
+    threshold = timezone.now() - timedelta(days=30)
+    old_buildings = Building.all_objects.filter(deleted_at__lt=threshold)
+    count = old_buildings.count()
+    for b in old_buildings:
+        b.hard_delete()
+        
+    return Response({"success": True, "deleted": count}, status=204)

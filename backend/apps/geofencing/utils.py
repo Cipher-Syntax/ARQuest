@@ -16,5 +16,4 @@ def calculate_distance(lat1, lon1, lat2, lon2):
         math.cos(φ1) * math.cos(φ2) * math.sin(Δλ / 2) * math.sin(Δλ / 2)
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
     return R * c

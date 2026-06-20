@@ -63,6 +63,7 @@ export default function BuildingsPage() {
 	const [editingBuilding, setEditBuilding] = useState(null)
 	const [searchTerm, setSearchTerm] = useState('')
 	const [statusFilter, setStatusFilter] = useState('all')
+	const [visibilityFilter, setVisibilityFilter] = useState('all')
 	const [openMenu, setOpenMenu] = useState(null)
 	const [currentPage, setCurrentPage] = useState(1)
 	const itemsPerPage = 5
@@ -97,6 +98,7 @@ export default function BuildingsPage() {
 				lat: b.latitude,
 				lng: b.longitude,
 				status: b.is_active ? 'active' : 'inactive',
+				status_display: b.status,
 				models: b.model_file ? 1 : 0,
 				panos: 0,
 				qr_code_secret: b.qr_code_secret
@@ -151,7 +153,8 @@ export default function BuildingsPage() {
 			b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			b.code.toLowerCase().includes(searchTerm.toLowerCase())
 		const matchesStatus = statusFilter === 'all' || b.status === statusFilter
-		return matchesSearch && matchesStatus
+		const matchesVisibility = visibilityFilter === 'all' || b.status_display === visibilityFilter
+		return matchesSearch && matchesStatus && matchesVisibility
 	})
 
 	const totalPages = Math.ceil(filteredBuildings.length / itemsPerPage)
@@ -163,7 +166,7 @@ export default function BuildingsPage() {
 	
 	useEffect(() => {
 		setCurrentPage(1)
-	}, [searchTerm, statusFilter])
+	}, [searchTerm, statusFilter, visibilityFilter])
 
 	return (
 		<div className="space-y-6">
@@ -199,13 +202,29 @@ export default function BuildingsPage() {
 					</div>
 					<div className="relative w-full md:w-48">
 						<select
+							value={visibilityFilter}
+							onChange={(e) => setVisibilityFilter(e.target.value)}
+							className="w-full pl-4 pr-10 py-2 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
+						>
+							<option value="all">All Visibility</option>
+							<option value="VISIBLE">Visible</option>
+							<option value="HIDDEN">Hidden</option>
+							<option value="DRAFT">Draft</option>
+						</select>
+						<Filter
+							className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none"
+							size={16}
+						/>
+					</div>
+					<div className="relative w-full md:w-48">
+						<select
 							value={statusFilter}
 							onChange={(e) => setStatusFilter(e.target.value)}
 							className="w-full pl-4 pr-10 py-2 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand appearance-none font-bold text-gray-700 shadow-sm cursor-pointer"
 						>
-							<option value="all">All Status</option>
-							<option value="active">Active</option>
-							<option value="inactive">Inactive</option>
+							<option value="all">All Operations</option>
+							<option value="active">Active/Open</option>
+							<option value="inactive">Closed/Inactive</option>
 						</select>
 						<Filter
 							className="absolute right-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none"
@@ -220,7 +239,7 @@ export default function BuildingsPage() {
 					</div>
 				) : (
 					<>
-						<div className="overflow-x-auto">
+						<div className="overflow-visible w-full">
 							<table className="w-full text-left">
 								<thead>
 									<tr className="bg-brand-light/20">
@@ -232,6 +251,9 @@ export default function BuildingsPage() {
 										</th>
 										<th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
 											Status
+										</th>
+										<th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+											Visibility
 										</th>
 										<th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">
 											Actions
@@ -266,6 +288,13 @@ export default function BuildingsPage() {
 													variant={b.status === 'active' ? 'success' : 'gray'}
 												>
 													{b.status === 'active' ? 'Active' : 'Inactive'}
+												</Badge>
+											</td>
+											<td className="px-6 py-4">
+												<Badge
+													variant={b.status_display === 'VISIBLE' ? 'brand' : b.status_display === 'HIDDEN' ? 'red' : 'gray'}
+												>
+													{b.status_display === 'VISIBLE' ? 'Visible' : b.status_display === 'HIDDEN' ? 'Hidden' : 'Draft'}
 												</Badge>
 											</td>
 											<td className="px-6 py-4 text-right">
@@ -307,7 +336,7 @@ export default function BuildingsPage() {
 																onClick={() => handleDeleteClick(b.id)}
 																className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
 															>
-																<Trash2 size={14} /> Delete Building
+																<Trash2 size={14} /> Move to Archive
 															</button>
 														</div>
 													)}
@@ -343,8 +372,8 @@ export default function BuildingsPage() {
 				isOpen={isDeleteModalOpen}
 				onClose={() => setIsDeleteModalOpen(false)}
 				onConfirm={handleConfirmDelete}
-				title="Delete Building"
-				message="Are you sure you want to move this building to trash? This will remove its coordinates and association from the system."
+				title="Move to Archive"
+				message="This building will be moved to the Archive and permanently deleted after 30 days."
 			/>
 
 			<QRCodeModal

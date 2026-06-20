@@ -17,6 +17,11 @@
             border: 2px solid white;
         }
 
+        .custom-dept-marker {
+            background: transparent;
+            border: none;
+        }
+        
         .locked-marker {
             background-color: #555;
             border-radius: 50%;
@@ -62,12 +67,16 @@
         }).setView(WMSU_CENTER, 16);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+            maxZoom: 20,
+            maxNativeZoom: 18
         }).addTo(map);
 
         let fogLayer = null;
         let markersGroup = L.layerGroup().addTo(map);
         let userMarker = null;
+        let routingLine = null;
+        let targetBuildingId = null;
+        let sourceBuildingId = null;
 
         // Function to create a circular hole in the fog
         function getCirclePoints(center, radiusMeters, points = 32) {
@@ -87,6 +96,7 @@
         }
 
         function updateMap(data) {
+            window.lastMapData = data;
             const { buildings, unlockedIds, userLocation } = data;
             
             // 1. Draw Fog of War
@@ -128,8 +138,12 @@
                     }
                 }
 
-                const iconClass = isUnlocked ? 'glow-marker' : 'locked-marker';
-                const icon = L.divIcon({ className: iconClass, iconSize: [16, 16] });
+                const deptColor = (b.primary_department && b.primary_department.color_hex) ? b.primary_department.color_hex : '#B21830';
+                const htmlStr = isUnlocked 
+                    ? `<div style="width:100%;height:100%;border-radius:50%;background-color:${deptColor};border:2px solid white;box-shadow:0 0 15px 5px ${deptColor}66;"></div>`
+                    : `<div style="width:100%;height:100%;border-radius:50%;background-color:#555;border:2px solid #888;"></div>`;
+                
+                const icon = L.divIcon({ className: 'custom-dept-marker', html: htmlStr, iconSize: [16, 16] });
 
                 const marker = L.marker([lat, lng], { icon }).addTo(markersGroup);
                 
@@ -156,6 +170,44 @@
                 });
             });
 
+            let sourceLat = null;
+            let sourceLng = null;
+
+            if (sourceBuildingId) {
+                const sourceBuilding = buildings.find(b => b.id === sourceBuildingId);
+                if (sourceBuilding) {
+                    sourceLat = parseFloat(sourceBuilding.latitude);
+                    sourceLng = parseFloat(sourceBuilding.longitude);
+                }
+            } else if (userLocation) {
+                sourceLat = userLocation.latitude;
+                sourceLng = userLocation.longitude;
+            }
+
+            if (targetBuildingId && sourceLat !== null && sourceLng !== null) {
+                const targetBuilding = buildings.find(b => b.id === targetBuildingId);
+                if (targetBuilding) {
+                    const targetLat = parseFloat(targetBuilding.latitude);
+                    const targetLng = parseFloat(targetBuilding.longitude);
+
+                    if (routingLine) {
+                        routingLine.setLatLngs([[sourceLat, sourceLng], [targetLat, targetLng]]);
+                    } else {
+                        routingLine = L.polyline([[sourceLat, sourceLng], [targetLat, targetLng]], {
+                            color: '#B21830',
+                            weight: 3,
+                            dashArray: '8, 8'
+                        }).addTo(map);
+                    }
+                    boundsElements.push(routingLine);
+                }
+            } else {
+                if (routingLine) {
+                    map.removeLayer(routingLine);
+                    routingLine = null;
+                }
+            }
+
             fogLayer = L.polygon(polygonCoords, {
                 color: 'transparent',
                 fillColor: '#ffffff',
@@ -171,6 +223,18 @@
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 if (data.type === 'init' || data.type === 'update') {
                     updateMap(data);
+                } else if (data.type === 'draw_route') {
+                    targetBuildingId = data.buildingId;
+                    sourceBuildingId = data.sourceBuildingId || null;
+                    if (window.lastMapData) updateMap(window.lastMapData);
+                } else if (data.type === 'clear_route') {
+                    targetBuildingId = null;
+                    sourceBuildingId = null;
+                    if (routingLine) {
+                        map.removeLayer(routingLine);
+                        routingLine = null;
+                    }
+                    if (window.lastMapData) updateMap(window.lastMapData);
                 }
             } catch (e) {
                 console.error("Parse error", e);
@@ -182,6 +246,18 @@
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 if (data.type === 'init' || data.type === 'update') {
                     updateMap(data);
+                } else if (data.type === 'draw_route') {
+                    targetBuildingId = data.buildingId;
+                    sourceBuildingId = data.sourceBuildingId || null;
+                    if (window.lastMapData) updateMap(window.lastMapData);
+                } else if (data.type === 'clear_route') {
+                    targetBuildingId = null;
+                    sourceBuildingId = null;
+                    if (routingLine) {
+                        map.removeLayer(routingLine);
+                        routingLine = null;
+                    }
+                    if (window.lastMapData) updateMap(window.lastMapData);
                 }
             } catch (e) {
                 console.error("Parse error", e);

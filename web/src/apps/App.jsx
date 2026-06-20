@@ -19,6 +19,8 @@ import CmsPage from '../pages/CmsPage'
 import UsersContainer from '../pages/UsersContainer'
 import ProfessionalsPage from '../pages/ProfessionalsPage'
 import SettingsPage from '../pages/SettingsPage'
+import DepartmentsPage from '../pages/DepartmentsPage'
+import ArchivePage from '../pages/ArchivePage'
 
 const App = () => {
 	return (
@@ -36,6 +38,7 @@ const App = () => {
 						}
 					>
 						<Route path="dashboard" element={<DashboardPage />} />
+						<Route path="departments" element={<DepartmentsPage />} />
 						<Route path="buildings" element={<BuildingsPage />} />
 						<Route path="buildings/:id" element={<BuildingEditorPage />} />
 						<Route path="geofences" element={<GeofencesPage />} />
@@ -46,6 +49,7 @@ const App = () => {
 						<Route path="users" element={<UsersContainer />} />
 						<Route path="professionals" element={<ProfessionalsPage />} />
 						<Route path="settings" element={<SettingsPage />} />
+						<Route path="archives" element={<ArchivePage />} />
 					</Route>
 				</Routes>
 			</AuthProvider>

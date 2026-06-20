@@ -1,5 +1,28 @@
 from rest_framework import serializers
-from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Quest, TriviaFact
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Quest, TriviaFact, Department
+
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    building_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Department
+        fields = ['id', 'name', 'code', 'description', 'color_hex', 'is_active', 'building_count']
+
+    def get_building_count(self, obj):
+        return obj.buildings.count()
+
+
+class DepartmentWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['name', 'code', 'description', 'color_hex', 'is_active']
+
+    def validate_code(self, value):
+        import re
+        if not re.match(r'^[-a-zA-Z0-9_]+$', value):
+            raise serializers.ValidationError('Code must be slug-safe (letters, numbers, hyphens, underscores only).')
+        return value
 
 class QuestSerializer(serializers.ModelSerializer):
     target_building_name = serializers.CharField(source='target_building.name', read_only=True)
@@ -45,11 +68,14 @@ class BuildingSerializer(serializers.ModelSerializer):
     geofences = GeofenceSerializer(many=True, read_only=True)
     model_url = serializers.SerializerMethodField()
     qr_code_secret = serializers.SerializerMethodField()
-    
+    departments = DepartmentSerializer(many=True, read_only=True)
+    primary_department = DepartmentSerializer(read_only=True)
+
     class Meta:
         model = Building
-        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_active', 'geofences', 
-                  'model_url', 'model_version', 'model_file_size', 'model_active', 'qr_code_secret', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active', 'geofences',
+                  'model_url', 'model_version', 'model_file_size', 'model_active', 'qr_code_secret',
+                  'departments', 'primary_department', 'created_at', 'updated_at']
     
     def get_model_url(self, obj):
         if obj.model_file:
@@ -66,17 +92,34 @@ class BuildingSerializer(serializers.ModelSerializer):
 
 
 class BuildingWriteSerializer(serializers.ModelSerializer):
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    slug = serializers.SlugField(required=False, allow_blank=True)
+    department_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        source='departments',
+        many=True,
+        required=False
+    )
+    primary_department_id = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        source='primary_department',
+        allow_null=True,
+        required=False
+    )
+
     class Meta:
         model = Building
-        fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'is_active', 'model_version', 'model_active', 'model_file']
+        fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active',
+                  'model_version', 'model_active', 'model_file', 'department_ids', 'primary_department_id']
     
     def validate_latitude(self, value):
-        if value < -90 or value > 90:
+        if value is not None and (value < -90 or value > 90):
             raise serializers.ValidationError('Latitude must be between -90 and 90')
         return value
     
     def validate_longitude(self, value):
-        if value < -180 or value > 180:
+        if value is not None and (value < -180 or value > 180):
             raise serializers.ValidationError('Longitude must be between -180 and 180')
         return value
 
@@ -101,7 +144,7 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Building
-        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'is_unlocked', 'unlock_source', 
+        fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_unlocked', 'unlock_source', 
                   'unlocked_at', 'model_url', 'model_version', 'model_file_size', 'model_active']
     
     def get_model_url(self, obj):

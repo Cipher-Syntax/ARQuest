@@ -1,5 +1,5 @@
-import React from 'react'
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents, Tooltip } from 'react-leaflet'
+import React, { useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap, Tooltip } from 'react-leaflet'
 import { theme } from '../theme'
 import 'leaflet/dist/leaflet.css'
 import '../utils/leafletConfig'
@@ -16,6 +16,28 @@ const MapClickHandler = ({ onMapClick }) => {
 			onMapClick(e.latlng)
 		}
 	})
+	return null
+}
+
+const MapUpdater = ({ center }) => {
+	const map = useMap()
+	
+	useEffect(() => {
+		const lat = parseFloat(center.lat)
+		const lng = parseFloat(center.lng)
+		
+		if (isNaN(lat) || isNaN(lng)) return
+		
+		const timeoutId = setTimeout(() => {
+			map.flyTo([lat, lng], map.getZoom(), {
+				animate: true,
+				duration: 0.5
+			})
+		}, 500)
+
+		return () => clearTimeout(timeoutId)
+	}, [center.lat, center.lng, map])
+
 	return null
 }
 
@@ -110,8 +132,11 @@ const GeofenceEditor = ({ value, onChange, errors, existingBuildings = [], curre
 					<TileLayer
 						url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 						attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+						maxNativeZoom={18}
+						maxZoom={20}
 					/>
 					<MapClickHandler onMapClick={handleMapClick} />
+					<MapUpdater center={center} />
 					
 					{}
 					{existingBuildings.map((b) => {

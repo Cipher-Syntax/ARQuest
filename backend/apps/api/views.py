@@ -94,3 +94,19 @@ def system_settings(request):
             serializer.save()
             return success_response(serializer.data)
         return error_response('validation_error', 'Invalid data', details=serializer.errors, status_code=400)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_settings(request):
+    settings = SystemSetting.get_settings()
+    data = {
+        "app_name": settings.app_name,
+        "maintenance_mode": settings.maintenance_mode,
+        "enable_gps": settings.enable_gps,
+        "enable_qr": settings.enable_qr,
+        "enable_ar_selfie": settings.enable_ar_selfie,
+        "enable_trivia": settings.enable_trivia,
+        "enable_accreditation": settings.enable_accreditation,
+        "enable_leaderboard": settings.enable_leaderboard,
+    }
+    return Response({"success": True, "data": data})

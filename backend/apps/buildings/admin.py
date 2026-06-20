@@ -1,16 +1,22 @@
 from django.contrib import admin
-from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Quest, UserQuestProgress
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Quest, UserQuestProgress, Department
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'is_active', 'created_at']
+    search_fields = ['name', 'code']
+    readonly_fields = ['created_at', 'updated_at']
 
 @admin.register(Building)
 class BuildingAdmin(admin.ModelAdmin):
-    list_display = ['name', 'slug', 'is_active', 'model_active', 'latitude', 'longitude', 'created_at', 'updated_at']
-    list_filter = ['is_active', 'model_active', 'created_at']
+    list_display = ['name', 'slug', 'primary_department', 'is_active', 'model_active', 'latitude', 'longitude', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'model_active', 'created_at', 'primary_department']
     search_fields = ['name', 'slug', 'description']
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ['created_at', 'updated_at']
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'slug', 'description', 'is_active')
+            'fields': ('name', 'slug', 'description', 'is_active', 'primary_department', 'departments')
         }),
         ('Location', {
             'fields': ('latitude', 'longitude')
