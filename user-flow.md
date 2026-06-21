@@ -1,4 +1,4 @@
-﻿# ARQuest — User Flow
+# ARQuest — User Flow
 
 > Last updated: 2026-06-20
 > Covers all four user roles: Student, Professional (Accreditor), Admin, and Visitor.
@@ -450,7 +450,7 @@ When a visitor tries to take an action that requires authentication, the app sho
 
 The admin workflow for getting a building live on the mobile app is a multi-step process managed entirely through the web dashboard. The admin starts by creating a building record in DRAFT status, which has no coordinate or slug requirement. This allows incomplete records to be saved at any stage without triggering validation errors.
 
-From there, the admin uploads a 3D model file, sets the primary and associated departments, configures the geofence on the interactive Leaflet map, uploads panorama scenes and hotspots in the Panorama Manager, creates quests and trivia facts for the building, and finally sets the status to VISIBLE. The backend validates that all required fields are present when the status changes to VISIBLE. Once it passes, the building appears on the mobile app immediately without any app update.
+From there, the admin uploads a 3D model file, configures interactive 3D hotspots via the raycaster web editor, sets the primary and associated departments, configures the geofence on the interactive Leaflet map, uploads panorama scenes and hotspots in the Panorama Manager, creates quests and trivia facts for the building, and finally sets the status to VISIBLE. The backend validates that all required fields are present when the status changes to VISIBLE. Once it passes, the building appears on the mobile app immediately without any app update.
 
 ---
 

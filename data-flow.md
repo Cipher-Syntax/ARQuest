@@ -405,7 +405,7 @@ When a user scans a QR code through the AR camera screen, the UUID from the code
 
 This flow starts when a user taps the "View 3D Model" button on an unlocked building. The mobile app checks its local asset cache first. If the cache is empty or the stored checksum does not match the server's current version, the model file is fetched from the URL in the building's API response.
 
-The model URL is passed to the `Building3DViewer` screen, which opens a fullscreen `WebView` running a standalone HTML page. This page sets up a Three.js scene, camera, and WebGL renderer. The `GLTFLoader` fetches and parses the `.glb` file, and the viewer auto-fits the camera to the model's bounding box so the full building is visible regardless of its original scale. `OrbitControls` are then enabled for touch-based rotation and zoom.
+The model URL and the JSON `hotspots` array are passed to the `Building3DViewer` screen, which opens a fullscreen `WebView` running a standalone HTML page. This page sets up a Three.js scene, camera, and WebGL renderer. The `GLTFLoader` fetches and parses the `.glb` file, and the viewer auto-fits the camera to the model's bounding box so the full building is visible regardless of its original scale. `OrbitControls` are then enabled for touch-based rotation and zoom, while the `hotspots` array is iterated to spawn 3D interactive spherical waypoints using a see-through X-Ray material shader.
 
 The WebView sends `postMessage` events back to React Native to report load progress, confirm a successful render, or surface errors the native UI can handle.
 
