@@ -24,6 +24,7 @@ const BuildingEditorPage = () => {
 		model_file: null,
 		model_version: '',
 		model_active: false,
+		hotspots: [],
 		primary_department_id: null,
 		department_ids: []
 	})
@@ -43,7 +44,22 @@ const BuildingEditorPage = () => {
 
 	const [deptSearch, setDeptSearch] = useState('')
 	const [deptDropdownOpen, setDeptDropdownOpen] = useState(false)
+	const [showHotspotEditor, setShowHotspotEditor] = useState(false)
 	const deptDropdownRef = useRef(null)
+
+	// Listen for messages from the iframe Hotspot Editor
+	useEffect(() => {
+		const handleMessage = (event) => {
+			if (event.data && event.data.type === 'SAVE_HOTSPOTS') {
+				setBuilding(prev => ({ ...prev, hotspots: event.data.hotspots }));
+				setShowHotspotEditor(false);
+				setSuccessMessage('Hotspots saved locally! Click "Save All Changes" below to save to the database.');
+				setTimeout(() => setSuccessMessage(''), 5000);
+			}
+		};
+		window.addEventListener('message', handleMessage);
+		return () => window.removeEventListener('message', handleMessage);
+	}, []);
 
 	useEffect(() => {
 		const handleClickOutside = (e) => {
@@ -182,6 +198,10 @@ const BuildingEditorPage = () => {
 			formData.append('is_active', building.is_active)
 			formData.append('model_version', building.model_version || '')
 			formData.append('model_active', building.model_active)
+			
+			if (building.hotspots) {
+				formData.append('hotspots', JSON.stringify(building.hotspots))
+			}
 
 			if (building.primary_department_id) {
 				formData.append('primary_department_id', building.primary_department_id)
@@ -771,18 +791,35 @@ const BuildingEditorPage = () => {
 								placeholder="Drag & drop 3D model here or click to browse"
 							/>
 							{building.model_url && !(building.model_file instanceof File) && (
-								<div
-									style={{
-										fontSize: '12px',
-										color: theme.colors.primary,
-										marginTop: theme.spacing.xs,
-										padding: '8px',
-										backgroundColor: 'rgba(0, 229, 255, 0.1)',
-										borderRadius: '4px',
-										fontWeight: 'bold'
-									}}
-								>
-									✓ Current model uploaded. Drop a new file above to replace it.
+								<div style={{ marginTop: '15px' }}>
+									<div
+										style={{
+											fontSize: '12px',
+											fontWeight: 'bold',
+											marginBottom: '10px'
+										}}
+									>
+										✅ Current model uploaded. Drop a new file above to replace it.
+									</div>
+									<button
+										type="button"
+										onClick={() => setShowHotspotEditor(true)}
+										style={{
+											padding: '8px 16px',
+											background: theme.colors.primary,
+											color: 'white',
+											border: 'none',
+											borderRadius: '4px',
+											cursor: 'pointer',
+											fontWeight: 'bold',
+											display: 'flex',
+											alignItems: 'center',
+											gap: '8px'
+										}}
+									>
+										<ImageIcon size={16} />
+										Edit 3D Hotspots
+									</button>
 								</div>
 							)}
 						</div>
@@ -900,6 +937,39 @@ const BuildingEditorPage = () => {
 					{saving ? 'Saving...' : 'Save All Changes'}
 				</button>
 			</form>
+
+			{/* Fullscreen Hotspot Editor Modal */}
+			{showHotspotEditor && (
+				<div style={{
+					position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+					background: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', flexDirection: 'column'
+				}}>
+					<div style={{ padding: '15px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderBottom: `1px solid ${theme.colors.border}` }}>
+						<div>
+							<h2 style={{ color: 'white', margin: 0, fontSize: '20px' }}>Interactive 3D Hotspot Editor</h2>
+							<p style={{ color: '#aaa', margin: '5px 0 0 0', fontSize: '13px' }}>Double-click anywhere on the model to place a hotspot.</p>
+						</div>
+						<button 
+							type="button"
+							onClick={() => setShowHotspotEditor(false)} 
+							style={{ background: theme.colors.error, color: 'white', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+						>
+							Close Editor (Without Saving)
+						</button>
+					</div>
+					<iframe 
+						src="/admin-hotspot-editor.html"
+						style={{ width: '100%', flex: 1, border: 'none' }}
+						onLoad={(e) => {
+							e.target.contentWindow.postMessage({
+								type: 'INIT_EDITOR',
+								modelUrl: building.model_url,
+								hotspots: building.hotspots || []
+							}, '*');
+						}}
+					/>
+				</div>
+			)}
 		</div>
 	)
 }

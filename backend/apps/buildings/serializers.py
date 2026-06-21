@@ -74,7 +74,7 @@ class BuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
         fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active', 'geofences',
-                  'model_url', 'model_version', 'model_file_size', 'model_active', 'qr_code_secret',
+                  'model_url', 'model_version', 'model_file_size', 'model_active', 'hotspots', 'qr_code_secret',
                   'departments', 'primary_department', 'created_at', 'updated_at']
     
     def get_model_url(self, obj):
@@ -95,6 +95,7 @@ class BuildingWriteSerializer(serializers.ModelSerializer):
     latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     slug = serializers.SlugField(required=False, allow_blank=True)
+    hotspots = serializers.CharField(required=False, allow_blank=True)
     department_ids = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(),
         source='departments',
@@ -111,7 +112,7 @@ class BuildingWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
         fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active',
-                  'model_version', 'model_active', 'model_file', 'department_ids', 'primary_department_id']
+                  'model_version', 'model_active', 'model_file', 'hotspots', 'department_ids', 'primary_department_id']
     
     def validate_latitude(self, value):
         if value is not None and (value < -90 or value > 90):
@@ -121,6 +122,15 @@ class BuildingWriteSerializer(serializers.ModelSerializer):
     def validate_longitude(self, value):
         if value is not None and (value < -180 or value > 180):
             raise serializers.ValidationError('Longitude must be between -180 and 180')
+        return value
+        
+    def validate_hotspots(self, value):
+        import json
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except ValueError:
+                raise serializers.ValidationError('Invalid JSON for hotspots')
         return value
 
 
@@ -145,7 +155,7 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
         fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_unlocked', 'unlock_source', 
-                  'unlocked_at', 'model_url', 'model_version', 'model_file_size', 'model_active']
+                  'unlocked_at', 'model_url', 'model_version', 'model_file_size', 'model_active', 'hotspots']
     
     def get_model_url(self, obj):
         if obj.model_file:

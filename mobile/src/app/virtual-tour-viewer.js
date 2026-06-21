@@ -8,15 +8,17 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { theme } from '../theme/tokens';
 import { useAssetCache } from '../hooks/useAssetCache';
 import { assetService } from '../services/assetService';
+import api from '../services/api';
 
 export default function VirtualTourViewerScreen() {
-    const { buildingId, buildingName, buildingDescription, modelUrl } = useLocalSearchParams();
+    const { buildingId, buildingName, buildingDescription, modelUrl, hotspots } = useLocalSearchParams();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState(null);
     const [webViewReady, setWebViewReady] = useState(false);
     const [localModelUrl, setLocalModelUrl] = useState(null);
+    const [liveHotspots, setLiveHotspots] = useState([]);
     const webViewRef = useRef(null);
     const { loadAsset, isLoading: isAssetLoading, progress: assetProgress } = useAssetCache();
 
@@ -46,6 +48,24 @@ export default function VirtualTourViewerScreen() {
             }
 
             try {
+                // Fetch fresh building data for latest hotspots
+                try {
+                    const bRes = await api.get(`/api/buildings/${buildingId}/`);
+                    if (bRes.data.success && bRes.data.data.hotspots) {
+                        setLiveHotspots(bRes.data.data.hotspots);
+                    }
+                } catch (bErr) {
+                    console.log('Could not fetch fresh hotspots, falling back to params', bErr);
+                    if (hotspots) {
+                        try {
+                            const parsed = JSON.parse(hotspots);
+                            setLiveHotspots(parsed);
+                        } catch (e) {
+                            console.error("Params Error", e.message);
+                        }
+                    }
+                }
+
                 const assets = await assetService.getBuildingAssets(buildingId);
                 const modelAsset = assets.find(a => a.asset_type === 'model');
                 
@@ -75,7 +95,12 @@ export default function VirtualTourViewerScreen() {
     useEffect(() => {
         if (webViewReady && webViewRef.current && localModelUrl) {
             console.log('Loading model from URL:', localModelUrl);
-            const initMessage = JSON.stringify({ type: 'init', modelUrl: localModelUrl });
+
+            const initMessage = JSON.stringify({ 
+                type: 'init', 
+                modelUrl: localModelUrl,
+                hotspots: liveHotspots
+            });
             webViewRef.current.postMessage(initMessage);
         }
         
@@ -84,7 +109,7 @@ export default function VirtualTourViewerScreen() {
                 webViewRef.current.postMessage(JSON.stringify({ type: 'dispose' }));
             }
         };
-    }, [localModelUrl, webViewReady]);
+    }, [localModelUrl, webViewReady, liveHotspots]);
 
     const handleMessage = (event) => {
         try {

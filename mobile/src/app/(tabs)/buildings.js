@@ -110,6 +110,7 @@ export default function BuildingsScreen() {
                 buildingId: selectedBuilding.id,
                 buildingName: selectedBuilding.name,
                 modelUrl: selectedBuilding.model_url,
+                hotspots: JSON.stringify(selectedBuilding.hotspots || [])
             },
         });
     };

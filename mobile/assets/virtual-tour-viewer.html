@@ -13,6 +13,18 @@
         #camera-zone { position: absolute; top: 0; right: 0; width: 50%; height: 100%; z-index: 10; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: rgba(255,255,255,0.8); border-radius: 50%; transform: translate(-50%, -50%); z-index: 50; pointer-events: none; }
         #interact-btn { position: absolute; bottom: 40px; left: 50%; padding: 10px 20px; background: rgba(0, 229, 255, 0.9); color: black; font-weight: bold; border: none; border-radius: 8px; display: none; transform: translateX(-50%); z-index: 100; font-family: system-ui; }
+        #info-panel {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85); border: 2px solid #00E5FF;
+            color: white; padding: 20px; border-radius: 12px;
+            width: 300px; text-align: center; font-family: system-ui;
+            z-index: 200; display: none;
+        }
+        #info-panel h2 { margin-top: 0; color: #00E5FF; }
+        #info-close {
+            margin-top: 15px; padding: 10px 20px; background: #00E5FF;
+            color: black; font-weight: bold; border: none; border-radius: 6px; width: 100%;
+        }
     </style>
     <!-- Include nipplejs for Joystick -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
@@ -25,6 +37,13 @@
     <button id="ghost-btn" onclick="toggleGhostMode()">PHYSICS: ON</button>
     <div id="crosshair"></div>
     <button id="interact-btn" onclick="onInteractClick()">UNLOCK DOOR</button>
+    
+    <div id="info-panel">
+        <h2 id="info-title">Title</h2>
+        <p id="info-desc">Description</p>
+        <button id="info-close" onclick="closeInfoPanel()">CLOSE</button>
+    </div>
+
     <canvas id="canvas"></canvas>
     
     <script type="importmap">
@@ -53,6 +72,14 @@
         let worldBounds;
         let currentDoor = null;
         
+        let hotspots = [];
+        const tapRaycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        window.closeInfoPanel = () => {
+            document.getElementById('info-panel').style.display = 'none';
+        };
+        
         window.onInteractClick = () => {
             if (currentDoor) {
                 window.ReactNativeWebView?.postMessage(JSON.stringify({
@@ -70,10 +97,27 @@
             document.getElementById('ghost-btn').style.borderColor = ghostMode ? '#FF4444' : '#00E5FF';
         };
 
-        // Allow tapping anywhere on the screen when looking at a door to interact
-        document.addEventListener('pointerdown', (e) => {
+        // Allow tapping anywhere on the screen when looking at a door or hotspot to interact
+        document.addEventListener('pointerup', (e) => {
             if (e.target.id === 'canvas' || e.target.id === 'camera-zone') {
-                if (currentDoor) {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                
+                tapRaycaster.setFromCamera(mouse, camera);
+                const intersects = tapRaycaster.intersectObjects(hotspots, true);
+                
+                if (intersects.length > 0) {
+                    let hit = intersects[0].object;
+                    // If hit the core, get the parent sphere
+                    if (!hit.userData.title && hit.parent && hit.parent.userData.title) {
+                        hit = hit.parent;
+                    }
+                    if (hit.userData.title) {
+                        document.getElementById('info-title').textContent = hit.userData.title;
+                        document.getElementById('info-desc').textContent = hit.userData.desc;
+                        document.getElementById('info-panel').style.display = 'block';
+                    }
+                } else if (currentDoor) {
                     window.onInteractClick();
                 }
             }
@@ -173,6 +217,43 @@
                     controls.target.set(startX, startY, startZ - 0.01);
                     controls.update();
                     
+                    // Create Interactive Hotspots (Callouts)
+                    const createHotspot = (x, y, z, title, desc, color) => {
+                        const geometry = new THREE.SphereGeometry(0.2, 16, 16);
+                        const material = new THREE.MeshBasicMaterial({ 
+                            color: color, 
+                            wireframe: true,
+                            depthTest: false,
+                            transparent: true,
+                            opacity: 0.8
+                        });
+                        const sphere = new THREE.Mesh(geometry, material);
+                        sphere.position.set(x, y, z);
+                        sphere.renderOrder = 999; // Render on top of everything
+                        sphere.userData = { title, desc };
+                        
+                        const coreGeom = new THREE.SphereGeometry(0.1, 16, 16);
+                        const coreMat = new THREE.MeshBasicMaterial({ 
+                            color: 0xffffff,
+                            depthTest: false,
+                            transparent: true,
+                            opacity: 0.9
+                        });
+                        const core = new THREE.Mesh(coreGeom, coreMat);
+                        core.renderOrder = 1000;
+                        sphere.add(core);
+                        
+                        scene.add(sphere);
+                        hotspots.push(sphere);
+                    };
+
+                    // Load Dynamic Hotspots from the Database
+                    if (window.buildingHotspots && window.buildingHotspots.length > 0) {
+                        window.buildingHotspots.forEach(h => {
+                            createHotspot(h.x, h.y, h.z, h.title, h.desc || '', 0x00E5FF);
+                        });
+                    }
+                    
                     document.getElementById('loading').style.display = 'none';
                     window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'loaded' }));
                 },
@@ -204,6 +285,14 @@
             if (model) {
                 // Save the current look offset so we don't mess up the pitch/yaw angle
                 const targetOffset = controls.target.clone().sub(camera.position);
+
+                // Animate Hotspots
+                const time = Date.now() * 0.003;
+                hotspots.forEach(h => {
+                    h.rotation.y += 0.02;
+                    h.rotation.x += 0.01;
+                    h.position.y += Math.sin(time + h.position.x) * 0.002;
+                });
 
                 // Door Interaction Raycast (Center of screen)
                 centerRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -355,6 +444,7 @@
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 console.log('Received message:', data);
                 if (data.type === 'init') {
+                    window.buildingHotspots = data.hotspots || [];
                     init(data.modelUrl);
                 } else if (data.type === 'dispose') {
                     dispose();
@@ -383,9 +473,19 @@
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 console.log('Received message:', data);
                 if (data.type === 'init') {
+                    window.buildingHotspots = data.hotspots || [];
                     init(data.modelUrl);
                 } else if (data.type === 'dispose') {
                     dispose();
+                } else if (data.type === 'unlock_door') {
+                    if (model) {
+                        model.traverse((child) => {
+                            if (child.isMesh && child.userData && child.userData.doorName === data.doorName) {
+                                // Unlock animation or logic here
+                                child.material.color.setHex(0x00ff00);
+                            }
+                        });
+                    }
                 }
             } catch (e) {
                 console.error('Message parse error:', e);

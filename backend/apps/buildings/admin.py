@@ -22,7 +22,7 @@ class BuildingAdmin(admin.ModelAdmin):
             'fields': ('latitude', 'longitude')
         }),
         ('3D Model', {
-            'fields': ('model_file', 'model_version', 'model_file_size', 'model_active')
+            'fields': ('model_file', 'model_version', 'model_file_size', 'model_active', 'hotspots')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at')
