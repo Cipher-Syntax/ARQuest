@@ -130,8 +130,8 @@ const GeofenceEditor = ({ value, onChange, errors, existingBuildings = [], curre
 					maxZoom={19}
 				>
 					<TileLayer
-						url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-						attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+						url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+						attribution="&copy; Google Maps"
 						maxNativeZoom={18}
 						maxZoom={20}
 					/>
