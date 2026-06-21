@@ -84,7 +84,7 @@ export default function Media() {
 			name: scene.title,
 			links: (scene.hotspots || []).map((h) => ({
 				nodeId: h.target_scene_id.toString(),
-				position: { pitch: h.pitch, yaw: h.yaw },
+				position: { pitch: h.pitch * Math.PI / 180, yaw: h.yaw * Math.PI / 180 },
 				name: h.label || h.target_scene_title
 			}))
 		}))

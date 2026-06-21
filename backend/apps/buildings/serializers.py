@@ -123,6 +123,15 @@ class BuildingWriteSerializer(serializers.ModelSerializer):
         if value is not None and (value < -180 or value > 180):
             raise serializers.ValidationError('Longitude must be between -180 and 180')
         return value
+
+    def validate_slug(self, value):
+        if value:
+            qs = Building.all_objects.filter(slug=value)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError('A building with this slug already exists.')
+        return value
         
     def validate_hotspots(self, value):
         import json

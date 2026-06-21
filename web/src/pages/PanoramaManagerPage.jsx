@@ -19,6 +19,8 @@ const PanoramaManagerPage = () => {
 	const [successMessage, setSuccessMessage] = useState('')
 	const [errors, setErrors] = useState({})
 	const [hotspotErrors, setHotspotErrors] = useState({})
+	const [sceneToDelete, setSceneToDelete] = useState(null)
+	const [hotspotToDelete, setHotspotToDelete] = useState(null)
 
 	const [newScene, setNewScene] = useState({
 		title: '',
@@ -113,14 +115,20 @@ const PanoramaManagerPage = () => {
 		}
 	}
 
-	const handleDeleteScene = async (sceneId) => {
-		if (!window.confirm('Delete this scene? All hotspots will be removed.')) return
+	const requestDeleteScene = (sceneId) => {
+		setSceneToDelete(sceneId)
+	}
+
+	const confirmDeleteScene = async () => {
+		if (!sceneToDelete) return
 		try {
-			await panoramaService.deleteScene(sceneId)
+			await panoramaService.deleteScene(sceneToDelete)
 			showSuccess('Scene deleted')
 			loadData()
 		} catch (error) {
 			console.error('Failed to delete scene', error)
+		} finally {
+			setSceneToDelete(null)
 		}
 	}
 
@@ -143,7 +151,7 @@ const PanoramaManagerPage = () => {
 
 			const hotspotData = {
 				...newHotspot,
-				target_scene: parseInt(newHotspot.target_scene, 10),
+				target_scene: newHotspot.target_scene,
 				yaw: isNaN(yawVal) ? 0 : yawVal,
 				pitch: isNaN(pitchVal) ? 0 : pitchVal
 			}
@@ -169,14 +177,20 @@ const PanoramaManagerPage = () => {
 		}
 	}
 
-	const handleDeleteHotspot = async (hotspotId) => {
-		if (!window.confirm('Delete this hotspot?')) return
+	const requestDeleteHotspot = (hotspotId) => {
+		setHotspotToDelete(hotspotId)
+	}
+
+	const confirmDeleteHotspot = async () => {
+		if (!hotspotToDelete) return
 		try {
-			await panoramaService.deleteHotspot(hotspotId)
+			await panoramaService.deleteHotspot(hotspotToDelete)
 			showSuccess('Hotspot deleted')
 			loadHotspots(selectedScene.id)
 		} catch (error) {
 			console.error('Failed to delete hotspot', error)
+		} finally {
+			setHotspotToDelete(null)
 		}
 	}
 
@@ -244,7 +258,7 @@ const PanoramaManagerPage = () => {
 					scenes={scenes}
 					selectedScene={selectedScene}
 					setSelectedScene={setSelectedScene}
-					onDeleteScene={handleDeleteScene}
+					onDeleteScene={requestDeleteScene}
 					newScene={newScene}
 					setNewScene={setNewScene}
 					onCreateScene={handleCreateScene}
@@ -266,10 +280,38 @@ const PanoramaManagerPage = () => {
 					setEditingHotspot={setEditingHotspot}
 					onCreateHotspot={handleCreateHotspot}
 					onUpdateHotspot={handleUpdateHotspot}
-					onDeleteHotspot={handleDeleteHotspot}
+					onDeleteHotspot={requestDeleteHotspot}
 					errors={hotspotErrors}
 				/>
 			</div>
+
+			{/* Delete Scene Modal */}
+			{sceneToDelete && (
+				<div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+					<div style={{ backgroundColor: '#fff', padding: theme.spacing.xl, borderRadius: theme.radius.md, maxWidth: '400px', width: '100%' }}>
+						<h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: theme.spacing.md }}>Delete Scene</h3>
+						<p style={{ marginBottom: theme.spacing.lg, color: theme.colors.text.secondary }}>Are you sure you want to delete this scene? All hotspots associated with it will also be removed. This action cannot be undone.</p>
+						<div style={{ display: 'flex', justifyContent: 'flex-end', gap: theme.spacing.sm }}>
+							<button onClick={() => setSceneToDelete(null)} style={{ padding: '8px 16px', borderRadius: theme.radius.sm, border: `1px solid ${theme.colors.border}`, background: '#fff', cursor: 'pointer' }}>Cancel</button>
+							<button onClick={confirmDeleteScene} style={{ padding: '8px 16px', borderRadius: theme.radius.sm, border: 'none', background: theme.colors.error, color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>Delete</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Delete Hotspot Modal */}
+			{hotspotToDelete && (
+				<div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+					<div style={{ backgroundColor: '#fff', padding: theme.spacing.xl, borderRadius: theme.radius.md, maxWidth: '400px', width: '100%' }}>
+						<h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: theme.spacing.md }}>Delete Hotspot</h3>
+						<p style={{ marginBottom: theme.spacing.lg, color: theme.colors.text.secondary }}>Are you sure you want to delete this hotspot? This action cannot be undone.</p>
+						<div style={{ display: 'flex', justifyContent: 'flex-end', gap: theme.spacing.sm }}>
+							<button onClick={() => setHotspotToDelete(null)} style={{ padding: '8px 16px', borderRadius: theme.radius.sm, border: `1px solid ${theme.colors.border}`, background: '#fff', cursor: 'pointer' }}>Cancel</button>
+							<button onClick={confirmDeleteHotspot} style={{ padding: '8px 16px', borderRadius: theme.radius.sm, border: 'none', background: theme.colors.error, color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>Delete</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }
@@ -286,146 +328,178 @@ const ScenesList = ({
 	onCreateScene,
 	saving,
 	errors
-}) => (
-	<div
-		style={{
-			backgroundColor: '#fff',
-			borderRadius: theme.radius.md,
-			padding: theme.spacing.md,
-			overflowY: 'auto'
-		}}
-	>
-		<h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: theme.spacing.md }}>
-			Scenes
-		</h2>
+}) => {
+	const [searchQuery, setSearchQuery] = useState('');
 
+	const filteredScenes = scenes
+		.filter((scene) => scene.title.toLowerCase().includes(searchQuery.toLowerCase()))
+		.sort((a, b) => {
+			if (a.is_start_scene && !b.is_start_scene) return -1;
+			if (!a.is_start_scene && b.is_start_scene) return 1;
+			return 0;
+		});
+
+	return (
 		<div
 			style={{
-				display: 'flex',
-				flexDirection: 'column',
-				gap: theme.spacing.xs,
-				marginBottom: theme.spacing.md
+				backgroundColor: '#fff',
+				borderRadius: theme.radius.md,
+				padding: theme.spacing.md,
+				overflowY: 'auto'
 			}}
 		>
-			{scenes.map((scene) => (
-				<div
-					key={scene.id}
-					onClick={() => setSelectedScene(scene)}
-					style={{
-						padding: theme.spacing.sm,
-						border: `1px solid ${selectedScene?.id === scene.id ? theme.colors.primary : theme.colors.border}`,
-						borderRadius: theme.radius.sm,
-						cursor: 'pointer',
-						backgroundColor:
-							selectedScene?.id === scene.id ? 'rgba(138, 21, 56, 0.05)' : '#fff',
-						display: 'flex',
-						justifyContent: 'space-between',
-						alignItems: 'center'
-					}}
-				>
-					<div>
-						<div style={{ fontSize: '14px', fontWeight: '500' }}>{scene.title}</div>
-						{scene.is_start_scene && (
-							<span
-								style={{
-									fontSize: '12px',
-									color: theme.colors.primary,
-									display: 'flex',
-									alignItems: 'center',
-									gap: '4px',
-									marginTop: '2px'
-								}}
-							>
-								<Play size={12} fill={theme.colors.primary} /> Start Scene
-							</span>
-						)}
-					</div>
-					<button
-						onClick={(e) => {
-							e.stopPropagation()
-							onDeleteScene(scene.id)
-						}}
+			<div style={{ marginBottom: theme.spacing.lg }}>
+				<h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: theme.spacing.sm }}>
+					New Scene
+				</h3>
+				<form onSubmit={onCreateScene}>
+					<input
+						type="text"
+						placeholder="Scene Title"
+						value={newScene.title}
+						onChange={(e) => setNewScene({ ...newScene, title: e.target.value })}
 						style={{
-							color: theme.colors.error,
-							background: 'none',
-							border: 'none',
-							cursor: 'pointer',
-							padding: '4px'
+							width: '100%',
+							padding: '8px',
+							marginBottom: '8px',
+							borderRadius: '4px',
+							border: `1px solid ${errors.title ? 'red' : '#ccc'}`
+						}}
+					/>
+					<div style={{ marginBottom: '8px' }}>
+						<DragDropFileUpload
+							accept="image/jpeg,image/png,image/jpg"
+							value={newScene.image}
+							onChange={(file) => setNewScene({ ...newScene, image: file })}
+							placeholder="Drag & drop 360° image here or click to browse"
+						/>
+					</div>
+					<label
+						style={{
+							display: 'flex',
+							alignItems: 'center',
+							gap: '8px',
+							fontSize: '12px',
+							marginBottom: '8px'
 						}}
 					>
-						<Trash2 size={16} />
+						<input
+							type="checkbox"
+							checked={newScene.is_start_scene}
+							onChange={(e) =>
+								setNewScene({ ...newScene, is_start_scene: e.target.checked })
+							}
+						/>
+						Start Scene
+					</label>
+					<button
+						type="submit"
+						disabled={saving}
+						style={{
+							width: '100%',
+							padding: '8px',
+							background: theme.colors.primary,
+							color: 'white',
+							border: 'none',
+							borderRadius: '4px',
+							cursor: saving ? 'not-allowed' : 'pointer',
+							fontSize: '14px',
+							fontWeight: '600'
+						}}
+					>
+						{saving ? 'Uploading...' : 'Create Scene'}
 					</button>
-				</div>
-			))}
-		</div>
+				</form>
+			</div>
 
-		<div
-			style={{ borderTop: `1px solid ${theme.colors.border}`, paddingTop: theme.spacing.md }}
-		>
-			<h3 style={{ fontSize: '14px', fontWeight: '600', marginBottom: theme.spacing.sm }}>
-				New Scene
-			</h3>
-			<form onSubmit={onCreateScene}>
+			<div style={{ borderTop: `1px solid ${theme.colors.border}`, paddingTop: theme.spacing.md }}>
+				<h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: theme.spacing.md }}>
+					Scenes
+				</h2>
+				
 				<input
 					type="text"
-					placeholder="Scene Title"
-					value={newScene.title}
-					onChange={(e) => setNewScene({ ...newScene, title: e.target.value })}
+					placeholder="Search scenes..."
+					value={searchQuery}
+					onChange={(e) => setSearchQuery(e.target.value)}
 					style={{
 						width: '100%',
 						padding: '8px',
-						marginBottom: '8px',
+						marginBottom: theme.spacing.md,
 						borderRadius: '4px',
-						border: `1px solid ${errors.title ? 'red' : '#ccc'}`
+						border: '1px solid #ccc',
+						fontSize: '14px'
 					}}
 				/>
-				<div style={{ marginBottom: '8px' }}>
-					<DragDropFileUpload
-						accept="image/jpeg,image/png,image/jpg"
-						value={newScene.image}
-						onChange={(file) => setNewScene({ ...newScene, image: file })}
-						placeholder="Drag & drop 360° image here or click to browse"
-					/>
-				</div>
-				<label
+
+				<div
 					style={{
 						display: 'flex',
-						alignItems: 'center',
-						gap: '8px',
-						fontSize: '12px',
-						marginBottom: '8px'
+						flexDirection: 'column',
+						gap: theme.spacing.xs,
+						marginBottom: theme.spacing.md
 					}}
 				>
-					<input
-						type="checkbox"
-						checked={newScene.is_start_scene}
-						onChange={(e) =>
-							setNewScene({ ...newScene, is_start_scene: e.target.checked })
-						}
-					/>
-					Start Scene
-				</label>
-				<button
-					type="submit"
-					disabled={saving}
-					style={{
-						width: '100%',
-						padding: '8px',
-						background: theme.colors.primary,
-						color: 'white',
-						border: 'none',
-						borderRadius: '4px',
-						cursor: saving ? 'not-allowed' : 'pointer',
-						fontSize: '14px',
-						fontWeight: '600'
-					}}
-				>
-					{saving ? 'Uploading...' : 'Create Scene'}
-				</button>
-			</form>
+					{filteredScenes.length === 0 && (
+						<div style={{ textAlign: 'center', padding: '10px', color: '#666', fontSize: '14px' }}>
+							No scenes found
+						</div>
+					)}
+					{filteredScenes.map((scene) => (
+						<div
+							key={scene.id}
+							onClick={() => setSelectedScene(scene)}
+							style={{
+								padding: theme.spacing.sm,
+								border: `1px solid ${selectedScene?.id === scene.id ? theme.colors.primary : theme.colors.border}`,
+								borderRadius: theme.radius.sm,
+								cursor: 'pointer',
+								backgroundColor:
+									selectedScene?.id === scene.id ? 'rgba(138, 21, 56, 0.05)' : '#fff',
+								display: 'flex',
+								justifyContent: 'space-between',
+								alignItems: 'center'
+							}}
+						>
+							<div>
+								<div style={{ fontSize: '14px', fontWeight: '500' }}>{scene.title}</div>
+								{scene.is_start_scene && (
+									<span
+										style={{
+											fontSize: '12px',
+											color: theme.colors.primary,
+											display: 'flex',
+											alignItems: 'center',
+											gap: '4px',
+											marginTop: '2px'
+										}}
+									>
+										<Play size={12} fill={theme.colors.primary} /> Start Scene
+									</span>
+								)}
+							</div>
+							<button
+								onClick={(e) => {
+									e.stopPropagation()
+									onDeleteScene(scene.id)
+								}}
+								style={{
+									color: theme.colors.error,
+									background: 'none',
+									border: 'none',
+									cursor: 'pointer',
+									padding: '4px'
+								}}
+							>
+								<Trash2 size={16} />
+							</button>
+						</div>
+					))}
+				</div>
+			</div>
 		</div>
-	</div>
-)
+	);
+};
 
 const ScenePreview = ({ selectedScene }) => (
 	<div

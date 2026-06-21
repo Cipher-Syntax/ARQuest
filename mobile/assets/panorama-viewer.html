@@ -7,13 +7,30 @@
         body { margin: 0; overflow: hidden; background: #000; }
         #canvas { width: 100%; height: 100%; display: block; }
         #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-family: system-ui; font-size: 18px; }
-        #hotspots { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 90%; }
+        #hotspots { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 90%; z-index: 10; }
         .hotspot-btn { background: rgba(138, 21, 56, 0.9); color: #fff; border: 2px solid #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; }
+        #floating-labels { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+        .floating-label {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            background: rgba(0, 0, 0, 0.65);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: system-ui;
+            font-size: 14px;
+            font-weight: bold;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.4);
+            margin-top: -35px; /* Float above the red mark */
+            transition: opacity 0.2s;
+        }
     </style>
 </head>
 <body>
     <div id="loading">Initializing...</div>
     <canvas id="canvas"></canvas>
+    <div id="floating-labels"></div>
     <div id="hotspots"></div>
     
     <script type="importmap">
@@ -51,6 +68,7 @@
                 mesh.material.dispose();
             });
             hotspotMeshes = [];
+            document.getElementById('floating-labels').innerHTML = '';
             
             if (!scene) {
                 scene = new THREE.Scene();
@@ -171,13 +189,13 @@
         
         function create3DHotspots() {
             currentHotspots.forEach(hotspot => {
-                const yawRad = THREE.MathUtils.degToRad(-hotspot.yaw);
-                const pitchRad = THREE.MathUtils.degToRad(hotspot.pitch);
+                const phi = THREE.MathUtils.degToRad(90 - hotspot.pitch);
+                const theta = THREE.MathUtils.degToRad(hotspot.yaw - 90); // Offset by 90 to match Web
                 
                 const distance = 300;
-                const x = distance * Math.cos(pitchRad) * Math.sin(yawRad);
-                const y = distance * Math.sin(pitchRad);
-                const z = distance * Math.cos(pitchRad) * Math.cos(yawRad);
+                const x = distance * Math.sin(phi) * Math.cos(theta);
+                const y = distance * Math.cos(phi);
+                const z = distance * Math.sin(phi) * Math.sin(theta);
                 
                 const geometry = new THREE.CircleGeometry(20, 32);
                 const material = new THREE.MeshBasicMaterial({ 
@@ -190,9 +208,18 @@
                 hotspotMesh.position.set(x, y, z);
                 hotspotMesh.lookAt(0, 0, 0);
                 hotspotMesh.userData.hotspot = hotspot;
+                hotspotMesh.userData.labelId = 'label-' + hotspotMeshes.length;
                 
                 scene.add(hotspotMesh);
                 hotspotMeshes.push(hotspotMesh);
+                
+                // Create Floating Label
+                const labelContainer = document.getElementById('floating-labels');
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'floating-label';
+                labelDiv.id = hotspotMesh.userData.labelId;
+                labelDiv.textContent = hotspot.label || hotspot.target_scene_title || 'Next Scene';
+                labelContainer.appendChild(labelDiv);
             });
         }
         
@@ -216,12 +243,38 @@
         function animate() {
             requestAnimationFrame(animate);
             const phi = THREE.MathUtils.degToRad(90 - lat);
-            const theta = THREE.MathUtils.degToRad(lon);
+            const theta = THREE.MathUtils.degToRad(lon - 90); // Offset by 90 to match Web
             camera.lookAt(
                 500 * Math.sin(phi) * Math.cos(theta),
                 500 * Math.cos(phi),
                 500 * Math.sin(phi) * Math.sin(theta)
             );
+            
+            // Pulse animation and update floating labels
+            const time = Date.now() * 0.004;
+            hotspotMeshes.forEach((mesh, index) => {
+                // Pulse effect
+                const scale = 1 + 0.2 * Math.sin(time + index);
+                mesh.scale.set(scale, scale, 1);
+                
+                // 3D to 2D projection
+                const pos = mesh.position.clone();
+                pos.project(camera);
+                
+                const label = document.getElementById(mesh.userData.labelId);
+                if (label) {
+                    if (pos.z > 1 || pos.x < -1.1 || pos.x > 1.1 || pos.y < -1.1 || pos.y > 1.1) {
+                        label.style.opacity = '0'; // Hide smoothly if behind camera or far off screen
+                    } else {
+                        label.style.opacity = '1';
+                        const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                        const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
+                        label.style.left = x + 'px';
+                        label.style.top = y + 'px';
+                    }
+                }
+            });
+            
             renderer.render(scene, camera);
         }
         

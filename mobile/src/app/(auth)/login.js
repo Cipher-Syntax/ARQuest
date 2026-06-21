@@ -35,7 +35,13 @@ export default function LoginScreen() {
             router.replace("/(tabs)");
         } catch (err) {
             console.log("Login error:", err);
-            const serverMessage = err?.data?.error || err?.data?.message || err?.data?.detail;
+            let serverMessage = err?.data?.error || err?.data?.message || err?.data?.detail;
+            
+            // If the server error is an object (e.g., {"code": "...", "message": "..."}), extract the message
+            if (typeof serverMessage === 'object' && serverMessage !== null) {
+                serverMessage = serverMessage.message || serverMessage.detail || JSON.stringify(serverMessage);
+            }
+            
             setError(serverMessage || "Access denied. Invalid credentials.");
         }
     };

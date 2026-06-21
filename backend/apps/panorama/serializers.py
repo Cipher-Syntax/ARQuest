@@ -3,7 +3,7 @@ from .models import PanoramaScene, PanoramaHotspot
 
 
 class PanoramaHotspotSerializer(serializers.ModelSerializer):
-    target_scene_id = serializers.IntegerField(source='target_scene.id', read_only=True)
+    target_scene_id = serializers.UUIDField(source='target_scene.id', read_only=True)
     target_scene_title = serializers.CharField(source='target_scene.title', read_only=True)
     
     class Meta:
@@ -28,7 +28,7 @@ class PanoramaSceneSerializer(serializers.ModelSerializer):
 
 
 class PanoramaWalkthroughSerializer(serializers.Serializer):
-    building_id = serializers.IntegerField()
+    building_id = serializers.UUIDField()
     building_name = serializers.CharField()
     start_scene = PanoramaSceneSerializer()
     scenes = PanoramaSceneSerializer(many=True)

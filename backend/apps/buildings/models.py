@@ -9,6 +9,7 @@ class SoftDeleteManager(models.Manager):
         return super().get_queryset().filter(deleted_at__isnull=True)
 
 class SoftDeleteModel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
     
     objects = SoftDeleteManager()
@@ -38,6 +39,7 @@ class SoftDeleteModel(models.Model):
 
 
 class Department(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200)
     code = models.SlugField(unique=True)
     description = models.TextField(blank=True)
@@ -118,6 +120,7 @@ class Building(SoftDeleteModel):
 
 
 class Geofence(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='geofences')
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
@@ -152,6 +155,7 @@ class BuildingUnlock(models.Model):
         ('qr', 'QR Scan'),
     ]
     
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='building_unlocks')
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='unlocks')
     unlocked_at = models.DateTimeField(auto_now_add=True)
@@ -180,6 +184,7 @@ class BuildingAsset(models.Model):
         ('image', 'Building Image'),
     ]
     
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='assets')
     asset_type = models.CharField(max_length=20, choices=ASSET_TYPE_CHOICES)
     file = models.FileField(upload_to='assets/')
@@ -213,6 +218,7 @@ class Quest(SoftDeleteModel):
 
 
 class UserQuestProgress(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quest_progress')
     quest = models.ForeignKey(Quest, on_delete=models.CASCADE, related_name='progress')
     is_completed = models.BooleanField(default=False)

@@ -1,9 +1,11 @@
+import uuid
 from django.db import models
 from django.core.exceptions import ValidationError
 from apps.buildings.models import Building
 
 
 class PanoramaScene(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='panorama_scenes')
     title = models.CharField(max_length=255)
     image = models.ImageField(upload_to='panoramas/')
@@ -35,6 +37,7 @@ class PanoramaScene(models.Model):
 
 
 class PanoramaHotspot(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     source_scene = models.ForeignKey(PanoramaScene, on_delete=models.CASCADE, related_name='hotspots')
     target_scene = models.ForeignKey(PanoramaScene, on_delete=models.CASCADE, related_name='incoming_hotspots')
     label = models.CharField(max_length=100)

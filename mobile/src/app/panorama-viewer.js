@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import ViewerHeader from '../components/viewer/ViewerHeader';
 import { theme } from '../theme/tokens';
 import api from '../services/api';
@@ -11,6 +13,7 @@ import { assetService } from '../services/assetService';
 
 export default function PanoramaViewerScreen() {
     const { buildingId, buildingName } = useLocalSearchParams();
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [walkthrough, setWalkthrough] = useState(null);
@@ -18,6 +21,19 @@ export default function PanoramaViewerScreen() {
     const [localImageUrl, setLocalImageUrl] = useState(null);
     const webViewRef = useRef(null);
     const { loadAsset, isLoading: isAssetLoading, progress: assetProgress } = useAssetCache();
+
+    useEffect(() => {
+        // Unlock screen orientation for Virtual Tour
+        const lockLandscape = async () => {
+            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        };
+        lockLandscape();
+
+        return () => {
+            // Lock back to portrait on exit
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+        };
+    }, []);
 
     useEffect(() => {
         loadWalkthrough();
@@ -94,13 +110,24 @@ export default function PanoramaViewerScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="dark" hidden={true} />
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.arHighlight} />
                     <Text style={styles.loadingText}>Loading Panorama...</Text>
                 </View>
             ) : null}
+
+            {/* Gamified Floating Back Button */}
+            <TouchableOpacity style={styles.floatingBackButton} onPress={() => router.back()}>
+                <Ionicons name="close" size={24} color={theme.colors.arHighlight} />
+            </TouchableOpacity>
+
+            {/* Gamified WMSU HUD Overlay - Title (Top) */}
+            <View style={styles.hudTopContainer} pointerEvents="none">
+                <Text style={styles.buildingName}>{buildingName || 'UNKNOWN'}</Text>
+                <Text style={styles.hudSubtitle}>360 WALKTHROUGH ACTIVE</Text>
+            </View>
             
             {walkthrough && currentScene && (
                 <WebView
@@ -138,8 +165,50 @@ const styles = StyleSheet.create({
         backgroundColor: '#000',
     },
     webview: {
-        flex: 1,
-        backgroundColor: '#000',
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'transparent',
+        zIndex: 1,
+    },
+    floatingBackButton: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 20,
+    },
+    hudTopContainer: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        zIndex: 10,
+        alignItems: 'flex-start',
+    },
+    buildingName: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: theme.colors.arHighlight,
+        letterSpacing: 3,
+        textTransform: 'uppercase',
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: -1, height: 1 },
+        textShadowRadius: 10,
+    },
+    hudSubtitle: {
+        fontSize: 10,
+        color: theme.colors.success,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+        marginTop: 4,
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: -1, height: 1 },
+        textShadowRadius: 10,
     },
     loadingContainer: {
         position: 'absolute',
