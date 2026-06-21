@@ -6,7 +6,8 @@ const DragDropFileUpload = ({
 	accept,
 	onChange,
 	value,
-	placeholder = 'Drag & drop file here or click to browse'
+	placeholder = 'Drag & drop file here or click to browse',
+	previewNode
 }) => {
 	const [isDragging, setIsDragging] = useState(false)
 
@@ -54,7 +55,8 @@ const DragDropFileUpload = ({
 				textAlign: 'center',
 				cursor: 'pointer',
 				backgroundColor: isDragging ? 'rgba(138, 21, 56, 0.05)' : '#fafafa',
-				transition: 'all 0.2s'
+				transition: 'all 0.2s',
+				position: 'relative'
 			}}
 		>
 			<input
@@ -64,6 +66,12 @@ const DragDropFileUpload = ({
 				onChange={handleFileChange}
 				style={{ display: 'none' }}
 			/>
+
+			{previewNode && (
+				<div style={{ pointerEvents: 'none', marginBottom: value ? theme.spacing.md : 0 }}>
+					{previewNode}
+				</div>
+			)}
 
 			{value ? (
 				<div
