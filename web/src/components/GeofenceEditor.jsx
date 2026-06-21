@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap, Tooltip } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap, Tooltip, Popup } from 'react-leaflet'
 import { theme } from '../theme'
 import 'leaflet/dist/leaflet.css'
 import '../utils/leafletConfig'
+import '@google/model-viewer'
 
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 }
 const WMSU_BOUNDS = [
@@ -161,7 +162,8 @@ const GeofenceEditor = ({ value, onChange, errors, existingBuildings = [], curre
 										fillOpacity: 0.15,
 										dashArray: '5, 5'
 									}}
-								>
+								/>
+								<Marker position={[lat, lng]}>
 									<Tooltip 
 										direction="top" 
 										permanent 
@@ -169,7 +171,25 @@ const GeofenceEditor = ({ value, onChange, errors, existingBuildings = [], curre
 									>
 										{bldgName}
 									</Tooltip>
-								</Circle>
+									{b.model_url && (
+										<Popup offset={[0, -10]} className="overflow-hidden rounded-lg">
+											<div style={{ width: '220px', height: '220px', background: '#f8fafc', margin: '-14px', position: 'relative' }}>
+												<model-viewer
+													src={b.model_url}
+													auto-rotate
+													rotation-per-second="45deg"
+													camera-controls
+													style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
+												></model-viewer>
+												<div className="absolute bottom-2 left-0 w-full text-center pointer-events-none">
+													<span className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-red-600 uppercase tracking-wider shadow-sm">
+														{bldgName} 3D Model
+													</span>
+												</div>
+											</div>
+										</Popup>
+									)}
+								</Marker>
 							</React.Fragment>
 						)
 					})}

@@ -8,7 +8,16 @@
     <style>
         body { margin: 0; padding: 0; background: #ffffff; overflow: hidden; }
         #map { width: 100vw; height: 100vh; background: #f5f5f5; }
-        /* Removed dark theme filter for light map */
+        
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none; /* Crucial so we can interact with the map */
+            z-index: 1000; /* Above Leaflet markers */
+        }
         
         .glow-marker {
             background-color: #B21830;
@@ -47,9 +56,115 @@
 </head>
 <body>
     <div id="map"></div>
+    <canvas id="three-canvas"></canvas>
 
-    <script>
-        // Bounding box for WMSU
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- THREE.JS SETUP ---
+        let canvas = document.getElementById('three-canvas');
+        let renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setScissorTest(true);
+
+        let scenesData = [];
+        const gltfLoader = new GLTFLoader();
+
+        function addThreeSceneForMarker(element, modelUrl) {
+            let scene = new THREE.Scene();
+            
+            let camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+            camera.position.z = 5;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(5, 10, 7.5);
+            scene.add(directionalLight);
+
+            let sceneData = { scene: scene, camera: camera, element: element, model: null };
+            scenesData.push(sceneData);
+
+            gltfLoader.load(modelUrl, (gltf) => {
+                let model = gltf.scene;
+                scene.add(model);
+                
+                // Center and scale model perfectly
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                model.position.sub(center);
+                
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180);
+                let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+                camera.position.set(cameraZ * 0.5, cameraZ * 0.3, cameraZ);
+                camera.lookAt(0, 0, 0);
+
+                sceneData.model = model;
+                sceneData.initialCameraDistance = Math.sqrt((cameraZ * 0.5)**2 + cameraZ**2);
+                sceneData.initialCameraY = cameraZ * 0.3;
+            });
+        }
+
+        function animateThree() {
+            requestAnimationFrame(animateThree);
+
+            if (renderer.domElement.width !== window.innerWidth || renderer.domElement.height !== window.innerHeight) {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            renderer.setClearColor(0x000000, 0);
+            renderer.clear();
+
+            scenesData.forEach(function(sceneData) {
+                let element = sceneData.element;
+                if (!element || !element.isConnected) return; // Marker removed from DOM
+
+                let rect = element.getBoundingClientRect();
+
+                // Check if marker is visible on screen
+                if (rect.bottom < 0 || rect.top > renderer.domElement.clientHeight ||
+                    rect.right < 0 || rect.left > renderer.domElement.clientWidth) {
+                    return; 
+                }
+
+                let width = rect.right - rect.left;
+                let height = rect.bottom - rect.top;
+                let left = rect.left;
+                let bottom = renderer.domElement.clientHeight - rect.bottom;
+
+                renderer.setViewport(left, bottom, width, height);
+                renderer.setScissor(left, bottom, width, height);
+
+                // Orbit camera smoothly around the 3D model (turntable effect)
+                if (sceneData.model && sceneData.initialCameraDistance > 0) {
+                    const time = -Date.now() * 0.0005; // Negative time reverses the orbit direction
+                    sceneData.camera.position.x = Math.sin(time) * sceneData.initialCameraDistance;
+                    sceneData.camera.position.z = Math.cos(time) * sceneData.initialCameraDistance;
+                    sceneData.camera.position.y = sceneData.initialCameraY;
+                    sceneData.camera.lookAt(0, 0, 0);
+                }
+
+                renderer.render(sceneData.scene, sceneData.camera);
+            });
+        }
+        animateThree();
+
+
+        // --- LEAFLET MAP SETUP ---
         const wmsuBounds = [
             [6.9155, 122.0575], // NW
             [6.9155, 122.0640], // NE
@@ -66,6 +181,9 @@
             minZoom: 15
         }).setView(WMSU_CENTER, 16);
 
+        // We listen to map events to force a re-render if necessary, but requestAnimationFrame handles it smoothly.
+        // Leaflet moves DOM elements directly via translate3d, so boundingClientRect updates automatically.
+
         L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
             maxZoom: 20,
             maxNativeZoom: 18
@@ -78,7 +196,6 @@
         let targetBuildingId = null;
         let sourceBuildingId = null;
 
-        // Function to create a circular hole in the fog
         function getCirclePoints(center, radiusMeters, points = 32) {
             const earthRadius = 6371000;
             const lat = center[0] * Math.PI / 180;
@@ -95,29 +212,25 @@
             return coords;
         }
 
-        function updateMap(data) {
+        window.updateMap = function(data) {
             window.lastMapData = data;
             const { buildings, unlockedIds, userLocation } = data;
             
-            // 1. Draw Fog of War
+            // Clear old three.js scenes
+            scenesData = [];
+
             if (fogLayer) map.removeLayer(fogLayer);
             
-            // Outer world bounds
             const outerBounds = [
                 [90, -180], [90, 180], [-90, 180], [-90, -180]
             ];
-
             const polygonCoords = [outerBounds, wmsuBounds];
-
-            // 2. Draw Buildings and expand fog/bounds
             const boundsElements = [L.polygon(wmsuBounds)];
             
             if (userLocation) {
                 if (userMarker) map.removeLayer(userMarker);
                 const userIcon = L.divIcon({ className: 'user-marker', iconSize: [16, 16] });
                 userMarker = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon }).addTo(map);
-                
-                // Do NOT push userMarker to boundsElements so we stay focused on WMSU
                 
                 const isOutside = userLocation.latitude > 6.9155 || userLocation.latitude < 6.9095 || userLocation.longitude > 122.0640 || userLocation.longitude < 122.0575;
                 if (isOutside) {
@@ -126,6 +239,7 @@
             }
 
             markersGroup.clearLayers();
+            
             buildings.forEach(b => {
                 const isUnlocked = unlockedIds.includes(b.id);
                 const lat = parseFloat(b.latitude);
@@ -139,14 +253,44 @@
                 }
 
                 const deptColor = (b.primary_department && b.primary_department.color_hex) ? b.primary_department.color_hex : '#B21830';
-                const htmlStr = isUnlocked 
-                    ? `<div style="width:100%;height:100%;border-radius:50%;background-color:${deptColor};border:2px solid white;box-shadow:0 0 15px 5px ${deptColor}66;"></div>`
-                    : `<div style="width:100%;height:100%;border-radius:50%;background-color:#555;border:2px solid #888;"></div>`;
+                
+                let htmlStr = '';
+                let hasModel = false;
+
+                if (isUnlocked) {
+                    if (b.model_active && b.model_url) {
+                        hasModel = true;
+                        // The marker consists of the dot, and a smaller transparent placeholder above it where the 3D model will render
+                        htmlStr = `
+                            <div style="position:relative; width:16px; height:16px;">
+                                <div style="position:absolute; bottom:0; left:0; width:100%; height:100%; border-radius:50%; background-color:${deptColor}; border:2px solid white; box-shadow:0 0 15px 5px ${deptColor}66;"></div>
+                                <div class="model-placeholder" style="position:absolute; bottom:8px; left:-22px; width:60px; height:60px;"></div>
+                            </div>
+                        `;
+                    } else {
+                        htmlStr = `<div style="width:100%;height:100%;border-radius:50%;background-color:${deptColor};border:2px solid white;box-shadow:0 0 15px 5px ${deptColor}66;"></div>`;
+                    }
+                } else {
+                    htmlStr = `<div style="width:100%;height:100%;border-radius:50%;background-color:#555;border:2px solid #888;"></div>`;
+                }
                 
                 const icon = L.divIcon({ className: 'custom-dept-marker', html: htmlStr, iconSize: [16, 16] });
-
                 const marker = L.marker([lat, lng], { icon }).addTo(markersGroup);
                 
+                // Once the marker is added to the map DOM, we attach the Three.js scene to its placeholder
+                if (hasModel) {
+                    // Leaflet creates DOM elements asynchronously sometimes, or right away. Let's wait a tick to ensure it's in DOM.
+                    setTimeout(() => {
+                        const iconElement = marker.getElement();
+                        if (iconElement) {
+                            const placeholder = iconElement.querySelector('.model-placeholder');
+                            if (placeholder) {
+                                addThreeSceneForMarker(placeholder, b.model_url);
+                            }
+                        }
+                    }, 50);
+                }
+
                 if (isUnlocked) {
                     boundsElements.push(marker);
                 }
@@ -155,7 +299,7 @@
                     permanent: true,
                     direction: 'bottom',
                     className: 'building-label',
-                    offset: [0, 10]
+                    offset: [0, hasModel ? 25 : 10] // Adjust label drop dynamically
                 });
 
                 marker.on('click', () => {
@@ -218,15 +362,16 @@
             map.fitBounds(group.getBounds(), { padding: [50, 50] });
         }
 
-        window.addEventListener('message', (event) => {
+        // Handle React Native messages
+        const handleRNMessage = (event) => {
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 if (data.type === 'init' || data.type === 'update') {
-                    updateMap(data);
+                    window.updateMap(data);
                 } else if (data.type === 'draw_route') {
                     targetBuildingId = data.buildingId;
                     sourceBuildingId = data.sourceBuildingId || null;
-                    if (window.lastMapData) updateMap(window.lastMapData);
+                    if (window.lastMapData) window.updateMap(window.lastMapData);
                 } else if (data.type === 'clear_route') {
                     targetBuildingId = null;
                     sourceBuildingId = null;
@@ -234,35 +379,15 @@
                         map.removeLayer(routingLine);
                         routingLine = null;
                     }
-                    if (window.lastMapData) updateMap(window.lastMapData);
+                    if (window.lastMapData) window.updateMap(window.lastMapData);
                 }
             } catch (e) {
                 console.error("Parse error", e);
             }
-        });
+        };
 
-        document.addEventListener('message', (event) => {
-            try {
-                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                if (data.type === 'init' || data.type === 'update') {
-                    updateMap(data);
-                } else if (data.type === 'draw_route') {
-                    targetBuildingId = data.buildingId;
-                    sourceBuildingId = data.sourceBuildingId || null;
-                    if (window.lastMapData) updateMap(window.lastMapData);
-                } else if (data.type === 'clear_route') {
-                    targetBuildingId = null;
-                    sourceBuildingId = null;
-                    if (routingLine) {
-                        map.removeLayer(routingLine);
-                        routingLine = null;
-                    }
-                    if (window.lastMapData) updateMap(window.lastMapData);
-                }
-            } catch (e) {
-                console.error("Parse error", e);
-            }
-        });
+        window.addEventListener('message', handleRNMessage);
+        document.addEventListener('message', handleRNMessage);
     </script>
 </body>
 </html>

@@ -15,9 +15,10 @@ import {
 	X
 } from 'lucide-react'
 import { Card, Badge, Toggle, Button, ConfirmDeleteModal } from '../components/ui'
-import { MapContainer, TileLayer, Marker, Circle, Tooltip } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Circle, Tooltip, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../utils/leafletConfig'
+import '@google/model-viewer'
 import { buildingService } from '../services/buildingService'
 
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 }
@@ -104,7 +105,8 @@ export default function Geofences() {
 						lat: b.latitude ? `${b.latitude}° N` : '0.0000° N',
 						lng: b.longitude ? `${b.longitude}° E` : '0.0000° E',
 						radius: geoData && geoData.radius_meters ? `${geoData.radius_meters}m` : '20m',
-						active: b.is_active !== undefined ? b.is_active : false
+						active: b.is_active !== undefined ? b.is_active : false,
+						model_url: b.model_url
 					}
 				})
 			)
@@ -364,6 +366,24 @@ export default function Geofences() {
 												>
 													{geo.name}
 												</Tooltip>
+												{geo.model_url && selectedGeoId === geo.id && (
+													<Popup offset={[0, -10]} className="overflow-hidden rounded-lg">
+														<div style={{ width: '220px', height: '220px', background: '#f8fafc', margin: '-14px', position: 'relative' }}>
+															<model-viewer
+																src={geo.model_url}
+																auto-rotate
+																rotation-per-second="45deg"
+																camera-controls
+																style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
+															></model-viewer>
+															<div className="absolute bottom-2 left-0 w-full text-center pointer-events-none">
+																<span className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-brand uppercase tracking-wider shadow-sm">
+																	{geo.name} 3D Model
+																</span>
+															</div>
+														</div>
+													</Popup>
+												)}
 											</Marker>
 										</Circle>
 									)
