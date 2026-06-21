@@ -40,8 +40,8 @@ const NAV_GROUPS = [
 	{
 		label: 'Content & Media',
 		items: [
-			{ to: '/panoramas', icon: Camera, label: 'Virtual Tours' },
-			{ to: '/media', icon: FileVideo, label: 'Media Library' }
+			{ to: '/panoramas', icon: Camera, label: 'Manage Panorama' },
+			{ to: '/media', icon: FileVideo, label: 'Content & Media Viewer' }
 		]
 	},
 	{

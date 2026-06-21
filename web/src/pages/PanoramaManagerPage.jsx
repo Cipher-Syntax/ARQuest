@@ -18,6 +18,7 @@ const PanoramaManagerPage = () => {
 	const [saving, setSaving] = useState(false)
 	const [successMessage, setSuccessMessage] = useState('')
 	const [errors, setErrors] = useState({})
+	const [hotspotErrors, setHotspotErrors] = useState({})
 
 	const [newScene, setNewScene] = useState({
 		title: '',
@@ -127,13 +128,33 @@ const PanoramaManagerPage = () => {
 		e.preventDefault()
 		if (!selectedScene) return
 
+		setHotspotErrors({})
+		const newErrors = {}
+		if (!newHotspot.label.trim()) newErrors.label = 'Label is required'
+		if (!newHotspot.target_scene) newErrors.target_scene = 'Target scene is required'
+		
+		if (Object.keys(newErrors).length > 0) {
+			return setHotspotErrors(newErrors)
+		}
+
 		try {
-			await panoramaService.createHotspot(selectedScene.id, newHotspot)
+			const yawVal = parseFloat(newHotspot.yaw);
+			const pitchVal = parseFloat(newHotspot.pitch);
+
+			const hotspotData = {
+				...newHotspot,
+				target_scene: parseInt(newHotspot.target_scene, 10),
+				yaw: isNaN(yawVal) ? 0 : yawVal,
+				pitch: isNaN(pitchVal) ? 0 : pitchVal
+			}
+			await panoramaService.createHotspot(selectedScene.id, hotspotData)
 			showSuccess('Hotspot created!')
 			setNewHotspot({ target_scene: '', label: '', yaw: 0, pitch: 0, is_active: true })
+			setHotspotErrors({})
 			loadHotspots(selectedScene.id)
 		} catch (error) {
 			console.error('Failed to create hotspot', error)
+			setHotspotErrors(error.response?.data || { form: 'Failed to create hotspot' })
 		}
 	}
 
@@ -246,6 +267,7 @@ const PanoramaManagerPage = () => {
 					onCreateHotspot={handleCreateHotspot}
 					onUpdateHotspot={handleUpdateHotspot}
 					onDeleteHotspot={handleDeleteHotspot}
+					errors={hotspotErrors}
 				/>
 			</div>
 		</div>
@@ -451,7 +473,8 @@ const HotspotsPanel = ({
 	setEditingHotspot,
 	onCreateHotspot,
 	onUpdateHotspot,
-	onDeleteHotspot
+	onDeleteHotspot,
+	errors
 }) => (
 	<div
 		style={{
@@ -540,6 +563,11 @@ const HotspotsPanel = ({
 						New Hotspot
 					</h3>
 					<form onSubmit={onCreateHotspot}>
+						{errors?.form && (
+							<div style={{ color: theme.colors.error, fontSize: '12px', marginBottom: '8px' }}>
+								{typeof errors.form === 'string' ? errors.form : JSON.stringify(errors.form)}
+							</div>
+						)}
 						<div style={{ marginBottom: '8px' }}>
 							<label
 								style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}
@@ -557,10 +585,15 @@ const HotspotsPanel = ({
 									width: '100%',
 									padding: '8px',
 									borderRadius: '4px',
-									border: '1px solid #ccc',
+									border: `1px solid ${errors?.label ? theme.colors.error : '#ccc'}`,
 									fontSize: '14px'
 								}}
 							/>
+							{errors?.label && (
+								<div style={{ color: theme.colors.error, fontSize: '12px', marginTop: '4px' }}>
+									{errors.label}
+								</div>
+							)}
 						</div>
 						<div style={{ marginBottom: '8px' }}>
 							<label
@@ -577,7 +610,7 @@ const HotspotsPanel = ({
 									width: '100%',
 									padding: '8px',
 									borderRadius: '4px',
-									border: '1px solid #ccc',
+									border: `1px solid ${errors?.target_scene ? theme.colors.error : '#ccc'}`,
 									fontSize: '14px'
 								}}
 							>
@@ -590,6 +623,11 @@ const HotspotsPanel = ({
 										</option>
 									))}
 							</select>
+							{errors?.target_scene && (
+								<div style={{ color: theme.colors.error, fontSize: '12px', marginTop: '4px' }}>
+									{errors.target_scene}
+								</div>
+							)}
 						</div>
 						<div
 							style={{
@@ -616,7 +654,7 @@ const HotspotsPanel = ({
 									onChange={(e) =>
 										setNewHotspot({
 											...newHotspot,
-											yaw: parseFloat(e.target.value) || 0
+											yaw: e.target.value
 										})
 									}
 									style={{
@@ -645,7 +683,7 @@ const HotspotsPanel = ({
 									onChange={(e) =>
 										setNewHotspot({
 											...newHotspot,
-											pitch: parseFloat(e.target.value) || 0
+											pitch: e.target.value
 										})
 									}
 									style={{
