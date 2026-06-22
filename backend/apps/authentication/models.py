@@ -19,6 +19,7 @@ class User(AbstractUser):
     )
     email_verified = models.BooleanField(default=False)
     exploration_points = models.IntegerField(default=0, help_text="Points earned from discovering AR targets and completing quests")
+    avatar_id = models.CharField(max_length=50, blank=True, null=True)
     
     @property
     def is_admin_role(self):

@@ -77,6 +77,14 @@ class UserModelTestCase(TestCase):
         self.assertTrue(visitor.is_visitor_role)
         self.assertFalse(visitor.is_professional_role)
 
+    def test_user_can_save_avatar_id(self):
+        from apps.authentication.models import User
+        user = User.objects.create(username="avatar_test", email="avatar@test.com")
+        user.avatar_id = "explorer_1"
+        user.save()
+        user.refresh_from_db()
+        self.assertEqual(user.avatar_id, "explorer_1")
+
 
 class LoginTestCase(TestCase):
     def setUp(self):
