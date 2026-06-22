@@ -31,8 +31,12 @@ export default function LoginScreen() {
         }
         setError("");
         try {
-            await login(username, password);
-            router.replace("/(tabs)");
+            const loggedInUser = await login(username, password);
+            if (loggedInUser && !loggedInUser.avatar_id && username !== "visitor") {
+                router.replace("/(auth)/avatar-selection");
+            } else {
+                router.replace("/(tabs)");
+            }
         } catch (err) {
             console.log("Login error:", err);
             let serverMessage = err?.data?.error || err?.data?.message || err?.data?.detail;

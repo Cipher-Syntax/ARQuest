@@ -114,7 +114,7 @@ export default function VerifyOtpScreen() {
                         onPress={handleVerify}
                         isLoading={isLoading}
                         disabled={isResending}
-                        variant="accent"
+                        variant="primary"
                         style={styles.verifyButton}
                     />
 

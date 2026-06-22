@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
                 // The backend `success_response` wraps in { data: { user: {...} } }
                 const payload = response.data.data || response.data;
                 setUser(payload.user);
+                return payload.user;
             }
         } catch (e) {
             console.log("Token check failed:", e);
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
+        return null;
     };
 
     const login = async (username, password) => {
@@ -41,7 +43,7 @@ export const AuthProvider = ({ children }) => {
             const { access, refresh } = response.data.data || response.data;
             await authService.setTokens(access, refresh);
 
-            await checkToken();
+            return await checkToken();
         } finally {
             setIsLoading(false);
         }

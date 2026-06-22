@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Search, Plus, X } from 'lucide-react'
 import { Card, Badge, Button, Pagination } from '../components/ui'
 import { userService } from '../services/userService'
+import { getAvatarUri } from '../utils/avatarUtils'
 
 function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
 	const [formData, setFormData] = useState({
@@ -238,10 +239,14 @@ export default function ProfessionalsPage() {
 								>
 									<td className="px-6 py-1">
 										<div className="flex items-center gap-3">
-											<div className="w-10 h-10 rounded-full bg-brand-light border border-brand-border flex items-center justify-center text-brand font-bold text-xs shrink-0">
-												{user.first_name
-													? user.first_name.charAt(0).toUpperCase()
-													: user.username.charAt(0).toUpperCase()}
+											<div className="w-10 h-10 rounded-full bg-brand-light border border-brand-border flex items-center justify-center text-brand font-bold text-xs shrink-0 overflow-hidden">
+												{user.avatar_id && getAvatarUri(user.avatar_id) ? (
+													<img src={getAvatarUri(user.avatar_id)} alt="Avatar" className="w-full h-full object-cover" />
+												) : (
+													user.first_name
+														? user.first_name.charAt(0).toUpperCase()
+														: user.username.charAt(0).toUpperCase()
+												)}
 											</div>
 											<p className="font-bold text-gray-900 text-sm">
 												{user.first_name || user.last_name

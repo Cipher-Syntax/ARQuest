@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AVATARS } from '../../constants/Avatars';
+import { api } from '../../services/api';
 
 export default function AvatarSelectionScreen() {
   const [selectedId, setSelectedId] = useState(null);
@@ -14,19 +15,13 @@ export default function AvatarSelectionScreen() {
     }
     
     try {
-      // Typically use the project's API context, but here is the raw fetch
-      // Assumes token is handled by the framework or saved locally.
-      await fetch('http://10.0.2.2:8000/api/authentication/users/me/', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ avatar_id: selectedId })
-      });
+      await api.patch('/api/auth/me/', { avatar_id: selectedId });
+      
+      // Successfully updated, go to dashboard
       router.replace('/(tabs)');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save avatar.');
+      console.log("Avatar save error:", error);
+      Alert.alert('Error', 'Failed to save avatar. Please try again.');
     }
   };
 
@@ -55,7 +50,7 @@ export default function AvatarSelectionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  title: { fontSize: 24, fontWeight: 'bold', marginTop: 60, marginBottom: 20 },
   avatarContainer: { margin: 10, padding: 5, borderRadius: 50, borderWidth: 2, borderColor: 'transparent' },
   selected: { borderColor: '#007bff' },
   avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#e0e0e0' },

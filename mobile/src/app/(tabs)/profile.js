@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { api } from '../../services/api';
 import theme from '../../theme/tokens';
 import { useAuth } from '../../hooks/useAuth';
+import { AVATARS } from '../../constants/Avatars';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
@@ -57,11 +58,18 @@ export default function ProfileScreen() {
                 
                 {/* Profile Header */}
                 <View style={styles.profileHeader}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>
-                            {user?.username?.charAt(0).toUpperCase() || "?"}
-                        </Text>
-                    </View>
+                    {user?.avatar_id && AVATARS.find(a => a.id === user.avatar_id)?.uri ? (
+                        <Image 
+                            source={{ uri: AVATARS.find(a => a.id === user.avatar_id).uri }} 
+                            style={styles.avatar} 
+                        />
+                    ) : (
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>
+                                {user?.username?.charAt(0).toUpperCase() || "?"}
+                            </Text>
+                        </View>
+                    )}
                     <Text style={styles.username}>@{user?.username}</Text>
                     <Text style={styles.roleLabel}>{user?.role?.toUpperCase() || 'STUDENT'}</Text>
                 </View>
