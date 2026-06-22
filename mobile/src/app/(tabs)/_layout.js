@@ -134,10 +134,10 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="buildings"
                 options={{
-                    title: "Buildings",
-                    tabBarLabel: "Buildings",
+                    title: "Maps",
+                    tabBarLabel: "Maps",
                     tabBarIcon: ({ color }) => (
-                        <Building2 size={24} color={color} />
+                        <Map size={24} color={color} />
                     ),
                     headerShown: false,
                 }}
@@ -156,9 +156,9 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="explore"
                 options={{
-                    title: "Map",
-                    tabBarLabel: "Map",
-                    tabBarIcon: ({ color }) => <Map size={24} color={color} />,
+                    title: "Explore",
+                    tabBarLabel: "Explore",
+                    tabBarIcon: ({ color }) => <Building2 size={24} color={color} />,
                     headerShown: false,
                 }}
             />
