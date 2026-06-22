@@ -206,6 +206,15 @@ class CurrentUserTestCase(TestCase):
         self.assertEqual(response.data['data']['user']['role'], 'student')
         self.assertEqual(response.data['data']['user']['email'], 'test@example.com')
 
+    def test_update_current_user_avatar(self):
+        from apps.authentication.models import User
+        user = User.objects.create(username="api_avatar", email="api_avatar@test.com")
+        self.client.force_authenticate(user=user)
+        response = self.client.patch('/api/auth/me/', {'avatar_id': 'mascot_1'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.avatar_id, 'mascot_1')
+
 
 class TokenRefreshTestCase(TestCase):
     def setUp(self):

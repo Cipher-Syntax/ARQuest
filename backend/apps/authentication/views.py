@@ -225,9 +225,16 @@ def token_refresh(request):
     })
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def current_user(request):
+    if request.method == 'PATCH':
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response({'user': serializer.data})
+        return error_response('validation_error', 'Invalid data', details=serializer.errors)
+        
     return success_response({
         'user': UserSerializer(request.user).data
     })
