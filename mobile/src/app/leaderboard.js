@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { api } from '../services/api';
 import theme from '../theme/tokens';
 import { useAuth } from '../hooks/useAuth';
+import { fonts } from '../constants/typography';
 
 export default function LeaderboardScreen() {
     const { user } = useAuth();
@@ -195,6 +196,7 @@ const styles = StyleSheet.create({
         padding: 5,
     },
     title: {
+        fontFamily: fonts.heading.bold,
         flex: 1,
         fontSize: 20,
         fontWeight: '900',
@@ -220,12 +222,14 @@ const styles = StyleSheet.create({
         marginHorizontal: 4,
     },
     podiumUsername: {
+        fontFamily: fonts.heading.bold,
         fontSize: 14,
         fontWeight: 'bold',
         color: theme.colors.textPrimary,
         marginBottom: 4,
     },
     podiumPoints: {
+        fontFamily: fonts.hud.medium,
         fontSize: 12,
         color: theme.colors.textSecondary,
         marginBottom: 8,
@@ -244,6 +248,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     podiumRank: {
+        fontFamily: fonts.hud.bold,
         fontSize: 24,
         fontWeight: '900',
         color: theme.colors.textSecondary,
@@ -255,6 +260,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     sectionTitle: {
+        fontFamily: fonts.heading.bold,
         fontSize: 14,
         fontWeight: '900',
         color: theme.colors.primary,
@@ -295,6 +301,7 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     recentPoints: {
+        fontFamily: fonts.hud.bold,
         color: theme.colors.primary,
         fontSize: 12,
         fontWeight: 'bold',
@@ -324,6 +331,7 @@ const styles = StyleSheet.create({
         width: 40,
     },
     rankNumber: {
+        fontFamily: fonts.hud.bold,
         fontSize: 16,
         fontWeight: 'bold',
         color: theme.colors.textSecondary,
@@ -332,11 +340,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     rankUsername: {
+        fontFamily: fonts.heading.medium,
         fontSize: 16,
         fontWeight: '600',
         color: theme.colors.textPrimary,
     },
     rankPoints: {
+        fontFamily: fonts.hud.bold,
         fontSize: 16,
         fontWeight: '900',
         color: theme.colors.primary,

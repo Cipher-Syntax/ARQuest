@@ -7,6 +7,7 @@ import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService } from "../../services/geofencingService";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
+import { fonts } from "../../constants/typography";
 
 export default function ExploreScreen() {
     const { role } = useRoleAccess();
@@ -308,6 +309,7 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.lg,
     },
     title: {
+        fontFamily: fonts.heading.bold,
         fontSize: 28,
         fontWeight: '900',
         color: theme.colors.primary,
@@ -315,6 +317,7 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     subtitle: {
+        fontFamily: fonts.body.regular,
         fontSize: theme.typography.md,
         color: theme.colors.textSecondary,
         marginTop: 4,
@@ -356,6 +359,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.5,
     },
     radarButtonText: {
+        fontFamily: fonts.heading.bold,
         color: theme.colors.white,
         fontSize: 14,
         fontWeight: 'bold',
@@ -397,6 +401,7 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.md,
     },
     cardTitle: {
+        fontFamily: fonts.heading.bold,
         fontSize: 12,
         fontWeight: '900',
         color: theme.colors.textSecondary,
@@ -420,10 +425,10 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     telemetryValue: {
+        fontFamily: fonts.hud.bold,
         fontSize: 14,
         fontWeight: 'bold',
         color: theme.colors.textPrimary,
-        fontFamily: 'monospace',
     },
     loadingBox: {
         flexDirection: 'row',
@@ -463,12 +468,14 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     targetName: {
+        fontFamily: fonts.heading.bold,
         fontSize: 16,
         fontWeight: 'bold',
         color: theme.colors.textPrimary,
         marginBottom: 2,
     },
     targetDistance: {
+        fontFamily: fonts.hud.bold,
         fontSize: 13,
         color: theme.colors.primary,
         fontWeight: '600',

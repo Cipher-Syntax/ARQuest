@@ -11,6 +11,7 @@ import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
 import { geofencingService } from "../../services/geofencingService";
 import { Crosshair, ShieldAlert, Navigation, Search, X } from "lucide-react-native";
+import { fonts } from "../../constants/typography";
 
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading: isUnlockedLoading } = useUnlockedBuildings();
@@ -592,6 +593,7 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.sm,
     },
     buildingName: {
+        fontFamily: fonts.heading.bold,
         fontSize: 22,
         fontWeight: "900",
         color: theme.colors.textPrimary,
@@ -642,6 +644,7 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
     },
     view3dText: {
+        fontFamily: fonts.heading.bold,
         color: "#FFFFFF",
         fontSize: 14,
         fontWeight: "900",
@@ -668,6 +671,7 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
     },
     viewPanoramaText: {
+        fontFamily: fonts.heading.bold,
         color: theme.colors.arHighlight,
         fontSize: 14,
         fontWeight: "bold",

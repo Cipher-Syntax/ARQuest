@@ -16,6 +16,7 @@ import { api } from '../../services/api';
 import AR3DModelOverlay from '../../components/AR3DModelOverlay';
 import BrandedSelfieFrame from '../../components/BrandedSelfieFrame';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
+import { fonts } from '../../constants/typography';
 
 export default function ARScreen() {
     const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -520,6 +521,7 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
     },
     targetLabel: {
+        fontFamily: fonts.heading.bold,
         color: theme.colors.arHighlight,
         fontSize: 10,
         fontWeight: 'bold',
@@ -527,6 +529,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     buildingLabel: {
+        fontFamily: fonts.heading.bold,
         color: theme.colors.textPrimary,
         fontSize: 22,
         fontWeight: '900',
@@ -608,12 +611,14 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     claimQuestBtnText: {
+        fontFamily: fonts.heading.bold,
         color: '#000',
         fontSize: 14,
         fontWeight: '900',
         letterSpacing: 1,
     },
     claimPointsText: {
+        fontFamily: fonts.hud.bold,
         color: '#000',
         fontSize: 10,
         fontWeight: 'bold',
@@ -661,6 +666,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     triviaTitle: {
+        fontFamily: fonts.heading.bold,
         color: theme.colors.arHighlight,
         fontSize: 16,
         fontWeight: '900',
@@ -704,6 +710,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(16, 185, 129, 0.4)',
     },
     rewardText: {
+        fontFamily: fonts.hud.bold,
         color: '#10B981',
         fontSize: 16,
         fontWeight: '900',

@@ -1,4 +1,34 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap');
+@font-face {
+	font-family: 'Inter';
+	src: url('../../assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+	font-weight: 100 900;
+	font-style: normal;
+}
+@font-face {
+	font-family: 'Exo 2';
+	src: url('../../assets/fonts/Exo_2/Exo2-VariableFont_wght.ttf') format('truetype');
+	font-weight: 100 900;
+	font-style: normal;
+}
+@font-face {
+	font-family: 'Rajdhani';
+	src: url('../../assets/fonts/Rajdhani/Rajdhani-Medium.ttf') format('truetype');
+	font-weight: 500;
+	font-style: normal;
+}
+@font-face {
+	font-family: 'Rajdhani';
+	src: url('../../assets/fonts/Rajdhani/Rajdhani-SemiBold.ttf') format('truetype');
+	font-weight: 600;
+	font-style: normal;
+}
+@font-face {
+	font-family: 'Rajdhani';
+	src: url('../../assets/fonts/Rajdhani/Rajdhani-Bold.ttf') format('truetype');
+	font-weight: 700;
+	font-style: normal;
+}
+
 @import 'tailwindcss';
 
 @theme {
@@ -6,6 +36,8 @@
 	--color-brand-light: #fdf7f8;
 	--color-brand-border: #ebcbcf;
 	--font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+	--font-heading: 'Exo 2', system-ui, -apple-system, sans-serif;
+	--font-hud: 'Rajdhani', monospace;
 }
 
 /* --- Essential Custom Animations --- */

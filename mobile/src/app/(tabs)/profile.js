@@ -7,6 +7,7 @@ import { api } from '../../services/api';
 import theme from '../../theme/tokens';
 import { useAuth } from '../../hooks/useAuth';
 import { AVATARS } from '../../constants/Avatars';
+import { fonts } from '../../constants/typography';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
@@ -168,6 +169,7 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.colors.border,
     },
     appBarTitle: {
+        fontFamily: fonts.heading.bold,
         fontSize: 22,
         fontWeight: 'bold',
         color: theme.colors.textPrimary,
@@ -204,6 +206,7 @@ const styles = StyleSheet.create({
         fontWeight: "900",
     },
     username: {
+        fontFamily: fonts.heading.bold,
         color: theme.colors.textPrimary,
         fontSize: 24,
         fontWeight: "bold",
@@ -242,6 +245,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.border,
     },
     statValue: {
+        fontFamily: fonts.hud.bold,
         fontSize: 22,
         fontWeight: '900',
         color: theme.colors.textPrimary,
@@ -258,6 +262,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     sectionTitle: {
+        fontFamily: fonts.heading.bold,
         fontSize: 13,
         fontWeight: 'bold',
         color: theme.colors.textSecondary,
@@ -292,6 +297,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     settingsTitle: {
+        fontFamily: fonts.body.bold || fonts.body.medium,
         fontSize: 16,
         fontWeight: '600',
         color: theme.colors.textPrimary,

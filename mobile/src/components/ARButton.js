@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import theme from '../theme/tokens';
+import { fonts } from '../constants/typography';
 
 export default function ARButton({ title, onPress, disabled, isLoading, variant = 'primary', style }) {
     const isAccent = variant === 'accent';
@@ -55,6 +56,7 @@ const styles = StyleSheet.create({
         opacity: 0.5,
     },
     text: {
+        fontFamily: fonts.heading.bold,
         color: "#FFFFFF",
         fontSize: theme.typography.md,
         fontWeight: "bold",

@@ -15,6 +15,7 @@ import { Link, useRouter } from "expo-router";
 import { Eye, EyeOff } from "lucide-react-native";
 import ARGlassCard from "../../components/ARGlassCard";
 import ARButton from "../../components/ARButton";
+import { fonts } from "../../constants/typography";
 
 export default function LoginScreen() {
     const [username, setUsername] = useState("");
@@ -202,6 +203,7 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xl,
     },
     title: {
+        fontFamily: fonts.heading.bold,
         color: theme.colors.primary,
         fontSize: 32,
         fontWeight: "900",
@@ -231,6 +233,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     input: {
+        fontFamily: fonts.body.regular,
         backgroundColor: theme.colors.surfaceSoft,
         color: theme.colors.textPrimary,
         padding: theme.spacing.md,
@@ -248,6 +251,7 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
     },
     passwordInput: {
+        fontFamily: fonts.body.regular,
         flex: 1,
         color: theme.colors.textPrimary,
         padding: theme.spacing.md,
