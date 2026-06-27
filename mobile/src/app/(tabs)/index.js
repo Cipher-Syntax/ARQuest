@@ -17,10 +17,14 @@ export default function HomeScreen() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const { location } = useLocationTracking();
+    const { location, startTracking } = useLocationTracking();
     const [buildings, setBuildings] = useState([]);
     const [nearestBuilding, setNearestBuilding] = useState(null);
     const [distanceToNearest, setDistanceToNearest] = useState(null);
+    
+    useEffect(() => {
+        startTracking();
+    }, []);
     
     // Gamification Backend States
     const [activeQuest, setActiveQuest] = useState(null);

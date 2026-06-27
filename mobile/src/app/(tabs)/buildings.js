@@ -15,9 +15,13 @@ import { fonts } from "../../constants/typography";
 
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading: isUnlockedLoading } = useUnlockedBuildings();
-    const { location } = useLocationTracking();
+    const { location, startTracking } = useLocationTracking();
     const { canAccessBuildingFeatures, canView3D, canViewPanorama, role } = useRoleAccess();
     const router = useRouter();
+
+    useEffect(() => {
+        startTracking();
+    }, []);
     
     const [allBuildings, setAllBuildings] = useState([]);
     const [isLoadingAll, setIsLoadingAll] = useState(true);
