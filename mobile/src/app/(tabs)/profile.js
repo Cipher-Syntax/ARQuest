@@ -88,28 +88,40 @@ export default function ProfileScreen() {
                         </View>
                     )}
                     <Text style={styles.username}>@{user?.username}</Text>
-                    <Text style={styles.roleLabel}>{user?.role?.toUpperCase() || 'STUDENT'}</Text>
+                    {user?.role === 'student' ? (
+                        <View style={styles.rankBadge}>
+                            <Text style={styles.rankIcon}>{user?.rank_info?.icon || '🎒'}</Text>
+                            <Text style={styles.roleLabel}>Lv.{user?.rank_info?.level || 1} {user?.rank_info?.title?.toUpperCase() || 'FRESHMAN'}</Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.roleLabel}>{user?.role?.toUpperCase() || 'PROFESSIONAL'}</Text>
+                    )}
                 </View>
 
-                {/* Stats Dashboard (Only for Students) */}
+                {/* Rank Progress Dashboard (Only for Students) */}
                 {user?.role === 'student' && (
                     <View style={styles.statsContainer}>
                         {loading ? (
                             <ActivityIndicator size="small" color={theme.colors.primary} />
                         ) : (
-                            <>
-                                <View style={styles.statBox}>
-                                    <Trophy color={theme.colors.primary} size={24} />
-                                    <Text style={styles.statValue}>{myStats ? myStats.points : 0}</Text>
-                                    <Text style={styles.statLabel}>Total Points</Text>
+                            <View style={styles.progressSection}>
+                                <View style={styles.progressHeader}>
+                                    <Text style={styles.progressTitle}>RANK PROGRESS</Text>
+                                    <Text style={styles.progressPoints}>{user.exploration_points} EXP</Text>
                                 </View>
-                                <View style={styles.statDivider} />
-                                <View style={styles.statBox}>
-                                    <Medal color={theme.colors.primary} size={24} />
-                                    <Text style={styles.statValue}>{myStats ? `#${myStats.rank}` : 'Unranked'}</Text>
-                                    <Text style={styles.statLabel}>Global Rank</Text>
+                                
+                                <View style={styles.progressBarContainer}>
+                                    <View style={[styles.progressBarFill, { width: `${user?.rank_info?.progress_percentage || 0}%` }]} />
                                 </View>
-                            </>
+                                
+                                {user?.rank_info?.next_rank_exp ? (
+                                    <Text style={styles.progressSubtext}>
+                                        {user.rank_info.exp_to_next_rank} EXP to next rank
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.progressSubtext}>Max Rank Achieved!</Text>
+                                )}
+                            </View>
                         )}
                     </View>
                 )}
@@ -247,11 +259,21 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 12,
     },
-    statsContainer: {
+    rankBadge: {
         flexDirection: 'row',
-        width: '100%',
-        justifyContent: 'space-evenly',
         alignItems: 'center',
+        backgroundColor: 'rgba(178, 24, 48, 0.1)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        marginTop: 4,
+    },
+    rankIcon: {
+        fontSize: 16,
+        marginRight: 6,
+    },
+    statsContainer: {
+        width: '100%',
         marginTop: 10,
         marginBottom: 30,
         backgroundColor: theme.colors.surface,
@@ -260,28 +282,45 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.border,
     },
-    statBox: {
-        flex: 1,
-        alignItems: 'center',
+    progressSection: {
+        width: '100%',
     },
-    statDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: theme.colors.border,
+    progressHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        marginBottom: 10,
     },
-    statValue: {
-        fontFamily: fonts.hud.bold,
-        fontSize: 22,
-        fontWeight: '900',
-        color: theme.colors.textPrimary,
-        marginTop: 8,
-    },
-    statLabel: {
+    progressTitle: {
+        fontFamily: fonts.heading.bold,
         fontSize: 12,
+        fontWeight: '900',
         color: theme.colors.textSecondary,
-        marginTop: 4,
-        textTransform: 'uppercase',
         letterSpacing: 1,
+    },
+    progressPoints: {
+        fontFamily: fonts.hud.bold,
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: theme.colors.primary,
+    },
+    progressBarContainer: {
+        height: 12,
+        backgroundColor: theme.colors.bgSecondary,
+        borderRadius: 6,
+        overflow: 'hidden',
+        marginBottom: 8,
+    },
+    progressBarFill: {
+        height: '100%',
+        backgroundColor: theme.colors.primary,
+        borderRadius: 6,
+    },
+    progressSubtext: {
+        fontSize: 12,
+        color: theme.colors.textMuted,
+        textAlign: 'right',
+        fontStyle: 'italic',
     },
     sectionContainer: {
         marginBottom: 24,

@@ -152,6 +152,9 @@ class CompleteQuestView(views.APIView):
 			'newly_earned_badges': newly_earned_badges,
 		}
 
+		from apps.buildings.gamification_utils import get_rank_info
+		response_data['rank_info'] = get_rank_info(user.exploration_points)
+
 		if trivia_fact:
 			response_data['trivia'] = TriviaFactSerializer(trivia_fact).data
 

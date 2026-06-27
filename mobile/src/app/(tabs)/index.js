@@ -129,8 +129,16 @@ export default function HomeScreen() {
                     <View style={styles.headerLeft}>
                         <Text style={styles.greeting}>SYSTEM ONLINE</Text>
                         <Text style={styles.title}>Welcome, {user?.username || "Guest"}</Text>
-                        <View style={styles.roleBadge}>
-                            <Text style={styles.roleText}>{user?.role?.toUpperCase() || "UNKNOWN"}</Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                            <View style={styles.roleBadge}>
+                                <Text style={styles.roleText}>{user?.role?.toUpperCase() || "UNKNOWN"}</Text>
+                            </View>
+                            {user?.role === 'student' && user?.rank_info && (
+                                <View style={styles.rankBadgeHome}>
+                                    <Text style={styles.rankIconHome}>{user.rank_info.icon}</Text>
+                                    <Text style={styles.rankTextHome}>Lv.{user.rank_info.level}</Text>
+                                </View>
+                            )}
                         </View>
                     </View>
                     <View style={styles.headerRight}>
@@ -369,6 +377,27 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: "bold",
         letterSpacing: 1,
+    },
+    rankBadgeHome: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: theme.radius.sm,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    rankIconHome: {
+        fontSize: 12,
+        marginRight: 4,
+    },
+    rankTextHome: {
+        fontFamily: fonts.body.bold,
+        color: theme.colors.white,
+        fontSize: 10,
+        fontWeight: "bold",
+        letterSpacing: 0.5,
     },
     splitRow: {
         flexDirection: 'row',

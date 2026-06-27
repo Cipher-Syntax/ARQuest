@@ -132,6 +132,11 @@ export default function LeaderboardScreen() {
                     <Text style={[styles.rankUsername, isMe && styles.myRankText]}>
                         {item.username} {isMe && "(You)"}
                     </Text>
+                    {item.rank_info && (
+                        <Text style={styles.rankLevelText}>
+                            {item.rank_info.icon} Lv.{item.rank_info.level} {item.rank_info.title}
+                        </Text>
+                    )}
                 </View>
                 <Text style={[styles.rankPoints, isMe && styles.myRankText]}>{item.points} pts</Text>
             </View>
@@ -353,5 +358,10 @@ const styles = StyleSheet.create({
     },
     myRankText: {
         color: theme.colors.primary,
+    },
+    rankLevelText: {
+        fontSize: 12,
+        color: theme.colors.textMuted,
+        marginTop: 2,
     },
 });

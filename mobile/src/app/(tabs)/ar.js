@@ -16,9 +16,11 @@ import { api } from '../../services/api';
 import AR3DModelOverlay from '../../components/AR3DModelOverlay';
 import BrandedSelfieFrame from '../../components/BrandedSelfieFrame';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
+import { useAuth } from '../../hooks/useAuth';
 import { fonts } from '../../constants/typography';
 
 export default function ARScreen() {
+    const { user, checkToken } = useAuth();
     const [cameraPermission, requestCameraPermission] = useCameraPermissions();
     const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
     const [nearbyBuilding, setNearbyBuilding] = useState(null);
@@ -37,8 +39,10 @@ export default function ARScreen() {
     const [claimedQuest, setClaimedQuest] = useState(null);
     const [fetchedTrivia, setFetchedTrivia] = useState(null);
     const [newlyEarnedBadges, setNewlyEarnedBadges] = useState([]);
+    const [rankUpInfo, setRankUpInfo] = useState(null);
     const slideAnim = useRef(new Animated.Value(400)).current;
     const badgeAnim = useRef(new Animated.Value(0)).current;
+    const rankAnim = useRef(new Animated.Value(0)).current;
 
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
@@ -115,6 +119,25 @@ export default function ARScreen() {
                             Animated.timing(badgeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setNewlyEarnedBadges([]));
                         }, 3500);
                     });
+                }
+
+                // Show rank up toast if applicable
+                const newRankInfo = res.data.data?.rank_info;
+                if (newRankInfo && user?.rank_info && newRankInfo.level > user.rank_info.level) {
+                    setRankUpInfo(newRankInfo);
+                    Animated.sequence([
+                        Animated.delay(earned.length > 0 ? 4500 : 600),
+                        Animated.spring(rankAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+                    ]).start(() => {
+                        setTimeout(() => {
+                            Animated.timing(rankAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+                                setRankUpInfo(null);
+                                checkToken(); // refresh user data after rank toast
+                            });
+                        }, 4000);
+                    });
+                } else {
+                    checkToken(); // refresh user data anyway to update EXP
                 }
                 
                 // Fetch Trivia Fact
@@ -489,6 +512,20 @@ export default function ARScreen() {
                     </View>
                 </Animated.View>
             )}
+            
+            {/* --- RANK UP TOAST --- */}
+            {rankUpInfo && (
+                <Animated.View style={[styles.rankUpToast, {
+                    opacity: rankAnim,
+                    transform: [{ translateY: rankAnim.interpolate({ inputRange: [0, 1], outputRange: [-80, 0] }) }]
+                }]}>
+                    <Text style={styles.rankUpToastEmoji}>{rankUpInfo.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.rankUpToastLabel}>RANK UP!</Text>
+                        <Text style={styles.rankUpToastName}>Lv.{rankUpInfo.level} {rankUpInfo.title}</Text>
+                    </View>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -792,5 +829,43 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold',
         letterSpacing: 0.5,
+    },
+    rankUpToast: {
+        position: 'absolute',
+        top: 60,
+        left: 16,
+        right: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(30, 20, 60, 0.96)',
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#B25DFF',
+        gap: 12,
+        zIndex: 1000,
+        shadowColor: '#B25DFF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 12,
+        elevation: 20,
+    },
+    rankUpToastEmoji: {
+        fontSize: 36,
+    },
+    rankUpToastLabel: {
+        fontFamily: fonts.heading.bold,
+        color: '#B25DFF',
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 3,
+        marginBottom: 2,
+    },
+    rankUpToastName: {
+        fontFamily: fonts.body.bold,
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        letterSpacing: 1,
     },
 });
