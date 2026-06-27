@@ -169,7 +169,7 @@ export default function HomeScreen() {
                         <ARGlassCard style={styles.splitCard}>
                             <View style={styles.splitCardInner}>
                                 <MapPin color={theme.colors.arHighlight} size={24} />
-                                <Text style={styles.splitValue}>{distanceToNearest !== null ? `${distanceToNearest}m` : "--"}</Text>
+                                <Text style={styles.splitValue}>{distanceToNearest !== null ? `${(distanceToNearest / 1000).toFixed(2)} km` : "--"}</Text>
                                 <Text style={styles.splitLabel}>DISTANCE</Text>
                                 
                                 <View style={styles.miniDivider} />
