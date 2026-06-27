@@ -27,6 +27,8 @@ export default function ExploreScreen() {
     const [lastUnlockAttempt, setLastUnlockAttempt] = useState(null);
     const [totalBuildings, setTotalBuildings] = useState(0);
     const [activeQuests, setActiveQuests] = useState([]);
+    const [earnedBadges, setEarnedBadges] = useState([]);
+    const badgeAnim = useRef(new Animated.Value(0)).current;
 
     // Fetch total buildings for progress bar and active quests
     useEffect(() => {
@@ -90,8 +92,21 @@ export default function ExploreScreen() {
                     // Building is closed, do not attempt to unlock
                 } else if (lastUnlockAttempt !== buildingId) {
                     try {
-                        await attemptUnlock(location.latitude, location.longitude, location.accuracy || 10);
+                        const unlockResult = await attemptUnlock(location.latitude, location.longitude, location.accuracy || 10);
                         setLastUnlockAttempt(buildingId);
+                        // Show badge toast if any newly earned
+                        const badges = unlockResult?.newly_earned_badges || [];
+                        if (badges.length > 0) {
+                            setEarnedBadges(badges);
+                            badgeAnim.setValue(0);
+                            Animated.sequence([
+                                Animated.spring(badgeAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+                            ]).start(() => {
+                                setTimeout(() => {
+                                    Animated.timing(badgeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setEarnedBadges([]));
+                                }, 3500);
+                            });
+                        }
                     } catch (err) {
                         console.log('Unlock attempt:', err);
                     }
@@ -112,6 +127,7 @@ export default function ExploreScreen() {
     };
 
     return (
+        <View style={{ flex: 1 }}>
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
             
             {/* Header */}
@@ -291,6 +307,21 @@ export default function ExploreScreen() {
             )}
 
         </ScrollView>
+
+            {/* Badge Earned Toast */}
+            {earnedBadges.length > 0 && (
+                <Animated.View style={[styles.badgeToast, {
+                    opacity: badgeAnim,
+                    transform: [{ translateY: badgeAnim.interpolate({ inputRange: [0, 1], outputRange: [-80, 0] }) }]
+                }]}>
+                    <Text style={styles.badgeToastEmoji}>{earnedBadges[0].icon}</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.badgeToastLabel}>BADGE UNLOCKED</Text>
+                        <Text style={styles.badgeToastName}>{earnedBadges[0].name}</Text>
+                    </View>
+                </Animated.View>
+            )}
+        </View>
     );
 }
 
@@ -584,4 +615,41 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         marginBottom: theme.spacing.md,
     },
+    badgeToast: {
+        position: 'absolute',
+        top: 60,
+        left: 16,
+        right: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(20, 20, 20, 0.96)',
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#FFD700',
+        gap: 12,
+        zIndex: 999,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 12,
+        elevation: 20,
+    },
+    badgeToastEmoji: {
+        fontSize: 32,
+    },
+    badgeToastLabel: {
+        color: '#FFD700',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 2,
+        marginBottom: 2,
+    },
+    badgeToastName: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
 });
+

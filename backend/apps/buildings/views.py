@@ -206,9 +206,16 @@ def unlock_building(request):
             if not created:
                 unlock.last_validated_at = timezone.now()
                 unlock.save(update_fields=['last_validated_at'])
-            
+
+            newly_earned_badges = []
+            if created:
+                from apps.buildings.gamification_views import check_and_award_badges
+                newly_earned_badges = check_and_award_badges(request.user)
+
             serializer = BuildingUnlockSerializer(unlock)
-            return success_response(serializer.data)
+            data = serializer.data
+            data['newly_earned_badges'] = newly_earned_badges
+            return success_response(data)
     
     return error_response('NOT_IN_GEOFENCE', 'Not inside any building geofence', status_code=400)
 
@@ -235,15 +242,21 @@ def unlock_building_qr(request):
     )
     if not created:
         unlock.last_validated_at = timezone.now()
-        # Ensure source is updated to 'qr' if it was previously geofence
         if unlock.source != 'qr':
             unlock.source = 'qr'
             unlock.save(update_fields=['last_validated_at', 'source'])
         else:
             unlock.save(update_fields=['last_validated_at'])
 
+    newly_earned_badges = []
+    if created:
+        from apps.buildings.gamification_views import check_and_award_badges
+        newly_earned_badges = check_and_award_badges(request.user)
+
     serializer = BuildingUnlockSerializer(unlock)
-    return success_response(serializer.data)
+    data = serializer.data
+    data['newly_earned_badges'] = newly_earned_badges
+    return success_response(data)
 
 
 @api_view(['GET'])

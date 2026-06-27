@@ -185,13 +185,25 @@ export default function ARScreen() {
             const res = await api.post('/api/buildings/unlock/qr/', { qr_code_secret: data });
             if (res.data.success) {
                 Alert.alert('Unlocked!', `Successfully unlocked via QR code!`);
-                // Check if it matches nearby, if not we still unlocked it in the DB.
                 if (nearbyBuildingFull && nearbyBuildingFull.id === res.data.data.building) {
                     setNearbyBuildingFull({...nearbyBuildingFull, is_unlocked: true});
                 }
+                // Show badge toast if earned
+                const earned = res.data.data?.newly_earned_badges || [];
+                if (earned.length > 0) {
+                    setNewlyEarnedBadges(earned);
+                    badgeAnim.setValue(0);
+                    Animated.sequence([
+                        Animated.spring(badgeAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+                    ]).start(() => {
+                        setTimeout(() => {
+                            Animated.timing(badgeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setNewlyEarnedBadges([]));
+                        }, 3500);
+                    });
+                }
             } else {
                 Alert.alert('Scan Failed', res.data.error || 'Invalid QR Code');
-                setScannedData(null); // allow rescan
+                setScannedData(null);
             }
         } catch (error) {
             console.error('QR unlock error:', error);
