@@ -232,14 +232,59 @@ class UserQuestProgress(models.Model):
 
 
 class TriviaFact(SoftDeleteModel):
-    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='trivia_facts')
-    fact = models.TextField()
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+	building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='trivia_facts')
+	fact = models.TextField()
+	is_active = models.BooleanField(default=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        ordering = ['-created_at']
+	class Meta:
+		ordering = ['-created_at']
 
-    def __str__(self):
-        return f"Trivia for {self.building.name}"
+	def __str__(self):
+		return f"Trivia for {self.building.name}"
+
+
+class Badge(models.Model):
+	TRIGGER_CHOICES = [
+		('first_unlock', 'First Building Unlocked'),
+		('unlocks_5', '5 Buildings Unlocked'),
+		('unlocks_10', '10 Buildings Unlocked'),
+		('unlocks_all', 'All Buildings Unlocked'),
+		('first_quest', 'First Quest Completed'),
+		('quests_5', '5 Quests Completed'),
+		('quests_10', '10 Quests Completed'),
+		('points_100', '100 Points Earned'),
+		('points_500', '500 Points Earned'),
+		('points_1000', '1000 Points Earned'),
+	]
+
+	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+	name = models.CharField(max_length=100)
+	description = models.TextField()
+	icon = models.CharField(max_length=10, help_text='Emoji icon e.g. 🏅')
+	color_hex = models.CharField(max_length=7, default='#FFD700')
+	trigger = models.CharField(max_length=30, choices=TRIGGER_CHOICES, unique=True)
+	is_active = models.BooleanField(default=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ['name']
+
+	def __str__(self):
+		return self.name
+
+
+class UserBadge(models.Model):
+	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='badges')
+	badge = models.ForeignKey(Badge, on_delete=models.CASCADE, related_name='user_badges')
+	earned_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		unique_together = [['user', 'badge']]
+		ordering = ['-earned_at']
+
+	def __str__(self):
+		return f'{self.user.username} - {self.badge.name}'
+

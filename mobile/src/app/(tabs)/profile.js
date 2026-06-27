@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle } from 'lucide-react-native';
+import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { api } from '../../services/api';
 import theme from '../../theme/tokens';
@@ -13,6 +13,7 @@ export default function ProfileScreen() {
     const { user, logout } = useAuth();
     const [myStats, setMyStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [badgeCount, setBadgeCount] = useState(null);
 
     useEffect(() => {
         const fetchMyRank = async () => {
@@ -34,6 +35,21 @@ export default function ProfileScreen() {
             }
         };
         fetchMyRank();
+
+        // Fetch badge count
+        const fetchBadges = async () => {
+            try {
+                const res = await api.get('/api/gamification/badges/');
+                if (res.data.success) {
+                    const earned = res.data.data.filter(b => b.earned).length;
+                    const total = res.data.data.length;
+                    setBadgeCount(`${earned}/${total}`);
+                }
+            } catch (e) {
+                console.error('Failed to fetch badge count:', e);
+            }
+        };
+        if (user?.role === 'student') fetchBadges();
     }, []);
 
     const SettingsRow = ({ icon: Icon, title, subtitle, onPress, destructive }) => (
@@ -109,6 +125,15 @@ export default function ProfileScreen() {
                                 title="View Rankings" 
                                 subtitle="See where you stand globally"
                                 onPress={() => router.push('/leaderboard')} 
+                            />
+                        )}
+
+                        {user?.role === 'student' && (
+                            <SettingsRow 
+                                icon={Award} 
+                                title="My Achievements" 
+                                subtitle={badgeCount ? `${badgeCount} badges earned` : 'View your badges'}
+                                onPress={() => router.push('/badges')} 
                             />
                         )}
 

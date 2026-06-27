@@ -1,32 +1,47 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Quest, UserQuestProgress
+from .models import Quest, UserQuestProgress, Badge, UserBadge
 
 
 User = get_user_model()
 
 class LeaderboardSerializer(serializers.ModelSerializer):
-    rank = serializers.SerializerMethodField()
-    points = serializers.IntegerField(source='exploration_points')
+	rank = serializers.SerializerMethodField()
+	points = serializers.IntegerField(source='exploration_points')
 
-    class Meta:
-        model = User
-        fields = ['username', 'points', 'rank']
+	class Meta:
+		model = User
+		fields = ['username', 'points', 'rank']
 
-    def get_rank(self, obj):
-        # The rank is passed from the view context
-        return self.context.get('rank', 0)
+	def get_rank(self, obj):
+		return self.context.get('rank', 0)
 
 class QuestSerializer(serializers.ModelSerializer):
-    target_building_name = serializers.CharField(source='target_building.name', read_only=True)
-    is_completed = serializers.SerializerMethodField()
+	target_building_name = serializers.CharField(source='target_building.name', read_only=True)
+	is_completed = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Quest
-        fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'is_completed']
+	class Meta:
+		model = Quest
+		fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'is_completed']
 
-    def get_is_completed(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated:
-            return UserQuestProgress.objects.filter(user=user, quest=obj, is_completed=True).exists()
-        return False
+	def get_is_completed(self, obj):
+		user = self.context.get('request').user
+		if user.is_authenticated:
+			return UserQuestProgress.objects.filter(user=user, quest=obj, is_completed=True).exists()
+		return False
+
+
+class BadgeSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Badge
+		fields = ['id', 'name', 'description', 'icon', 'color_hex', 'trigger']
+
+
+class UserBadgeSerializer(serializers.ModelSerializer):
+	badge = BadgeSerializer()
+	earned_at = serializers.DateTimeField()
+
+	class Meta:
+		model = UserBadge
+		fields = ['id', 'badge', 'earned_at']
+

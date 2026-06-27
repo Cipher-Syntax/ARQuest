@@ -36,7 +36,9 @@ export default function ARScreen() {
     const [triviaModalVisible, setTriviaModalVisible] = useState(false);
     const [claimedQuest, setClaimedQuest] = useState(null);
     const [fetchedTrivia, setFetchedTrivia] = useState(null);
+    const [newlyEarnedBadges, setNewlyEarnedBadges] = useState([]);
     const slideAnim = useRef(new Animated.Value(400)).current;
+    const badgeAnim = useRef(new Animated.Value(0)).current;
 
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
@@ -100,6 +102,20 @@ export default function ARScreen() {
             if (res.data.success) {
                 setClaimedQuest(matchingQuest);
                 setActiveQuests(prev => prev.map(q => q.id === matchingQuest.id ? { ...q, is_completed: true } : q));
+                
+                // Show newly earned badges
+                const earned = res.data.data?.newly_earned_badges || [];
+                if (earned.length > 0) {
+                    setNewlyEarnedBadges(earned);
+                    Animated.sequence([
+                        Animated.delay(600),
+                        Animated.spring(badgeAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+                    ]).start(() => {
+                        setTimeout(() => {
+                            Animated.timing(badgeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setNewlyEarnedBadges([]));
+                        }, 3500);
+                    });
+                }
                 
                 // Fetch Trivia Fact
                 try {
@@ -448,6 +464,19 @@ export default function ARScreen() {
                     </TouchableOpacity>
                 </View>
             )}
+            {/* --- BADGE EARNED TOAST --- */}
+            {newlyEarnedBadges.length > 0 && (
+                <Animated.View style={[styles.badgeToast, {
+                    opacity: badgeAnim,
+                    transform: [{ translateY: badgeAnim.interpolate({ inputRange: [0, 1], outputRange: [-80, 0] }) }]
+                }]}>
+                    <Text style={styles.badgeToastEmoji}>{newlyEarnedBadges[0].icon}</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.badgeToastLabel}>BADGE UNLOCKED</Text>
+                        <Text style={styles.badgeToastName}>{newlyEarnedBadges[0].name}</Text>
+                    </View>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -716,5 +745,40 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         marginLeft: 10,
         letterSpacing: 1,
+    },
+    badgeToast: {
+        position: 'absolute',
+        top: 110,
+        left: 20,
+        right: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(20, 20, 20, 0.95)',
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#FFD700',
+        gap: 12,
+        zIndex: 200,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+    },
+    badgeToastEmoji: {
+        fontSize: 32,
+    },
+    badgeToastLabel: {
+        color: '#FFD700',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 2,
+        marginBottom: 2,
+    },
+    badgeToastName: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
 });
