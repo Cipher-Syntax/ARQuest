@@ -27,6 +27,7 @@ export default function BuildingsScreen() {
     const [isLoadingAll, setIsLoadingAll] = useState(true);
     const [selectedBuilding, setSelectedBuilding] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [controlPickerVisible, setControlPickerVisible] = useState(false);
     
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -109,13 +110,20 @@ export default function BuildingsScreen() {
 
     const handleVirtualTour = () => {
         setModalVisible(false);
+        // Show control-mode picker before launching
+        setControlPickerVisible(true);
+    };
+
+    const launchVirtualTour = (controlMode) => {
+        setControlPickerVisible(false);
         router.push({
             pathname: '/virtual-tour-viewer',
             params: {
                 buildingId: selectedBuilding.id,
                 buildingName: selectedBuilding.name,
                 modelUrl: selectedBuilding.model_url,
-                hotspots: JSON.stringify(selectedBuilding.hotspots || [])
+                hotspots: JSON.stringify(selectedBuilding.hotspots || []),
+                controlMode: controlMode, // 'joystick' | 'gyroscope'
             },
         });
     };
@@ -435,6 +443,68 @@ export default function BuildingsScreen() {
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
+
+            {/* Control Mode Picker Modal */}
+            <Modal
+                transparent
+                animationType="fade"
+                visible={controlPickerVisible}
+                onRequestClose={() => setControlPickerVisible(false)}
+            >
+                <View style={styles.controlPickerOverlay}>
+                    <View style={styles.controlPickerCard}>
+                        {/* Header */}
+                        <View style={styles.controlPickerHeader}>
+                            <Ionicons name="game-controller-outline" size={28} color={theme.colors.arHighlight} />
+                            <Text style={styles.controlPickerTitle}>SELECT CONTROL MODE</Text>
+                            <Text style={styles.controlPickerSubtitle}>Choose how you want to navigate the virtual tour</Text>
+                        </View>
+
+                        {/* Joystick Option */}
+                        <TouchableOpacity
+                            style={styles.controlOption}
+                            onPress={() => launchVirtualTour('joystick')}
+                            activeOpacity={0.75}
+                        >
+                            <View style={styles.controlOptionIcon}>
+                                <Ionicons name="options-outline" size={32} color={theme.colors.arHighlight} />
+                            </View>
+                            <View style={styles.controlOptionText}>
+                                <Text style={styles.controlOptionTitle}>ORBIT CONTROLS</Text>
+                                <Text style={styles.controlOptionDesc}>Left joystick to move · Drag right side to look around</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+                        </TouchableOpacity>
+
+                        <View style={styles.controlDivider} />
+
+                        {/* Gyroscope Option */}
+                        <TouchableOpacity
+                            style={styles.controlOption}
+                            onPress={() => launchVirtualTour('gyroscope')}
+                            activeOpacity={0.75}
+                        >
+                            <View style={[styles.controlOptionIcon, styles.controlOptionIconGyro]}>
+                                <Ionicons name="phone-portrait-outline" size={32} color={theme.colors.success} />
+                            </View>
+                            <View style={styles.controlOptionText}>
+                                <Text style={[styles.controlOptionTitle, { color: theme.colors.success }]}>GYROSCOPE</Text>
+                                <Text style={styles.controlOptionDesc}>Tilt &amp; rotate your phone to look · Tap joystick side to move</Text>
+                                <Text style={styles.controlOptionBadge}>IMMERSIVE MODE</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+                        </TouchableOpacity>
+
+                        {/* Cancel */}
+                        <TouchableOpacity
+                            style={styles.controlCancelBtn}
+                            onPress={() => setControlPickerVisible(false)}
+                        >
+                            <Text style={styles.controlCancelText}>CANCEL</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -695,5 +765,107 @@ const styles = StyleSheet.create({
         color: theme.colors.error,
         fontWeight: "bold",
         letterSpacing: 1,
+    },
+
+    // --- Control Mode Picker ---
+    controlPickerOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+    controlPickerCard: {
+        width: '100%',
+        backgroundColor: theme.colors.bgSecondary,
+        borderRadius: theme.radius.xl,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        paddingBottom: theme.spacing.md,
+        overflow: 'hidden',
+    },
+    controlPickerHeader: {
+        alignItems: 'center',
+        paddingTop: theme.spacing.xl,
+        paddingBottom: theme.spacing.lg,
+        paddingHorizontal: theme.spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border,
+        gap: 6,
+    },
+    controlPickerTitle: {
+        color: theme.colors.arHighlight,
+        fontSize: 16,
+        fontWeight: '900',
+        letterSpacing: 3,
+        marginTop: 8,
+    },
+    controlPickerSubtitle: {
+        color: theme.colors.textSecondary,
+        fontSize: 12,
+        textAlign: 'center',
+    },
+    controlOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: 18,
+        gap: 14,
+    },
+    controlOptionIcon: {
+        width: 56,
+        height: 56,
+        borderRadius: 14,
+        backgroundColor: 'rgba(0, 229, 255, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 229, 255, 0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    controlOptionIconGyro: {
+        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+        borderColor: 'rgba(46, 204, 113, 0.3)',
+    },
+    controlOptionText: {
+        flex: 1,
+        gap: 3,
+    },
+    controlOptionTitle: {
+        color: theme.colors.arHighlight,
+        fontSize: 14,
+        fontWeight: '800',
+        letterSpacing: 2,
+    },
+    controlOptionDesc: {
+        color: theme.colors.textMuted,
+        fontSize: 12,
+        lineHeight: 17,
+    },
+    controlOptionBadge: {
+        color: theme.colors.success,
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 1.5,
+        marginTop: 2,
+    },
+    controlDivider: {
+        height: 1,
+        backgroundColor: theme.colors.border,
+        marginHorizontal: theme.spacing.lg,
+    },
+    controlCancelBtn: {
+        marginTop: theme.spacing.md,
+        marginHorizontal: theme.spacing.lg,
+        paddingVertical: 12,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        alignItems: 'center',
+    },
+    controlCancelText: {
+        color: theme.colors.textMuted,
+        fontSize: 13,
+        fontWeight: 'bold',
+        letterSpacing: 2,
     },
 });
