@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { Alert } from "react-native";
 import { api } from "../services/api";
 import { authService } from "../services/authService";
 
@@ -31,8 +32,21 @@ export const AuthProvider = ({ children }) => {
                     streakBonusExp = checkinData.streak_bonus_exp || 0;
 
                     // Sync the updated streak_count back into local user state
+                    let newStreak = checkinData.streak_count !== undefined ? checkinData.streak_count : restoredUser.streak_count;
                     if (checkinData.streak_count !== undefined) {
                         setUser(prev => ({ ...prev, streak_count: checkinData.streak_count }));
+                    }
+
+                    // Show global toast when hitting a streak milestone (e.g. 3 days)
+                    if (streakBonusExp > 0 && newStreak >= 3) {
+                        // Small delay ensures the UI is ready before showing the alert
+                        setTimeout(() => {
+                            Alert.alert(
+                                `🔥 ${newStreak}-Day Streak!`,
+                                `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
+                                [{ text: 'Awesome!', style: 'default' }]
+                            );
+                        }, 500);
                     }
                 } catch (checkinErr) {
                     // Non-fatal — streak update failure should not break session restore

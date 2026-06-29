@@ -42,7 +42,7 @@ class User(AbstractUser):
     def update_streak(self):
         """
         Call on every successful login.
-        Returns the bonus EXP awarded (10 per streak day, 0 on same-day repeat).
+        Returns the bonus EXP awarded (10 on every 3rd consecutive day, 0 otherwise).
         """
         today = date.today()
         bonus_exp = 0
@@ -50,18 +50,18 @@ class User(AbstractUser):
         if self.last_login_date is None:
             # First ever login — start streak at 1
             self.streak_count = 1
-            bonus_exp = 10
         elif self.last_login_date == today:
             # Already logged in today — no change
             pass
         elif self.last_login_date == today - timedelta(days=1):
             # Consecutive day — extend streak
             self.streak_count += 1
-            bonus_exp = 10
+            # Award +10 EXP on every 3rd consecutive day
+            if self.streak_count > 0 and self.streak_count % 3 == 0:
+                bonus_exp = 10
         else:
             # Missed one or more days — reset
             self.streak_count = 1
-            bonus_exp = 10
 
         if self.last_login_date != today:
             self.last_login_date = today

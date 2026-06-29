@@ -38,14 +38,7 @@ export default function LoginScreen() {
             const streakBonus = result?.streakBonusExp || 0;
             const streakCount = loggedInUser?.streak_count || 0;
 
-            // Show streak notification for consecutive days (day 2+)
-            if (streakBonus > 0 && streakCount > 1) {
-                Alert.alert(
-                    `🔥 ${streakCount}-Day Streak!`,
-                    `You're on a roll! +${streakBonus} EXP bonus for logging in ${streakCount} days in a row.`,
-                    [{ text: 'Let\'s Go!', style: 'default' }]
-                );
-            }
+            // Streak notification is now handled globally in AuthContext
 
             if (loggedInUser && !loggedInUser.avatar_id && username !== "visitor") {
                 router.replace("/(auth)/avatar-selection");
