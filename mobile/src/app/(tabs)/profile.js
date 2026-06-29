@@ -121,6 +121,20 @@ export default function ProfileScreen() {
                                 ) : (
                                     <Text style={styles.progressSubtext}>Max Rank Achieved!</Text>
                                 )}
+
+                                {/* Streak Stat */}
+                                <View style={styles.streakRow}>
+                                    <View style={styles.streakStat}>
+                                        <Text style={styles.streakStatFlame}>🔥</Text>
+                                        <View>
+                                            <Text style={styles.streakStatValue}>{user?.streak_count || 0} day{user?.streak_count !== 1 ? 's' : ''}</Text>
+                                            <Text style={styles.streakStatLabel}>CURRENT STREAK</Text>
+                                        </View>
+                                    </View>
+                                    <Text style={styles.streakStreakHint}>
+                                        {user?.streak_count > 0 ? '+10 EXP/day' : 'Log in daily for bonus EXP!'}
+                                    </Text>
+                                </View>
                             </View>
                         )}
                     </View>
@@ -321,6 +335,45 @@ const styles = StyleSheet.create({
         color: theme.colors.textMuted,
         textAlign: 'right',
         fontStyle: 'italic',
+    },
+    streakRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 16,
+        paddingTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
+    },
+    streakStat: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    streakStatFlame: {
+        fontSize: 28,
+    },
+    streakStatValue: {
+        fontFamily: fonts.hud.bold,
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#F1641E',
+    },
+    streakStatLabel: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 9,
+        fontWeight: 'bold',
+        color: theme.colors.textMuted,
+        letterSpacing: 1,
+        marginTop: 1,
+    },
+    streakStreakHint: {
+        fontFamily: fonts.body.regular,
+        fontSize: 11,
+        color: theme.colors.textMuted,
+        fontStyle: 'italic',
+        textAlign: 'right',
+        maxWidth: 120,
     },
     sectionContainer: {
         marginBottom: 24,

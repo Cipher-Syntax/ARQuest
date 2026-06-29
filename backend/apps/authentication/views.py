@@ -166,13 +166,17 @@ def login(request):
     user = serializer.validated_data['user']
     if user and SystemSetting.get_settings().maintenance_mode and not user.is_staff:
         return Response({'success': False, 'error': 'System is under maintenance.'}, status=503)
-        
+
+    # Update daily login streak (awards +10 EXP on first login of the day)
+    streak_bonus = user.update_streak()
+
     refresh = RefreshToken.for_user(user)
-    
+
     return success_response({
         'access': str(refresh.access_token),
         'refresh': str(refresh),
-        'user': UserSerializer(user).data
+        'user': UserSerializer(user).data,
+        'streak_bonus_exp': streak_bonus,
     })
 
 
@@ -275,3 +279,19 @@ def leaderboard(request):
         return Response({'success': False, 'error': 'Leaderboard is currently disabled.'}, status=403)
     users = User.objects.filter(role='student').order_by('-exploration_points')[:50]
     return success_response(UserSerializer(users, many=True).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def daily_checkin(request):
+    """
+    Called on every app open (from checkToken in AuthContext).
+    Updates the daily login streak and awards +10 EXP if this is the
+    user's first checkin of the day. Safe to call multiple times per day
+    — update_streak() is a no-op on same-day repeat calls.
+    """
+    bonus_exp = request.user.update_streak()
+    return success_response({
+        'streak_count': request.user.streak_count,
+        'streak_bonus_exp': bonus_exp,
+    })

@@ -19,8 +19,27 @@ export const AuthProvider = ({ children }) => {
                 const response = await api.get("/api/auth/me/");
                 // The backend `success_response` wraps in { data: { user: {...} } }
                 const payload = response.data.data || response.data;
-                setUser(payload.user);
-                return payload.user;
+                const restoredUser = payload.user;
+                setUser(restoredUser);
+
+                // Fire daily streak on every app open — safe to call repeatedly,
+                // update_streak() is a no-op when already checked in today.
+                let streakBonusExp = 0;
+                try {
+                    const checkinRes = await api.post("/api/auth/checkin/");
+                    const checkinData = checkinRes.data.data || checkinRes.data;
+                    streakBonusExp = checkinData.streak_bonus_exp || 0;
+
+                    // Sync the updated streak_count back into local user state
+                    if (checkinData.streak_count !== undefined) {
+                        setUser(prev => ({ ...prev, streak_count: checkinData.streak_count }));
+                    }
+                } catch (checkinErr) {
+                    // Non-fatal — streak update failure should not break session restore
+                    console.log("Checkin failed (non-fatal):", checkinErr);
+                }
+
+                return { user: restoredUser, streakBonusExp };
             }
         } catch (e) {
             console.log("Token check failed:", e);
@@ -40,9 +59,11 @@ export const AuthProvider = ({ children }) => {
             });
 
             // Extract tokens from the response
-            const { access, refresh } = response.data.data || response.data;
+            const payload = response.data.data || response.data;
+            const { access, refresh } = payload;
             await authService.setTokens(access, refresh);
 
+            // checkToken handles the checkin + streak update
             return await checkToken();
         } finally {
             setIsLoading(false);

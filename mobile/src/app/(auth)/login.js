@@ -7,7 +7,8 @@ import {
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
-    Image
+    Image,
+    Alert
 } from "react-native";
 import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
@@ -32,7 +33,20 @@ export default function LoginScreen() {
         }
         setError("");
         try {
-            const loggedInUser = await login(username, password);
+            const result = await login(username, password);
+            const loggedInUser = result?.user || result;
+            const streakBonus = result?.streakBonusExp || 0;
+            const streakCount = loggedInUser?.streak_count || 0;
+
+            // Show streak notification for consecutive days (day 2+)
+            if (streakBonus > 0 && streakCount > 1) {
+                Alert.alert(
+                    `🔥 ${streakCount}-Day Streak!`,
+                    `You're on a roll! +${streakBonus} EXP bonus for logging in ${streakCount} days in a row.`,
+                    [{ text: 'Let\'s Go!', style: 'default' }]
+                );
+            }
+
             if (loggedInUser && !loggedInUser.avatar_id && username !== "visitor") {
                 router.replace("/(auth)/avatar-selection");
             } else {

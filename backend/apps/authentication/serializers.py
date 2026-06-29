@@ -8,8 +8,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'email_verified', 'exploration_points', 'avatar_id', 'is_active', 'date_joined', 'rank_info']
-        read_only_fields = ['id', 'role', 'email_verified', 'exploration_points', 'date_joined']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'email_verified', 'exploration_points', 'avatar_id', 'streak_count', 'last_login_date', 'is_active', 'date_joined', 'rank_info']
+        read_only_fields = ['id', 'role', 'email_verified', 'exploration_points', 'streak_count', 'last_login_date', 'date_joined']
 
     def get_rank_info(self, obj):
         from apps.buildings.gamification_utils import get_rank_info
