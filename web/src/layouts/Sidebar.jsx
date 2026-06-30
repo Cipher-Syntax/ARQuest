@@ -47,7 +47,7 @@ const NAV_GROUPS = [
 	{
 		label: 'Gamification',
 		items: [
-			{ to: '/cms', icon: MonitorPlay, label: 'Quests & Trivias' },
+			{ to: '/cms', icon: MonitorPlay, label: 'Quests/Trivias/Quizzes' },
 			{ to: '/users', icon: Users, label: 'Student Rankings' }
 		]
 	},

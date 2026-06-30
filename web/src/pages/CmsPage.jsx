@@ -306,7 +306,7 @@ export default function CmsPage() {
 								</button>
 								<button
 									onClick={() => { setActiveTab('quizzes'); resetForm(); }}
-									className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'quizzes' ? 'border-[#3b82f6] text-[#3b82f6]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+									className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'quizzes' ? 'border-[#B21830] text-[#B21830]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
 								>
 									<HelpCircle size={16} className="inline mr-2" /> Quiz
 								</button>
@@ -354,7 +354,7 @@ export default function CmsPage() {
 											<div className="space-y-4">
 												<div>
 													<label className="block text-sm font-semibold mb-1 text-gray-700">Question</label>
-													<textarea value={formQuestion} onChange={e => setFormQuestion(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm h-20 focus:ring-2 focus:ring-[#3b82f6]/20 focus:border-[#3b82f6] outline-none resize-none" placeholder="Enter question..." />
+													<textarea value={formQuestion} onChange={e => setFormQuestion(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm h-20 focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none resize-none" placeholder="Enter question..." />
 												</div>
 												<div className="grid grid-cols-2 gap-3">
 													<div>
@@ -387,7 +387,7 @@ export default function CmsPage() {
 													</div>
 												</div>
 												<div className="flex justify-end pt-2">
-													<Button onClick={handleSaveQuiz} className="bg-[#3b82f6] hover:bg-[#2563eb] text-white">Save Quiz</Button>
+													<Button onClick={handleSaveQuiz} className="bg-[#B21830] hover:bg-[#8e1326] text-white">Save Quiz</Button>
 												</div>
 											</div>
 										)}
@@ -395,7 +395,7 @@ export default function CmsPage() {
 								) : (
 									<>
 										<div className="flex justify-end mb-6">
-											<Button onClick={() => setIsEditing(true)} className={`${activeTab === 'quizzes' ? 'bg-[#3b82f6] hover:bg-[#2563eb]' : 'bg-[#B21830] hover:bg-[#8e1326]'} text-white shadow-sm border-none`}>
+											<Button onClick={() => setIsEditing(true)} className="bg-[#B21830] hover:bg-[#8e1326] text-white shadow-sm border-none">
 												<Plus size={16} className="mr-1" /> Add {activeTab === 'quests' ? 'Quest' : activeTab === 'trivias' ? 'Trivia' : 'Quiz'}
 											</Button>
 										</div>
@@ -440,19 +440,19 @@ export default function CmsPage() {
 											))}
 
 											{activeTab === 'quizzes' && quizzes.filter(q => q.building === selectedBuilding.id).map(quiz => (
-												<div key={quiz.id} className="bg-white p-4 rounded-lg border-l-4 border-[#3b82f6] border-y border-r border-gray-200 shadow-sm flex flex-col gap-3 group hover:border-y-[#3b82f6]/30 hover:border-r-[#3b82f6]/30 transition-all">
+												<div key={quiz.id} className="bg-white p-4 rounded-lg border-l-4 border-[#B21830] border-y border-r border-gray-200 shadow-sm flex flex-col gap-3 group hover:border-y-[#B21830]/30 hover:border-r-[#B21830]/30 transition-all">
 													<div className="flex justify-between items-start">
 														<div className="flex gap-3">
-															<div className="mt-0.5 bg-[#3b82f6]/10 p-2 rounded-md text-[#3b82f6] shrink-0">
+															<div className="mt-0.5 bg-[#B21830]/10 p-2 rounded-md text-[#B21830] shrink-0">
 																<HelpCircle size={20} />
 															</div>
 															<div className="flex-1 min-w-0 pt-0.5">
 																<p className="font-bold text-gray-900 leading-tight">{quiz.question}</p>
-																<span className="inline-block mt-1 text-[10px] font-bold text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">+{quiz.exp_reward} pts</span>
+																<span className="inline-block mt-1 text-[10px] font-bold text-[#B21830] bg-[#B21830]/10 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">+{quiz.exp_reward} pts</span>
 															</div>
 														</div>
 														<div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-															<button onClick={() => { setEditingItem(quiz); setFormQuestion(quiz.question); setFormOptionA(quiz.option_a); setFormOptionB(quiz.option_b); setFormOptionC(quiz.option_c); setFormOptionD(quiz.option_d); setFormCorrectOption(quiz.correct_option); setFormReward(quiz.exp_reward); setIsEditing(true); }} className="p-1.5 text-gray-400 hover:text-[#3b82f6] bg-gray-50 hover:bg-[#3b82f6]/10 rounded-md transition-colors"><Edit3 size={14}/></button>
+															<button onClick={() => { setEditingItem(quiz); setFormQuestion(quiz.question); setFormOptionA(quiz.option_a); setFormOptionB(quiz.option_b); setFormOptionC(quiz.option_c); setFormOptionD(quiz.option_d); setFormCorrectOption(quiz.correct_option); setFormReward(quiz.exp_reward); setIsEditing(true); }} className="p-1.5 text-gray-400 hover:text-[#B21830] bg-gray-50 hover:bg-[#B21830]/10 rounded-md transition-colors"><Edit3 size={14}/></button>
 															<button onClick={() => handleDeleteQuiz(quiz.id)} className="p-1.5 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={14}/></button>
 														</div>
 													</div>
