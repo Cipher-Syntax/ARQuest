@@ -20,9 +20,9 @@ export default function HomeScreen() {
     // Carousel
     const scrollX = React.useRef(new Animated.Value(0)).current;
     const SCREEN_WIDTH = Dimensions.get('window').width;
-    const CAROUSEL_WIDTH = SCREEN_WIDTH - 40;
-    const ITEM_WIDTH = CAROUSEL_WIDTH * 0.7;
-    const ITEM_SPACING = 16;
+    const CAROUSEL_WIDTH = SCREEN_WIDTH; // Bleed to edges
+    const ITEM_WIDTH = CAROUSEL_WIDTH * 0.65;
+    const ITEM_SPACING = 20;
     const FULL_ITEM_WIDTH = ITEM_WIDTH + ITEM_SPACING;
     const INSET_HORIZONTAL = (CAROUSEL_WIDTH - ITEM_WIDTH) / 2;
 
@@ -235,6 +235,7 @@ export default function HomeScreen() {
                         <Animated.ScrollView 
                             horizontal 
                             showsHorizontalScrollIndicator={false} 
+                            style={{ marginHorizontal: -20, paddingTop: 10, paddingBottom: 20 }}
                             contentContainerStyle={{ paddingHorizontal: INSET_HORIZONTAL }} 
                             pagingEnabled={false} 
                             snapToInterval={FULL_ITEM_WIDTH} 
@@ -264,7 +265,7 @@ export default function HomeScreen() {
 
                                 const opacity = scrollX.interpolate({
                                     inputRange,
-                                    outputRange: [0.6, 1, 0.6],
+                                    outputRange: [0.5, 1, 0.5],
                                     extrapolate: 'clamp',
                                 });
 
@@ -273,46 +274,43 @@ export default function HomeScreen() {
                                         <TouchableOpacity 
                                             style={{
                                                 flex: 1,
-                                                height: 280,
+                                                height: 320,
                                                 backgroundColor: '#FFFFFF', 
-                                                borderRadius: theme.radius.lg,
-                                                borderWidth: 1,
-                                                borderColor: theme.colors.border,
+                                                borderRadius: 24,
                                                 overflow: 'hidden',
                                                 shadowColor: '#000',
-                                                shadowOffset: { width: 0, height: 4 },
-                                                shadowOpacity: 0.1,
-                                                shadowRadius: 8,
-                                                elevation: 4,
+                                                shadowOffset: { width: 0, height: 12 },
+                                                shadowOpacity: 0.15,
+                                                shadowRadius: 24,
+                                                elevation: 10,
                                             }}
                                             onPress={() => router.push('/(tabs)/ar')}
                                             activeOpacity={0.9}
                                         >
-                                            {/* Top Image Placeholder */}
-                                            <View style={{ height: 120, backgroundColor: 'rgba(178, 24, 48, 0.05)', justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-                                                <Timer color={theme.colors.primary} size={48} opacity={0.8} />
+                                            {/* Top Image Area */}
+                                            <View style={{ height: 140, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+                                                <Timer color="#FFFFFF" size={64} opacity={0.9} />
+                                                {/* Curved Cutout Effect */}
+                                                <View style={{ position: 'absolute', bottom: -2, width: '100%', height: 24, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24 }} />
                                             </View>
 
                                             {/* Bottom Content Container */}
-                                            <View style={{ flex: 1, padding: 16, alignItems: 'center' }}>
-                                                {/* Title */}
-                                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 20, color: theme.colors.textPrimary, textTransform: 'uppercase', textAlign: 'center', marginBottom: 4 }} numberOfLines={1}>
+                                            <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, alignItems: 'center', justifyContent: 'space-between' }}>
+                                                
+                                                <View style={{ backgroundColor: 'rgba(178, 24, 48, 0.1)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginBottom: 8 }}>
+                                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 10, color: theme.colors.primary, letterSpacing: 1 }}>FLASH EVENT</Text>
+                                                </View>
+
+                                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 20, color: theme.colors.textPrimary, textTransform: 'uppercase', textAlign: 'center', lineHeight: 24 }} numberOfLines={2}>
                                                     {challenge.title}
                                                 </Text>
                                                 
-                                                {/* Subtitle / Points */}
-                                                <Text style={{ fontFamily: fonts.hud.bold, fontSize: 14, color: theme.colors.primary, marginBottom: 8 }}>
+                                                <Text style={{ fontFamily: fonts.hud.bold, fontSize: 18, color: theme.colors.primary, marginVertical: 4 }}>
                                                     +{challenge.reward_points} EXP
                                                 </Text>
                                                 
-                                                {/* Description / Expiration */}
-                                                <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 'auto' }}>
-                                                    Expires at {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </Text>
-                                                
-                                                {/* Action Button */}
-                                                <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: theme.colors.primary, paddingHorizontal: 32, paddingVertical: 8, borderRadius: 4 }}>
-                                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 12, color: theme.colors.primary, letterSpacing: 1 }}>DEPLOY</Text>
+                                                <View style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 30, width: '100%', alignItems: 'center', marginTop: 12 }}>
+                                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 14, color: '#FFFFFF', letterSpacing: 1 }}>DEPLOY</Text>
                                                 </View>
                                             </View>
                                         </TouchableOpacity>
