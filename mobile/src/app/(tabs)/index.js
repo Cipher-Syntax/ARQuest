@@ -21,8 +21,8 @@ export default function HomeScreen() {
     const scrollX = React.useRef(new Animated.Value(0)).current;
     const SCREEN_WIDTH = Dimensions.get('window').width;
     const CAROUSEL_WIDTH = SCREEN_WIDTH; // Bleed to edges
-    const ITEM_WIDTH = CAROUSEL_WIDTH * 0.65;
-    const ITEM_SPACING = 20;
+    const ITEM_WIDTH = SCREEN_WIDTH - 40; // Exact width of daily mission card
+    const ITEM_SPACING = 12;
     const FULL_ITEM_WIDTH = ITEM_WIDTH + ITEM_SPACING;
     const INSET_HORIZONTAL = (CAROUSEL_WIDTH - ITEM_WIDTH) / 2;
 
