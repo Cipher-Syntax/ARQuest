@@ -37,15 +37,23 @@ export const AuthProvider = ({ children }) => {
                         setUser(prev => ({ ...prev, streak_count: checkinData.streak_count }));
                     }
 
-                    // Show global toast when hitting a 3-day streak milestone
-                    if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
+                    // Show global toast for daily check-in and milestones
+                    if (streakBonusExp > 0) {
                         // Small delay ensures the UI is ready before showing the alert
                         setTimeout(() => {
-                            Alert.alert(
-                                `🔥 ${newStreak}-Day Streak!`,
-                                `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
-                                [{ text: 'Awesome!', style: 'default' }]
-                            );
+                            if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
+                                Alert.alert(
+                                    `🔥 ${newStreak}-Day Streak!`,
+                                    `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
+                                    [{ text: 'Awesome!', style: 'default' }]
+                                );
+                            } else {
+                                Alert.alert(
+                                    `✅ Daily Check-in`,
+                                    `You earned +${streakBonusExp} EXP for logging in today. Keep your streak going!`,
+                                    [{ text: 'Okay', style: 'default' }]
+                                );
+                            }
                         }, 500);
                     }
                 } catch (checkinErr) {
