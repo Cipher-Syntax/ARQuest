@@ -530,6 +530,25 @@ export default function BuildingsScreen() {
                 </View>
             </Modal>
             
+            {/* Map Legend */}
+            {!selectedBuilding && (
+                <View style={styles.mapLegend}>
+                    <Text style={styles.legendTitle}>MAP LEGEND</Text>
+                    <View style={styles.legendRow}>
+                        <View style={[styles.legendDot, { backgroundColor: '#4285F4', borderWidth: 2, borderColor: '#FFFFFF' }]} />
+                        <Text style={styles.legendText}>Your Location</Text>
+                    </View>
+                    <View style={styles.legendRow}>
+                        <View style={[styles.legendDot, { backgroundColor: '#8a1538', borderWidth: 2, borderColor: '#FFFFFF' }]} />
+                        <Text style={styles.legendText}>{user?.role === 'professional' ? 'Visited' : 'Unlocked'} Node</Text>
+                    </View>
+                    <View style={styles.legendRow}>
+                        <View style={[styles.legendDot, { backgroundColor: '#6b7280', borderWidth: 2, borderColor: '#FFFFFF' }]} />
+                        <Text style={styles.legendText}>{user?.role === 'professional' ? 'Unvisited' : 'Locked'} Node</Text>
+                    </View>
+                </View>
+            )}
+            
             {/* Trivia Quiz Modal */}
             <QuizModal 
                 visible={quizModalVisible} 
@@ -898,5 +917,43 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: 'bold',
         letterSpacing: 2,
+    },
+    mapLegend: {
+        position: 'absolute',
+        bottom: 24,
+        left: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    legendTitle: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: theme.colors.textMuted,
+        letterSpacing: 1,
+        marginBottom: 8,
+    },
+    legendRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    legendDot: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        marginRight: 8,
+    },
+    legendText: {
+        fontSize: 12,
+        color: theme.colors.textPrimary,
+        fontWeight: '500',
     },
 });
