@@ -132,7 +132,7 @@ export default function ProfileScreen() {
                                         </View>
                                     </View>
                                     <Text style={styles.streakStreakHint}>
-                                        {user?.streak_count > 0 ? '+10 EXP/day' : 'Log in daily for bonus EXP!'}
+                                        {user?.streak_count > 0 ? '+5 EXP/day (+10 on 3-day milestones)' : 'Log in daily for bonus EXP!'}
                                     </Text>
                                 </View>
                             </View>

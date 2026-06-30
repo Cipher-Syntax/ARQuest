@@ -37,8 +37,8 @@ export const AuthProvider = ({ children }) => {
                         setUser(prev => ({ ...prev, streak_count: checkinData.streak_count }));
                     }
 
-                    // Show global toast when hitting a streak milestone (e.g. 3 days)
-                    if (streakBonusExp > 0 && newStreak >= 3) {
+                    // Show global toast when hitting a 3-day streak milestone
+                    if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
                         // Small delay ensures the UI is ready before showing the alert
                         setTimeout(() => {
                             Alert.alert(
