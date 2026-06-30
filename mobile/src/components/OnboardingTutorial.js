@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, Animated, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Map, MapPin, ScanLine, Trophy, Target } from 'lucide-react-native';
 import theme from '../theme/tokens';
@@ -58,6 +58,18 @@ export default function OnboardingTutorial() {
 
     useEffect(() => {
         checkTutorialStatus();
+        
+        const sub = DeviceEventEmitter.addListener('show_tutorial', () => {
+            setCurrentStep(0);
+            setIsVisible(true);
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }).start();
+        });
+        
+        return () => sub.remove();
     }, []);
 
     const checkTutorialStatus = async () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award, Crosshair, Map, MessageSquare } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -260,6 +260,12 @@ export default function ProfileScreen() {
                             title="Report an Issue / Feedback" 
                             subtitle="Help us improve ARQuest"
                             onPress={() => setFeedbackModalVisible(true)} 
+                        />
+                        <SettingsRow 
+                            icon={HelpCircle} 
+                            title="Replay Tutorial" 
+                            subtitle="View the onboarding guide again"
+                            onPress={() => DeviceEventEmitter.emit('show_tutorial')} 
                         />
                         <SettingsRow 
                             icon={HelpCircle} 
