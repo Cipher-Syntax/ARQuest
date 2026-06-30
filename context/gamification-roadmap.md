@@ -133,8 +133,6 @@
 
 ---
 
-## 🚧 In Progress
-
 ### ✅ 16. Admin Reports & Analytics Dashboard
 - **Status:** DONE
 - **What:** Data visualization for the Admin Web Dashboard to track user engagement.
@@ -145,8 +143,6 @@
 - **Where:** React Web Admin Dashboard (Overview page).
 
 ---
-
-## 🚧 In Progress
 
 ### ✅ 17. User Feedback & Issue Reporting
 - **Status:** DONE
