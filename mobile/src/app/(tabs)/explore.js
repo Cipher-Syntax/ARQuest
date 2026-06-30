@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { router } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import theme from "../../theme/tokens";
@@ -25,6 +26,7 @@ export default function ExploreScreen() {
     const [validationResult, setValidationResult] = useState(null);
     const [isValidating, setIsValidating] = useState(false);
     const [lastUnlockAttempt, setLastUnlockAttempt] = useState(null);
+    const [buildingsList, setBuildingsList] = useState([]);
     const [totalBuildings, setTotalBuildings] = useState(0);
     const [activeQuests, setActiveQuests] = useState([]);
     const [earnedBadges, setEarnedBadges] = useState([]);
@@ -36,6 +38,7 @@ export default function ExploreScreen() {
             try {
                 const res = await api.get('/api/buildings/');
                 if (res.data.success) {
+                    setBuildingsList(res.data.data);
                     setTotalBuildings(res.data.data.length);
                 }
                 const questRes = await api.get('/api/gamification/quests/active/');
@@ -50,6 +53,32 @@ export default function ExploreScreen() {
     }, []);
 
     const progressPercentage = totalBuildings > 0 ? (unlockedBuildings.length / totalBuildings) * 100 : 0;
+
+    const getDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI/180;
+        const φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1) * Math.PI/180;
+        const Δλ = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return Math.floor(R * c);
+    };
+
+    const nearbyBuildings = useMemo(() => {
+        if (!location || buildingsList.length === 0) return [];
+        
+        return buildingsList
+            .map(b => ({
+                ...b,
+                distance: getDistance(location.latitude, location.longitude, b.latitude, b.longitude)
+            }))
+            .sort((a, b) => a.distance - b.distance)
+            .slice(0, 5); // top 5 closest
+    }, [location, buildingsList]);
 
     // Radar Pulse Animation
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -237,6 +266,44 @@ export default function ExploreScreen() {
                             <Text style={styles.noTargetText}>No buildings detected in immediate vicinity.</Text>
                         </View>
                     )}
+                </View>
+            )}
+
+            {/* Nearby Buildings List */}
+            {nearbyBuildings.length > 0 && (
+                <View style={styles.card}>
+                    <View style={styles.cardHeaderRow}>
+                        <Ionicons name="location-outline" size={20} color={theme.colors.primary} />
+                        <Text style={styles.cardTitle}>NEARBY LOCATIONS</Text>
+                    </View>
+                    
+                    {nearbyBuildings.map((building, index) => {
+                        const isUnlocked = unlockedBuildings.some(ub => ub.id === building.id);
+                        return (
+                            <View key={building.id} style={[styles.nearbyRow, index < nearbyBuildings.length - 1 && styles.nearbyDivider]}>
+                                <View style={styles.nearbyIconWrapper}>
+                                    <Ionicons 
+                                        name={isUnlocked ? "checkmark-circle" : "lock-closed"} 
+                                        size={20} 
+                                        color={isUnlocked ? theme.colors.arHighlight : theme.colors.textMuted} 
+                                    />
+                                </View>
+                                <View style={styles.nearbyInfo}>
+                                    <Text style={styles.nearbyName} numberOfLines={1}>{building.name}</Text>
+                                    <Text style={styles.nearbyDistance}>{building.distance}m away</Text>
+                                </View>
+                                <TouchableOpacity 
+                                    style={styles.navigateBtn}
+                                    onPress={() => {
+                                        router.push('/buildings');
+                                    }}
+                                >
+                                    <Ionicons name="navigate" size={16} color={theme.colors.white} />
+                                    <Text style={styles.navigateText}>NAV</Text>
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    })}
                 </View>
             )}
 
@@ -650,6 +717,54 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold',
         letterSpacing: 0.5,
+    },
+    nearbyRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+    },
+    nearbyDivider: {
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border,
+    },
+    nearbyIconWrapper: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: theme.colors.surfaceSoft,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    nearbyInfo: {
+        flex: 1,
+    },
+    nearbyName: {
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.textPrimary,
+        fontSize: 13,
+        marginBottom: 2,
+    },
+    nearbyDistance: {
+        fontFamily: fonts.hud.medium,
+        color: theme.colors.primary,
+        fontSize: 11,
+        letterSpacing: 1,
+    },
+    navigateBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        marginLeft: 10,
+    },
+    navigateText: {
+        fontFamily: fonts.hud.bold,
+        color: theme.colors.white,
+        fontSize: 11,
+        marginLeft: 4,
     },
 });
 
