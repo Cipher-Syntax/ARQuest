@@ -67,7 +67,7 @@ export default function FeedbackModal({ visible, onClose }) {
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView 
                 style={styles.modalOverlay}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
