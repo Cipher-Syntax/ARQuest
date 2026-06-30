@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award, Crosshair } from 'lucide-react-native';
+import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award, Crosshair, Map } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { api } from '../../services/api';
 import theme from '../../theme/tokens';
@@ -226,6 +226,15 @@ export default function ProfileScreen() {
                                 title="My Achievements" 
                                 subtitle={badgeCount ? `${badgeCount} badges earned` : 'View your badges'}
                                 onPress={() => router.push('/badges')} 
+                            />
+                        )}
+
+                        {user?.role === 'student' && (
+                            <SettingsRow 
+                                icon={Map} 
+                                title="Campus Passport" 
+                                subtitle="View your discovered locations"
+                                onPress={() => router.push('/passport')} 
                             />
                         )}
 
