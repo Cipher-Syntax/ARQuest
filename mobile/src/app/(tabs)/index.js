@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
@@ -7,7 +7,7 @@ import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
 import ARGlassCard from "../../components/ARGlassCard";
 import ARButton from "../../components/ARButton";
-import { Trophy, Compass, Crosshair, MapPin, Map as MapIcon, ScanLine, BarChart2, ChevronRight, Box, Activity } from "lucide-react-native";
+import { Trophy, Compass, Crosshair, MapPin, Map as MapIcon, ScanLine, BarChart2, ChevronRight, Box, Activity, Timer } from "lucide-react-native";
 import { router } from "expo-router";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { geofencingService } from "../../services/geofencingService";
@@ -223,14 +223,44 @@ export default function HomeScreen() {
                                 return (
                                     <TouchableOpacity 
                                         key={challenge.id} 
-                                        style={[styles.assetCard, { borderColor: theme.colors.warning, borderWidth: 1 }]}
+                                        style={[styles.heroCard, { 
+                                            width: Dimensions.get('window').width - 40, 
+                                            backgroundColor: theme.colors.warning, 
+                                            shadowColor: theme.colors.warning,
+                                            marginTop: 0,
+                                            marginBottom: 0
+                                        }]}
                                         onPress={() => router.push('/(tabs)/ar')}
+                                        activeOpacity={0.9}
                                     >
-                                        <Text style={styles.assetName} numberOfLines={2}>{challenge.title}</Text>
-                                        <Text style={[styles.splitSubLabel, { color: theme.colors.warning, marginTop: 5 }]}>
-                                            ENDS {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        <View style={styles.heroTopRow}>
+                                            <View style={styles.heroLabelChip}>
+                                                <Timer color="#FFFFFF" size={14} />
+                                                <Text style={styles.heroChipText}>LIMITED TIME</Text>
+                                            </View>
+                                            <View style={styles.heroExpBadge}>
+                                                <Text style={styles.heroExpText}>+{challenge.reward_points} EXP</Text>
+                                            </View>
+                                        </View>
+                                        
+                                        <Text style={styles.heroQuestTitle}>
+                                            {challenge.title}
                                         </Text>
-                                        <Text style={[styles.splitLabel, { marginTop: 10 }]}>REWARD: {challenge.reward_points} EXP</Text>
+                                        
+                                        <View style={styles.heroBottomRow}>
+                                            <View style={styles.heroTargetInfo}>
+                                                <Text style={styles.heroTargetLabel}>ENDS AT</Text>
+                                                <Text style={styles.heroTargetValue} numberOfLines={1}>
+                                                    {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </Text>
+                                            </View>
+                                            <View style={[styles.heroDeployBtn, { backgroundColor: '#FFFFFF' }]}>
+                                                <Text style={[styles.heroDeployText, { color: theme.colors.warning }]}>
+                                                    DEPLOY
+                                                </Text>
+                                                <ChevronRight color={theme.colors.warning} size={16} />
+                                            </View>
+                                        </View>
                                     </TouchableOpacity>
                                 )
                             })}
