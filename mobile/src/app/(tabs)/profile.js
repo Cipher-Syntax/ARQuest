@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award } from 'lucide-react-native';
+import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award, Crosshair } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { api } from '../../services/api';
 import theme from '../../theme/tokens';
@@ -14,6 +14,8 @@ export default function ProfileScreen() {
     const [myStats, setMyStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [badgeCount, setBadgeCount] = useState(null);
+    const [questHistory, setQuestHistory] = useState([]);
+    const [myBadges, setMyBadges] = useState([]);
 
     useEffect(() => {
         const fetchMyRank = async () => {
@@ -36,20 +38,36 @@ export default function ProfileScreen() {
         };
         fetchMyRank();
 
-        // Fetch badge count
+        // Fetch badge count and top 6 badges
         const fetchBadges = async () => {
             try {
                 const res = await api.get('/api/gamification/badges/');
                 if (res.data.success) {
-                    const earned = res.data.data.filter(b => b.earned).length;
-                    const total = res.data.data.length;
-                    setBadgeCount(`${earned}/${total}`);
+                    const earnedBadges = res.data.data.filter(b => b.earned);
+                    setBadgeCount(`${earnedBadges.length}/${res.data.data.length}`);
+                    setMyBadges(earnedBadges.slice(0, 6)); // Top 6 for showcase
                 }
             } catch (e) {
                 console.error('Failed to fetch badge count:', e);
             }
         };
-        if (user?.role === 'student') fetchBadges();
+        
+        // Fetch quest history
+        const fetchQuestHistory = async () => {
+            try {
+                const res = await api.get('/api/gamification/quests/history/');
+                if (res.data.success) {
+                    setQuestHistory(res.data.data);
+                }
+            } catch (e) {
+                console.error('Failed to fetch quest history:', e);
+            }
+        };
+        
+        if (user?.role === 'student') {
+            fetchBadges();
+            fetchQuestHistory();
+        }
     }, []);
 
     const SettingsRow = ({ icon: Icon, title, subtitle, onPress, destructive }) => (
@@ -73,70 +91,118 @@ export default function ProfileScreen() {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 
-                {/* Profile Header */}
-                <View style={styles.profileHeader}>
-                    {user?.avatar_id && AVATARS.find(a => a.id === user.avatar_id)?.uri ? (
-                        <Image 
-                            source={{ uri: AVATARS.find(a => a.id === user.avatar_id).uri }} 
-                            style={styles.avatar} 
-                        />
-                    ) : (
-                        <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>
-                                {user?.username?.charAt(0).toUpperCase() || "?"}
-                            </Text>
+                {/* --- Player ID Card (#6) --- */}
+                <View style={styles.playerCard}>
+                    <View style={styles.playerCardTop}>
+                        {user?.avatar_id && AVATARS.find(a => a.id === user.avatar_id)?.uri ? (
+                            <Image 
+                                source={{ uri: AVATARS.find(a => a.id === user.avatar_id).uri }} 
+                                style={styles.playerAvatar} 
+                            />
+                        ) : (
+                            <View style={styles.playerAvatar}>
+                                <Text style={styles.avatarText}>
+                                    {user?.username?.charAt(0).toUpperCase() || "?"}
+                                </Text>
+                            </View>
+                        )}
+                        <View style={styles.playerInfo}>
+                            <Text style={styles.playerUsername}>@{user?.username}</Text>
+                            {user?.role === 'student' ? (
+                                <View style={styles.playerRankBadge}>
+                                    <Text style={styles.playerRankIcon}>{user?.rank_info?.icon || '🎒'}</Text>
+                                    <Text style={styles.playerRoleLabel}>Lv.{user?.rank_info?.level || 1} {user?.rank_info?.title?.toUpperCase() || 'FRESHMAN'}</Text>
+                                </View>
+                            ) : (
+                                <Text style={styles.playerRoleLabel}>{user?.role?.toUpperCase() || 'PROFESSIONAL'}</Text>
+                            )}
                         </View>
-                    )}
-                    <Text style={styles.username}>@{user?.username}</Text>
-                    {user?.role === 'student' ? (
-                        <View style={styles.rankBadge}>
-                            <Text style={styles.rankIcon}>{user?.rank_info?.icon || '🎒'}</Text>
-                            <Text style={styles.roleLabel}>Lv.{user?.rank_info?.level || 1} {user?.rank_info?.title?.toUpperCase() || 'FRESHMAN'}</Text>
+                    </View>
+
+                    {user?.role === 'student' && (
+                        <View style={styles.playerCardBottom}>
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#FFF" style={{ padding: 10 }} />
+                            ) : (
+                                <>
+                                    <View style={styles.progressHeader}>
+                                        <Text style={styles.progressTitle}>RANK PROGRESS</Text>
+                                        <Text style={styles.progressPoints}>{user.exploration_points} EXP</Text>
+                                    </View>
+                                    
+                                    <View style={styles.progressBarContainer}>
+                                        <View style={[styles.progressBarFill, { width: `${user?.rank_info?.progress_percentage || 0}%` }]} />
+                                    </View>
+                                    
+                                    <View style={styles.progressFooter}>
+                                        <Text style={styles.progressSubtext}>
+                                            {user?.rank_info?.next_rank_exp ? `${user.rank_info.exp_to_next_rank} EXP to next rank` : 'Max Rank Achieved!'}
+                                        </Text>
+                                        <View style={styles.miniStreak}>
+                                            <Text style={styles.miniStreakFlame}>🔥</Text>
+                                            <Text style={styles.miniStreakText}>{user?.streak_count || 0}</Text>
+                                        </View>
+                                    </View>
+                                </>
+                            )}
                         </View>
-                    ) : (
-                        <Text style={styles.roleLabel}>{user?.role?.toUpperCase() || 'PROFESSIONAL'}</Text>
                     )}
                 </View>
 
-                {/* Rank Progress Dashboard (Only for Students) */}
+                {/* --- Badge Showcase --- */}
                 {user?.role === 'student' && (
-                    <View style={styles.statsContainer}>
-                        {loading ? (
-                            <ActivityIndicator size="small" color={theme.colors.primary} />
-                        ) : (
-                            <View style={styles.progressSection}>
-                                <View style={styles.progressHeader}>
-                                    <Text style={styles.progressTitle}>RANK PROGRESS</Text>
-                                    <Text style={styles.progressPoints}>{user.exploration_points} EXP</Text>
-                                </View>
-                                
-                                <View style={styles.progressBarContainer}>
-                                    <View style={[styles.progressBarFill, { width: `${user?.rank_info?.progress_percentage || 0}%` }]} />
-                                </View>
-                                
-                                {user?.rank_info?.next_rank_exp ? (
-                                    <Text style={styles.progressSubtext}>
-                                        {user.rank_info.exp_to_next_rank} EXP to next rank
-                                    </Text>
-                                ) : (
-                                    <Text style={styles.progressSubtext}>Max Rank Achieved!</Text>
-                                )}
-
-                                {/* Streak Stat */}
-                                <View style={styles.streakRow}>
-                                    <View style={styles.streakStat}>
-                                        <Text style={styles.streakStatFlame}>🔥</Text>
-                                        <View>
-                                            <Text style={styles.streakStatValue}>{user?.streak_count || 0} day{user?.streak_count !== 1 ? 's' : ''}</Text>
-                                            <Text style={styles.streakStatLabel}>CURRENT STREAK</Text>
-                                        </View>
+                    <View style={styles.sectionContainer}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>TOP ACHIEVEMENTS</Text>
+                            <TouchableOpacity onPress={() => router.push('/badges')} style={styles.seeAllBtn}>
+                                <Text style={styles.seeAllText}>VIEW ALL</Text>
+                                <ChevronRight size={14} color={theme.colors.arHighlight} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.badgeGrid}>
+                            {myBadges.length > 0 ? myBadges.map((badge, idx) => (
+                                <View key={badge.id || idx} style={styles.badgeCard}>
+                                    <View style={[styles.badgeIconWrapper, { backgroundColor: badge.color_hex + '20' }]}>
+                                        <Text style={styles.badgeIcon}>{badge.icon}</Text>
                                     </View>
-                                    <Text style={styles.streakStreakHint}>
-                                        {user?.streak_count > 0 ? '+5 EXP/day (+10 on 3-day milestones)' : 'Log in daily for bonus EXP!'}
-                                    </Text>
+                                    <Text style={styles.badgeName} numberOfLines={1}>{badge.name}</Text>
                                 </View>
-                            </View>
-                        )}
+                            )) : (
+                                <View style={styles.emptyContainer}>
+                                    <Text style={styles.emptyText}>No badges earned yet.</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
+
+                {/* --- Quest History --- */}
+                {user?.role === 'student' && (
+                    <View style={styles.sectionContainer}>
+                        <Text style={styles.sectionTitle}>RECENT QUESTS</Text>
+                        <View style={styles.settingsCard}>
+                            {questHistory.length > 0 ? questHistory.slice(0, 5).map((quest, idx) => (
+                                <View key={idx} style={[styles.historyRow, idx < Math.min(questHistory.length, 5) - 1 && styles.historyDivider]}>
+                                    <View style={styles.historyIconWrapper}>
+                                        <Crosshair size={16} color={theme.colors.primary} />
+                                    </View>
+                                    <View style={styles.historyTextContainer}>
+                                        <Text style={styles.historyTitle} numberOfLines={1}>{quest.quest_title}</Text>
+                                        <Text style={styles.historySubtitle}>{quest.building_name}</Text>
+                                    </View>
+                                    <View style={styles.historyRight}>
+                                        <Text style={styles.historyPoints}>+{quest.points} EXP</Text>
+                                        <Text style={styles.historyTime}>
+                                            {new Date(quest.time_ago).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                                        </Text>
+                                    </View>
+                                </View>
+                            )) : (
+                                <View style={styles.emptyContainer}>
+                                    <Text style={styles.emptyText}>No quests completed recently.</Text>
+                                </View>
+                            )}
+                        </View>
                     </View>
                 )}
 
@@ -230,150 +296,180 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingBottom: 40,
     },
-    profileHeader: {
-        alignItems: 'center',
-        marginBottom: 20,
-        marginTop: 10,
+    playerCard: {
+        backgroundColor: theme.colors.surfaceSoft,
+        borderRadius: theme.radius.xl,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        overflow: 'hidden',
+        marginBottom: theme.spacing.xl,
     },
-    avatar: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+    playerCardTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: theme.spacing.lg,
+    },
+    playerAvatar: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
         backgroundColor: theme.colors.primary,
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 12,
-        borderWidth: 4,
-        borderColor: theme.colors.surface,
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        elevation: 5,
+        marginRight: theme.spacing.md,
+        borderWidth: 2,
+        borderColor: theme.colors.primarySoft,
     },
     avatarText: {
-        color: "#FFFFFF",
-        fontSize: 40,
-        fontWeight: "900",
-    },
-    username: {
         fontFamily: fonts.heading.bold,
+        color: "#FFF",
+        fontSize: 32,
+    },
+    playerInfo: {
+        flex: 1,
+    },
+    playerUsername: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 22,
         color: theme.colors.textPrimary,
-        fontSize: 24,
-        fontWeight: "bold",
         marginBottom: 4,
     },
-    roleLabel: {
-        color: theme.colors.primary,
-        fontSize: 12,
-        fontWeight: "bold",
-        letterSpacing: 1.5,
-        backgroundColor: 'rgba(178, 24, 48, 0.1)',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    rankBadge: {
+    playerRankBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(178, 24, 48, 0.1)',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        marginTop: 4,
+        gap: 6,
     },
-    rankIcon: {
+    playerRankIcon: {
         fontSize: 16,
-        marginRight: 6,
     },
-    statsContainer: {
-        width: '100%',
-        marginTop: 10,
-        marginBottom: 30,
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+    playerRoleLabel: {
+        fontFamily: fonts.hud.bold,
+        color: theme.colors.textSecondary,
+        fontSize: 12,
+        letterSpacing: 1,
     },
-    progressSection: {
-        width: '100%',
+    playerCardBottom: {
+        backgroundColor: theme.colors.primary,
+        padding: theme.spacing.lg,
     },
     progressHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        marginBottom: 10,
+        marginBottom: 8,
     },
     progressTitle: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        fontWeight: '900',
-        color: theme.colors.textSecondary,
+        fontFamily: fonts.hud.bold,
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 10,
         letterSpacing: 1,
     },
     progressPoints: {
         fontFamily: fonts.hud.bold,
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: theme.colors.primary,
+        color: '#FFF',
+        fontSize: 12,
     },
     progressBarContainer: {
-        height: 12,
-        backgroundColor: theme.colors.bgSecondary,
-        borderRadius: 6,
+        height: 8,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 4,
         overflow: 'hidden',
         marginBottom: 8,
     },
     progressBarFill: {
         height: '100%',
-        backgroundColor: theme.colors.primary,
-        borderRadius: 6,
+        backgroundColor: '#FFF',
+        borderRadius: 4,
+    },
+    progressFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     progressSubtext: {
-        fontSize: 12,
-        color: theme.colors.textMuted,
-        textAlign: 'right',
-        fontStyle: 'italic',
-    },
-    streakRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 16,
-        paddingTop: 14,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.border,
-    },
-    streakStat: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    streakStatFlame: {
-        fontSize: 28,
-    },
-    streakStatValue: {
-        fontFamily: fonts.hud.bold,
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#F1641E',
-    },
-    streakStatLabel: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 9,
-        fontWeight: 'bold',
-        color: theme.colors.textMuted,
-        letterSpacing: 1,
-        marginTop: 1,
-    },
-    streakStreakHint: {
         fontFamily: fonts.body.regular,
-        fontSize: 11,
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 12,
+    },
+    miniStreak: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 12,
+        gap: 4,
+    },
+    miniStreakFlame: {
+        fontSize: 12,
+    },
+    miniStreakText: {
+        fontFamily: fonts.hud.bold,
+        color: '#FFF',
+        fontSize: 10,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    seeAllBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    seeAllText: {
+        fontFamily: fonts.hud.bold,
+        color: theme.colors.arHighlight,
+        fontSize: 10,
+        letterSpacing: 1,
+        marginRight: 2,
+    },
+    badgeGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        justifyContent: 'space-between',
+    },
+    badgeCard: {
+        width: '31%',
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.sm,
+        alignItems: 'center',
+    },
+    badgeIconWrapper: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    badgeIcon: {
+        fontSize: 20,
+    },
+    badgeName: {
+        fontFamily: fonts.heading.medium,
+        color: theme.colors.textPrimary,
+        fontSize: 9,
+        textAlign: 'center',
+    },
+    emptyContainer: {
+        padding: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        width: '100%',
+    },
+    emptyText: {
+        fontFamily: fonts.body.regular,
         color: theme.colors.textMuted,
-        fontStyle: 'italic',
-        textAlign: 'right',
-        maxWidth: 120,
+        fontSize: 12,
     },
     sectionContainer: {
         marginBottom: 24,
@@ -439,5 +535,52 @@ const styles = StyleSheet.create({
         color: theme.colors.error,
         fontSize: 16,
         fontWeight: "bold",
+    },
+    historyRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    historyDivider: {
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border,
+    },
+    historyIconWrapper: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: theme.colors.primarySoft,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    historyTextContainer: {
+        flex: 1,
+    },
+    historyTitle: {
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.textPrimary,
+        fontSize: 13,
+        marginBottom: 2,
+    },
+    historySubtitle: {
+        fontFamily: fonts.body.regular,
+        color: theme.colors.textSecondary,
+        fontSize: 11,
+    },
+    historyRight: {
+        alignItems: 'flex-end',
+    },
+    historyPoints: {
+        fontFamily: fonts.hud.bold,
+        color: theme.colors.accent,
+        fontSize: 12,
+        marginBottom: 2,
+    },
+    historyTime: {
+        fontFamily: fonts.body.regular,
+        color: theme.colors.textMuted,
+        fontSize: 10,
     },
 });

@@ -211,3 +211,26 @@ class AllBadgesView(views.APIView):
 			badge_data['earned'] = badge.id in earned_ids
 			data.append(badge_data)
 		return Response({'success': True, 'data': data})
+
+class MyQuestHistoryView(views.APIView):
+	permission_classes = [IsAuthenticated]
+
+	def get(self, request):
+		recent = UserQuestProgress.objects.filter(
+			is_completed=True,
+			user=request.user
+		).select_related('quest', 'quest__target_building').order_by('-completed_at')[:10]
+
+		data = []
+		for r in recent:
+			data.append({
+				'quest_title': r.quest.title,
+				'building_name': r.quest.target_building.name if r.quest.target_building else 'Unknown Location',
+				'points': r.quest.reward_points,
+				'time_ago': r.completed_at.isoformat()
+			})
+
+		return Response({
+			'success': True,
+			'data': data
+		})
