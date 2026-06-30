@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "851728558018",
+    "project_id": "arquest-5ec13",
+    "storage_bucket": "arquest-5ec13.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851728558018:android:1e07a7688769e2e5f3d85b",
+        "android_client_info": {
+          "package_name": "com.arquest.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN6JoIM0stM4m13b8YScEhLzv693a_cIc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
