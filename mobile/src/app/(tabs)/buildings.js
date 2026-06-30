@@ -12,6 +12,7 @@ import api from "../../services/api";
 import { geofencingService } from "../../services/geofencingService";
 import { Crosshair, ShieldAlert, Navigation, Search, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
+import QuizModal from "../../components/QuizModal";
 
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading: isUnlockedLoading } = useUnlockedBuildings();
@@ -28,6 +29,7 @@ export default function BuildingsScreen() {
     const [selectedBuilding, setSelectedBuilding] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [controlPickerVisible, setControlPickerVisible] = useState(false);
+    const [quizModalVisible, setQuizModalVisible] = useState(false);
     
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -431,6 +433,18 @@ export default function BuildingsScreen() {
                                                 <Text style={styles.viewPanoramaText}>ENTER 360° SIMULATION</Text>
                                             </TouchableOpacity>
                                         )}
+                                        
+                                        {/* Trivia Quiz */}
+                                        <TouchableOpacity 
+                                            style={[styles.viewPanoramaButton, { borderColor: theme.colors.primary, marginTop: theme.spacing.xs }]} 
+                                            onPress={() => {
+                                                setModalVisible(false);
+                                                setQuizModalVisible(true);
+                                            }}
+                                        >
+                                            <Ionicons name="school-outline" size={20} color={theme.colors.primary} />
+                                            <Text style={[styles.viewPanoramaText, { color: theme.colors.primary }]}>PLAY TRIVIA QUIZ</Text>
+                                        </TouchableOpacity>
                                     </View>
                                 ) : (
                                     <View style={styles.restrictedContainer}>
@@ -505,6 +519,13 @@ export default function BuildingsScreen() {
                     </View>
                 </View>
             </Modal>
+            
+            {/* Trivia Quiz Modal */}
+            <QuizModal 
+                visible={quizModalVisible} 
+                building={selectedBuilding} 
+                onClose={() => setQuizModalVisible(false)} 
+            />
         </View>
     );
 }

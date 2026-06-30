@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Quest, UserQuestProgress, Department, Badge, UserBadge
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Quest, UserQuestProgress, Department, Badge, UserBadge, QuizQuestion
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
@@ -74,4 +74,10 @@ class UserBadgeAdmin(admin.ModelAdmin):
     list_filter = ['badge']
     search_fields = ['user__username', 'badge__name']
     readonly_fields = ['earned_at']
+
+@admin.register(QuizQuestion)
+class QuizQuestionAdmin(admin.ModelAdmin):
+    list_display = ('question', 'building', 'correct_option', 'exp_reward', 'is_active')
+    list_filter = ('is_active', 'building')
+    search_fields = ('question', 'building__name')
 

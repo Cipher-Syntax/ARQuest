@@ -335,8 +335,9 @@ def asset_metadata(request, id):
 
 # Quests and Trivias
 
-from .models import Quest, TriviaFact
+from .models import Quest, TriviaFact, QuizQuestion
 from .serializers import QuestSerializer, TriviaFactSerializer
+from .gamification_serializers import QuizQuestionSerializer
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -418,6 +419,55 @@ def trivia_detail(request, id):
     elif request.method == 'DELETE':
         trivia.delete()
         return success_response({'message': 'Trivia deleted'})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def building_quiz(request, id):
+    try:
+        building = Building.objects.get(id=id, is_active=True, status='VISIBLE')
+    except Building.DoesNotExist:
+        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+    
+    questions = list(QuizQuestion.objects.filter(building=building, is_active=True))
+    import random
+    if len(questions) > 3:
+        questions = random.sample(questions, 3)
+    
+    serializer = QuizQuestionSerializer(questions, many=True)
+    return success_response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_quiz_answer(request):
+    question_id = request.data.get('question_id')
+    selected_option = request.data.get('selected_option')
+    
+    if not question_id or not selected_option:
+        return error_response('invalid_input', 'Missing question_id or selected_option', status_code=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        question = QuizQuestion.objects.get(id=question_id, is_active=True)
+    except QuizQuestion.DoesNotExist:
+        return error_response('not_found', 'Question not found', status_code=status.HTTP_404_NOT_FOUND)
+        
+    is_correct = (selected_option == question.correct_option)
+    exp_awarded = 0
+    newly_earned_badges = []
+    
+    if is_correct:
+        request.user.exploration_points += question.exp_reward
+        request.user.save(update_fields=['exploration_points'])
+        exp_awarded = question.exp_reward
+        
+        from apps.buildings.gamification_views import check_and_award_badges
+        newly_earned_badges = check_and_award_badges(request.user)
+        
+    return success_response({
+        'is_correct': is_correct,
+        'correct_option': question.correct_option,
+        'exp_awarded': exp_awarded,
+        'newly_earned_badges': newly_earned_badges
+    })
 
 from django.conf import settings
 from datetime import timedelta

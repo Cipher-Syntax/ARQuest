@@ -245,6 +245,26 @@ class TriviaFact(SoftDeleteModel):
 		return f"Trivia for {self.building.name}"
 
 
+class QuizQuestion(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='quiz_questions')
+    question = models.CharField(max_length=255)
+    option_a = models.CharField(max_length=255)
+    option_b = models.CharField(max_length=255)
+    option_c = models.CharField(max_length=255)
+    option_d = models.CharField(max_length=255)
+    correct_option = models.CharField(max_length=1, choices=[('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')])
+    exp_reward = models.IntegerField(default=10)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        
+    def __str__(self):
+        return f"{self.building.name} - {self.question}"
+
+
 class Badge(models.Model):
 	TRIGGER_CHOICES = [
 		('first_unlock', 'First Building Unlocked'),

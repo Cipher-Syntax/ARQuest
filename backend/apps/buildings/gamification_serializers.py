@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Quest, UserQuestProgress, Badge, UserBadge
+from .models import Quest, UserQuestProgress, Badge, UserBadge, QuizQuestion
+
+class QuizQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizQuestion
+        fields = ['id', 'building', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_option', 'exp_reward']
 
 
 User = get_user_model()
