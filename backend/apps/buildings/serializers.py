@@ -67,6 +67,7 @@ class GeofenceWriteSerializer(serializers.ModelSerializer):
 class BuildingSerializer(serializers.ModelSerializer):
     geofences = GeofenceSerializer(many=True, read_only=True)
     model_url = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
     qr_code_secret = serializers.SerializerMethodField()
     departments = DepartmentSerializer(many=True, read_only=True)
     primary_department = DepartmentSerializer(read_only=True)
@@ -74,7 +75,7 @@ class BuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
         fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active', 'geofences',
-                  'model_url', 'model_version', 'model_file_size', 'model_active', 'hotspots', 'qr_code_secret',
+                  'model_url', 'model_version', 'model_file_size', 'model_active', 'image_url', 'hotspots', 'qr_code_secret',
                   'departments', 'primary_department', 'created_at', 'updated_at']
     
     def get_model_url(self, obj):
@@ -82,6 +83,13 @@ class BuildingSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.model_file.url)
+        return None
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
         return None
 
     def get_qr_code_secret(self, obj):
@@ -112,7 +120,7 @@ class BuildingWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
         fields = ['name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active',
-                  'model_version', 'model_active', 'model_file', 'hotspots', 'department_ids', 'primary_department_id']
+                  'model_version', 'model_active', 'model_file', 'image', 'hotspots', 'department_ids', 'primary_department_id']
     
     def validate_latitude(self, value):
         if value is not None and (value < -90 or value > 90):
@@ -160,17 +168,25 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
     unlock_source = serializers.CharField(default='role_access')
     unlocked_at = serializers.DateTimeField(required=False, allow_null=True)
     model_url = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Building
         fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_unlocked', 'unlock_source', 
-                  'unlocked_at', 'model_url', 'model_version', 'model_file_size', 'model_active', 'hotspots']
+                  'unlocked_at', 'model_url', 'image_url', 'model_version', 'model_file_size', 'model_active', 'hotspots']
     
     def get_model_url(self, obj):
         if obj.model_file:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.model_file.url)
+        return None
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
         return None
 
 class BuildingAssetSerializer(serializers.ModelSerializer):

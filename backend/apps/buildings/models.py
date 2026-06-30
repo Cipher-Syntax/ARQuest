@@ -76,6 +76,7 @@ class Building(SoftDeleteModel):
     model_version = models.CharField(max_length=50, blank=True)
     model_file_size = models.PositiveIntegerField(blank=True, null=True, help_text='File size in bytes')
     model_active = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='building_images/', blank=True, null=True, help_text='Auto-generated 2D thumbnail of the 3D model')
     hotspots = models.JSONField(default=list, blank=True)
     qr_code_secret = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -47,6 +47,7 @@ const BuildingEditorPage = () => {
 	const [deptDropdownOpen, setDeptDropdownOpen] = useState(false)
 	const [showHotspotEditor, setShowHotspotEditor] = useState(false)
 	const deptDropdownRef = useRef(null)
+	const modelViewerRef = useRef(null)
 
 	// Listen for messages from the iframe Hotspot Editor
 	useEffect(() => {
@@ -225,6 +226,18 @@ const BuildingEditorPage = () => {
 
 			if (building.model_file instanceof File) {
 				formData.append('model_file', building.model_file)
+
+				// Auto-generate 2D thumbnail from the 3D model viewer
+				if (modelViewerRef.current) {
+					try {
+						const blob = await modelViewerRef.current.toBlob({ idealAspect: true });
+						if (blob) {
+							formData.append('image', blob, `${generatedSlug || 'building'}_thumbnail.png`);
+						}
+					} catch (e) {
+						console.error("Failed to generate model thumbnail", e);
+					}
+				}
 			}
 
 			let formattedGeofenceData = null
@@ -638,6 +651,7 @@ const BuildingEditorPage = () => {
 									placeholder="Drag & drop 3D model here or click to browse"
 									previewNode={modelPreviewUrl ? (
 										<model-viewer
+											ref={modelViewerRef}
 											src={modelPreviewUrl}
 											auto-rotate
 											style={{
