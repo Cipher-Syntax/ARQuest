@@ -105,13 +105,13 @@ export default function PassportScreen() {
                                             />
                                         ) : (
                                             <View style={[styles.placeholderImage, !isUnlocked && { opacity: 0.5 }]}>
-                                                <MapPin size={32} color={isUnlocked ? theme.colors.primary : theme.colors.textMuted} />
+                                                {!isUnlocked && <MapPin size={32} color={theme.colors.textMuted} />}
                                             </View>
                                         )}
                                         {/* Stamp Overlay */}
                                         {isUnlocked && (
                                             <View style={styles.stampOverlay}>
-                                                <CheckCircle2 size={40} color={theme.colors.arHighlight} strokeWidth={3} style={styles.stampIcon} />
+                                                <CheckCircle2 size={50} color={theme.colors.arHighlight} strokeWidth={3} style={styles.stampIcon} />
                                             </View>
                                         )}
                                     </View>
