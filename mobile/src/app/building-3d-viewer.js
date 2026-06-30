@@ -21,21 +21,30 @@ export default function Building3DViewerScreen() {
     const webViewRef = useRef(null);
     const { loadAsset, isLoading: isAssetLoading, progress: assetProgress } = useAssetCache();
 
+    const [fetchedDescription, setFetchedDescription] = useState(buildingDescription || null);
+
     useEffect(() => {
-        const fetchTrivia = async () => {
+        const fetchTriviaAndDetails = async () => {
             if (!buildingId) return;
             try {
-                const res = await api.get(`/api/buildings/trivias/?building_id=${buildingId}`);
-                if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
-                    const trivias = res.data.data;
+                // Fetch trivia
+                const resTrivia = await api.get(`/api/buildings/trivias/?building_id=${buildingId}`);
+                if (resTrivia.data && resTrivia.data.success && resTrivia.data.data && resTrivia.data.data.length > 0) {
+                    const trivias = resTrivia.data.data;
                     const randomTrivia = trivias[Math.floor(Math.random() * trivias.length)];
                     setFetchedTrivia(randomTrivia.fact);
                 }
+
+                // Fetch full building details to get the description (bypassing Expo Router URL length limits)
+                const resBuilding = await api.get(`/api/buildings/${buildingId}/`);
+                if (resBuilding.data && resBuilding.data.success && resBuilding.data.data) {
+                    setFetchedDescription(resBuilding.data.data.description);
+                }
             } catch (err) {
-                console.error('Failed to fetch trivia:', err);
+                console.error('Failed to fetch trivia or building details:', err);
             }
         };
-        fetchTrivia();
+        fetchTriviaAndDetails();
     }, [buildingId]);
 
     useEffect(() => {
@@ -142,7 +151,7 @@ export default function Building3DViewerScreen() {
             </View>
 
             {/* Gamified WMSU HUD Overlay - Description & Trivia (Bottom) */}
-            {(buildingDescription || fetchedTrivia) ? (
+            {(fetchedDescription || fetchedTrivia) ? (
                 <View style={styles.hudBottomContainer} pointerEvents="box-none">
                     {fetchedTrivia && (
                         <View style={styles.triviaContainer}>
@@ -150,9 +159,9 @@ export default function Building3DViewerScreen() {
                             <Text style={styles.triviaText}>{fetchedTrivia}</Text>
                         </View>
                     )}
-                    {buildingDescription && (
+                    {fetchedDescription && (
                         <ScrollView style={styles.descriptionScroll} showsVerticalScrollIndicator={false}>
-                            <Text style={styles.buildingDescription}>{buildingDescription}</Text>
+                            <Text style={styles.buildingDescription}>{fetchedDescription}</Text>
                         </ScrollView>
                     )}
                 </View>
