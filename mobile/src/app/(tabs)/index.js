@@ -28,7 +28,6 @@ export default function HomeScreen() {
     
     // Gamification Backend States
     const [activeQuest, setActiveQuest] = useState(null);
-    const [recentActivity, setRecentActivity] = useState([]);
 
     useEffect(() => {
         const fetchBuildings = async () => {
@@ -88,12 +87,6 @@ export default function HomeScreen() {
                 if (resQuest.data.success && resQuest.data.data.length > 0) {
                     setActiveQuest(resQuest.data.data[0]);
                 }
-
-                // Fetch recent activity
-                const resActivity = await api.get('/api/gamification/recent-activity/');
-                if (resActivity.data.success) {
-                    setRecentActivity(resActivity.data.data);
-                }
             } catch (error) {
                 console.error('Failed to fetch gamification data:', error);
             } finally {
@@ -102,23 +95,6 @@ export default function HomeScreen() {
         };
         fetchStats();
     }, []);
-
-    // Format date string for intel feed
-    const timeSince = (dateString) => {
-        const date = new Date(dateString);
-        const seconds = Math.floor((new Date() - date) / 1000);
-        let interval = seconds / 31536000;
-        if (interval > 1) return Math.floor(interval) + " yrs ago";
-        interval = seconds / 2592000;
-        if (interval > 1) return Math.floor(interval) + " mos ago";
-        interval = seconds / 86400;
-        if (interval > 1) return Math.floor(interval) + " days ago";
-        interval = seconds / 3600;
-        if (interval > 1) return Math.floor(interval) + " hrs ago";
-        interval = seconds / 60;
-        if (interval > 1) return Math.floor(interval) + " mins ago";
-        return Math.floor(seconds) + " secs ago";
-    };
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -276,35 +252,6 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
 
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>LIVE INTEL FEED</Text>
-                        <Activity color={theme.colors.textSecondary} size={14} />
-                    </View>
-                    <ARGlassCard style={styles.intelCard}>
-                        {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
-                            <React.Fragment key={index}>
-                                <View style={styles.intelRow}>
-                                    <View style={[styles.intelDot, index === 0 ? {} : { backgroundColor: theme.colors.accent }]} />
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.intelText} numberOfLines={1}>
-                                            <Text style={{fontWeight: 'bold'}}>{activity.username}</Text> finished {activity.quest_title}
-                                        </Text>
-                                        <Text style={{fontSize: 10, color: theme.colors.accent, fontFamily: fonts.hud.medium}}>+{activity.points} EXP at {activity.building_name}</Text>
-                                    </View>
-                                    <Text style={styles.intelTime}>{timeSince(activity.time_ago)}</Text>
-                                </View>
-                                {index < recentActivity.length - 1 && <View style={styles.intelDivider} />}
-                            </React.Fragment>
-                        )) : (
-                            <View style={[styles.intelRow, { paddingVertical: 12 }]}>
-                                <Text style={[styles.intelText, { textAlign: 'center', color: theme.colors.textMuted }]}>
-                                    No recent network activity detected.
-                                </Text>
-                            </View>
-                        )}
-                    </ARGlassCard>
-                </View>
 
             </ScrollView>
         </SafeAreaView>
@@ -617,40 +564,6 @@ const styles = StyleSheet.create({
         color: theme.colors.textPrimary,
         fontSize: 12,
         textAlign: 'center',
-    },
-    intelCard: {
-        padding: theme.spacing.md,
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.border,
-    },
-    intelRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-    },
-    intelDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: theme.colors.arHighlight,
-        marginRight: 12,
-    },
-    intelText: {
-        flex: 1,
-        fontFamily: fonts.body.regular,
-        color: theme.colors.textSecondary,
-        fontSize: 12,
-    },
-    intelTime: {
-        fontFamily: fonts.hud.medium,
-        color: theme.colors.textMuted,
-        fontSize: 10,
-        marginLeft: 8,
-    },
-    intelDivider: {
-        height: 1,
-        backgroundColor: theme.colors.border,
-        marginHorizontal: 4,
     },
     // ── Daily Mission Hero Card ──
     heroCard: {
