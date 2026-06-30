@@ -232,8 +232,8 @@ export default function ProfileScreen() {
                         {user?.role === 'student' && (
                             <SettingsRow 
                                 icon={Map} 
-                                title="Campus Passport" 
-                                subtitle="View your discovered locations"
+                                title="Building Discoveries" 
+                                subtitle="Check your visited and unvisited campus areas"
                                 onPress={() => router.push('/passport')} 
                             />
                         )}

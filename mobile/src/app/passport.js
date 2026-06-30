@@ -57,7 +57,7 @@ export default function PassportScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <ArrowLeft size={24} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Campus Passport</Text>
+                <Text style={styles.headerTitle}>Building Discoveries</Text>
                 <View style={{ width: 40 }} />
             </View>
 
