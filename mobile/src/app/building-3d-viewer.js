@@ -160,9 +160,15 @@ export default function Building3DViewerScreen() {
                         </View>
                     )}
                     {fetchedDescription && (
-                        <ScrollView style={styles.descriptionScroll} showsVerticalScrollIndicator={false}>
-                            <Text style={styles.buildingDescription}>{fetchedDescription}</Text>
-                        </ScrollView>
+                        <View style={styles.descriptionContainer} pointerEvents="auto">
+                            <View style={styles.descriptionHeader}>
+                                <Text style={styles.descriptionTitle}>DESCRIPTION</Text>
+                                <View style={styles.descriptionLine} />
+                            </View>
+                            <ScrollView style={styles.descriptionScroll} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+                                <Text style={styles.buildingDescription}>{fetchedDescription}</Text>
+                            </ScrollView>
+                        </View>
                     )}
                 </View>
             ) : null}
@@ -246,11 +252,30 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
         marginTop: 4,
     },
-    descriptionScroll: {
-        maxHeight: 150,
+    descriptionContainer: {
         backgroundColor: theme.colors.surface,
         padding: 16,
         borderRadius: theme.radius.md,
+    },
+    descriptionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    descriptionTitle: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: theme.colors.textPrimary,
+        letterSpacing: 2,
+    },
+    descriptionLine: {
+        flex: 1,
+        height: 2,
+        backgroundColor: theme.colors.arHighlight,
+        marginLeft: 12,
+    },
+    descriptionScroll: {
+        maxHeight: 150,
     },
     buildingDescription: {
         fontSize: 13,
@@ -303,8 +328,6 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: theme.radius.md,
         marginBottom: 8,
-        borderLeftWidth: 4,
-        borderColor: theme.colors.arHighlight,
     },
     triviaTitle: {
         fontSize: 11,
