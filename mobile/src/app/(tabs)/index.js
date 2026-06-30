@@ -276,53 +276,47 @@ export default function HomeScreen() {
                                             width: ITEM_WIDTH, 
                                             marginRight: index === challenges.length - 1 ? 0 : ITEM_SPACING, 
                                             transform: [{ scale }], 
-                                            opacity,
-                                            height: 280,
-                                            backgroundColor: '#FFFFFF',
-                                            borderRadius: theme.radius.md,
-                                            shadowColor: '#000',
-                                            shadowOffset: { width: 0, height: 4 },
-                                            shadowOpacity: 0.1,
-                                            shadowRadius: 8,
-                                            elevation: 4,
+                                            opacity
                                         }}
                                     >
                                         <TouchableOpacity 
-                                            style={{
-                                                flex: 1,
-                                                borderRadius: theme.radius.md,
+                                            style={[styles.heroCard, { 
+                                                backgroundColor: '#FFFFFF', 
                                                 borderWidth: 1,
-                                                borderColor: theme.colors.border,
-                                                overflow: 'hidden',
-                                            }}
+                                                borderColor: theme.colors.primary,
+                                                shadowColor: theme.colors.primary,
+                                                marginTop: 0,
+                                                marginBottom: 20
+                                            }]}
                                             onPress={() => router.push('/(tabs)/ar')}
                                             activeOpacity={0.9}
                                         >
-                                            {/* Top Image Placeholder */}
-                                            <View style={{ height: 120, backgroundColor: 'rgba(178, 24, 48, 0.05)', justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-                                                <Timer color={theme.colors.primary} size={48} opacity={0.8} />
+                                            <View style={styles.heroTopRow}>
+                                                <View style={[styles.heroLabelChip, { backgroundColor: 'rgba(178, 24, 48, 0.1)' }]}>
+                                                    <Timer color={theme.colors.primary} size={14} />
+                                                    <Text style={[styles.heroChipText, { color: theme.colors.primary }]}>LIMITED TIME</Text>
+                                                </View>
+                                                <View style={[styles.heroExpBadge, { backgroundColor: 'rgba(178, 24, 48, 0.1)', borderColor: 'rgba(178, 24, 48, 0.2)' }]}>
+                                                    <Text style={[styles.heroExpText, { color: theme.colors.primary }]}>+{challenge.reward_points} EXP</Text>
+                                                </View>
                                             </View>
-
-                                            {/* Bottom Content Container */}
-                                            <View style={{ flex: 1, padding: 16, alignItems: 'center' }}>
-                                                {/* Title */}
-                                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 20, color: theme.colors.textPrimary, textTransform: 'uppercase', textAlign: 'center', marginBottom: 4 }} numberOfLines={1}>
-                                                    {challenge.title}
-                                                </Text>
-                                                
-                                                {/* Subtitle / Points */}
-                                                <Text style={{ fontFamily: fonts.hud.bold, fontSize: 14, color: theme.colors.primary, marginBottom: 8 }}>
-                                                    +{challenge.reward_points} EXP
-                                                </Text>
-                                                
-                                                {/* Description / Expiration */}
-                                                <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 'auto' }}>
-                                                    Hurry up! This limited challenge expires at {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
-                                                </Text>
-                                                
-                                                {/* Action Button */}
-                                                <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: theme.colors.primary, paddingHorizontal: 32, paddingVertical: 8, borderRadius: 4 }}>
-                                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 12, color: theme.colors.primary, letterSpacing: 1 }}>DEPLOY</Text>
+                                            
+                                            <Text style={[styles.heroQuestTitle, { color: theme.colors.textPrimary }]}>
+                                                {challenge.title}
+                                            </Text>
+                                            
+                                            <View style={styles.heroBottomRow}>
+                                                <View style={styles.heroTargetInfo}>
+                                                    <Text style={styles.heroTargetLabel}>ENDS AT</Text>
+                                                    <Text style={[styles.heroTargetValue, { color: theme.colors.primary }]} numberOfLines={1}>
+                                                        {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </Text>
+                                                </View>
+                                                <View style={[styles.heroDeployBtn, { backgroundColor: theme.colors.primary }]}>
+                                                    <Text style={[styles.heroDeployText, { color: '#FFFFFF' }]}>
+                                                        DEPLOY
+                                                    </Text>
+                                                    <ChevronRight color="#FFFFFF" size={16} />
                                                 </View>
                                             </View>
                                         </TouchableOpacity>
