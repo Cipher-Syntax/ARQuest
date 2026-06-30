@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
@@ -16,6 +16,15 @@ export default function HomeScreen() {
     const { user } = useAuth();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    
+    // Carousel
+    const scrollX = React.useRef(new Animated.Value(0)).current;
+    const SCREEN_WIDTH = Dimensions.get('window').width;
+    const CAROUSEL_WIDTH = SCREEN_WIDTH - 40;
+    const ITEM_WIDTH = CAROUSEL_WIDTH * 0.7;
+    const ITEM_SPACING = 16;
+    const FULL_ITEM_WIDTH = ITEM_WIDTH + ITEM_SPACING;
+    const INSET_HORIZONTAL = (CAROUSEL_WIDTH - ITEM_WIDTH) / 2;
 
     const { location, startTracking } = useLocationTracking();
     const [buildings, setBuildings] = useState([]);
@@ -223,62 +232,94 @@ export default function HomeScreen() {
                                 </View>
                             )}
                         </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assetScroll} pagingEnabled snapToInterval={Dimensions.get('window').width - 40 + 12} decelerationRate="fast">
+                        <Animated.ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false} 
+                            contentContainerStyle={{ paddingHorizontal: INSET_HORIZONTAL }} 
+                            pagingEnabled={false} 
+                            snapToInterval={FULL_ITEM_WIDTH} 
+                            decelerationRate="fast"
+                            onScroll={Animated.event(
+                                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                                { useNativeDriver: true }
+                            )}
+                            scrollEventThrottle={16}
+                        >
                             {challenges.map((challenge, index) => {
                                 const expires = new Date(challenge.expires_at);
                                 const isExpired = expires < new Date();
                                 if (isExpired || challenge.is_completed) return null;
-                                return (
-                                    <TouchableOpacity 
-                                        key={challenge.id} 
-                                        style={{
-                                            width: Dimensions.get('window').width - 40, 
-                                            height: 280,
-                                            backgroundColor: '#FFFFFF', 
-                                            borderRadius: theme.radius.lg,
-                                            borderWidth: 1,
-                                            borderColor: theme.colors.border,
-                                            overflow: 'hidden',
-                                            shadowColor: '#000',
-                                            shadowOffset: { width: 0, height: 4 },
-                                            shadowOpacity: 0.1,
-                                            shadowRadius: 8,
-                                            elevation: 4,
-                                        }}
-                                        onPress={() => router.push('/(tabs)/ar')}
-                                        activeOpacity={0.9}
-                                    >
-                                        {/* Top Image Placeholder */}
-                                        <View style={{ height: 120, backgroundColor: 'rgba(178, 24, 48, 0.05)', justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-                                            <Timer color={theme.colors.primary} size={48} opacity={0.8} />
-                                        </View>
+                                
+                                const inputRange = [
+                                    (index - 1) * FULL_ITEM_WIDTH,
+                                    index * FULL_ITEM_WIDTH,
+                                    (index + 1) * FULL_ITEM_WIDTH,
+                                ];
 
-                                        {/* Bottom Content Container */}
-                                        <View style={{ flex: 1, padding: 16, alignItems: 'center' }}>
-                                            {/* Title */}
-                                            <Text style={{ fontFamily: fonts.heading.bold, fontSize: 20, color: theme.colors.textPrimary, textTransform: 'uppercase', textAlign: 'center', marginBottom: 4 }} numberOfLines={1}>
-                                                {challenge.title}
-                                            </Text>
-                                            
-                                            {/* Subtitle / Points */}
-                                            <Text style={{ fontFamily: fonts.hud.bold, fontSize: 14, color: theme.colors.primary, marginBottom: 8 }}>
-                                                +{challenge.reward_points} EXP
-                                            </Text>
-                                            
-                                            {/* Description / Expiration */}
-                                            <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 'auto' }}>
-                                                Hurry up! This limited challenge expires at {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
-                                            </Text>
-                                            
-                                            {/* Action Button */}
-                                            <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: theme.colors.primary, paddingHorizontal: 32, paddingVertical: 8, borderRadius: 4 }}>
-                                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 12, color: theme.colors.primary, letterSpacing: 1 }}>DEPLOY</Text>
+                                const scale = scrollX.interpolate({
+                                    inputRange,
+                                    outputRange: [0.85, 1, 0.85],
+                                    extrapolate: 'clamp',
+                                });
+
+                                const opacity = scrollX.interpolate({
+                                    inputRange,
+                                    outputRange: [0.6, 1, 0.6],
+                                    extrapolate: 'clamp',
+                                });
+
+                                return (
+                                    <Animated.View key={challenge.id} style={{ width: ITEM_WIDTH, marginRight: index === challenges.length - 1 ? 0 : ITEM_SPACING, transform: [{ scale }], opacity }}>
+                                        <TouchableOpacity 
+                                            style={{
+                                                flex: 1,
+                                                height: 280,
+                                                backgroundColor: '#FFFFFF', 
+                                                borderRadius: theme.radius.lg,
+                                                borderWidth: 1,
+                                                borderColor: theme.colors.border,
+                                                overflow: 'hidden',
+                                                shadowColor: '#000',
+                                                shadowOffset: { width: 0, height: 4 },
+                                                shadowOpacity: 0.1,
+                                                shadowRadius: 8,
+                                                elevation: 4,
+                                            }}
+                                            onPress={() => router.push('/(tabs)/ar')}
+                                            activeOpacity={0.9}
+                                        >
+                                            {/* Top Image Placeholder */}
+                                            <View style={{ height: 120, backgroundColor: 'rgba(178, 24, 48, 0.05)', justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+                                                <Timer color={theme.colors.primary} size={48} opacity={0.8} />
                                             </View>
-                                        </View>
-                                    </TouchableOpacity>
+
+                                            {/* Bottom Content Container */}
+                                            <View style={{ flex: 1, padding: 16, alignItems: 'center' }}>
+                                                {/* Title */}
+                                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 20, color: theme.colors.textPrimary, textTransform: 'uppercase', textAlign: 'center', marginBottom: 4 }} numberOfLines={1}>
+                                                    {challenge.title}
+                                                </Text>
+                                                
+                                                {/* Subtitle / Points */}
+                                                <Text style={{ fontFamily: fonts.hud.bold, fontSize: 14, color: theme.colors.primary, marginBottom: 8 }}>
+                                                    +{challenge.reward_points} EXP
+                                                </Text>
+                                                
+                                                {/* Description / Expiration */}
+                                                <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 'auto' }}>
+                                                    Expires at {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </Text>
+                                                
+                                                {/* Action Button */}
+                                                <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: theme.colors.primary, paddingHorizontal: 32, paddingVertical: 8, borderRadius: 4 }}>
+                                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 12, color: theme.colors.primary, letterSpacing: 1 }}>DEPLOY</Text>
+                                                </View>
+                                            </View>
+                                        </TouchableOpacity>
+                                    </Animated.View>
                                 )
                             })}
-                        </ScrollView>
+                        </Animated.ScrollView>
                     </View>
                 )}
 
