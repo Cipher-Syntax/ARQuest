@@ -23,6 +23,8 @@ urlpatterns = [
     path('quests/<uuid:id>/', views.quest_detail, name='quest_detail'),
     path('trivias/', views.trivia_list_create, name='trivia_list_create'),
     path('trivias/<uuid:id>/', views.trivia_detail, name='trivia_detail'),
+    path('quiz-questions/', views.quiz_question_list_create, name='quiz_question_list_create'),
+    path('quiz-questions/<uuid:pk>/', views.quiz_question_detail, name='quiz_question_detail'),
     path('<uuid:id>/quiz/', views.building_quiz, name='building_quiz'),
     path('quiz/answer/', views.submit_quiz_answer, name='submit_quiz_answer'),
 ]

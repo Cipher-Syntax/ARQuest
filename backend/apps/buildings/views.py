@@ -469,6 +469,49 @@ def submit_quiz_answer(request):
         'newly_earned_badges': newly_earned_badges
     })
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def quiz_question_list_create(request):
+    if not request.user.is_admin_role:
+        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        
+    if request.method == 'GET':
+        building_id = request.query_params.get('building_id')
+        if building_id:
+            questions = QuizQuestion.objects.filter(building_id=building_id).order_by('-created_at')
+        else:
+            questions = QuizQuestion.objects.all().order_by('-created_at')
+        return success_response(QuizQuestionSerializer(questions, many=True).data)
+        
+    elif request.method == 'POST':
+        serializer = QuizQuestionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
+        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def quiz_question_detail(request, pk):
+    if not request.user.is_admin_role:
+        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        
+    try:
+        question = QuizQuestion.objects.get(id=pk)
+    except QuizQuestion.DoesNotExist:
+        return error_response('not_found', 'Question not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'PATCH':
+        serializer = QuizQuestionSerializer(question, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(serializer.data)
+        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        
+    elif request.method == 'DELETE':
+        question.delete()
+        return success_response({'message': 'Question deleted'})
+
 from django.conf import settings
 from datetime import timedelta
 from rest_framework.decorators import api_view, permission_classes
