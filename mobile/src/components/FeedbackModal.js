@@ -67,7 +67,7 @@ export default function FeedbackModal({ visible, onClose }) {
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView 
                 style={styles.modalOverlay}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
             >
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
@@ -77,7 +77,11 @@ export default function FeedbackModal({ visible, onClose }) {
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false} 
+                        contentContainerStyle={styles.scrollContent}
+                        keyboardShouldPersistTaps="handled"
+                    >
                         <Text style={styles.label}>What kind of feedback do you have?</Text>
                         <View style={styles.typeSelector}>
                             <TypeOption value="bug" label="Bug Report" icon={AlertCircle} color={theme.colors.error} />
