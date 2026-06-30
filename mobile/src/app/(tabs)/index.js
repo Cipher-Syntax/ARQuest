@@ -214,8 +214,16 @@ export default function HomeScreen() {
 
                 {challenges.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>LIMITED CHALLENGES</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assetScroll}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm }}>
+                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>LIMITED CHALLENGES</Text>
+                            {challenges.length > 1 && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text style={{ fontSize: 10, color: theme.colors.textMuted, marginRight: 4, fontFamily: fonts.body.bold }}>SWIPE</Text>
+                                    <ChevronRight color={theme.colors.textMuted} size={16} />
+                                </View>
+                            )}
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assetScroll} pagingEnabled snapToInterval={Dimensions.get('window').width - 40 + 12} decelerationRate="fast">
                             {challenges.map(challenge => {
                                 const expires = new Date(challenge.expires_at);
                                 const isExpired = expires < new Date();
@@ -225,7 +233,9 @@ export default function HomeScreen() {
                                         key={challenge.id} 
                                         style={[styles.heroCard, { 
                                             width: Dimensions.get('window').width - 40, 
-                                            backgroundColor: theme.colors.warning, 
+                                            backgroundColor: '#FFFFFF', 
+                                            borderWidth: 1,
+                                            borderColor: theme.colors.warning,
                                             shadowColor: theme.colors.warning,
                                             marginTop: 0,
                                             marginBottom: 0
@@ -234,31 +244,31 @@ export default function HomeScreen() {
                                         activeOpacity={0.9}
                                     >
                                         <View style={styles.heroTopRow}>
-                                            <View style={styles.heroLabelChip}>
-                                                <Timer color="#FFFFFF" size={14} />
-                                                <Text style={styles.heroChipText}>LIMITED TIME</Text>
+                                            <View style={[styles.heroLabelChip, { backgroundColor: 'rgba(245, 124, 0, 0.15)' }]}>
+                                                <Timer color={theme.colors.warning} size={14} />
+                                                <Text style={[styles.heroChipText, { color: theme.colors.warning }]}>LIMITED TIME</Text>
                                             </View>
-                                            <View style={styles.heroExpBadge}>
-                                                <Text style={styles.heroExpText}>+{challenge.reward_points} EXP</Text>
+                                            <View style={[styles.heroExpBadge, { backgroundColor: 'rgba(245, 124, 0, 0.15)', borderColor: 'rgba(245, 124, 0, 0.3)' }]}>
+                                                <Text style={[styles.heroExpText, { color: theme.colors.warning }]}>+{challenge.reward_points} EXP</Text>
                                             </View>
                                         </View>
                                         
-                                        <Text style={styles.heroQuestTitle}>
+                                        <Text style={[styles.heroQuestTitle, { color: theme.colors.textPrimary }]}>
                                             {challenge.title}
                                         </Text>
                                         
                                         <View style={styles.heroBottomRow}>
                                             <View style={styles.heroTargetInfo}>
                                                 <Text style={styles.heroTargetLabel}>ENDS AT</Text>
-                                                <Text style={styles.heroTargetValue} numberOfLines={1}>
+                                                <Text style={[styles.heroTargetValue, { color: theme.colors.warning }]} numberOfLines={1}>
                                                     {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </Text>
                                             </View>
-                                            <View style={[styles.heroDeployBtn, { backgroundColor: '#FFFFFF' }]}>
-                                                <Text style={[styles.heroDeployText, { color: theme.colors.warning }]}>
+                                            <View style={[styles.heroDeployBtn, { backgroundColor: theme.colors.warning }]}>
+                                                <Text style={[styles.heroDeployText, { color: '#FFFFFF' }]}>
                                                     DEPLOY
                                                 </Text>
-                                                <ChevronRight color={theme.colors.warning} size={16} />
+                                                <ChevronRight color="#FFFFFF" size={16} />
                                             </View>
                                         </View>
                                     </TouchableOpacity>
