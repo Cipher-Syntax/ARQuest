@@ -3,6 +3,7 @@ import { FileText, HelpCircle, Building2, Plus, Edit3, Trash2, X, Target, Lightb
 import { buildingService } from '../services/buildingService'
 import { questService } from '../services/questService'
 import { triviaService } from '../services/triviaService'
+import { quizService } from '../services/quizService'
 import { settingsService } from '../services/settingsService'
 import { Card, Button, Badge } from '../components/ui'
 import '@google/model-viewer'
@@ -11,6 +12,7 @@ export default function CmsPage() {
 	const [buildings, setBuildings] = useState([])
 	const [quests, setQuests] = useState([])
 	const [trivias, setTrivias] = useState([])
+	const [quizzes, setQuizzes] = useState([])
 	const [selectedBuilding, setSelectedBuilding] = useState(null)
 	const [systemSettings, setSystemSettings] = useState(null)
 	
@@ -23,6 +25,15 @@ export default function CmsPage() {
 	const [formHint, setFormHint] = useState('')
 	const [formReward, setFormReward] = useState(50)
 	const [formFact, setFormFact] = useState('')
+	
+	// Quiz states
+	const [formQuestion, setFormQuestion] = useState('')
+	const [formOptionA, setFormOptionA] = useState('')
+	const [formOptionB, setFormOptionB] = useState('')
+	const [formOptionC, setFormOptionC] = useState('')
+	const [formOptionD, setFormOptionD] = useState('')
+	const [formCorrectOption, setFormCorrectOption] = useState('A')
+
 	const [searchTerm, setSearchTerm] = useState('')
 
 	useEffect(() => {
@@ -37,15 +48,17 @@ export default function CmsPage() {
 
 	const loadData = async () => {
 		try {
-			const [bData, qData, tData, sData] = await Promise.all([
+			const [bData, qData, tData, quizData, sData] = await Promise.all([
 				buildingService.getBuildings(),
 				questService.getQuests(),
 				triviaService.getTrivias(),
+				quizService.getQuizzes(),
 				settingsService.getSettings()
 			])
 			setBuildings(bData)
 			setQuests(qData)
 			setTrivias(tData)
+			setQuizzes(quizData)
 			setSystemSettings(sData)
 		} catch (error) {
 			console.error('Failed to load CMS data', error)
@@ -114,12 +127,53 @@ export default function CmsPage() {
 		}
 	}
 
+	const handleSaveQuiz = async () => {
+		if (!formQuestion || !formOptionA || !formOptionB) return
+		try {
+			const payload = {
+				building: selectedBuilding.id,
+				question: formQuestion,
+				option_a: formOptionA,
+				option_b: formOptionB,
+				option_c: formOptionC,
+				option_d: formOptionD,
+				correct_option: formCorrectOption,
+				exp_reward: formReward
+			}
+			if (editingItem) {
+				const updated = await quizService.updateQuiz(editingItem.id, payload)
+				setQuizzes(quizzes.map(q => q.id === updated.id ? updated : q))
+			} else {
+				const created = await quizService.createQuiz(payload)
+				setQuizzes([created, ...quizzes])
+			}
+			resetForm()
+		} catch (err) {
+			console.error(err)
+		}
+	}
+
+	const handleDeleteQuiz = async (id) => {
+		try {
+			await quizService.deleteQuiz(id)
+			setQuizzes(quizzes.filter(q => q.id !== id))
+		} catch (err) {
+			console.error(err)
+		}
+	}
+
 	const resetForm = () => {
 		setIsEditing(false)
 		setEditingItem(null)
 		setFormTitle('')
 		setFormHint('')
 		setFormFact('')
+		setFormQuestion('')
+		setFormOptionA('')
+		setFormOptionB('')
+		setFormOptionC('')
+		setFormOptionD('')
+		setFormCorrectOption('A')
 		setFormReward(systemSettings?.default_quest_reward || 50)
 	}
 
@@ -147,11 +201,12 @@ export default function CmsPage() {
 				{filteredBuildings.map(b => {
 					const bQuests = quests.filter(q => q.target_building === b.id || q.target_building_name === b.name)
 					const bTrivias = trivias.filter(t => t.building === b.id || t.building_name === b.name)
+					const bQuizzes = quizzes.filter(q => q.building === b.id)
 					return (
 						<div 
 							key={b.id} 
 							onClick={() => setSelectedBuilding(b)}
-							className="bg-white rounded-lg border border-brand-border p-4 cursor-pointer hover:shadow-md transition-shadow hover:border-brand flex flex-col justify-between h-32"
+							className="bg-white rounded-lg border border-brand-border p-4 cursor-pointer hover:shadow-md transition-shadow hover:border-brand flex flex-col justify-between h-36"
 						>
 							<div className="flex items-start gap-3 mb-3">
 								<div className="w-10 h-10 shrink-0 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
@@ -159,12 +214,15 @@ export default function CmsPage() {
 								</div>
 								<h3 className="font-bold text-gray-900 line-clamp-2 leading-tight text-sm mt-1">{b.name}</h3>
 							</div>
-							<div className="flex gap-2">
-								<Badge variant={bQuests.length > 0 ? 'success' : 'default'} className="text-[10px] py-0.5 px-2">
+							<div className="flex flex-wrap gap-1">
+								<Badge variant={bQuests.length > 0 ? 'success' : 'default'} className="text-[9px] py-0.5 px-1.5">
 									{bQuests.length} Quests
 								</Badge>
-								<Badge variant={bTrivias.length > 0 ? 'warning' : 'default'} className="text-[10px] py-0.5 px-2">
+								<Badge variant={bTrivias.length > 0 ? 'warning' : 'default'} className="text-[9px] py-0.5 px-1.5">
 									{bTrivias.length} Trivias
+								</Badge>
+								<Badge variant={bQuizzes.length > 0 ? 'blue' : 'default'} className="text-[9px] py-0.5 px-1.5">
+									{bQuizzes.length} Quizzes
 								</Badge>
 							</div>
 						</div>
@@ -246,6 +304,12 @@ export default function CmsPage() {
 								>
 									<Lightbulb size={16} className="inline mr-2" /> Trivia Facts
 								</button>
+								<button
+									onClick={() => { setActiveTab('quizzes'); resetForm(); }}
+									className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'quizzes' ? 'border-[#3b82f6] text-[#3b82f6]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+								>
+									<HelpCircle size={16} className="inline mr-2" /> Quiz
+								</button>
 							</div>
 
 							<div className="flex-1 overflow-y-auto p-6">
@@ -256,7 +320,7 @@ export default function CmsPage() {
 											<button onClick={resetForm} className="text-gray-400 hover:text-gray-600"><X size={18}/></button>
 										</div>
 										
-										{activeTab === 'quests' ? (
+										{activeTab === 'quests' && (
 											<div className="space-y-4">
 												<div>
 													<label className="block text-sm font-semibold mb-1 text-gray-700">Quest Title</label>
@@ -274,7 +338,8 @@ export default function CmsPage() {
 													<Button onClick={handleSaveQuest} className="bg-[#B21830] hover:bg-[#8e1326] text-white">Save Quest</Button>
 												</div>
 											</div>
-										) : (
+										)}
+										{activeTab === 'trivias' && (
 											<div className="space-y-4">
 												<div>
 													<label className="block text-sm font-semibold mb-1 text-gray-700">Trivia Fact</label>
@@ -285,12 +350,53 @@ export default function CmsPage() {
 												</div>
 											</div>
 										)}
+										{activeTab === 'quizzes' && (
+											<div className="space-y-4">
+												<div>
+													<label className="block text-sm font-semibold mb-1 text-gray-700">Question</label>
+													<textarea value={formQuestion} onChange={e => setFormQuestion(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm h-20 focus:ring-2 focus:ring-[#3b82f6]/20 focus:border-[#3b82f6] outline-none resize-none" placeholder="Enter question..." />
+												</div>
+												<div className="grid grid-cols-2 gap-3">
+													<div>
+														<label className="block text-xs font-semibold mb-1 text-gray-700">Option A</label>
+														<input type="text" value={formOptionA} onChange={e => setFormOptionA(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+													</div>
+													<div>
+														<label className="block text-xs font-semibold mb-1 text-gray-700">Option B</label>
+														<input type="text" value={formOptionB} onChange={e => setFormOptionB(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+													</div>
+													<div>
+														<label className="block text-xs font-semibold mb-1 text-gray-700">Option C</label>
+														<input type="text" value={formOptionC} onChange={e => setFormOptionC(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+													</div>
+													<div>
+														<label className="block text-xs font-semibold mb-1 text-gray-700">Option D</label>
+														<input type="text" value={formOptionD} onChange={e => setFormOptionD(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+													</div>
+												</div>
+												<div className="flex gap-4">
+													<div className="flex-1">
+														<label className="block text-xs font-semibold mb-1 text-gray-700">Correct Option</label>
+														<select value={formCorrectOption} onChange={e => setFormCorrectOption(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm">
+															<option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+														</select>
+													</div>
+													<div className="flex-1">
+														<label className="block text-xs font-semibold mb-1 text-gray-700">EXP Reward</label>
+														<input type="number" value={formReward} onChange={e => setFormReward(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+													</div>
+												</div>
+												<div className="flex justify-end pt-2">
+													<Button onClick={handleSaveQuiz} className="bg-[#3b82f6] hover:bg-[#2563eb] text-white">Save Quiz</Button>
+												</div>
+											</div>
+										)}
 									</div>
 								) : (
 									<>
 										<div className="flex justify-end mb-6">
-											<Button onClick={() => setIsEditing(true)} className="bg-[#B21830] hover:bg-[#8e1326] text-white shadow-sm border-none">
-												<Plus size={16} className="mr-1" /> Add {activeTab === 'quests' ? 'Quest' : 'Trivia'}
+											<Button onClick={() => setIsEditing(true)} className={`${activeTab === 'quizzes' ? 'bg-[#3b82f6] hover:bg-[#2563eb]' : 'bg-[#B21830] hover:bg-[#8e1326]'} text-white shadow-sm border-none`}>
+												<Plus size={16} className="mr-1" /> Add {activeTab === 'quests' ? 'Quest' : activeTab === 'trivias' ? 'Trivia' : 'Quiz'}
 											</Button>
 										</div>
 
@@ -333,6 +439,32 @@ export default function CmsPage() {
 												</div>
 											))}
 
+											{activeTab === 'quizzes' && quizzes.filter(q => q.building === selectedBuilding.id).map(quiz => (
+												<div key={quiz.id} className="bg-white p-4 rounded-lg border-l-4 border-[#3b82f6] border-y border-r border-gray-200 shadow-sm flex flex-col gap-3 group hover:border-y-[#3b82f6]/30 hover:border-r-[#3b82f6]/30 transition-all">
+													<div className="flex justify-between items-start">
+														<div className="flex gap-3">
+															<div className="mt-0.5 bg-[#3b82f6]/10 p-2 rounded-md text-[#3b82f6] shrink-0">
+																<HelpCircle size={20} />
+															</div>
+															<div className="flex-1 min-w-0 pt-0.5">
+																<p className="font-bold text-gray-900 leading-tight">{quiz.question}</p>
+																<span className="inline-block mt-1 text-[10px] font-bold text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">+{quiz.exp_reward} pts</span>
+															</div>
+														</div>
+														<div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+															<button onClick={() => { setEditingItem(quiz); setFormQuestion(quiz.question); setFormOptionA(quiz.option_a); setFormOptionB(quiz.option_b); setFormOptionC(quiz.option_c); setFormOptionD(quiz.option_d); setFormCorrectOption(quiz.correct_option); setFormReward(quiz.exp_reward); setIsEditing(true); }} className="p-1.5 text-gray-400 hover:text-[#3b82f6] bg-gray-50 hover:bg-[#3b82f6]/10 rounded-md transition-colors"><Edit3 size={14}/></button>
+															<button onClick={() => handleDeleteQuiz(quiz.id)} className="p-1.5 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={14}/></button>
+														</div>
+													</div>
+													<div className="grid grid-cols-2 gap-2 text-xs">
+														<div className={`px-2 py-1.5 rounded border ${quiz.correct_option === 'A' ? 'bg-green-50 border-green-200 text-green-700 font-medium' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>A: {quiz.option_a}</div>
+														<div className={`px-2 py-1.5 rounded border ${quiz.correct_option === 'B' ? 'bg-green-50 border-green-200 text-green-700 font-medium' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>B: {quiz.option_b}</div>
+														<div className={`px-2 py-1.5 rounded border ${quiz.correct_option === 'C' ? 'bg-green-50 border-green-200 text-green-700 font-medium' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>C: {quiz.option_c}</div>
+														<div className={`px-2 py-1.5 rounded border ${quiz.correct_option === 'D' ? 'bg-green-50 border-green-200 text-green-700 font-medium' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>D: {quiz.option_d}</div>
+													</div>
+												</div>
+											))}
+
 											{activeTab === 'quests' && quests.filter(q => q.target_building === selectedBuilding.id || q.target_building_name === selectedBuilding.name).length === 0 && (
 												<div className="text-center py-10 bg-white border border-dashed border-gray-300 rounded-xl">
 													<Target size={32} className="mx-auto text-gray-300 mb-2" />
@@ -344,6 +476,13 @@ export default function CmsPage() {
 												<div className="text-center py-10 bg-white border border-dashed border-gray-300 rounded-xl">
 													<Lightbulb size={32} className="mx-auto text-gray-300 mb-2" />
 													<p className="text-gray-500 font-medium">No trivia facts for this building</p>
+												</div>
+											)}
+
+											{activeTab === 'quizzes' && quizzes.filter(q => q.building === selectedBuilding.id).length === 0 && (
+												<div className="text-center py-10 bg-white border border-dashed border-gray-300 rounded-xl">
+													<HelpCircle size={32} className="mx-auto text-gray-300 mb-2" />
+													<p className="text-gray-500 font-medium">No quizzes for this building</p>
 												</div>
 											)}
 										</div>

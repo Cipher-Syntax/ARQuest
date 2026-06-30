@@ -16,7 +16,6 @@ import MediaPage from '../pages/MediaPage'
 import PanoramasPage from '../pages/PanoramasPage'
 import PanoramaManagerPage from '../pages/PanoramaManagerPage'
 import CmsPage from '../pages/CmsPage'
-import QuizPage from '../pages/QuizPage'
 import UsersContainer from '../pages/UsersContainer'
 import ProfessionalsPage from '../pages/ProfessionalsPage'
 import SettingsPage from '../pages/SettingsPage'
@@ -47,7 +46,6 @@ const App = () => {
 						<Route path="panoramas" element={<PanoramasPage />} />
 						<Route path="panoramas/:id" element={<PanoramaManagerPage />} />
 						<Route path="cms" element={<CmsPage />} />
-						<Route path="quizzes" element={<QuizPage />} />
 						<Route path="users" element={<UsersContainer />} />
 						<Route path="professionals" element={<ProfessionalsPage />} />
 						<Route path="settings" element={<SettingsPage />} />
