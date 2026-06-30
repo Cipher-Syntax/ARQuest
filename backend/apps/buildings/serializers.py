@@ -29,7 +29,7 @@ class QuestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quest
-        fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'is_active', 'created_at']
+        fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'target_role', 'reward_points', 'is_active', 'created_at']
 
 class TriviaFactSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='building.name', read_only=True)

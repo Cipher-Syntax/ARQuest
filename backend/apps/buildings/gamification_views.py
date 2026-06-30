@@ -79,7 +79,10 @@ class ActiveQuestsView(views.APIView):
 			user=user, is_completed=True
 		).values_list('quest_id', flat=True)
 
-		available_quests = list(Quest.objects.filter(is_active=True).exclude(id__in=completed_quest_ids))
+		from django.db.models import Q
+		available_quests = list(Quest.objects.filter(is_active=True).filter(
+			Q(target_role='all') | Q(target_role=user.role)
+		).exclude(id__in=completed_quest_ids))
 
 		if not available_quests:
 			return Response({'success': True, 'data': []})

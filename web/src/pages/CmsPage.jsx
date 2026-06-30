@@ -23,6 +23,7 @@ export default function CmsPage() {
 	const [editingItem, setEditingItem] = useState(null)
 	const [formTitle, setFormTitle] = useState('')
 	const [formHint, setFormHint] = useState('')
+	const [formTargetRole, setFormTargetRole] = useState('all')
 	const [formReward, setFormReward] = useState(50)
 	const [formFact, setFormFact] = useState('')
 	
@@ -72,6 +73,7 @@ export default function CmsPage() {
 				title: formTitle,
 				hint: formHint,
 				target_building: selectedBuilding.id,
+				target_role: formTargetRole,
 				reward_points: formReward,
 				is_active: true
 			}
@@ -167,6 +169,7 @@ export default function CmsPage() {
 		setEditingItem(null)
 		setFormTitle('')
 		setFormHint('')
+		setFormTargetRole('all')
 		setFormFact('')
 		setFormQuestion('')
 		setFormOptionA('')
@@ -330,9 +333,20 @@ export default function CmsPage() {
 													<label className="block text-sm font-semibold mb-1 text-gray-700">Hint / Instructions</label>
 													<textarea value={formHint} onChange={e => setFormHint(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm h-24 focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none" placeholder="e.g. Look behind the main staircase on the first floor..." />
 												</div>
-												<div>
-													<label className="block text-sm font-semibold mb-1 text-gray-700">Reward Points</label>
-													<input type="number" value={formReward} onChange={e => setFormReward(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none" />
+												<div className="grid grid-cols-2 gap-4">
+													<div>
+														<label className="block text-sm font-semibold mb-1 text-gray-700">Target Role</label>
+														<select value={formTargetRole} onChange={e => setFormTargetRole(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none">
+															<option value="all">All Users</option>
+															<option value="student">Students Only</option>
+															<option value="visitor">Guests/Visitors Only</option>
+															<option value="professional">Professionals Only</option>
+														</select>
+													</div>
+													<div>
+														<label className="block text-sm font-semibold mb-1 text-gray-700">Reward Points</label>
+														<input type="number" value={formReward} onChange={e => setFormReward(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none" />
+													</div>
 												</div>
 												<div className="flex justify-end pt-2">
 													<Button onClick={handleSaveQuest} className="bg-[#B21830] hover:bg-[#8e1326] text-white">Save Quest</Button>
@@ -411,12 +425,17 @@ export default function CmsPage() {
 															<div className="flex items-center gap-2 mb-1">
 																<h4 className="font-extrabold text-gray-900 truncate">{quest.title}</h4>
 																<span className="inline-block text-[10px] font-bold text-[#B21830] bg-[#B21830]/10 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">+{quest.reward_points} pts</span>
+																{quest.target_role && quest.target_role !== 'all' && (
+																	<span className="inline-block text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider border border-gray-200">
+																		{quest.target_role}
+																	</span>
+																)}
 															</div>
 															<p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{quest.hint}</p>
 														</div>
 													</div>
 													<div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-														<button onClick={() => { setEditingItem(quest); setFormTitle(quest.title); setFormHint(quest.hint); setFormReward(quest.reward_points); setIsEditing(true); }} className="p-1.5 text-gray-400 hover:text-[#B21830] bg-gray-50 hover:bg-[#B21830]/10 rounded-md transition-colors"><Edit3 size={14}/></button>
+														<button onClick={() => { setEditingItem(quest); setFormTitle(quest.title); setFormHint(quest.hint); setFormTargetRole(quest.target_role || 'all'); setFormReward(quest.reward_points); setIsEditing(true); }} className="p-1.5 text-gray-400 hover:text-[#B21830] bg-gray-50 hover:bg-[#B21830]/10 rounded-md transition-colors"><Edit3 size={14}/></button>
 														<button onClick={() => handleDeleteQuest(quest.id)} className="p-1.5 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={14}/></button>
 													</div>
 												</div>

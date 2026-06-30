@@ -177,34 +177,32 @@ export default function ProfileScreen() {
                 )}
 
                 {/* --- Quest History --- */}
-                {user?.role === 'student' && (
-                    <View style={styles.sectionContainer}>
-                        <Text style={styles.sectionTitle}>RECENT QUESTS</Text>
-                        <View style={styles.settingsCard}>
-                            {questHistory.length > 0 ? questHistory.slice(0, 5).map((quest, idx) => (
-                                <View key={idx} style={[styles.historyRow, idx < Math.min(questHistory.length, 5) - 1 && styles.historyDivider]}>
-                                    <View style={styles.historyIconWrapper}>
-                                        <Crosshair size={16} color={theme.colors.primary} />
-                                    </View>
-                                    <View style={styles.historyTextContainer}>
-                                        <Text style={styles.historyTitle} numberOfLines={1}>{quest.quest_title}</Text>
-                                        <Text style={styles.historySubtitle}>{quest.building_name}</Text>
-                                    </View>
-                                    <View style={styles.historyRight}>
-                                        <Text style={styles.historyPoints}>+{quest.points} EXP</Text>
-                                        <Text style={styles.historyTime}>
-                                            {new Date(quest.time_ago).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
-                                        </Text>
-                                    </View>
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>RECENT QUESTS</Text>
+                    <View style={styles.settingsCard}>
+                        {questHistory.length > 0 ? questHistory.slice(0, 5).map((quest, idx) => (
+                            <View key={idx} style={[styles.historyRow, idx < Math.min(questHistory.length, 5) - 1 && styles.historyDivider]}>
+                                <View style={styles.historyIconWrapper}>
+                                    <Crosshair size={16} color={theme.colors.primary} />
                                 </View>
-                            )) : (
-                                <View style={styles.emptyContainer}>
-                                    <Text style={styles.emptyText}>No quests completed recently.</Text>
+                                <View style={styles.historyTextContainer}>
+                                    <Text style={styles.historyTitle} numberOfLines={1}>{quest.quest_title}</Text>
+                                    <Text style={styles.historySubtitle}>{quest.building_name}</Text>
                                 </View>
-                            )}
-                        </View>
+                                <View style={styles.historyRight}>
+                                    <Text style={styles.historyPoints}>+{quest.points} EXP</Text>
+                                    <Text style={styles.historyTime}>
+                                        {new Date(quest.time_ago).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                                    </Text>
+                                </View>
+                            </View>
+                        )) : (
+                            <View style={styles.emptyContainer}>
+                                <Text style={styles.emptyText}>No quests completed recently.</Text>
+                            </View>
+                        )}
                     </View>
-                )}
+                </View>
 
                 {/* General Settings */}
                 <View style={styles.sectionContainer}>

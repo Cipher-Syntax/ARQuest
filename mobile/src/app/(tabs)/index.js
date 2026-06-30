@@ -130,47 +130,45 @@ export default function HomeScreen() {
                 </View>
 
                 {/* --- Daily Mission Hero Card (#5) --- */}
-                {user?.role === 'student' && (
-                    <View style={styles.heroCard}>
-                        <View style={styles.heroTopRow}>
-                            <View style={styles.heroLabelChip}>
-                                <Crosshair color="rgba(255,255,255,0.9)" size={12} />
-                                <Text style={styles.heroChipText}>DAILY MISSION</Text>
-                            </View>
-                            {activeQuest && (
-                                <View style={styles.heroExpBadge}>
-                                    <Text style={styles.heroExpText}>+{activeQuest.reward_points} EXP</Text>
-                                </View>
-                            )}
+                <View style={styles.heroCard}>
+                    <View style={styles.heroTopRow}>
+                        <View style={styles.heroLabelChip}>
+                            <Crosshair color="rgba(255,255,255,0.9)" size={12} />
+                            <Text style={styles.heroChipText}>DAILY MISSION</Text>
                         </View>
-
-                        <Text style={styles.heroQuestTitle} numberOfLines={2}>
-                            {loading ? 'Loading...' : (activeQuest ? activeQuest.title : 'STANDBY FOR ORDERS')}
-                        </Text>
-
-                        <View style={styles.heroBottomRow}>
-                            <View style={styles.heroTargetInfo}>
-                                <Text style={styles.heroTargetLabel}>TARGET NODE</Text>
-                                <Text style={styles.heroTargetValue} numberOfLines={1}>
-                                    {activeQuest ? activeQuest.target_building_name : 'No active quests'}
-                                </Text>
+                        {activeQuest && (
+                            <View style={styles.heroExpBadge}>
+                                <Text style={styles.heroExpText}>+{activeQuest.reward_points} EXP</Text>
                             </View>
-                            <TouchableOpacity
-                                style={[styles.heroDeployBtn, !activeQuest && styles.heroDeployBtnDisabled]}
-                                onPress={() => router.push('/(tabs)/ar')}
-                                disabled={!activeQuest}
-                            >
-                                <Text style={[styles.heroDeployText, !activeQuest && styles.heroDeployTextDisabled]}>
-                                    {activeQuest ? 'DEPLOY' : 'STANDBY'}
-                                </Text>
-                                <ChevronRight
-                                    color={activeQuest ? theme.colors.primary : 'rgba(255,255,255,0.4)'}
-                                    size={16}
-                                />
-                            </TouchableOpacity>
-                        </View>
+                        )}
                     </View>
-                )}
+
+                    <Text style={styles.heroQuestTitle} numberOfLines={2}>
+                        {loading ? 'Loading...' : (activeQuest ? activeQuest.title : 'STANDBY FOR ORDERS')}
+                    </Text>
+
+                    <View style={styles.heroBottomRow}>
+                        <View style={styles.heroTargetInfo}>
+                            <Text style={styles.heroTargetLabel}>TARGET NODE</Text>
+                            <Text style={styles.heroTargetValue} numberOfLines={1}>
+                                {activeQuest ? activeQuest.target_building_name : 'No active quests'}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={[styles.heroDeployBtn, !activeQuest && styles.heroDeployBtnDisabled]}
+                            onPress={() => router.push('/(tabs)/ar')}
+                            disabled={!activeQuest}
+                        >
+                            <Text style={[styles.heroDeployText, !activeQuest && styles.heroDeployTextDisabled]}>
+                                {activeQuest ? 'DEPLOY' : 'STANDBY'}
+                            </Text>
+                            <ChevronRight
+                                color={activeQuest ? theme.colors.primary : 'rgba(255,255,255,0.4)'}
+                                size={16}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
                 {user?.role === 'student' && (
                     <View style={styles.splitRow}>
