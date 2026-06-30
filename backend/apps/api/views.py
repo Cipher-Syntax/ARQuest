@@ -71,10 +71,7 @@ def dashboard_stats(request):
     # Most / Least Visited Buildings
     buildings_with_unlocks = Building.objects.filter(is_active=True).annotate(unlock_count=Count('unlocks')).order_by('-unlock_count')
     most_visited = list(buildings_with_unlocks.values('id', 'name', 'unlock_count')[:5])
-    least_visited = list(buildings_with_unlocks.filter(unlock_count__gt=0).order_by('unlock_count').values('id', 'name', 'unlock_count')[:5])
-    
-    if len(least_visited) == 0 and len(most_visited) > 0:
-        least_visited = list(buildings_with_unlocks.order_by('unlock_count').values('id', 'name', 'unlock_count')[:5])
+    least_visited = list(buildings_with_unlocks.order_by('unlock_count').values('id', 'name', 'unlock_count')[:5])
 
     # Quest Completion Rate
     total_quest_progress = UserQuestProgress.objects.count()
