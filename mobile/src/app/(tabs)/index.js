@@ -153,42 +153,6 @@ export default function HomeScreen() {
                     </View>
                 </View>
 
-                {user?.role === 'student' && (
-                    <View style={styles.splitRow}>
-                        <ARGlassCard style={styles.splitCard}>
-                            {loading ? (
-                                <ActivityIndicator color={theme.colors.arHighlight} />
-                            ) : (
-                                <View style={styles.splitCardInner}>
-                                    <Trophy color={theme.colors.accent} size={24} />
-                                    <Text style={styles.splitValue}>{stats?.points || 0}</Text>
-                                    <Text style={styles.splitLabel}>EXP POINTS</Text>
-                                    
-                                    <View style={styles.miniDivider} />
-                                    
-                                    <Text style={styles.splitSubValue}>#{stats?.rank || "--"}</Text>
-                                    <Text style={styles.splitSubLabel}>GLOBAL RANK</Text>
-                                </View>
-                            )}
-                        </ARGlassCard>
-
-                        <ARGlassCard style={styles.splitCard}>
-                            <View style={styles.splitCardInner}>
-                                <MapPin color={theme.colors.arHighlight} size={24} />
-                                <Text style={styles.splitValue}>{distanceToNearest !== null ? `${(distanceToNearest / 1000).toFixed(2)} km` : "--"}</Text>
-                                <Text style={styles.splitLabel}>DISTANCE</Text>
-                                
-                                <View style={styles.miniDivider} />
-                                
-                                <Text style={styles.targetName} numberOfLines={2}>
-                                    {nearestBuilding ? nearestBuilding.name : "ACQUIRING TARGET"}
-                                </Text>
-                                <Text style={styles.splitSubLabel}>NEAREST NODE</Text>
-                            </View>
-                        </ARGlassCard>
-                    </View>
-                )}
-
                 {/* --- Daily Mission Hero Card (#5) --- */}
                 {user?.role === 'student' && (
                     <View style={styles.heroCard}>
@@ -229,6 +193,42 @@ export default function HomeScreen() {
                                 />
                             </TouchableOpacity>
                         </View>
+                    </View>
+                )}
+
+                {user?.role === 'student' && (
+                    <View style={styles.splitRow}>
+                        <ARGlassCard style={styles.splitCard}>
+                            {loading ? (
+                                <ActivityIndicator color={theme.colors.arHighlight} />
+                            ) : (
+                                <View style={styles.splitCardInner}>
+                                    <Trophy color={theme.colors.accent} size={24} />
+                                    <Text style={styles.splitValue}>{stats?.points || 0}</Text>
+                                    <Text style={styles.splitLabel}>EXP POINTS</Text>
+                                    
+                                    <View style={styles.miniDivider} />
+                                    
+                                    <Text style={styles.splitSubValue}>#{stats?.rank || "--"}</Text>
+                                    <Text style={styles.splitSubLabel}>GLOBAL RANK</Text>
+                                </View>
+                            )}
+                        </ARGlassCard>
+
+                        <ARGlassCard style={styles.splitCard}>
+                            <View style={styles.splitCardInner}>
+                                <MapPin color={theme.colors.arHighlight} size={24} />
+                                <Text style={styles.splitValue}>{distanceToNearest !== null ? `${(distanceToNearest / 1000).toFixed(2)} km` : "--"}</Text>
+                                <Text style={styles.splitLabel}>DISTANCE</Text>
+                                
+                                <View style={styles.miniDivider} />
+                                
+                                <Text style={styles.targetName} numberOfLines={2}>
+                                    {nearestBuilding ? nearestBuilding.name : "ACQUIRING TARGET"}
+                                </Text>
+                                <Text style={styles.splitSubLabel}>NEAREST NODE</Text>
+                            </View>
+                        </ARGlassCard>
                     </View>
                 )}
 
