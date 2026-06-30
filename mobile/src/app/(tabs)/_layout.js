@@ -7,6 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { Redirect } from "expo-router";
 import { registerForPushNotificationsAsync } from '../../utils/pushNotifications';
 import { useEffect } from 'react';
+import OnboardingTutorial from "../../components/OnboardingTutorial";
 
 function CustomTabBar({ state, descriptors, navigation }) {
     return (
@@ -117,70 +118,73 @@ export default function TabLayout() {
     }
 
     return (
-        <Tabs
-            screenOptions={{
-                headerStyle: {
-                    backgroundColor: theme.colors.primary,
-                },
-                headerTintColor: "#FFFFFF",
-                tabBarStyle: {
-                    backgroundColor: theme.colors.surface,
-                    borderTopColor: theme.colors.border,
-                },
-                tabBarActiveTintColor: theme.colors.primary,
-                tabBarInactiveTintColor: theme.colors.textMuted,
-            }}
-            tabBar={(props) => <CustomTabBar {...props} />}
-        >
-            <Tabs.Screen
-                name="index"
-                options={{
-                    title: "Home",
-                    tabBarLabel: "Home",
-                    tabBarIcon: ({ color }) => <Home size={24} color={color} />,
-                    headerShown: false,
+        <View style={{ flex: 1 }}>
+            <Tabs
+                screenOptions={{
+                    headerStyle: {
+                        backgroundColor: theme.colors.primary,
+                    },
+                    headerTintColor: "#FFFFFF",
+                    tabBarStyle: {
+                        backgroundColor: theme.colors.surface,
+                        borderTopColor: theme.colors.border,
+                    },
+                    tabBarActiveTintColor: theme.colors.primary,
+                    tabBarInactiveTintColor: theme.colors.textMuted,
                 }}
-            />
-            <Tabs.Screen
-                name="buildings"
-                options={{
-                    title: "Maps",
-                    tabBarLabel: "Maps",
-                    tabBarIcon: ({ color }) => (
-                        <Map size={24} color={color} />
-                    ),
-                    headerShown: false,
-                }}
-            />
-            <Tabs.Screen
-                name="ar"
-                options={{
-                    title: "AR",
-                    tabBarLabel: "AR",
-                    tabBarIcon: ({ color }) => (
-                        <Scan size={24} color={color} />
-                    ),
-                    headerShown: false,
-                }}
-            />
-            <Tabs.Screen
-                name="explore"
-                options={{
-                    title: "Explore",
-                    tabBarLabel: "Explore",
-                    tabBarIcon: ({ color }) => <Building2 size={24} color={color} />,
-                    headerShown: false,
-                }}
-            />
-            <Tabs.Screen
-                name="profile"
-                options={{
-                    title: "Profile",
-                    tabBarLabel: "Profile",
-                    tabBarIcon: ({ color }) => <User size={24} color={color} />,
-                    headerShown: false,
-                }}
-            />
-        </Tabs>
+                tabBar={(props) => <CustomTabBar {...props} />}
+            >
+                <Tabs.Screen
+                    name="index"
+                    options={{
+                        title: "Home",
+                        tabBarLabel: "Home",
+                        tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+                        headerShown: false,
+                    }}
+                />
+                <Tabs.Screen
+                    name="buildings"
+                    options={{
+                        title: "Maps",
+                        tabBarLabel: "Maps",
+                        tabBarIcon: ({ color }) => (
+                            <Map size={24} color={color} />
+                        ),
+                        headerShown: false,
+                    }}
+                />
+                <Tabs.Screen
+                    name="ar"
+                    options={{
+                        title: "AR",
+                        tabBarLabel: "AR",
+                        tabBarIcon: ({ color }) => (
+                            <Scan size={24} color={color} />
+                        ),
+                        headerShown: false,
+                    }}
+                />
+                <Tabs.Screen
+                    name="explore"
+                    options={{
+                        title: "Explore",
+                        tabBarLabel: "Explore",
+                        tabBarIcon: ({ color }) => <Building2 size={24} color={color} />,
+                        headerShown: false,
+                    }}
+                />
+                <Tabs.Screen
+                    name="profile"
+                    options={{
+                        title: "Profile",
+                        tabBarLabel: "Profile",
+                        tabBarIcon: ({ color }) => <User size={24} color={color} />,
+                        headerShown: false,
+                    }}
+                />
+            </Tabs>
+            <OnboardingTutorial />
+        </View>
     );
 }
