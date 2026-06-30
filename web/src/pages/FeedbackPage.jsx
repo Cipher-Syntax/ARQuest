@@ -6,15 +6,23 @@ import { feedbackService } from '../services/feedbackService'
 export default function FeedbackPage() {
 	const [feedbacks, setFeedbacks] = useState([])
 	const [loading, setLoading] = useState(true)
+	const [page, setPage] = useState(1)
+	const [totalPages, setTotalPages] = useState(1)
 
 	useEffect(() => {
 		fetchFeedbacks()
-	}, [])
+	}, [page])
 
 	const fetchFeedbacks = async () => {
+		setLoading(true)
 		try {
-			const data = await feedbackService.getFeedbacks()
-			setFeedbacks(data)
+			const data = await feedbackService.getFeedbacks(page)
+			if (data.results) {
+				setFeedbacks(data.results)
+				setTotalPages(Math.ceil(data.count / 10))
+			} else {
+				setFeedbacks(data)
+			}
 		} catch (error) {
 			console.error("Failed to fetch feedback", error)
 		} finally {
@@ -126,6 +134,28 @@ export default function FeedbackPage() {
 					))
 				)}
 			</div>
+
+			{totalPages > 1 && (
+				<div className="flex justify-center items-center gap-4 mt-6">
+					<button 
+						onClick={() => setPage(p => Math.max(1, p - 1))}
+						disabled={page === 1}
+						className="px-4 py-2 border border-gray-300 rounded text-sm font-medium disabled:opacity-50 hover:bg-gray-50"
+					>
+						Previous
+					</button>
+					<span className="text-sm text-gray-600">
+						Page {page} of {totalPages}
+					</span>
+					<button 
+						onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+						disabled={page === totalPages}
+						className="px-4 py-2 border border-gray-300 rounded text-sm font-medium disabled:opacity-50 hover:bg-gray-50"
+					>
+						Next
+					</button>
+				</div>
+			)}
 		</div>
 	)
 }

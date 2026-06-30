@@ -1,9 +1,9 @@
 import api from './api'
 
 export const feedbackService = {
-	getFeedbacks: async () => {
-		const response = await api.get('/api/feedback/')
-		return response.data.results || response.data || []
+	getFeedbacks: async (page = 1) => {
+		const response = await api.get(`/api/feedback/?page=${page}`)
+		return response.data
 	},
 	updateFeedbackStatus: async (id, status) => {
 		const response = await api.patch(`/api/feedback/${id}/`, { status })

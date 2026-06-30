@@ -129,11 +129,18 @@ def public_settings(request):
     return Response({"success": True, "data": data})
 
 from rest_framework import viewsets
+from rest_framework.pagination import PageNumberPagination
 from .models import Feedback
 from .serializers import FeedbackSerializer
 
+class FeedbackPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class FeedbackViewSet(viewsets.ModelViewSet):
     serializer_class = FeedbackSerializer
+    pagination_class = FeedbackPagination
     
     def get_queryset(self):
         if self.request.user.is_admin_role:
