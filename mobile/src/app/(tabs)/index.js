@@ -270,47 +270,59 @@ export default function HomeScreen() {
                                 });
 
                                 return (
-                                    <Animated.View key={challenge.id} style={{ width: ITEM_WIDTH, marginRight: index === challenges.length - 1 ? 0 : ITEM_SPACING, transform: [{ scale }], opacity }}>
+                                    <Animated.View 
+                                        key={challenge.id} 
+                                        style={{ 
+                                            width: ITEM_WIDTH, 
+                                            marginRight: index === challenges.length - 1 ? 0 : ITEM_SPACING, 
+                                            transform: [{ scale }], 
+                                            opacity,
+                                            height: 280,
+                                            backgroundColor: '#FFFFFF',
+                                            borderRadius: theme.radius.md,
+                                            shadowColor: '#000',
+                                            shadowOffset: { width: 0, height: 4 },
+                                            shadowOpacity: 0.1,
+                                            shadowRadius: 8,
+                                            elevation: 4,
+                                        }}
+                                    >
                                         <TouchableOpacity 
                                             style={{
                                                 flex: 1,
-                                                height: 320,
-                                                backgroundColor: '#FFFFFF', 
-                                                borderRadius: 24,
+                                                borderRadius: theme.radius.md,
+                                                borderWidth: 1,
+                                                borderColor: theme.colors.border,
                                                 overflow: 'hidden',
-                                                shadowColor: '#000',
-                                                shadowOffset: { width: 0, height: 12 },
-                                                shadowOpacity: 0.15,
-                                                shadowRadius: 24,
-                                                elevation: 10,
                                             }}
                                             onPress={() => router.push('/(tabs)/ar')}
                                             activeOpacity={0.9}
                                         >
-                                            {/* Top Image Area */}
-                                            <View style={{ height: 140, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }}>
-                                                <Timer color="#FFFFFF" size={64} opacity={0.9} />
-                                                {/* Curved Cutout Effect */}
-                                                <View style={{ position: 'absolute', bottom: -2, width: '100%', height: 24, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24 }} />
+                                            {/* Top Image Placeholder */}
+                                            <View style={{ height: 120, backgroundColor: 'rgba(178, 24, 48, 0.05)', justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+                                                <Timer color={theme.colors.primary} size={48} opacity={0.8} />
                                             </View>
 
                                             {/* Bottom Content Container */}
-                                            <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, alignItems: 'center', justifyContent: 'space-between' }}>
-                                                
-                                                <View style={{ backgroundColor: 'rgba(178, 24, 48, 0.1)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginBottom: 8 }}>
-                                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 10, color: theme.colors.primary, letterSpacing: 1 }}>FLASH EVENT</Text>
-                                                </View>
-
-                                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 20, color: theme.colors.textPrimary, textTransform: 'uppercase', textAlign: 'center', lineHeight: 24 }} numberOfLines={2}>
+                                            <View style={{ flex: 1, padding: 16, alignItems: 'center' }}>
+                                                {/* Title */}
+                                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 20, color: theme.colors.textPrimary, textTransform: 'uppercase', textAlign: 'center', marginBottom: 4 }} numberOfLines={1}>
                                                     {challenge.title}
                                                 </Text>
                                                 
-                                                <Text style={{ fontFamily: fonts.hud.bold, fontSize: 18, color: theme.colors.primary, marginVertical: 4 }}>
+                                                {/* Subtitle / Points */}
+                                                <Text style={{ fontFamily: fonts.hud.bold, fontSize: 14, color: theme.colors.primary, marginBottom: 8 }}>
                                                     +{challenge.reward_points} EXP
                                                 </Text>
                                                 
-                                                <View style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 30, width: '100%', alignItems: 'center', marginTop: 12 }}>
-                                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 14, color: '#FFFFFF', letterSpacing: 1 }}>DEPLOY</Text>
+                                                {/* Description / Expiration */}
+                                                <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 'auto' }}>
+                                                    Hurry up! This limited challenge expires at {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+                                                </Text>
+                                                
+                                                {/* Action Button */}
+                                                <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: theme.colors.primary, paddingHorizontal: 32, paddingVertical: 8, borderRadius: 4 }}>
+                                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 12, color: theme.colors.primary, letterSpacing: 1 }}>DEPLOY</Text>
                                                 </View>
                                             </View>
                                         </TouchableOpacity>
