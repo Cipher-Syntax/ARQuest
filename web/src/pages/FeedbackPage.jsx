@@ -8,15 +8,17 @@ export default function FeedbackPage() {
 	const [loading, setLoading] = useState(true)
 	const [page, setPage] = useState(1)
 	const [totalPages, setTotalPages] = useState(1)
+	const [filterStatus, setFilterStatus] = useState('all')
+	const [filterType, setFilterType] = useState('all')
 
 	useEffect(() => {
 		fetchFeedbacks()
-	}, [page])
+	}, [page, filterStatus, filterType])
 
 	const fetchFeedbacks = async () => {
 		setLoading(true)
 		try {
-			const data = await feedbackService.getFeedbacks(page)
+			const data = await feedbackService.getFeedbacks(page, filterStatus, filterType)
 			if (data.results) {
 				setFeedbacks(data.results)
 				setTotalPages(Math.ceil(data.count / 10))
@@ -71,9 +73,33 @@ export default function FeedbackPage() {
 
 	return (
 		<div className="space-y-6">
-			<div>
-				<h2 className="text-2xl font-bold text-gray-900">User Feedback & Issues</h2>
-				<p className="text-gray-500 mt-1">Review and manage bug reports and feature requests from users.</p>
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+				<div>
+					<h2 className="text-2xl font-bold text-gray-900">User Feedback & Issues</h2>
+					<p className="text-gray-500 mt-1">Review and manage bug reports and feature requests from users.</p>
+				</div>
+				<div className="flex items-center gap-3">
+					<select 
+						className="border border-gray-300 rounded px-3 py-2 bg-white text-sm outline-none focus:border-[#8a1538]"
+						value={filterStatus}
+						onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+					>
+						<option value="all">All Statuses</option>
+						<option value="open">Open</option>
+						<option value="in_progress">In Progress</option>
+						<option value="resolved">Resolved</option>
+					</select>
+					<select 
+						className="border border-gray-300 rounded px-3 py-2 bg-white text-sm outline-none focus:border-[#8a1538]"
+						value={filterType}
+						onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
+					>
+						<option value="all">All Types</option>
+						<option value="bug">Bug Reports</option>
+						<option value="feature">Feature Requests</option>
+						<option value="other">Other</option>
+					</select>
+				</div>
 			</div>
 
 			<div className="grid grid-cols-1 gap-4">

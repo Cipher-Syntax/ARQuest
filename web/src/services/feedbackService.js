@@ -1,8 +1,8 @@
 import api from './api'
 
 export const feedbackService = {
-	getFeedbacks: async (page = 1) => {
-		const response = await api.get(`/api/feedback/?page=${page}`)
+	getFeedbacks: async (page = 1, filterStatus = 'all', filterType = 'all') => {
+		const response = await api.get(`/api/feedback/?page=${page}&status=${filterStatus}&type=${filterType}`)
 		return response.data
 	},
 	updateFeedbackStatus: async (id, status) => {

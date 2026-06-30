@@ -143,9 +143,17 @@ class FeedbackViewSet(viewsets.ModelViewSet):
     pagination_class = FeedbackPagination
     
     def get_queryset(self):
-        if self.request.user.is_admin_role:
-            return Feedback.objects.all().order_by('-created_at')
-        return Feedback.objects.filter(user=self.request.user).order_by('-created_at')
+        qs = Feedback.objects.all() if self.request.user.is_admin_role else Feedback.objects.filter(user=self.request.user)
+        
+        status_filter = self.request.query_params.get('status')
+        type_filter = self.request.query_params.get('type')
+        
+        if status_filter and status_filter != 'all':
+            qs = qs.filter(status=status_filter)
+        if type_filter and type_filter != 'all':
+            qs = qs.filter(type=type_filter)
+            
+        return qs.order_by('-created_at')
         
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
