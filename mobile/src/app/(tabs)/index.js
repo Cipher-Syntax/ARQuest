@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, Animated } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, Animated, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
@@ -360,7 +360,11 @@ export default function HomeScreen() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assetScroll}>
                         {buildings.length > 0 ? buildings.slice(0, 5).map((b, idx) => (
                             <TouchableOpacity key={b.id || idx} style={styles.assetCard} onPress={() => router.push('/(tabs)/buildings')}>
-                                <Box color={theme.colors.accent} size={32} style={{ marginBottom: 10 }} />
+                                {b.image_url ? (
+                                    <Image source={{ uri: b.image_url }} style={{ width: 60, height: 60, borderRadius: 8, marginBottom: 10 }} resizeMode="cover" />
+                                ) : (
+                                    <Box color={theme.colors.accent} size={32} style={{ marginBottom: 10 }} />
+                                )}
                                 <Text style={styles.assetName} numberOfLines={2}>{b.name}</Text>
                             </TouchableOpacity>
                         )) : (
