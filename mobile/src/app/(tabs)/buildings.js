@@ -531,7 +531,7 @@ export default function BuildingsScreen() {
             </Modal>
             
             {/* Map Legend */}
-            {!selectedBuilding && (
+            {!modalVisible && (
                 <View style={styles.mapLegend}>
                     <Text style={styles.legendTitle}>MAP LEGEND</Text>
                     <View style={styles.legendRow}>
