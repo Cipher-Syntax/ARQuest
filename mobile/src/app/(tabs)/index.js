@@ -214,7 +214,15 @@ export default function HomeScreen() {
 
                 {challenges.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>LIMITED CHALLENGES</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm }}>
+                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>LIMITED CHALLENGES</Text>
+                            {challenges.length > 1 && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text style={{ fontSize: 10, color: theme.colors.textMuted, marginRight: 4, fontFamily: fonts.body.bold }}>SWIPE</Text>
+                                    <ChevronRight color={theme.colors.textMuted} size={16} />
+                                </View>
+                            )}
+                        </View>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assetScroll} pagingEnabled snapToInterval={Dimensions.get('window').width - 40 + 12} decelerationRate="fast">
                             {challenges.map((challenge, index) => {
                                 const expires = new Date(challenge.expires_at);
@@ -224,14 +232,13 @@ export default function HomeScreen() {
                                     <TouchableOpacity 
                                         key={challenge.id} 
                                         style={[styles.heroCard, { 
-                                            width: Dimensions.get('window').width - 40, 
+                                            width: Dimensions.get('window').width - (theme.spacing.lg * 2), 
                                             backgroundColor: '#FFFFFF', 
                                             borderWidth: 1,
                                             borderColor: theme.colors.primary,
                                             shadowColor: theme.colors.primary,
                                             marginTop: 0,
-                                            marginBottom: 0,
-                                            position: 'relative'
+                                            marginBottom: 0
                                         }]}
                                         onPress={() => router.push('/(tabs)/ar')}
                                         activeOpacity={0.9}
@@ -246,7 +253,7 @@ export default function HomeScreen() {
                                             </View>
                                         </View>
                                         
-                                        <Text style={[styles.heroQuestTitle, { color: theme.colors.textPrimary, paddingRight: 24 }]}>
+                                        <Text style={[styles.heroQuestTitle, { color: theme.colors.textPrimary }]}>
                                             {challenge.title}
                                         </Text>
                                         
@@ -264,12 +271,6 @@ export default function HomeScreen() {
                                                 <ChevronRight color="#FFFFFF" size={16} />
                                             </View>
                                         </View>
-                                        
-                                        {challenges.length > 1 && index < challenges.length - 1 && (
-                                            <View style={{ position: 'absolute', right: 8, top: '50%', transform: [{ translateY: -12 }], opacity: 0.5 }}>
-                                                <ChevronRight color={theme.colors.primary} size={24} />
-                                            </View>
-                                        )}
                                     </TouchableOpacity>
                                 )
                             })}
