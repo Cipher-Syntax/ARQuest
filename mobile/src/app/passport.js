@@ -26,7 +26,11 @@ export default function PassportScreen() {
                 setBuildings(buildingsRes.data.data);
             }
             if (unlockedRes.data.success) {
-                const unlocked = new Set(unlockedRes.data.data.map(b => b.id));
+                const unlocked = new Set(
+                    unlockedRes.data.data
+                        .filter(b => b.visited !== false)
+                        .map(b => b.id)
+                );
                 setUnlockedIds(unlocked);
             }
         } catch (error) {
@@ -57,7 +61,7 @@ export default function PassportScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <ArrowLeft size={24} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Building Discoveries</Text>
+                <Text style={styles.headerTitle}>{user?.role === 'professional' ? 'Visited Buildings' : 'Building Discoveries'}</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -69,7 +73,7 @@ export default function PassportScreen() {
                 {/* Progress Card */}
                 <View style={styles.progressCard}>
                     <View style={styles.progressHeader}>
-                        <Text style={styles.progressTitle}>EXPLORATION PROGRESS</Text>
+                        <Text style={styles.progressTitle}>{user?.role === 'professional' ? 'EVALUATION PROGRESS' : 'EXPLORATION PROGRESS'}</Text>
                         <Text style={styles.progressCount}>{unlockedCount} / {totalCount}</Text>
                     </View>
                     <View style={styles.progressBarContainer}>
@@ -77,8 +81,8 @@ export default function PassportScreen() {
                     </View>
                     <Text style={styles.progressSubtext}>
                         {unlockedCount === totalCount && totalCount > 0 
-                            ? "All campus locations discovered!" 
-                            : "Explore the campus to collect more stamps."}
+                            ? (user?.role === 'professional' ? "All active buildings have been visited!" : "All campus locations discovered!") 
+                            : (user?.role === 'professional' ? "Visit more buildings to complete your evaluation." : "Explore the campus to collect more stamps.")}
                     </Text>
                 </View>
 

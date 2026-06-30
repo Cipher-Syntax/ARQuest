@@ -286,14 +286,15 @@ export default function ExploreScreen() {
                     </View>
                     
                     {nearbyBuildings.map((building, index) => {
-                        const isUnlocked = unlockedBuildings.some(ub => ub.id === building.id);
+                        const unlockedRecord = unlockedBuildings.find(ub => ub.id === building.id);
+                        const hasVisited = unlockedRecord ? (role === 'professional' ? unlockedRecord.visited : true) : false;
                         return (
                             <View key={building.id} style={[styles.nearbyRow, index < nearbyBuildings.length - 1 && styles.nearbyDivider]}>
                                 <View style={styles.nearbyIconWrapper}>
                                     <Ionicons 
-                                        name={isUnlocked ? "checkmark-circle" : "lock-closed"} 
+                                        name={hasVisited ? "checkmark-circle" : "lock-closed"} 
                                         size={20} 
-                                        color={isUnlocked ? theme.colors.arHighlight : theme.colors.textMuted} 
+                                        color={hasVisited ? theme.colors.arHighlight : theme.colors.textMuted} 
                                     />
                                 </View>
                                 <View style={styles.nearbyInfo}>

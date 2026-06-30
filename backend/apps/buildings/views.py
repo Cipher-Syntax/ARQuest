@@ -266,8 +266,25 @@ def unlocked_buildings(request):
     
     if user.is_professional_role:
         buildings = Building.objects.filter(status='VISIBLE')
-        serializer = UnlockedBuildingSerializer(buildings, many=True, context={'request': request})
-        return success_response(serializer.data)
+        unlocks_map = {u.building_id: u for u in BuildingUnlock.objects.filter(user=user)}
+        
+        buildings_data = []
+        for b in buildings:
+            serializer = UnlockedBuildingSerializer(b, context={'request': request})
+            data = serializer.data
+            data['is_unlocked'] = True
+            if b.id in unlocks_map:
+                unlock = unlocks_map[b.id]
+                data['visited'] = True
+                data['unlocked_at'] = unlock.unlocked_at
+                data['unlock_source'] = unlock.source
+            else:
+                data['visited'] = False
+                data['unlocked_at'] = None
+                data['unlock_source'] = 'role_access'
+            buildings_data.append(data)
+        
+        return success_response(buildings_data)
     
     unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__status='VISIBLE')
     buildings_data = []
@@ -275,6 +292,7 @@ def unlocked_buildings(request):
         serializer = UnlockedBuildingSerializer(unlock.building, context={'request': request})
         building_data = serializer.data
         building_data['is_unlocked'] = True
+        building_data['visited'] = True
         building_data['unlock_source'] = unlock.source
         building_data['unlocked_at'] = unlock.unlocked_at
         buildings_data.append(building_data)

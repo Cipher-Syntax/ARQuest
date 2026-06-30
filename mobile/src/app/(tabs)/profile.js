@@ -225,11 +225,11 @@ export default function ProfileScreen() {
                             />
                         )}
 
-                        {user?.role === 'student' && (
+                        {(user?.role === 'student' || user?.role === 'professional') && (
                             <SettingsRow 
                                 icon={Map} 
-                                title="Building Discoveries" 
-                                subtitle="Check your visited and unvisited campus areas"
+                                title={user?.role === 'professional' ? "Visited Buildings" : "Building Discoveries"} 
+                                subtitle={user?.role === 'professional' ? "View your building visit history" : "Check your visited and unvisited campus areas"}
                                 onPress={() => router.push('/passport')} 
                             />
                         )}

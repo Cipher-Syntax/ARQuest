@@ -372,17 +372,27 @@ export default function BuildingsScreen() {
                                     <Text style={styles.buildingName}>{selectedBuilding.name}</Text>
                                     <View style={[
                                         styles.badge, 
-                                        selectedBuilding.unlock_source === 'role_access' && styles.badgeRole,
+                                        role === 'professional' && !selectedBuilding.visited && styles.badgeRole,
+                                        selectedBuilding.unlock_source === 'role_access' && role !== 'professional' && styles.badgeRole,
                                         selectedBuilding.is_active === false && styles.badgeInactive
                                     ]}>
                                         <Text style={[
                                             styles.badgeText,
                                             selectedBuilding.is_active === false && styles.badgeTextInactive
                                         ]}>
-                                            {selectedBuilding.is_active === false ? 'INACTIVE' : (selectedBuilding.unlock_source === 'geofence' ? 'SECURED' : 'OVERRIDE')}
+                                            {selectedBuilding.is_active === false ? 'INACTIVE' : 
+                                             role === 'professional' ? (selectedBuilding.visited ? 'VISITED' : 'NOT VISITED') :
+                                             (selectedBuilding.unlock_source === 'geofence' || selectedBuilding.unlock_source === 'qr' ? 'SECURED' : 'OVERRIDE')}
                                         </Text>
                                     </View>
                                 </View>
+                                
+                                {selectedBuilding.unlocked_at && (
+                                    <Text style={{ fontSize: 11, color: theme.colors.textMuted, marginTop: -4, marginBottom: 8 }}>
+                                        {role === 'professional' ? 'Visited on: ' : 'Unlocked on: '}
+                                        {new Date(selectedBuilding.unlocked_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                    </Text>
+                                )}
                                 
                                 {selectedBuilding.departments && selectedBuilding.departments.length > 0 && (
                                     <View style={{ marginVertical: 8, paddingHorizontal: 4 }}>
