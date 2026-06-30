@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/tokens';
 import { fonts } from '../constants/typography';
 import api from '../services/api';
+import SoundManager from '../utils/SoundManager';
 
 export default function QuizModal({ visible, building, onClose }) {
     const [questions, setQuestions] = useState([]);
@@ -62,17 +63,21 @@ export default function QuizModal({ visible, building, onClose }) {
             });
             
             if (res.data.success) {
-                setIsCorrect(res.data.data.is_correct);
+                const correct = res.data.data.is_correct;
+                setIsCorrect(correct);
                 setCorrectOption(res.data.data.correct_option);
                 setExpEarned(res.data.data.exp_awarded);
                 
-                if (res.data.data.is_correct) {
+                if (correct) {
+                    SoundManager.play('trivia_correct');
                     // Show EXP animation
                     Animated.sequence([
                         Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
                         Animated.delay(1000),
                         Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true })
                     ]).start();
+                } else {
+                    SoundManager.play('trivia_wrong');
                 }
             }
         } catch (error) {

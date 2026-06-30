@@ -23,6 +23,11 @@ export default function RootLayout() {
         if (fontsLoaded || error) {
             SplashScreen.hideAsync();
         }
+        
+        // Initialize SoundManager
+        import('../utils/SoundManager').then(module => {
+            module.default.init();
+        });
     }, [fontsLoaded, error]);
 
     if (!fontsLoaded && !error) {

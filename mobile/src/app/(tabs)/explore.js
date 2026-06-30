@@ -9,6 +9,7 @@ import { geofencingService } from "../../services/geofencingService";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
 import { fonts } from "../../constants/typography";
+import SoundManager from "../../utils/SoundManager";
 
 export default function ExploreScreen() {
     const { role } = useRoleAccess();
@@ -123,9 +124,16 @@ export default function ExploreScreen() {
                     try {
                         const unlockResult = await attemptUnlock(location.latitude, location.longitude, location.accuracy || 10);
                         setLastUnlockAttempt(buildingId);
+                        
+                        SoundManager.play('building_unlock');
+
                         // Show badge toast if any newly earned
                         const badges = unlockResult?.newly_earned_badges || [];
                         if (badges.length > 0) {
+                            setTimeout(() => {
+                                SoundManager.play('badge_earned');
+                            }, 1500); // slight delay so it doesn't clash with building unlock
+
                             setEarnedBadges(badges);
                             badgeAnim.setValue(0);
                             Animated.sequence([

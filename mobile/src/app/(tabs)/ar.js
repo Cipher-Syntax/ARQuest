@@ -18,6 +18,7 @@ import BrandedSelfieFrame from '../../components/BrandedSelfieFrame';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 import { useAuth } from '../../hooks/useAuth';
 import { fonts } from '../../constants/typography';
+import SoundManager from '../../utils/SoundManager';
 
 export default function ARScreen() {
     const { user, checkToken } = useAuth();
@@ -104,12 +105,17 @@ export default function ARScreen() {
         try {
             const res = await api.post(`/api/gamification/quests/${matchingQuest.id}/complete/`);
             if (res.data.success) {
+                SoundManager.play('quest_complete');
                 setClaimedQuest(matchingQuest);
                 setActiveQuests(prev => prev.map(q => q.id === matchingQuest.id ? { ...q, is_completed: true } : q));
                 
                 // Show newly earned badges
                 const earned = res.data.data?.newly_earned_badges || [];
                 if (earned.length > 0) {
+                    setTimeout(() => {
+                        SoundManager.play('badge_earned');
+                    }, 1200); // Wait for quest sound to finish
+
                     setNewlyEarnedBadges(earned);
                     Animated.sequence([
                         Animated.delay(600),
