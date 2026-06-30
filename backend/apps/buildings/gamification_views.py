@@ -80,8 +80,13 @@ class ActiveQuestsView(views.APIView):
 		).values_list('quest_id', flat=True)
 
 		from django.db.models import Q
+		from django.utils import timezone
+		now = timezone.now()
+
 		available_quests = list(Quest.objects.filter(is_active=True).filter(
 			Q(target_role='all') | Q(target_role=user.role)
+		).filter(
+			Q(expires_at__isnull=True) | Q(expires_at__gt=now)
 		).exclude(id__in=completed_quest_ids))
 
 		if not available_quests:
@@ -99,6 +104,31 @@ class ActiveQuestsView(views.APIView):
 
 		serializer = QuestSerializer([daily_quest], many=True, context={'request': request})
 
+		return Response({
+			'success': True,
+			'data': serializer.data
+		})
+
+
+class ChallengesView(views.APIView):
+	permission_classes = [IsAuthenticated]
+
+	def get(self, request):
+		user = request.user
+		from django.utils import timezone
+		from django.db.models import Q
+		now = timezone.now()
+		
+		# Active challenges that haven't expired
+		challenges = Quest.objects.filter(
+			is_active=True,
+			expires_at__gt=now
+		).filter(
+			Q(target_role='all') | Q(target_role=user.role)
+		)
+
+		serializer = QuestSerializer(challenges, many=True, context={'request': request})
+		
 		return Response({
 			'success': True,
 			'data': serializer.data

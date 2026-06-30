@@ -68,6 +68,8 @@ export default function HomeScreen() {
         }
     }, [location, buildings]);
 
+    const [challenges, setChallenges] = useState([]);
+
     useEffect(() => {
         const fetchStats = async () => {
             try {
@@ -84,6 +86,12 @@ export default function HomeScreen() {
                 const resQuest = await api.get('/api/gamification/quests/active/');
                 if (resQuest.data.success && resQuest.data.data.length > 0) {
                     setActiveQuest(resQuest.data.data[0]);
+                }
+
+                // Fetch challenges
+                const resChallenges = await api.get('/api/gamification/challenges/');
+                if (resChallenges.data.success) {
+                    setChallenges(resChallenges.data.data);
                 }
             } catch (error) {
                 console.error('Failed to fetch gamification data:', error);
@@ -201,6 +209,28 @@ export default function HomeScreen() {
                                 <Text style={styles.splitSubLabel}>NEAREST NODE</Text>
                             </View>
                         </ARGlassCard>
+                    </View>
+                )}
+
+                {challenges.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>LIMITED CHALLENGES</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assetScroll}>
+                            {challenges.map(challenge => {
+                                const expires = new Date(challenge.expires_at);
+                                const isExpired = expires < new Date();
+                                if (isExpired || challenge.is_completed) return null;
+                                return (
+                                    <View key={challenge.id} style={[styles.assetCard, { borderColor: theme.colors.warning, borderWidth: 1 }]}>
+                                        <Text style={styles.assetName} numberOfLines={2}>{challenge.title}</Text>
+                                        <Text style={[styles.splitSubLabel, { color: theme.colors.warning, marginTop: 5 }]}>
+                                            ENDS {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </Text>
+                                        <Text style={[styles.splitLabel, { marginTop: 10 }]}>REWARD: {challenge.reward_points} EXP</Text>
+                                    </View>
+                                )
+                            })}
+                        </ScrollView>
                     </View>
                 )}
 

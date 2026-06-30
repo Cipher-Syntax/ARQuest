@@ -218,6 +218,7 @@ class Quest(SoftDeleteModel):
     target_role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='all')
     reward_points = models.IntegerField(default=50)
     is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="If set, the quest will expire at this time (used for Timed Challenges)")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
