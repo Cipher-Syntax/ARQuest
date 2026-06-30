@@ -470,7 +470,10 @@ def building_quiz(request, id):
     except Building.DoesNotExist:
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     
-    questions = list(QuizQuestion.objects.filter(building=building, is_active=True))
+    from .models import UserQuizProgress
+    answered_ids = UserQuizProgress.objects.filter(user=request.user, is_correct=True).values_list('question_id', flat=True)
+    questions = list(QuizQuestion.objects.filter(building=building, is_active=True).exclude(id__in=answered_ids))
+    
     import random
     if len(questions) > 3:
         questions = random.sample(questions, 3)
@@ -496,7 +499,21 @@ def submit_quiz_answer(request):
     exp_awarded = 0
     newly_earned_badges = []
     
+    from .models import UserQuizProgress
+    progress, created = UserQuizProgress.objects.get_or_create(user=request.user, question=question)
+    
+    if progress.is_correct:
+        return success_response({
+            'is_correct': True,
+            'correct_option': question.correct_option,
+            'exp_awarded': 0,
+            'newly_earned_badges': [],
+            'message': 'You have already completed this trivia question.'
+        })
+    
     if is_correct:
+        progress.is_correct = True
+        progress.save(update_fields=['is_correct'])
         request.user.exploration_points += question.exp_reward
         request.user.save(update_fields=['exploration_points'])
         exp_awarded = question.exp_reward

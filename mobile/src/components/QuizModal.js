@@ -121,7 +121,7 @@ export default function QuizModal({ visible, building, onClose }) {
                         </View>
                     ) : questions.length === 0 ? (
                         <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>No trivia available for {building?.name} right now.</Text>
+                            <Text style={styles.emptyText}>You have already completed all available trivia for {building?.name}, or none is available yet!</Text>
                             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
                                 <Text style={styles.closeBtnText}>CLOSE</Text>
                             </TouchableOpacity>

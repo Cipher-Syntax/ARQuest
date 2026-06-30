@@ -274,6 +274,16 @@ class QuizQuestion(models.Model):
         return f"{self.building.name} - {self.question}"
 
 
+class UserQuizProgress(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quiz_progress')
+    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE)
+    is_correct = models.BooleanField(default=False)
+    answered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'question')
+
+
 class Badge(models.Model):
 	TRIGGER_CHOICES = [
 		('first_unlock', 'First Building Unlocked'),
