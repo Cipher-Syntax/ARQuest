@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
         marginTop: theme.spacing.xs,
         marginBottom: theme.spacing.xl,
         backgroundColor: theme.colors.primary,
-        borderRadius: theme.radius.xl,
+        borderRadius: theme.radius.md,
         padding: theme.spacing.lg,
         shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 6 },
