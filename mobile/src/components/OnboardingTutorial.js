@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, Animated }
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Map, MapPin, ScanLine, Trophy, Target } from 'lucide-react-native';
 import theme from '../theme/tokens';
-import fonts from '../theme/fonts';
+import { fonts } from '../constants/typography';
 
 const { width, height } = Dimensions.get('window');
 
