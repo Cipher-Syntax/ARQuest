@@ -70,16 +70,14 @@ export default function HomeScreen() {
 
     useEffect(() => {
         const fetchStats = async () => {
-            if (user?.role !== 'student') {
-                setLoading(false);
-                return;
-            }
             try {
-                // Fetch stats
-                const resStats = await api.get('/api/gamification/leaderboard/');
-                if (resStats.data.success) {
-                    const myStats = resStats.data.data.find(r => r.username === user.username);
-                    setStats(myStats);
+                // Fetch stats (only for students)
+                if (user?.role === 'student') {
+                    const resStats = await api.get('/api/gamification/leaderboard/');
+                    if (resStats.data.success) {
+                        const myStats = resStats.data.data.find(r => r.username === user.username);
+                        setStats(myStats);
+                    }
                 }
                 
                 // Fetch active quest

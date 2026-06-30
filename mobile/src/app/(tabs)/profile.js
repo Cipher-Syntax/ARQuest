@@ -64,10 +64,8 @@ export default function ProfileScreen() {
             }
         };
         
-        if (user?.role === 'student') {
-            fetchBadges();
-            fetchQuestHistory();
-        }
+        fetchBadges();
+        fetchQuestHistory();
     }, []);
 
     const SettingsRow = ({ icon: Icon, title, subtitle, onPress, destructive }) => (
