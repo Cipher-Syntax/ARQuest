@@ -214,17 +214,9 @@ export default function HomeScreen() {
 
                 {challenges.length > 0 && (
                     <View style={styles.section}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>LIMITED CHALLENGES</Text>
-                            {challenges.length > 1 && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <Text style={{ fontSize: 10, color: theme.colors.textMuted, marginRight: 4, fontFamily: fonts.body.bold }}>SWIPE</Text>
-                                    <ChevronRight color={theme.colors.textMuted} size={16} />
-                                </View>
-                            )}
-                        </View>
+                        <Text style={styles.sectionTitle}>LIMITED CHALLENGES</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assetScroll} pagingEnabled snapToInterval={Dimensions.get('window').width - 40 + 12} decelerationRate="fast">
-                            {challenges.map(challenge => {
+                            {challenges.map((challenge, index) => {
                                 const expires = new Date(challenge.expires_at);
                                 const isExpired = expires < new Date();
                                 if (isExpired || challenge.is_completed) return null;
@@ -235,42 +227,49 @@ export default function HomeScreen() {
                                             width: Dimensions.get('window').width - 40, 
                                             backgroundColor: '#FFFFFF', 
                                             borderWidth: 1,
-                                            borderColor: theme.colors.warning,
-                                            shadowColor: theme.colors.warning,
+                                            borderColor: theme.colors.primary,
+                                            shadowColor: theme.colors.primary,
                                             marginTop: 0,
-                                            marginBottom: 0
+                                            marginBottom: 0,
+                                            position: 'relative'
                                         }]}
                                         onPress={() => router.push('/(tabs)/ar')}
                                         activeOpacity={0.9}
                                     >
                                         <View style={styles.heroTopRow}>
-                                            <View style={[styles.heroLabelChip, { backgroundColor: 'rgba(245, 124, 0, 0.15)' }]}>
-                                                <Timer color={theme.colors.warning} size={14} />
-                                                <Text style={[styles.heroChipText, { color: theme.colors.warning }]}>LIMITED TIME</Text>
+                                            <View style={[styles.heroLabelChip, { backgroundColor: 'rgba(178, 24, 48, 0.1)' }]}>
+                                                <Timer color={theme.colors.primary} size={14} />
+                                                <Text style={[styles.heroChipText, { color: theme.colors.primary }]}>LIMITED TIME</Text>
                                             </View>
-                                            <View style={[styles.heroExpBadge, { backgroundColor: 'rgba(245, 124, 0, 0.15)', borderColor: 'rgba(245, 124, 0, 0.3)' }]}>
-                                                <Text style={[styles.heroExpText, { color: theme.colors.warning }]}>+{challenge.reward_points} EXP</Text>
+                                            <View style={[styles.heroExpBadge, { backgroundColor: 'rgba(178, 24, 48, 0.1)', borderColor: 'rgba(178, 24, 48, 0.2)' }]}>
+                                                <Text style={[styles.heroExpText, { color: theme.colors.primary }]}>+{challenge.reward_points} EXP</Text>
                                             </View>
                                         </View>
                                         
-                                        <Text style={[styles.heroQuestTitle, { color: theme.colors.textPrimary }]}>
+                                        <Text style={[styles.heroQuestTitle, { color: theme.colors.textPrimary, paddingRight: 24 }]}>
                                             {challenge.title}
                                         </Text>
                                         
                                         <View style={styles.heroBottomRow}>
                                             <View style={styles.heroTargetInfo}>
                                                 <Text style={styles.heroTargetLabel}>ENDS AT</Text>
-                                                <Text style={[styles.heroTargetValue, { color: theme.colors.warning }]} numberOfLines={1}>
+                                                <Text style={[styles.heroTargetValue, { color: theme.colors.primary }]} numberOfLines={1}>
                                                     {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </Text>
                                             </View>
-                                            <View style={[styles.heroDeployBtn, { backgroundColor: theme.colors.warning }]}>
+                                            <View style={[styles.heroDeployBtn, { backgroundColor: theme.colors.primary }]}>
                                                 <Text style={[styles.heroDeployText, { color: '#FFFFFF' }]}>
                                                     DEPLOY
                                                 </Text>
                                                 <ChevronRight color="#FFFFFF" size={16} />
                                             </View>
                                         </View>
+                                        
+                                        {challenges.length > 1 && index < challenges.length - 1 && (
+                                            <View style={{ position: 'absolute', right: 8, top: '50%', transform: [{ translateY: -12 }], opacity: 0.5 }}>
+                                                <ChevronRight color={theme.colors.primary} size={24} />
+                                            </View>
+                                        )}
                                     </TouchableOpacity>
                                 )
                             })}
