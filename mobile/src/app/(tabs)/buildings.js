@@ -540,11 +540,11 @@ export default function BuildingsScreen() {
                     </View>
                     <View style={styles.legendRow}>
                         <View style={[styles.legendDot, { backgroundColor: '#8a1538', borderWidth: 2, borderColor: '#FFFFFF' }]} />
-                        <Text style={styles.legendText}>{user?.role === 'professional' ? 'Visited' : 'Unlocked'} Node</Text>
+                        <Text style={styles.legendText}>{role === 'professional' ? 'Visited' : 'Unlocked'} Node</Text>
                     </View>
                     <View style={styles.legendRow}>
                         <View style={[styles.legendDot, { backgroundColor: '#6b7280', borderWidth: 2, borderColor: '#FFFFFF' }]} />
-                        <Text style={styles.legendText}>{user?.role === 'professional' ? 'Unvisited' : 'Locked'} Node</Text>
+                        <Text style={styles.legendText}>{role === 'professional' ? 'Unvisited' : 'Locked'} Node</Text>
                     </View>
                 </View>
             )}
