@@ -20,6 +20,9 @@ from apps.buildings.models import Building, BuildingUnlock, TriviaFact
 from apps.authentication.models import User
 from .responses import success_response, error_response
 
+from django.db.models import Count
+from apps.buildings.models import UserQuestProgress
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
@@ -50,9 +53,9 @@ def dashboard_stats(request):
         })
 
     # Building Status
-    buildings = Building.objects.all().order_by('-updated_at')[:4]
+    buildings_recent = Building.objects.all().order_by('-updated_at')[:4]
     building_status = []
-    for b in buildings:
+    for b in buildings_recent:
         words = b.name.split()
         if len(words) > 1:
             code = "".join([word[0] for word in words if word[0].isalpha()]).upper()
@@ -65,13 +68,30 @@ def dashboard_stats(request):
             'status': 'Live' if b.is_active else 'Draft'
         })
 
+    # Most / Least Visited Buildings
+    buildings_with_unlocks = Building.objects.filter(is_active=True).annotate(unlock_count=Count('unlocks')).order_by('-unlock_count')
+    most_visited = list(buildings_with_unlocks.values('id', 'name', 'unlock_count')[:5])
+    least_visited = list(buildings_with_unlocks.filter(unlock_count__gt=0).order_by('unlock_count').values('id', 'name', 'unlock_count')[:5])
+    
+    if len(least_visited) == 0 and len(most_visited) > 0:
+        least_visited = list(buildings_with_unlocks.order_by('unlock_count').values('id', 'name', 'unlock_count')[:5])
+
+    # Quest Completion Rate
+    total_quest_progress = UserQuestProgress.objects.count()
+    completed_quests = UserQuestProgress.objects.filter(is_completed=True).count()
+    quest_completion_rate = round((completed_quests / total_quest_progress * 100), 1) if total_quest_progress > 0 else 0
+
     return success_response({
         'total_buildings': total_buildings,
         'active_students': active_students,
         'trivia_facts': trivia_facts,
         'gps_unlocks_today': gps_unlocks_today,
         'weekly_data': weekly_data,
-        'building_status': building_status
+        'building_status': building_status,
+        'most_visited': most_visited,
+        'least_visited': least_visited,
+        'quest_completion_rate': quest_completion_rate,
+        'total_quests_completed': completed_quests
     })
 
 from .models import SystemSetting

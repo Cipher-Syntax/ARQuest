@@ -6,7 +6,10 @@ import {
 	HelpCircle,
 	ArrowUpRight,
 	MoreVertical,
-	ChevronRight
+	ChevronRight,
+	Target,
+	TrendingUp,
+	TrendingDown
 } from 'lucide-react'
 import { Card, Badge } from '../components/ui'
 import { dashboardService } from '../services/dashboardService'
@@ -19,7 +22,11 @@ export default function Dashboard() {
 		trivia_facts: 0,
 		gps_unlocks_today: 0,
 		weekly_data: [],
-		building_status: []
+		building_status: [],
+		most_visited: [],
+		least_visited: [],
+		quest_completion_rate: 0,
+		total_quests_completed: 0
 	})
 
 	useEffect(() => {
@@ -62,6 +69,13 @@ export default function Dashboard() {
 			icon: HelpCircle,
 			trend: 'Live',
 			color: 'bg-brand-light text-brand'
+		},
+		{
+			label: 'Quests Completed',
+			value: stats.total_quests_completed,
+			icon: Target,
+			trend: `${stats.quest_completion_rate}% Rate`,
+			color: 'bg-green-100 text-green-700'
 		}
 	]
 
@@ -82,7 +96,7 @@ export default function Dashboard() {
 				</p>
 			</div>
 
-			<div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+			<div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
 				{STATS.map((stat, i) => (
 					<Card key={i} className="relative overflow-hidden">
 						<div className="flex items-start justify-between">
@@ -195,6 +209,75 @@ export default function Dashboard() {
 								</Badge>
 							</div>
 						))}
+					</div>
+				</Card>
+			</div>
+
+			{/* Advanced Analytics Grid */}
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+				<Card>
+					<div className="flex items-center justify-between mb-4">
+						<div>
+							<h3 className="font-bold text-gray-900 flex items-center gap-2">
+								<TrendingUp size={18} className="text-green-600" />
+								Most Visited Buildings
+							</h3>
+							<p className="text-xs text-gray-500 mt-0.5">
+								Top 5 buildings by physical visits
+							</p>
+						</div>
+					</div>
+					<div className="space-y-3">
+						{stats.most_visited.map((b, i) => (
+							<div key={i} className="flex items-center justify-between">
+								<div className="flex items-center gap-3 w-full">
+									<div className="w-6 text-sm font-bold text-gray-400">#{i + 1}</div>
+									<div className="flex-1">
+										<div className="flex justify-between mb-1">
+											<span className="text-sm font-semibold text-gray-700">{b.name}</span>
+											<span className="text-sm font-bold text-gray-900">{b.unlock_count}</span>
+										</div>
+										<div className="w-full bg-gray-100 rounded-full h-1.5">
+											<div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (b.unlock_count / (stats.most_visited[0]?.unlock_count || 1)) * 100)}%` }}></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						))}
+						{stats.most_visited.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No visits recorded yet</p>}
+					</div>
+				</Card>
+
+				<Card>
+					<div className="flex items-center justify-between mb-4">
+						<div>
+							<h3 className="font-bold text-gray-900 flex items-center gap-2">
+								<TrendingDown size={18} className="text-red-600" />
+								Least Visited Buildings
+							</h3>
+							<p className="text-xs text-gray-500 mt-0.5">
+								Bottom 5 buildings needing attention
+							</p>
+						</div>
+					</div>
+					<div className="space-y-3">
+						{stats.least_visited.map((b, i) => (
+							<div key={i} className="flex items-center justify-between">
+								<div className="flex items-center gap-3 w-full">
+									<div className="w-6 text-sm font-bold text-gray-400">#{i + 1}</div>
+									<div className="flex-1">
+										<div className="flex justify-between mb-1">
+											<span className="text-sm font-semibold text-gray-700">{b.name}</span>
+											<span className="text-sm font-bold text-gray-900">{b.unlock_count}</span>
+										</div>
+										<div className="w-full bg-gray-100 rounded-full h-1.5">
+											<div className="bg-red-400 h-1.5 rounded-full" style={{ width: `${Math.max(2, Math.min(100, (b.unlock_count / (stats.most_visited[0]?.unlock_count || 1)) * 100))}%` }}></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						))}
+						{stats.least_visited.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No visits recorded yet</p>}
 					</div>
 				</Card>
 			</div>
