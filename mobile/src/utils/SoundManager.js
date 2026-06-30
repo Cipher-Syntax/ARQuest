@@ -1,9 +1,11 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 class SoundManager {
     constructor() {
-        this.sounds = {};
+        this.players = {};
         this.isLoaded = false;
+        
+        // Map sound names to asset paths
         this.soundFiles = {
             'quest_complete': require('../../assets/sounds/quest_complete.mp3'),
             'building_unlock': require('../../assets/sounds/building_unlock.wav'),
@@ -17,15 +19,15 @@ class SoundManager {
         if (this.isLoaded) return;
         
         try {
-            await Audio.setAudioModeAsync({
-                playsInSilentModeIOS: true,
-                staysActiveInBackground: false,
-                shouldDuckAndroid: true,
+            await setAudioModeAsync({
+                playsInSilentMode: true,
+                shouldPlayInBackground: false,
+                interruptionMode: 'mixWithOthers'
             });
 
+            // Pre-load all sounds and store their player instances
             for (const [key, asset] of Object.entries(this.soundFiles)) {
-                const { sound } = await Audio.Sound.createAsync(asset);
-                this.sounds[key] = sound;
+                this.players[key] = createAudioPlayer(asset);
             }
             
             this.isLoaded = true;
@@ -35,16 +37,14 @@ class SoundManager {
         }
     }
 
-    async play(soundName) {
-        if (!this.isLoaded) await this.init();
+    play(soundName) {
+        if (!this.isLoaded) this.init();
         
-        const sound = this.sounds[soundName];
-        if (sound) {
+        const player = this.players[soundName];
+        if (player) {
             try {
-                // Stop and reset position to play from beginning if it's already playing
-                await sound.stopAsync();
-                await sound.setPositionAsync(0);
-                await sound.playAsync();
+                player.seekTo(0);
+                player.play();
             } catch (error) {
                 console.error(`Error playing sound ${soundName}:`, error);
             }
@@ -53,13 +53,14 @@ class SoundManager {
         }
     }
 
-    async unloadAll() {
-        for (const sound of Object.values(this.sounds)) {
-            await sound.unloadAsync();
+    unloadAll() {
+        for (const player of Object.values(this.players)) {
+            player.release();
         }
         this.isLoaded = false;
-        this.sounds = {};
+        this.players = {};
     }
 }
 
-export default new SoundManager();
+const soundManager = new SoundManager();
+export default soundManager;
