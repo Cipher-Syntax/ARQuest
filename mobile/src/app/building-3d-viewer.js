@@ -67,7 +67,14 @@ export default function Building3DViewerScreen() {
                     const uri = await loadAsset(modelAsset);
                     setLocalModelUrl(uri);
                 } else if (modelUrl) {
-                    setLocalModelUrl(modelUrl);
+                    // Fallback to caching the building's direct model_url
+                    const pseudoAsset = {
+                        id: `bmodel_${buildingId}`,
+                        version: '1', 
+                        file_url: modelUrl
+                    };
+                    const uri = await loadAsset(pseudoAsset);
+                    setLocalModelUrl(uri);
                 } else {
                     setError('3D model not available');
                     setLoading(false);
