@@ -21,6 +21,7 @@ import ProfessionalsPage from '../pages/ProfessionalsPage'
 import SettingsPage from '../pages/SettingsPage'
 import DepartmentsPage from '../pages/DepartmentsPage'
 import ArchivePage from '../pages/ArchivePage'
+import FeedbackPage from '../pages/FeedbackPage'
 
 const App = () => {
 	return (
@@ -50,6 +51,7 @@ const App = () => {
 						<Route path="professionals" element={<ProfessionalsPage />} />
 						<Route path="settings" element={<SettingsPage />} />
 						<Route path="archives" element={<ArchivePage />} />
+						<Route path="feedback" element={<FeedbackPage />} />
 					</Route>
 				</Routes>
 			</AuthProvider>

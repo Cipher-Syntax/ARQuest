@@ -55,6 +55,7 @@ const NAV_GROUPS = [
 		label: 'System & Admin',
 		items: [
 			{ to: '/professionals', icon: Briefcase, label: 'Professionals' },
+			{ to: '/feedback', icon: HelpCircle, label: 'Feedback & Issues' },
 			{ to: '/archives', icon: ArchiveRestore, label: 'Archives' },
 			{ to: '/settings', icon: Settings, label: 'Settings' }
 		]

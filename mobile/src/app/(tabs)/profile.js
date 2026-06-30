@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award, Crosshair, Map } from 'lucide-react-native';
+import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award, Crosshair, Map, MessageSquare } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { api } from '../../services/api';
 import theme from '../../theme/tokens';
 import { useAuth } from '../../hooks/useAuth';
 import { AVATARS } from '../../constants/Avatars';
 import { fonts } from '../../constants/typography';
+import FeedbackModal from '../../components/FeedbackModal';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
@@ -16,6 +17,7 @@ export default function ProfileScreen() {
     const [badgeCount, setBadgeCount] = useState(null);
     const [questHistory, setQuestHistory] = useState([]);
     const [myBadges, setMyBadges] = useState([]);
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
 
     useEffect(() => {
         const fetchMyRank = async () => {
@@ -254,6 +256,12 @@ export default function ProfileScreen() {
                     <Text style={styles.sectionTitle}>SUPPORT</Text>
                     <View style={styles.settingsCard}>
                         <SettingsRow 
+                            icon={MessageSquare} 
+                            title="Report an Issue / Feedback" 
+                            subtitle="Help us improve ARQuest"
+                            onPress={() => setFeedbackModalVisible(true)} 
+                        />
+                        <SettingsRow 
                             icon={HelpCircle} 
                             title="About ARQuest" 
                             subtitle="Version 1.0.0"
@@ -274,6 +282,11 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
 
             </ScrollView>
+
+            <FeedbackModal 
+                visible={feedbackModalVisible} 
+                onClose={() => setFeedbackModalVisible(false)} 
+            />
         </SafeAreaView>
     );
 }

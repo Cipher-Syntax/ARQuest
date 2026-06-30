@@ -130,3 +130,24 @@ def public_settings(request):
         "enable_leaderboard": settings.enable_leaderboard,
     }
     return Response({"success": True, "data": data})
+
+from rest_framework import viewsets
+from .models import Feedback
+from .serializers import FeedbackSerializer
+
+class FeedbackViewSet(viewsets.ModelViewSet):
+    serializer_class = FeedbackSerializer
+    
+    def get_queryset(self):
+        if self.request.user.is_admin_role:
+            return Feedback.objects.all().order_by('-created_at')
+        return Feedback.objects.filter(user=self.request.user).order_by('-created_at')
+        
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            from rest_framework.permissions import IsAdminUser
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+        
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
