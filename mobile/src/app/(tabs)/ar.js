@@ -213,6 +213,7 @@ export default function ARScreen() {
         try {
             const res = await api.post('/api/buildings/unlock/qr/', { qr_code_secret: data });
             if (res.data.success) {
+                SoundManager.play('building_unlock');
                 Alert.alert('Unlocked!', `Successfully unlocked via QR code!`);
                 if (nearbyBuildingFull && nearbyBuildingFull.id === res.data.data.building) {
                     setNearbyBuildingFull({...nearbyBuildingFull, is_unlocked: true});
@@ -220,6 +221,9 @@ export default function ARScreen() {
                 // Show badge toast if earned
                 const earned = res.data.data?.newly_earned_badges || [];
                 if (earned.length > 0) {
+                    setTimeout(() => {
+                        SoundManager.play('badge_earned');
+                    }, 1200);
                     setNewlyEarnedBadges(earned);
                     badgeAnim.setValue(0);
                     Animated.sequence([
