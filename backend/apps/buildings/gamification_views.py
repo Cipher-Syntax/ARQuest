@@ -86,7 +86,7 @@ class ActiveQuestsView(views.APIView):
 		available_quests = list(Quest.objects.filter(is_active=True).filter(
 			Q(target_role='all') | Q(target_role=user.role)
 		).filter(
-			Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+			expires_at__isnull=True
 		).exclude(id__in=completed_quest_ids))
 
 		if not available_quests:

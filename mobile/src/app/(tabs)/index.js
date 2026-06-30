@@ -221,13 +221,17 @@ export default function HomeScreen() {
                                 const isExpired = expires < new Date();
                                 if (isExpired || challenge.is_completed) return null;
                                 return (
-                                    <View key={challenge.id} style={[styles.assetCard, { borderColor: theme.colors.warning, borderWidth: 1 }]}>
+                                    <TouchableOpacity 
+                                        key={challenge.id} 
+                                        style={[styles.assetCard, { borderColor: theme.colors.warning, borderWidth: 1 }]}
+                                        onPress={() => router.push('/(tabs)/ar')}
+                                    >
                                         <Text style={styles.assetName} numberOfLines={2}>{challenge.title}</Text>
                                         <Text style={[styles.splitSubLabel, { color: theme.colors.warning, marginTop: 5 }]}>
                                             ENDS {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </Text>
                                         <Text style={[styles.splitLabel, { marginTop: 10 }]}>REWARD: {challenge.reward_points} EXP</Text>
-                                    </View>
+                                    </TouchableOpacity>
                                 )
                             })}
                         </ScrollView>
