@@ -153,6 +153,49 @@ export default function HomeScreen() {
                     </View>
                 </View>
 
+                {/* --- Daily Mission Hero Card (#5) --- */}
+                {user?.role === 'student' && (
+                    <View style={styles.heroCard}>
+                        <View style={styles.heroTopRow}>
+                            <View style={styles.heroLabelChip}>
+                                <Crosshair color="rgba(255,255,255,0.9)" size={12} />
+                                <Text style={styles.heroChipText}>DAILY MISSION</Text>
+                            </View>
+                            {activeQuest && (
+                                <View style={styles.heroExpBadge}>
+                                    <Text style={styles.heroExpText}>+{activeQuest.reward_points} EXP</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <Text style={styles.heroQuestTitle} numberOfLines={2}>
+                            {loading ? 'Loading...' : (activeQuest ? activeQuest.title : 'STANDBY FOR ORDERS')}
+                        </Text>
+
+                        <View style={styles.heroBottomRow}>
+                            <View style={styles.heroTargetInfo}>
+                                <Text style={styles.heroTargetLabel}>TARGET NODE</Text>
+                                <Text style={styles.heroTargetValue} numberOfLines={1}>
+                                    {activeQuest ? activeQuest.target_building_name : 'No active quests'}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={[styles.heroDeployBtn, !activeQuest && styles.heroDeployBtnDisabled]}
+                                onPress={() => router.push('/(tabs)/ar')}
+                                disabled={!activeQuest}
+                            >
+                                <Text style={[styles.heroDeployText, !activeQuest && styles.heroDeployTextDisabled]}>
+                                    {activeQuest ? 'DEPLOY' : 'STANDBY'}
+                                </Text>
+                                <ChevronRight
+                                    color={activeQuest ? theme.colors.primary : 'rgba(255,255,255,0.4)'}
+                                    size={16}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+
                 {user?.role === 'student' && (
                     <View style={styles.splitRow}>
                         <ARGlassCard style={styles.splitCard}>
@@ -215,29 +258,7 @@ export default function HomeScreen() {
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>TARGET ACQUISITION</Text>
-                        <TouchableOpacity style={styles.seeAll} onPress={() => router.push('/(tabs)/explore')}>
-                            <Text style={styles.seeAllText}>VIEW MAP</Text>
-                            <ChevronRight color={theme.colors.arHighlight} size={14} />
-                        </TouchableOpacity>
-                    </View>
-                    <TouchableOpacity style={styles.targetCard} onPress={() => router.push('/(tabs)/buildings')}>
-                        <View style={styles.targetImagePlaceholder}>
-                            <MapIcon color="rgba(255,255,255,0.2)" size={48} />
-                        </View>
-                        <View style={styles.targetInfo}>
-                            <Text style={styles.targetCardTitle}>{activeQuest ? activeQuest.target_building_name : "NO ACTIVE QUESTS"}</Text>
-                            <Text style={styles.targetCardSub}>{activeQuest ? activeQuest.title : "Check back later for new targets."}</Text>
-                            {activeQuest && (
-                                <View style={styles.expBadge}>
-                                    <Text style={styles.expBadgeText}>+{activeQuest.reward_points} EXP</Text>
-                                </View>
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                </View>
+
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>ASSET LIBRARY</Text>
@@ -629,6 +650,104 @@ const styles = StyleSheet.create({
     intelDivider: {
         height: 1,
         backgroundColor: theme.colors.border,
-        marginLeft: 20,
+        marginHorizontal: 4,
+    },
+    // ── Daily Mission Hero Card ──
+    heroCard: {
+        marginHorizontal: theme.spacing.lg,
+        marginTop: theme.spacing.md,
+        marginBottom: theme.spacing.xs,
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.radius.xl,
+        padding: theme.spacing.lg,
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 12,
+        elevation: 10,
+    },
+    heroTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing.sm,
+    },
+    heroLabelChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: theme.radius.full,
+    },
+    heroChipText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.9)',
+        letterSpacing: 1.5,
+    },
+    heroExpBadge: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: theme.radius.full,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.35)',
+    },
+    heroExpText: {
+        fontFamily: fonts.hud.bold,
+        fontSize: 12,
+        color: '#FFFFFF',
+    },
+    heroQuestTitle: {
+        fontFamily: fonts.hud.bold,
+        fontSize: 20,
+        color: '#FFFFFF',
+        textTransform: 'uppercase',
+        marginBottom: theme.spacing.md,
+        lineHeight: 26,
+    },
+    heroBottomRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    heroTargetInfo: {
+        flex: 1,
+        marginRight: theme.spacing.md,
+    },
+    heroTargetLabel: {
+        fontFamily: fonts.body.regular,
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.6)',
+        letterSpacing: 1,
+        marginBottom: 2,
+    },
+    heroTargetValue: {
+        fontFamily: fonts.body.bold,
+        fontSize: 14,
+        color: '#FFFFFF',
+    },
+    heroDeployBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: theme.radius.md,
+        gap: 4,
+    },
+    heroDeployBtnDisabled: {
+        backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    heroDeployText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 13,
+        color: theme.colors.primary,
+        letterSpacing: 1,
+    },
+    heroDeployTextDisabled: {
+        color: 'rgba(255,255,255,0.4)',
     },
 });
