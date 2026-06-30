@@ -357,7 +357,31 @@ def quest_list_create(request):
             
         serializer = QuestSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            quest = serializer.save()
+            
+            # Send Push Notification
+            try:
+                from apps.authentication.models import UserDevice
+                from apps.core.notifications import send_push_notifications
+                
+                # Filter tokens based on target_role
+                if quest.target_role == 'all':
+                    tokens = UserDevice.objects.values_list('push_token', flat=True)
+                else:
+                    tokens = UserDevice.objects.filter(user__role=quest.target_role).values_list('push_token', flat=True)
+                
+                if tokens:
+                    messages = [{
+                        "to": token,
+                        "title": f"New Quest: {quest.title}",
+                        "body": "Tap to view your new mission!",
+                        "data": {"type": "quest", "quest_id": str(quest.id)}
+                    } for token in set(tokens)]
+                    
+                    send_push_notifications(messages)
+            except Exception as e:
+                print(f"Error sending notifications: {e}")
+                
             return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
         return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 

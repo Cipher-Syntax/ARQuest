@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import theme from "../../theme/tokens";
 import { useAuth } from "../../hooks/useAuth";
 import { Redirect } from "expo-router";
+import { registerForPushNotificationsAsync } from '../../utils/pushNotifications';
+import { useEffect } from 'react';
 
 function CustomTabBar({ state, descriptors, navigation }) {
     return (
@@ -100,7 +102,15 @@ function CustomTabBar({ state, descriptors, navigation }) {
 }
 
 export default function TabLayout() {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (user) {
+            registerForPushNotificationsAsync();
+        }
+    }, [user]);
+
+    if (loading) return null;
 
     if (!user) {
         return <Redirect href="/(auth)/login" />;

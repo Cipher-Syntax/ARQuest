@@ -295,3 +295,17 @@ def daily_checkin(request):
         'streak_count': request.user.streak_count,
         'streak_bonus_exp': bonus_exp,
     })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def register_push_token(request):
+    token = request.data.get('token')
+    if not token:
+        return error_response('invalid_data', 'Token is required', status_code=status.HTTP_400_BAD_REQUEST)
+    
+    from .models import UserDevice
+    device, created = UserDevice.objects.get_or_create(
+        user=request.user,
+        push_token=token
+    )
+    return success_response({'message': 'Token registered successfully'})
