@@ -35,6 +35,9 @@ export default function Index() {
                     >
                         <Text style={styles.headline}>Explore WMSU,</Text>
                         <Text style={styles.subHeadline}>Your Way</Text>
+                        <Text style={styles.tagline}>
+                            Embark on an immersive AR journey. Discover campus landmarks, complete quests, and unlock exclusive rewards.
+                        </Text>
                     </LinearGradient>
                 </ImageBackground>
             </View>
@@ -60,14 +63,14 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     gradientOverlay: {
-        height: '45%', // Cover bottom part
+        height: '55%', // Cover bottom part more to accommodate text
         justifyContent: 'flex-end',
         paddingHorizontal: 30,
-        paddingBottom: 60,
+        paddingBottom: 90, // Pushed slightly higher from bottom
     },
     headline: {
         fontFamily: fonts.heading.bold,
-        fontSize: 38,
+        fontSize: 46, // Made slightly bigger
         color: '#FFFFFF',
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: 0, height: 4 },
@@ -77,11 +80,21 @@ const styles = StyleSheet.create({
     },
     subHeadline: {
         fontFamily: fonts.heading.bold,
-        fontSize: 38,
+        fontSize: 46, // Made slightly bigger
         color: theme.colors.primary,
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: 0, height: 4 },
         textShadowRadius: 10,
         letterSpacing: 1,
+        marginBottom: 12,
+    },
+    tagline: {
+        fontFamily: fonts.body.regular,
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.85)',
+        lineHeight: 22,
+        textShadowColor: 'rgba(0, 0, 0, 0.9)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 5,
     }
 });
