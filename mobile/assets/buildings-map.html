@@ -185,14 +185,10 @@
             minZoom: 15
         }).setView(WMSU_CENTER, 16);
 
-        // We listen to map events to force a re-render if necessary, but requestAnimationFrame handles it smoothly.
-        // Leaflet moves DOM elements directly via translate3d, so boundingClientRect updates automatically.
-
-        // Use a dark, gamified tile layer (CartoDB Dark Matter)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // Standard Google Maps layer for the White and Crimson theme
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
             maxZoom: 20,
-            maxNativeZoom: 18,
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+            maxNativeZoom: 18
         }).addTo(map);
 
         let fogLayer = null;

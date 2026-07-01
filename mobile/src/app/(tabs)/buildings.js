@@ -402,10 +402,7 @@ export default function BuildingsScreen() {
                                     </View>
                                 )}
                                 
-                                {selectedBuilding.description && (
-                                    <Text style={styles.description} numberOfLines={8} ellipsizeMode="tail" >{selectedBuilding.description}</Text>
-                                )}
-                                
+
                                 {selectedBuilding.is_active === false ? (
                                     <View style={styles.restrictedContainer}>
                                         <ShieldAlert color={theme.colors.error} size={20} style={{marginBottom: 4}} />
@@ -581,14 +578,14 @@ const styles = StyleSheet.create({
         paddingTop: 50, // Safe area top
         paddingHorizontal: theme.spacing.md },
     routeCard: {
-        backgroundColor: 'rgba(15, 23, 42, 0.85)',
+        backgroundColor: theme.colors.bgPrimary,
         borderRadius: theme.radius.lg,
         padding: theme.spacing.sm,
         borderWidth: 1,
-        borderColor: 'rgba(178, 24, 48, 0.5)',
-        shadowColor: theme.colors.arHighlight,
+        borderColor: theme.colors.border,
+        shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.15,
         shadowRadius: 10,
         elevation: 5 },
     routeInputRow: {
@@ -600,7 +597,7 @@ const styles = StyleSheet.create({
         marginLeft: theme.spacing.sm },
     routeInput: {
         height: 40,
-        color: '#FFFFFF',
+        color: theme.colors.textPrimary,
         fontFamily: fonts.heading.medium,
         fontSize: 16,
         letterSpacing: 1 },
@@ -609,33 +606,33 @@ const styles = StyleSheet.create({
         fontFamily: fonts.heading.bold },
     routeDivider: {
         height: 1,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: theme.colors.surfaceSoft,
         marginVertical: 4,
         marginLeft: 36 },
     clearRouteBtn: {
         padding: theme.spacing.xs },
     searchResultsContainer: {
         marginTop: theme.spacing.sm,
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        backgroundColor: theme.colors.bgPrimary,
         borderRadius: theme.radius.md,
         borderWidth: 1,
-        borderColor: 'rgba(178, 24, 48, 0.3)',
+        borderColor: theme.colors.border,
         maxHeight: 200,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-        elevation: 5 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 4 },
     searchResultsList: {
         flexGrow: 0 },
     searchResultItem: {
         padding: theme.spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)' },
+        borderBottomColor: theme.colors.surfaceSoft },
     searchResultName: {
         fontSize: 16,
         fontFamily: fonts.heading.bold,
-        color: '#FFFFFF' },
+        color: theme.colors.textPrimary },
     searchResultStatus: {
         fontSize: 11,
         fontFamily: fonts.body.bold,
@@ -646,7 +643,7 @@ const styles = StyleSheet.create({
         color: theme.colors.error },
     searchNoResult: {
         padding: theme.spacing.md,
-        color: 'rgba(255,255,255,0.5)',
+        color: theme.colors.textMuted,
         fontFamily: fonts.body.regular,
         fontStyle: 'italic',
         textAlign: 'center' },
