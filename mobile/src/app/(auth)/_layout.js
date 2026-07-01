@@ -1,10 +1,12 @@
 import { Stack } from "expo-router";
 import { ImageBackground, StyleSheet, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import theme from "../../theme/tokens";
 
 export default function AuthLayout() {
     return (
         <View style={styles.container}>
+            <StatusBar style="light" />
             <ImageBackground 
                 source={require('../../../assets/images/wmsu_landing_page_background.jpg')} 
                 style={styles.backgroundImage}

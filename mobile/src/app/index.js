@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Redirect } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
 import { View, Text, ImageBackground, StyleSheet, Animated } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import theme from "../theme/tokens";
 import { fonts } from "../constants/typography";
@@ -24,6 +25,7 @@ export default function Index() {
     if (!isReady) {
         return (
             <View style={styles.container}>
+                <StatusBar style="light" />
                 <ImageBackground 
                     source={require('../../assets/images/wmsu_landing_page_background.jpg')} 
                     style={styles.backgroundImage}
