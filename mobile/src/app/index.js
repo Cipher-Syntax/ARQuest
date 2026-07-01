@@ -29,9 +29,6 @@ export default function Index() {
                     style={styles.backgroundImage}
                     resizeMode="cover"
                 >
-                    <View style={styles.topNav}>
-                        <Text style={styles.appName}>ARQuest</Text>
-                    </View>
                     <LinearGradient
                         colors={['transparent', 'rgba(138, 21, 56, 0.8)', 'rgba(0,0,0,0.9)']}
                         style={styles.gradientOverlay}
@@ -63,20 +60,7 @@ const styles = StyleSheet.create({
         flex: 1,
         width: '100%',
         height: '100%',
-        justifyContent: 'space-between', // Space between top nav and bottom gradient
-    },
-    topNav: {
-        paddingTop: 60, // Safe area for status bar
-        paddingLeft: 30,
-    },
-    appName: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 24,
-        color: '#FFFFFF',
-        letterSpacing: 2,
-        textShadowColor: 'rgba(0, 0, 0, 0.8)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
+        justifyContent: 'flex-end',
     },
     gradientOverlay: {
         height: '60%', // Cover bottom part more to accommodate text
