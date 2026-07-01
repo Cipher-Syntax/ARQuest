@@ -365,19 +365,7 @@ export default function HomeScreen() {
                                     originWhitelist={['*']}
                                     showsHorizontalScrollIndicator={false}
                                     showsVerticalScrollIndicator={false}
-                                    injectedJavaScript={`
-                                        setTimeout(() => {
-                                            if(window.map) {
-                                                window.map.setZoom(16);
-                                                window.map.dragging.disable();
-                                                window.map.touchZoom.disable();
-                                                window.map.doubleClickZoom.disable();
-                                                window.map.scrollWheelZoom.disable();
-                                                document.querySelector('.leaflet-control-zoom').style.display = 'none';
-                                            }
-                                        }, 1000);
-                                        true;
-                                    `}
+                                    nestedScrollEnabled={true}
                                 />
                                 {/* Touch interceptor to prevent accidental interactions */}
                                 <View style={styles.mapTouchInterceptor} />
@@ -733,9 +721,29 @@ const styles = StyleSheet.create({
         gap: 16,
         marginBottom: 30,
     },
+    mapPreviewContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 4,
+        position: 'relative',
+        height: 160,
+    },
+    mapPreviewWrapper: {
+        flex: 1,
+        width: '100%',
+        backgroundColor: '#E5E7EB',
+    },
     mapPreviewWebview: {
         flex: 1,
-        backgroundColor: 'transparent',
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#E5E7EB',
     },
     mapTouchInterceptor: {
         position: 'absolute',
@@ -744,6 +752,35 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         backgroundColor: 'transparent',
+    },
+    mapGradientOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 80,
+    },
+    mapFullscreenBtn: {
+        position: 'absolute',
+        bottom: 16,
+        alignSelf: 'center',
+        backgroundColor: theme.colors.primary,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    mapFullscreenText: {
+        fontFamily: fonts.heading.bold,
+        color: '#FFFFFF',
+        fontSize: 12,
+        letterSpacing: 1,
     },
     splitCard: {
         flex: 1,
