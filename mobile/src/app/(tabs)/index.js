@@ -217,7 +217,7 @@ export default function HomeScreen() {
 
                     {/* Quick Actions */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>COMMAND CENTER</Text>
+                        <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
                         <View style={styles.actionGrid}>
                             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/ar')}>
                                 <View style={styles.actionIconWrap}>
