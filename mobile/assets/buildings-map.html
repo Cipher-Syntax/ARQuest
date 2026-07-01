@@ -22,8 +22,12 @@
         .glow-marker {
             background-color: #B21830;
             border-radius: 50%;
-            box-shadow: 0 0 15px 5px rgba(178, 24, 48, 0.4);
+            box-shadow: 0 0 20px 8px rgba(178, 24, 48, 0.7);
             border: 2px solid white;
+        }
+
+        .glowing-route {
+            filter: drop-shadow(0 0 8px rgba(178, 24, 48, 0.8));
         }
 
         .custom-dept-marker {
@@ -184,9 +188,11 @@
         // We listen to map events to force a re-render if necessary, but requestAnimationFrame handles it smoothly.
         // Leaflet moves DOM elements directly via translate3d, so boundingClientRect updates automatically.
 
-        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        // Use a dark, gamified tile layer (CartoDB Dark Matter)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 20,
-            maxNativeZoom: 18
+            maxNativeZoom: 18,
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
         }).addTo(map);
 
         let fogLayer = null;
@@ -352,7 +358,8 @@
                                 routingLine = L.polyline(latLngs, {
                                     color: '#B21830',
                                     weight: 4,
-                                    dashArray: '8, 8'
+                                    dashArray: '8, 8',
+                                    className: 'glowing-route'
                                 }).addTo(map);
                             }
                         })
@@ -365,7 +372,8 @@
                                 routingLine = L.polyline(latLngs, {
                                     color: '#B21830',
                                     weight: 4,
-                                    dashArray: '8, 8'
+                                    dashArray: '8, 8',
+                                    className: 'glowing-route'
                                 }).addTo(map);
                             }
                         });
