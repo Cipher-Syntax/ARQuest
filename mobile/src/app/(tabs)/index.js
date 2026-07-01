@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, Animated, Image } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, Animated, Image, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
@@ -38,19 +38,41 @@ export default function HomeScreen() {
     // Gamification Backend States
     const [activeQuest, setActiveQuest] = useState(null);
 
-    useEffect(() => {
-        const fetchBuildings = async () => {
-            try {
-                const res = await api.get('/api/buildings/');
-                if (res.data.success) {
-                    setBuildings(res.data.data);
-                }
-            } catch (error) {
-                console.error("Failed to fetch buildings", error);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const loadData = async () => {
+        try {
+            const resBuildings = await api.get('/api/buildings/');
+            if (resBuildings.data.success) {
+                setBuildings(resBuildings.data.data);
             }
-        };
-        fetchBuildings();
-    }, []);
+
+            if (user?.role === 'student') {
+                const resStats = await api.get('/api/gamification/leaderboard/');
+                if (resStats.data.success) {
+                    const myStats = resStats.data.data.find(r => r.username === user.username);
+                    setStats(myStats);
+                }
+            }
+            
+            const resQuest = await api.get('/api/gamification/quests/active/');
+            if (resQuest.data.success && resQuest.data.data.length > 0) {
+                setActiveQuest(resQuest.data.data[0]);
+            } else {
+                setActiveQuest(null);
+            }
+
+            const resChallenges = await api.get('/api/gamification/challenges/');
+            if (resChallenges.data.success) {
+                setChallenges(resChallenges.data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch gamification data:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         if (location && buildings.length > 0) {
@@ -80,41 +102,21 @@ export default function HomeScreen() {
     const [challenges, setChallenges] = useState([]);
 
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                // Fetch stats (only for students)
-                if (user?.role === 'student') {
-                    const resStats = await api.get('/api/gamification/leaderboard/');
-                    if (resStats.data.success) {
-                        const myStats = resStats.data.data.find(r => r.username === user.username);
-                        setStats(myStats);
-                    }
-                }
-                
-                // Fetch active quest
-                const resQuest = await api.get('/api/gamification/quests/active/');
-                if (resQuest.data.success && resQuest.data.data.length > 0) {
-                    setActiveQuest(resQuest.data.data[0]);
-                }
+        loadData();
+    }, []);
 
-                // Fetch challenges
-                const resChallenges = await api.get('/api/gamification/challenges/');
-                if (resChallenges.data.success) {
-                    setChallenges(resChallenges.data.data);
-                }
-            } catch (error) {
-                console.error('Failed to fetch gamification data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        loadData();
     }, []);
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.glowOrbTop} />
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
+            >
                 
                 <View style={styles.headerCard}>
                     <View style={styles.headerLeft}>

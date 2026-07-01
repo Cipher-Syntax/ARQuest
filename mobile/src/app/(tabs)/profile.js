@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, DeviceEventEmitter } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, DeviceEventEmitter, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award, Crosshair, Map, MessageSquare } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -19,55 +19,44 @@ export default function ProfileScreen() {
     const [myBadges, setMyBadges] = useState([]);
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
 
-    useEffect(() => {
-        const fetchMyRank = async () => {
-            if (user?.role !== 'student') {
-                setLoading(false);
-                return;
-            }
-            try {
-                // Fetch leaderboard to find my rank
-                const res = await api.get('/api/gamification/leaderboard/');
-                if (res.data.success) {
-                    const stats = res.data.data.find(r => r.username === user.username);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const loadData = async () => {
+        try {
+            if (user?.role === 'student') {
+                const resStats = await api.get('/api/gamification/leaderboard/');
+                if (resStats.data.success) {
+                    const stats = resStats.data.data.find(r => r.username === user.username);
                     setMyStats(stats);
                 }
-            } catch (error) {
-                console.error('Failed to fetch rank:', error);
-            } finally {
-                setLoading(false);
             }
-        };
-        fetchMyRank();
 
-        // Fetch badge count and top 6 badges
-        const fetchBadges = async () => {
-            try {
-                const res = await api.get('/api/gamification/badges/');
-                if (res.data.success) {
-                    const earnedBadges = res.data.data.filter(b => b.earned);
-                    setBadgeCount(`${earnedBadges.length}/${res.data.data.length}`);
-                    setMyBadges(earnedBadges.slice(0, 6)); // Top 6 for showcase
-                }
-            } catch (e) {
-                console.error('Failed to fetch badge count:', e);
+            const resBadges = await api.get('/api/gamification/badges/');
+            if (resBadges.data.success) {
+                const earnedBadges = resBadges.data.data.filter(b => b.earned);
+                setBadgeCount(`${earnedBadges.length}/${resBadges.data.data.length}`);
+                setMyBadges(earnedBadges.slice(0, 6)); // Top 6 for showcase
             }
-        };
-        
-        // Fetch quest history
-        const fetchQuestHistory = async () => {
-            try {
-                const res = await api.get('/api/gamification/quests/history/');
-                if (res.data.success) {
-                    setQuestHistory(res.data.data);
-                }
-            } catch (e) {
-                console.error('Failed to fetch quest history:', e);
+
+            const resHistory = await api.get('/api/gamification/quests/history/');
+            if (resHistory.data.success) {
+                setQuestHistory(resHistory.data.data);
             }
-        };
-        
-        fetchBadges();
-        fetchQuestHistory();
+        } catch (error) {
+            console.error('Failed to fetch profile data:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        loadData();
     }, []);
 
     const SettingsRow = ({ icon: Icon, title, subtitle, onPress, destructive }) => (
@@ -89,7 +78,11 @@ export default function ProfileScreen() {
                 <Text style={styles.appBarTitle}>Profile</Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent} 
+                showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
+            >
                 
                 {/* --- Player ID Card (#6) --- */}
                 <View style={styles.playerCard}>

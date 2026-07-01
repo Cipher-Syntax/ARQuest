@@ -22,20 +22,29 @@ export default function BadgesScreen() {
 	const [selected, setSelected] = useState(null);
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 
-	useEffect(() => {
-		const fetchBadges = async () => {
-			try {
-				const res = await api.get('/api/gamification/badges/');
-				if (res.data.success) {
-					setBadges(res.data.data);
-				}
-			} catch (e) {
-				console.error('Failed to fetch badges:', e);
-			} finally {
-				setLoading(false);
+	const [refreshing, setRefreshing] = useState(false);
+
+	const loadData = async () => {
+		try {
+			const res = await api.get('/api/gamification/badges/');
+			if (res.data.success) {
+				setBadges(res.data.data);
 			}
-		};
-		fetchBadges();
+		} catch (e) {
+			console.error('Failed to fetch badges:', e);
+		} finally {
+			setLoading(false);
+			setRefreshing(false);
+		}
+	};
+
+	useEffect(() => {
+		loadData();
+	}, []);
+
+	const onRefresh = React.useCallback(() => {
+		setRefreshing(true);
+		loadData();
 	}, []);
 
 	const earnedCount = badges.filter(b => b.earned).length;
@@ -118,6 +127,10 @@ export default function BadgesScreen() {
 					numColumns={3}
 					contentContainerStyle={styles.grid}
 					showsVerticalScrollIndicator={false}
+					refreshing={refreshing}
+					onRefresh={onRefresh}
+					colors={[theme.colors.primary]}
+					tintColor={theme.colors.primary}
 				/>
 			)}
 

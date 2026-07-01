@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { router } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import theme from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
@@ -33,24 +33,34 @@ export default function ExploreScreen() {
     const [earnedBadges, setEarnedBadges] = useState([]);
     const badgeAnim = useRef(new Animated.Value(0)).current;
 
+    const [refreshing, setRefreshing] = useState(false);
+
+    const loadData = async () => {
+        try {
+            const res = await api.get('/api/buildings/');
+            if (res.data.success) {
+                setBuildingsList(res.data.data);
+                setTotalBuildings(res.data.data.length);
+            }
+            const questRes = await api.get('/api/gamification/quests/active/');
+            if (questRes.data.success) {
+                setActiveQuests(questRes.data.data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch gamification data", err);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
     // Fetch total buildings for progress bar and active quests
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await api.get('/api/buildings/');
-                if (res.data.success) {
-                    setBuildingsList(res.data.data);
-                    setTotalBuildings(res.data.data.length);
-                }
-                const questRes = await api.get('/api/gamification/quests/active/');
-                if (questRes.data.success) {
-                    setActiveQuests(questRes.data.data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch gamification data", err);
-            }
-        };
-        fetchData();
+        loadData();
+    }, []);
+
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        loadData();
     }, []);
 
     const progressPercentage = totalBuildings > 0 ? (unlockedBuildings.length / totalBuildings) * 100 : 0;
@@ -165,7 +175,12 @@ export default function ExploreScreen() {
 
     return (
         <View style={{ flex: 1 }}>
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+            style={styles.container} 
+            contentContainerStyle={styles.contentContainer} 
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
+        >
             
             {/* Header */}
             <View style={styles.header}>
