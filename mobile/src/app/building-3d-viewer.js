@@ -63,21 +63,12 @@ export default function Building3DViewerScreen() {
                 const assets = await assetService.getBuildingAssets(buildingId);
                 const modelAsset = assets.find(a => a.asset_type === 'model');
                 
-                if (modelAsset) {
-                    const uri = await loadAsset(modelAsset);
-                    setLocalModelUrl(uri);
+                if (modelAsset && modelAsset.file_url) {
+                    setLocalModelUrl(modelAsset.file_url);
                 } else if (modelUrl) {
-                    // Fallback to caching the building's direct model_url
-                    const pseudoAsset = {
-                        id: `bmodel_${buildingId}`,
-                        version: '1', 
-                        file_url: modelUrl
-                    };
-                    const uri = await loadAsset(pseudoAsset);
-                    setLocalModelUrl(uri);
+                    setLocalModelUrl(modelUrl);
                 } else {
                     setError('3D model not available');
-                    setLoading(false);
                 }
             } catch (err) {
                 console.error('Failed to fetch building assets:', err);
@@ -85,8 +76,10 @@ export default function Building3DViewerScreen() {
                     setLocalModelUrl(modelUrl);
                 } else {
                     setError('Failed to load asset metadata');
-                    setLoading(false);
                 }
+            } finally {
+                // We let the WebView handle the actual loading progress
+                // setLoading(false) will be called when the WebView sends 'loaded'
             }
         };
 
@@ -190,14 +183,12 @@ export default function Building3DViewerScreen() {
                 </View>
             )}
 
-            {(loading || isAssetLoading) && !error && (
+            {(loading) && !error && (
                 <View style={styles.loadingOverlay}>
                     <View style={styles.loadingCard}>
                         <ActivityIndicator size="large" color={theme.colors.primary} />
                         <Text style={styles.loadingText}>
-                            {isAssetLoading 
-                                ? `Downloading Asset... ${Math.round(assetProgress * 100)}%` 
-                                : `Rendering 3D Model... ${progress}%`}
+                            {`Rendering 3D Model... ${progress}%`}
                         </Text>
                     </View>
                 </View>

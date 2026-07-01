@@ -67,14 +67,12 @@ export default function VirtualTourViewerScreen() {
 				const assets = await assetService.getBuildingAssets(buildingId);
 				const modelAsset = assets.find(a => a.asset_type === 'model');
 
-				if (modelAsset) {
-					const uri = await loadAsset(modelAsset);
-					setLocalModelUrl(uri);
+				if (modelAsset && modelAsset.file_url) {
+					setLocalModelUrl(modelAsset.file_url);
 				} else if (modelUrl) {
 					setLocalModelUrl(modelUrl);
 				} else {
 					setError('3D model not available');
-					setLoading(false);
 				}
 			} catch (err) {
 				console.error('Failed to fetch building assets:', err);
@@ -82,8 +80,9 @@ export default function VirtualTourViewerScreen() {
 					setLocalModelUrl(modelUrl);
 				} else {
 					setError('Failed to load asset metadata');
-					setLoading(false);
 				}
+			} finally {
+				// We let the WebView handle the actual loading progress
 			}
 		};
 
@@ -269,14 +268,12 @@ export default function VirtualTourViewerScreen() {
 			)}
 
 			{/* Loading overlay */}
-			{(loading || isAssetLoading) && !error && (
+			{(loading) && !error && (
 				<View style={styles.loadingOverlay}>
 					<View style={styles.loadingCard}>
 						<ActivityIndicator size="large" color={theme.colors.primary} />
 						<Text style={styles.loadingText}>
-							{isAssetLoading
-								? `Downloading Assets... ${Math.round(assetProgress * 100)}%`
-								: `Initializing Virtual Tour... ${progress}%`}
+							{`Initializing Virtual Tour... ${progress}%`}
 						</Text>
 					</View>
 				</View>
