@@ -142,7 +142,7 @@ export default function VerifyOtpScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.bgPrimary },
+        },
     glowOrbTop: {
         position: 'absolute',
         top: -100,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: theme.spacing.xl },
     title: {
-        color: theme.colors.textPrimary,
+        color: "#FFFFFF",
         fontSize: 32,
         fontWeight: "900",
         letterSpacing: 2,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     inputGroup: {
         marginBottom: theme.spacing.lg },
     inputLabel: {
-        color: theme.colors.textMuted,
+        color: "rgba(255,255,255,0.6)",
         fontSize: 10,
         fontWeight: "bold",
         textTransform: "uppercase",
@@ -197,8 +197,8 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         textAlign: 'center' },
     input: {
-        backgroundColor: theme.colors.surfaceSoft,
-        color: theme.colors.textPrimary,
+        backgroundColor: "rgba(255,255,255,0.05)",
+        color: "#FFFFFF",
         padding: theme.spacing.md,
         borderRadius: theme.radius.md,
         borderWidth: 1,
@@ -232,9 +232,10 @@ const styles = StyleSheet.create({
         marginTop: theme.spacing.xl,
         alignItems: "center" },
     linkText: {
-        color: theme.colors.textMuted,
+        color: "rgba(255,255,255,0.6)",
         fontSize: theme.typography.sm,
         fontWeight: "500" } });
+
 
 
 

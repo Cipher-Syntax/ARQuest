@@ -221,7 +221,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.bgPrimary,
+        
     },
     glowOrbTop: {
         position: 'absolute',
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
         width: 300,
         height: 300,
         borderRadius: 150,
-        backgroundColor: theme.colors.primary,
+        backgroundcolor: "#FFFFFF",
         opacity: 0.3,
     },
     glowOrbBottom: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
         width: 400,
         height: 400,
         borderRadius: 200,
-        backgroundColor: theme.colors.primary,
+        backgroundcolor: "#FFFFFF",
         opacity: 0.3,
     },
     scrollContent: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: "#FFFFFF",
         fontSize: 28,
         fontWeight: "900",
         letterSpacing: 2,
@@ -281,14 +281,14 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.md,
     },
     logoText: {
-        color: theme.colors.textMuted,
+        color: "rgba(255,255,255,0.6)",
         fontSize: theme.typography.xs,
         fontWeight: "bold",
         textTransform: "uppercase",
         textAlign: "center",
     },
     inputLabel: {
-        color: theme.colors.textMuted,
+        color: "rgba(255,255,255,0.6)",
         fontSize: 10,
         fontWeight: "bold",
         textTransform: "uppercase",
@@ -297,8 +297,8 @@ const styles = StyleSheet.create({
     },
     input: {
         fontFamily: fonts.body.regular,
-        backgroundColor: theme.colors.surfaceSoft,
-        color: theme.colors.textPrimary,
+        backgroundColor: "rgba(255,255,255,0.05)",
+        color: "#FFFFFF",
         padding: theme.spacing.md,
         borderRadius: theme.radius.md,
         borderWidth: 1,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     passwordContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: "rgba(255,255,255,0.05)",
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     passwordInput: {
         fontFamily: fonts.body.regular,
         flex: 1,
-        color: theme.colors.textPrimary,
+        color: "#FFFFFF",
         padding: theme.spacing.md,
         fontSize: theme.typography.md,
     },
@@ -354,9 +354,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     linkText: {
-        color: theme.colors.textPrimary,
+        color: "#FFFFFF",
         fontSize: theme.typography.sm,
         fontWeight: "600",
         opacity: 0.8,
     },
 });
+
