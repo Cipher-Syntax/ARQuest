@@ -360,6 +360,8 @@ export default function HomeScreen() {
                                     style={styles.mapPreviewWebview}
                                     javaScriptEnabled={true}
                                     domStorageEnabled={true}
+                                    allowFileAccess={true}
+                                    allowUniversalAccessFromFileURLs={true}
                                     originWhitelist={['*']}
                                     showsHorizontalScrollIndicator={false}
                                     showsVerticalScrollIndicator={false}
