@@ -151,3 +151,23 @@
   - New `Feedback` backend model.
   - "Report an Issue / Feedback" modal in the mobile app's Profile settings.
   - "Feedback Inbox" page on the Admin Web Dashboard to read and manage these reports.
+### ✅ 18. Offline Banner
+- **Status:** DONE
+- **What:** Add a sleek status bar banner that smoothly drops down when the user's internet connection drops, and hides when it returns.
+- **Where:** Mobile root layout `_layout.js` utilizing `@react-native-community/netinfo` and `Animated`.
+
+---
+
+## 🔴 Upcoming Features (Next Priorities)
+
+### 🔴 19. Pull to Refresh 
+- **Status:** NEXT
+- **What:** Add pull-to-refresh functionality across all pages, tabs, screens, and components to allow users to manually re-sync their data with the backend.
+
+### 🔴 20. App-Wide Massive Redesign
+- **Status:** NEXT
+- **What:** Completely revamp the UI/UX across all pages to be more modern and premium without changing any underlying logics, functions, or major actions in the system.
+
+### 🔴 21. Remove Native Alerts
+- **Status:** NEXT
+- **What:** Remove all native `Alert.alert` calls across the entire system and replace them with custom, beautifully styled in-app Modals that match the new design system.
