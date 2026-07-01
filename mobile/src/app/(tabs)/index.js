@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, Animated, Image, RefreshControl } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { WebView } from "react-native-webview";
 
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
@@ -111,6 +112,8 @@ export default function HomeScreen() {
         setRefreshing(true);
         loadData();
     }, []);
+
+    const mapHtml = require('../../../assets/buildings-map.html');
 
     return (
         <View style={styles.container}>
@@ -305,25 +308,69 @@ export default function HomeScreen() {
                                 <View style={styles.actionIconWrap}>
                                     <ScanLine color={theme.colors.primary} size={24} />
                                 </View>
-                                <Text style={styles.actionText}>AR Scanner</Text>
+                                <Text style={styles.actionText}>Deploy AR</Text>
                             </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/buildings')}>
+                                <View style={styles.actionIconWrap}>
+                                    <MapIcon color={theme.colors.primary} size={24} />
+                                </View>
+                                <Text style={styles.actionText}>Radar Map</Text>
+                            </TouchableOpacity>
+
                             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/leaderboard')}>
                                 <View style={styles.actionIconWrap}>
                                     <BarChart2 color={theme.colors.primary} size={24} />
                                 </View>
                                 <Text style={styles.actionText}>Rankings</Text>
                             </TouchableOpacity>
+                            
                             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/badges')}>
                                 <View style={styles.actionIconWrap}>
                                     <Trophy color={theme.colors.primary} size={24} />
                                 </View>
                                 <Text style={styles.actionText}>Badges</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/buildings')}>
-                                <View style={styles.actionIconWrap}>
-                                    <MapIcon color={theme.colors.primary} size={24} />
-                                </View>
-                                <Text style={styles.actionText}>Locations</Text>
+                        </View>
+                    </View>
+
+                    {/* --- Campus Radar Preview --- */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>CAMPUS RADAR</Text>
+                        <View style={styles.mapPreviewContainer}>
+                            <View pointerEvents="none" style={styles.mapPreviewWrapper}>
+                                <WebView
+                                    source={mapHtml}
+                                    style={styles.mapPreviewWebview}
+                                    javaScriptEnabled={true}
+                                    domStorageEnabled={true}
+                                    originWhitelist={['*']}
+                                    showsHorizontalScrollIndicator={false}
+                                    showsVerticalScrollIndicator={false}
+                                    injectedJavaScript={`
+                                        setTimeout(() => {
+                                            if(window.map) {
+                                                window.map.setZoom(16);
+                                                window.map.dragging.disable();
+                                                window.map.touchZoom.disable();
+                                                window.map.doubleClickZoom.disable();
+                                                window.map.scrollWheelZoom.disable();
+                                                document.querySelector('.leaflet-control-zoom').style.display = 'none';
+                                            }
+                                        }, 1000);
+                                        true;
+                                    `}
+                                />
+                            </View>
+                            <LinearGradient colors={['transparent', 'rgba(249, 250, 251, 0.9)', '#F9FAFB']} style={styles.mapGradientOverlay} />
+                            
+                            <TouchableOpacity 
+                                style={styles.mapFullscreenBtn}
+                                onPress={() => router.push('/(tabs)/buildings')}
+                                activeOpacity={0.9}
+                            >
+                                <ScanLine color="#FFFFFF" size={18} style={{ marginRight: 6 }} />
+                                <Text style={styles.mapFullscreenText}>FULL SCREEN RADAR</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
