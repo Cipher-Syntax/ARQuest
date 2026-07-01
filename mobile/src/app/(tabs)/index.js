@@ -126,7 +126,7 @@ export default function HomeScreen() {
                             <Text style={styles.greeting}>SYSTEM ONLINE</Text>
                             <Text style={styles.username}>{user?.username || "Guest"}</Text>
                             {user?.role === 'student' && user?.rank_info && (
-                                <Text style={styles.userLevel}>Lv.{user.rank_info.level} Explorer</Text>
+                                <Text style={styles.userLevel}>Lv.{user.rank_info.level} {user.rank_info.title}</Text>
                             )}
                         </View>
                         <View style={styles.headerRight}>
