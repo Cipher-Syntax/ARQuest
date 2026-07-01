@@ -352,7 +352,7 @@ export default function HomeScreen() {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>CAMPUS RADAR</Text>
                         <View style={styles.mapPreviewContainer}>
-                            <View pointerEvents="none" style={styles.mapPreviewWrapper}>
+                            <View style={styles.mapPreviewWrapper}>
                                 <WebView
                                     ref={webViewRef}
                                     onLoadEnd={() => setWebViewReady(true)}
@@ -377,8 +377,10 @@ export default function HomeScreen() {
                                         true;
                                     `}
                                 />
+                                {/* Touch interceptor to prevent accidental interactions */}
+                                <View style={styles.mapTouchInterceptor} />
                             </View>
-                            <LinearGradient colors={['transparent', 'rgba(249, 250, 251, 0.9)', '#F9FAFB']} style={styles.mapGradientOverlay} />
+                            <LinearGradient colors={['transparent', 'rgba(249, 250, 251, 0.9)', '#F9FAFB']} style={styles.mapGradientOverlay} pointerEvents="none" />
                             
                             <TouchableOpacity 
                                 style={styles.mapFullscreenBtn}
@@ -729,6 +731,18 @@ const styles = StyleSheet.create({
         gap: 16,
         marginBottom: 30,
     },
+    mapPreviewWebview: {
+        flex: 1,
+        backgroundColor: 'transparent',
+    },
+    mapTouchInterceptor: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+    },
     splitCard: {
         flex: 1,
         backgroundColor: '#FFFFFF',
@@ -775,8 +789,7 @@ const styles = StyleSheet.create({
     actionGrid: {
         flexDirection: 'row',
         gap: 16,
-        paddingHorizontal: 20,
-        marginHorizontal: -20,
+        paddingBottom: 10,
     },
     actionCard: {
         width: 100,
