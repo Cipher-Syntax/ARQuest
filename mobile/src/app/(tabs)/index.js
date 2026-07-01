@@ -195,63 +195,86 @@ export default function HomeScreen() {
                     </View>
 
                     {/* --- Limited Challenges --- */}
-                    {challenges.length > 0 && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionTitle}>LIMITED QUESTS</Text>
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>LIMITED QUESTS</Text>
+                            {challenges.length > 1 && (
                                 <View style={styles.swipeHint}>
                                     <Text style={styles.swipeHintText}>SWIPE</Text>
                                     <ChevronRight color={theme.colors.textMuted} size={12} />
                                 </View>
-                            </View>
-                            <ScrollView 
-                                horizontal 
-                                showsHorizontalScrollIndicator={false}
-                                style={styles.ticketScroll}
-                                contentContainerStyle={styles.ticketScrollContent}
-                                snapToInterval={SCREEN_WIDTH - 60}
-                                decelerationRate="fast"
-                            >
-                                {challenges.map((challenge, index) => {
-                                    const expires = new Date(challenge.expires_at);
-                                    const isExpired = expires < new Date();
-                                    if (isExpired || challenge.is_completed) return null;
+                            )}
+                        </View>
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.ticketScroll}
+                            contentContainerStyle={styles.ticketScrollContent}
+                            snapToInterval={SCREEN_WIDTH - 60}
+                            decelerationRate="fast"
+                        >
+                            {challenges.length > 0 ? challenges.map((challenge, index) => {
+                                const expires = new Date(challenge.expires_at);
+                                const isExpired = expires < new Date();
+                                if (isExpired || challenge.is_completed) return null;
 
-                                    return (
-                                        <TouchableOpacity 
-                                            key={challenge.id}
-                                            style={styles.ticketCard}
-                                            onPress={() => router.push('/(tabs)/ar')}
-                                            activeOpacity={0.9}
-                                        >
-                                            <View style={styles.ticketStub}>
-                                                <Timer color="#FFFFFF" size={20} style={{ marginBottom: 4 }} />
-                                                <Text style={styles.ticketStubValue}>+{challenge.reward_points}</Text>
-                                                <Text style={styles.ticketStubLabel}>EXP</Text>
-                                                {/* Decorative Cutouts */}
-                                                <View style={styles.ticketCutoutTop} />
-                                                <View style={styles.ticketCutoutBottom} />
-                                            </View>
-                                            <View style={styles.ticketBody}>
-                                                <Text style={styles.ticketTitle} numberOfLines={2}>{challenge.title}</Text>
-                                                <View style={styles.ticketFooter}>
-                                                    <View>
-                                                        <Text style={styles.ticketTargetLabel}>EXPIRES AT</Text>
-                                                        <Text style={styles.ticketTargetValue}>
-                                                            {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </Text>
-                                                    </View>
-                                                    <View style={styles.ticketDeployBtn}>
-                                                        <Text style={styles.ticketDeployText}>DEPLOY</Text>
-                                                    </View>
+                                return (
+                                    <TouchableOpacity 
+                                        key={challenge.id}
+                                        style={styles.ticketCard}
+                                        onPress={() => router.push('/(tabs)/ar')}
+                                        activeOpacity={0.9}
+                                    >
+                                        <View style={styles.ticketStub}>
+                                            <Timer color="#FFFFFF" size={20} style={{ marginBottom: 4 }} />
+                                            <Text style={styles.ticketStubValue}>+{challenge.reward_points}</Text>
+                                            <Text style={styles.ticketStubLabel}>EXP</Text>
+                                            <View style={styles.ticketCutoutTop} />
+                                            <View style={styles.ticketCutoutBottom} />
+                                        </View>
+                                        <View style={styles.ticketBody}>
+                                            <Text style={styles.ticketTitle} numberOfLines={2}>{challenge.title}</Text>
+                                            <View style={styles.ticketFooter}>
+                                                <View>
+                                                    <Text style={styles.ticketTargetLabel}>EXPIRES AT</Text>
+                                                    <Text style={styles.ticketTargetValue}>
+                                                        {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.ticketDeployBtn}>
+                                                    <Text style={styles.ticketDeployText}>DEPLOY</Text>
                                                 </View>
                                             </View>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </ScrollView>
-                        </View>
-                    )}
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            }) : (
+                                <View style={[styles.ticketCard, { opacity: 0.6 }]}>
+                                    <View style={[styles.ticketStub, { backgroundColor: theme.colors.textMuted, borderColor: 'rgba(255,255,255,0.1)' }]}>
+                                        <Timer color="#FFFFFF" size={20} style={{ marginBottom: 4 }} />
+                                        <Text style={styles.ticketStubValue}>---</Text>
+                                        <Text style={styles.ticketStubLabel}>EXP</Text>
+                                        <View style={styles.ticketCutoutTop} />
+                                        <View style={styles.ticketCutoutBottom} />
+                                    </View>
+                                    <View style={styles.ticketBody}>
+                                        <Text style={[styles.ticketTitle, { color: theme.colors.textMuted }]} numberOfLines={2}>No active limited quests</Text>
+                                        <View style={styles.ticketFooter}>
+                                            <View>
+                                                <Text style={styles.ticketTargetLabel}>STATUS</Text>
+                                                <Text style={[styles.ticketTargetValue, { color: theme.colors.textMuted }]}>
+                                                    STANDBY
+                                                </Text>
+                                            </View>
+                                            <View style={[styles.ticketDeployBtn, { backgroundColor: theme.colors.surfaceSoft }]}>
+                                                <Text style={[styles.ticketDeployText, { color: theme.colors.textMuted }]}>WAITING</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
 
                     {/* Quick Stats Split Row */}
                     {user?.role === 'student' && (
