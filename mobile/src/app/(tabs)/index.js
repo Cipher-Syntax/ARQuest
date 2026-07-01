@@ -22,6 +22,8 @@ export default function HomeScreen() {
     
     // Carousel
     const scrollX = React.useRef(new Animated.Value(0)).current;
+    const webViewRef = React.useRef(null);
+    const [webViewReady, setWebViewReady] = useState(false);
     const SCREEN_WIDTH = Dimensions.get('window').width;
     const CAROUSEL_WIDTH = SCREEN_WIDTH; // Bleed to edges
     const ITEM_WIDTH = SCREEN_WIDTH - 40; // Exact width of daily mission card
@@ -101,6 +103,18 @@ export default function HomeScreen() {
             }
         }
     }, [location, buildings]);
+
+    useEffect(() => {
+        if (webViewReady && webViewRef.current && buildings.length > 0) {
+            const message = JSON.stringify({
+                type: 'update',
+                buildings: buildings.slice(0, 5), // Just a few for preview
+                unlockedIds: buildings.map(b => b.id), // Pretend all unlocked for preview map
+                userLocation: location
+            });
+            webViewRef.current.postMessage(message);
+        }
+    }, [webViewReady, buildings, location]);
 
     const [challenges, setChallenges] = useState([]);
 
@@ -303,7 +317,7 @@ export default function HomeScreen() {
                     {/* Quick Actions */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
-                        <View style={styles.actionGrid}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionGrid}>
                             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/ar')}>
                                 <View style={styles.actionIconWrap}>
                                     <ScanLine color={theme.colors.primary} size={24} />
@@ -331,7 +345,7 @@ export default function HomeScreen() {
                                 </View>
                                 <Text style={styles.actionText}>Badges</Text>
                             </TouchableOpacity>
-                        </View>
+                        </ScrollView>
                     </View>
 
                     {/* --- Campus Radar Preview --- */}
@@ -340,6 +354,8 @@ export default function HomeScreen() {
                         <View style={styles.mapPreviewContainer}>
                             <View pointerEvents="none" style={styles.mapPreviewWrapper}>
                                 <WebView
+                                    ref={webViewRef}
+                                    onLoadEnd={() => setWebViewReady(true)}
                                     source={mapHtml}
                                     style={styles.mapPreviewWebview}
                                     javaScriptEnabled={true}
@@ -758,21 +774,24 @@ const styles = StyleSheet.create({
     },
     actionGrid: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         gap: 16,
+        paddingHorizontal: 20,
+        marginHorizontal: -20,
     },
     actionCard: {
-        flex: 1,
-        minWidth: '28%',
+        width: 100,
+        height: 100,
         backgroundColor: '#FFFFFF',
-        borderRadius: theme.radius.lg,
-        padding: 16,
+        borderRadius: theme.radius.md,
+        justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
-        shadowRadius: 10,
+        shadowRadius: 8,
         elevation: 4,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     },
     actionIconWrap: {
         marginBottom: 12,
