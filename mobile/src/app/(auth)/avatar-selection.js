@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList } from 'react-native'
+import { customAlert as Alert } from '../../components/CustomAlert';
 import { useRouter } from 'expo-router';
 import { AVATARS } from '../../constants/Avatars';
 import { api } from '../../services/api';
@@ -10,7 +11,7 @@ export default function AvatarSelectionScreen() {
 
   const handleContinue = async () => {
     if (!selectedId) {
-      Alert.alert('Error', 'Please select an avatar to continue.');
+      Alert('Error', 'Please select an avatar to continue.');
       return;
     }
     
@@ -21,7 +22,7 @@ export default function AvatarSelectionScreen() {
       router.replace('/(tabs)');
     } catch (error) {
       console.log("Avatar save error:", error);
-      Alert.alert('Error', 'Failed to save avatar. Please try again.');
+      Alert('Error', 'Failed to save avatar. Please try again.');
     }
   };
 
@@ -57,3 +58,5 @@ const styles = StyleSheet.create({
   button: { marginTop: 30, backgroundColor: '#007bff', padding: 15, borderRadius: 10, width: '100%', alignItems: 'center' },
   buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
 });
+
+

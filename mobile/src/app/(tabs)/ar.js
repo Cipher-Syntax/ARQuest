@@ -1,6 +1,7 @@
 // src/app/(tabs)/ar.js
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity,  Image, Animated } from 'react-native'
+import { customAlert as Alert } from '../../components/CustomAlert';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from "@expo/vector-icons";
@@ -166,13 +167,12 @@ export default function ARScreen() {
                     toValue: 0,
                     tension: 50,
                     friction: 7,
-                    useNativeDriver: true,
-                }).start();
+                    useNativeDriver: true }).start();
             } else {
-                Alert.alert("Error", res.data.error || "Failed to claim quest.");
+                Alert("Error", res.data.error || "Failed to claim quest.");
             }
         } catch (err) {
-            Alert.alert("Error", "Network error claiming quest.");
+            Alert("Error", "Network error claiming quest.");
         }
     };
 
@@ -180,8 +180,7 @@ export default function ARScreen() {
         Animated.timing(slideAnim, {
             toValue: 400,
             duration: 250,
-            useNativeDriver: true,
-        }).start(() => setTriviaModalVisible(false));
+            useNativeDriver: true }).start(() => setTriviaModalVisible(false));
     };
 
     const checkGeofenceStatus = async () => {
@@ -214,7 +213,7 @@ export default function ARScreen() {
             const res = await api.post('/api/buildings/unlock/qr/', { qr_code_secret: data });
             if (res.data.success) {
                 SoundManager.play('building_unlock');
-                Alert.alert('Unlocked!', `Successfully unlocked via QR code!`);
+                Alert('Unlocked!', `Successfully unlocked via QR code!`);
                 if (nearbyBuildingFull && nearbyBuildingFull.id === res.data.data.building) {
                     setNearbyBuildingFull({...nearbyBuildingFull, is_unlocked: true});
                 }
@@ -235,19 +234,19 @@ export default function ARScreen() {
                     });
                 }
             } else {
-                Alert.alert('Scan Failed', res.data.error || 'Invalid QR Code');
+                Alert('Scan Failed', res.data.error || 'Invalid QR Code');
                 setScannedData(null);
             }
         } catch (error) {
             console.error('QR unlock error:', error);
-            Alert.alert('Error', 'Failed to connect to server.');
+            Alert('Error', 'Failed to connect to server.');
             setScannedData(null); // allow rescan
         }
     };
 
     const handleCaptureSelfie = async () => {
         if (!nearbyBuildingFull || !cameraRef.current) {
-            Alert.alert('No Building', 'Get closer to a building to take a branded selfie!');
+            Alert('No Building', 'Get closer to a building to take a branded selfie!');
             return;
         }
 
@@ -260,15 +259,14 @@ export default function ARScreen() {
             // Take native photo to use as the static background
             const photo = await cameraRef.current.takePictureAsync({
                 quality: 1,
-                base64: false,
-            });
+                base64: false });
 
             // Setting this triggers the Image component to mount over the live camera
             setCapturedBg(photo.uri);
 
         } catch (error) {
             console.error('Selfie capture error:', error);
-            Alert.alert('Error', 'Failed to capture photo');
+            Alert('Error', 'Failed to capture photo');
             setCapturing(false);
         }
     };
@@ -288,8 +286,7 @@ export default function ARScreen() {
                     // Capture the parent wrapper containing the Image + 3D Model + Overlays
                     const compositeUri = await captureRef(arViewRef, {
                         format: 'jpg',
-                        quality: 0.9,
-                    });
+                        quality: 0.9 });
 
                     let permissionResponse = mediaPermission;
                     if (!permissionResponse?.granted) {
@@ -298,13 +295,13 @@ export default function ARScreen() {
 
                     if (permissionResponse.granted) {
                         await MediaLibrary.saveToLibraryAsync(compositeUri);
-                        Alert.alert('Success', 'Branded selfie saved to your gallery!');
+                        Alert('Success', 'Branded selfie saved to your gallery!');
                     } else {
-                        Alert.alert('Permission Denied', 'Need media library permissions to save the photo.');
+                        Alert('Permission Denied', 'Need media library permissions to save the photo.');
                     }
                 } catch (captureError) {
                     console.error('Composite capture error:', captureError);
-                    Alert.alert('Error', 'Failed to composite the AR elements.');
+                    Alert('Error', 'Failed to composite the AR elements.');
                 } finally {
                     // Cleanup: restore live camera feed and UI controls
                     setCapturedBg(null);
@@ -378,8 +375,7 @@ export default function ARScreen() {
                         ref={cameraRef} 
                         onBarcodeScanned={isScanningQr ? handleBarCodeScanned : undefined}
                         barcodeScannerSettings={{
-                            barcodeTypes: ["qr"],
-                        }}
+                            barcodeTypes: ["qr"] }}
                     />
                 )}
                 
@@ -433,8 +429,7 @@ export default function ARScreen() {
                                         marginLeft: 0,
                                         alignSelf: 'center',
                                         marginTop: 0,
-                                        marginBottom: -10,
-                                    }}
+                                        marginBottom: -10 }}
                                 />
                             )}
 
@@ -543,60 +538,50 @@ export default function ARScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
-    },
+        backgroundColor: '#000' },
     captureContainer: {
         flex: 1, // Must be flex 1 to expand the background
-        backgroundColor: '#000',
-    },
+        backgroundColor: '#000' },
     camera: {
         flex: 1, // Crucial: Gives camera/image height to fill the screen naturally
         width: '100%',
-        height: '100%',
-    },
+        height: '100%' },
     messageText: {
         color: '#fff',
         fontSize: 16,
         textAlign: 'center',
-        marginTop: 100,
-    },
+        marginTop: 100 },
     permissionContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: theme.spacing.xl,
-    },
+        padding: theme.spacing.xl },
     permissionTitle: {
         fontSize: theme.typography.xl,
         fontWeight: '600',
         color: '#fff',
         marginTop: theme.spacing.lg,
-        marginBottom: theme.spacing.sm,
-    },
+        marginBottom: theme.spacing.sm },
     permissionText: {
         fontSize: theme.typography.md,
         color: theme.colors.textMuted,
         textAlign: 'center',
-        marginBottom: theme.spacing.xl,
-    },
+        marginBottom: theme.spacing.xl },
     permissionButton: {
         backgroundColor: theme.colors.primary,
         paddingVertical: theme.spacing.md,
         paddingHorizontal: theme.spacing.xl,
-        borderRadius: theme.radius.md,
-    },
+        borderRadius: theme.radius.md },
     permissionButtonText: {
         color: '#fff',
         fontSize: theme.typography.md,
-        fontWeight: '600',
-    },
+        fontWeight: '600' },
     topOverlay: {
         position: 'absolute',
         top: 60,
         left: 20,
         right: 20,
-        zIndex: 10,
-    },
+        zIndex: 10 },
     targetCard: {
         backgroundColor: theme.colors.surfaceSoft,
         borderWidth: 1,
@@ -606,31 +591,27 @@ const styles = StyleSheet.create({
         shadowColor: theme.colors.arHighlight,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.5,
-        shadowRadius: 10,
-    },
+        shadowRadius: 10 },
     targetLabel: {
         fontFamily: fonts.heading.bold,
         color: theme.colors.arHighlight,
         fontSize: 10,
         fontWeight: 'bold',
         letterSpacing: 2,
-        marginBottom: 4,
-    },
+        marginBottom: 4 },
     buildingLabel: {
         fontFamily: fonts.heading.bold,
         color: theme.colors.textPrimary,
         fontSize: 22,
         fontWeight: '900',
         letterSpacing: 1.5,
-        textTransform: 'uppercase',
-    },
+        textTransform: 'uppercase' },
     buildingStatus: {
         color: theme.colors.accent,
         fontSize: 12,
         fontWeight: 'bold',
         marginTop: 4,
-        letterSpacing: 1,
-    },
+        letterSpacing: 1 },
     controls: {
         position: 'absolute',
         bottom: 40,
@@ -640,16 +621,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: theme.spacing.xl,
-        zIndex: 20,
-    },
+        zIndex: 20 },
     exitButton: {
         width: 48,
         height: 48,
         borderRadius: 24,
         backgroundColor: theme.colors.surface,
         justifyContent: 'center',
-        alignItems: 'center',
-    },
+        alignItems: 'center' },
     captureButton: {
         width: 70,
         height: 70,
@@ -658,31 +637,26 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 4,
-        borderColor: theme.colors.arHighlight,
-    },
+        borderColor: theme.colors.arHighlight },
     captureButtonInner: {
         justifyContent: 'center',
-        alignItems: 'center',
-    },
+        alignItems: 'center' },
     intelFeed: {
         marginTop: 12,
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: theme.colors.border,
-    },
+        borderTopColor: theme.colors.border },
     intelHeader: {
         color: theme.colors.textMuted,
         fontSize: 9,
         fontWeight: 'bold',
         letterSpacing: 1,
-        marginBottom: 4,
-    },
+        marginBottom: 4 },
     intelText: {
         color: theme.colors.textSecondary,
         fontSize: 12,
         lineHeight: 18,
-        fontFamily: 'monospace',
-    },
+        fontFamily: 'monospace' },
     claimQuestBtn: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -696,22 +670,19 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.8,
         shadowRadius: 15,
-        elevation: 10,
-    },
+        elevation: 10 },
     claimQuestBtnText: {
         fontFamily: fonts.heading.bold,
         color: '#000',
         fontSize: 14,
         fontWeight: '900',
-        letterSpacing: 1,
-    },
+        letterSpacing: 1 },
     claimPointsText: {
         fontFamily: fonts.hud.bold,
         color: '#000',
         fontSize: 10,
         fontWeight: 'bold',
-        opacity: 0.8,
-    },
+        opacity: 0.8 },
     reticleContainer: {
         position: 'absolute',
         top: '50%',
@@ -720,8 +691,7 @@ const styles = StyleSheet.create({
         height: 200,
         marginLeft: -100,
         marginTop: -100,
-        zIndex: 5,
-    },
+        zIndex: 5 },
     reticleTopLeft: { position: 'absolute', top: 0, left: 0, width: 30, height: 30, borderTopWidth: 3, borderLeftWidth: 3, borderColor: theme.colors.primary },
     reticleTopRight: { position: 'absolute', top: 0, right: 0, width: 30, height: 30, borderTopWidth: 3, borderRightWidth: 3, borderColor: theme.colors.primary },
     reticleBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 30, height: 30, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: theme.colors.primary },
@@ -745,46 +715,39 @@ const styles = StyleSheet.create({
         shadowColor: theme.colors.arHighlight,
         shadowOffset: { width: 0, height: -5 },
         shadowOpacity: 0.3,
-        shadowRadius: 20,
-    },
+        shadowRadius: 20 },
     triviaModalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
-    },
+        marginBottom: 16 },
     triviaTitle: {
         fontFamily: fonts.heading.bold,
         color: theme.colors.arHighlight,
         fontSize: 16,
         fontWeight: '900',
-        letterSpacing: 3,
-    },
+        letterSpacing: 3 },
     closeTriviaBtn: {
         backgroundColor: theme.colors.bgSecondary,
         padding: 6,
-        borderRadius: 20,
-    },
+        borderRadius: 20 },
     triviaContentBorder: {
         borderLeftWidth: 2,
         borderLeftColor: theme.colors.border,
         paddingLeft: 12,
-        marginBottom: 20,
-    },
+        marginBottom: 20 },
     triviaBuildingName: {
         color: theme.colors.textPrimary,
         fontSize: 12,
         fontWeight: 'bold',
         marginBottom: 8,
         letterSpacing: 2,
-        opacity: 0.7,
-    },
+        opacity: 0.7 },
     triviaText: {
         color: theme.colors.textSecondary,
         fontSize: 15,
         lineHeight: 24,
-        fontFamily: 'monospace',
-    },
+        fontFamily: 'monospace' },
     rewardBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -795,16 +758,14 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: theme.radius.md,
         borderWidth: 1,
-        borderColor: 'rgba(16, 185, 129, 0.4)',
-    },
+        borderColor: 'rgba(16, 185, 129, 0.4)' },
     rewardText: {
         fontFamily: fonts.hud.bold,
         color: '#10B981',
         fontSize: 16,
         fontWeight: '900',
         marginLeft: 10,
-        letterSpacing: 1,
-    },
+        letterSpacing: 1 },
     badgeToast: {
         position: 'absolute',
         top: 110,
@@ -822,24 +783,20 @@ const styles = StyleSheet.create({
         shadowColor: '#FFD700',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.4,
-        shadowRadius: 12,
-    },
+        shadowRadius: 12 },
     badgeToastEmoji: {
-        fontSize: 32,
-    },
+        fontSize: 32 },
     badgeToastLabel: {
         color: '#FFD700',
         fontSize: 10,
         fontWeight: '900',
         letterSpacing: 2,
-        marginBottom: 2,
-    },
+        marginBottom: 2 },
     badgeToastName: {
         color: '#fff',
         fontSize: 15,
         fontWeight: 'bold',
-        letterSpacing: 0.5,
-    },
+        letterSpacing: 0.5 },
     rankUpToast: {
         position: 'absolute',
         top: 60,
@@ -858,24 +815,21 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.5,
         shadowRadius: 12,
-        elevation: 20,
-    },
+        elevation: 20 },
     rankUpToastEmoji: {
-        fontSize: 36,
-    },
+        fontSize: 36 },
     rankUpToastLabel: {
         fontFamily: fonts.heading.bold,
         color: '#B25DFF',
         fontSize: 12,
         fontWeight: '900',
         letterSpacing: 3,
-        marginBottom: 2,
-    },
+        marginBottom: 2 },
     rankUpToastName: {
         fontFamily: fonts.body.bold,
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
-        letterSpacing: 1,
-    },
-});
+        letterSpacing: 1 } });
+
+

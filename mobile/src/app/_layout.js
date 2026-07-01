@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { AuthProvider } from "../context/AuthContext";
 import OfflineBanner from "../components/OfflineBanner";
+import CustomAlert, { alertRef } from "../components/CustomAlert";
 import { StatusBar } from "expo-status-bar";
 import theme from "../theme/tokens";
 import { useFonts } from 'expo-font';
@@ -39,6 +40,7 @@ export default function RootLayout() {
         <AuthProvider>
             <StatusBar style="dark" />
             <OfflineBanner />
+            <CustomAlert ref={alertRef} />
             <Stack screenOptions={{ 
                 headerShown: false,
                 contentStyle: { backgroundColor: theme.colors.bgPrimary }

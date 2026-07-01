@@ -6,10 +6,11 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    Alert,
+    
     KeyboardAvoidingView,
     Platform
 } from "react-native";
+import { customAlert as Alert } from '../../components/CustomAlert';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import theme from "../../theme/tokens";
 import { api } from "../../services/api";
@@ -38,14 +39,13 @@ export default function VerifyOtpScreen() {
 
         try {
             await api.post("/api/auth/verify-otp/", { email, otp });
-            Alert.alert(
+            Alert(
                 "Identity Verified",
                 "Your comm channel is confirmed. You may now initialize your quest.",
                 [
                     {
                         text: "Proceed",
-                        onPress: () => router.replace("/(auth)/login"),
-                    },
+                        onPress: () => router.replace("/(auth)/login") },
                 ],
             );
         } catch (err) {
@@ -142,8 +142,7 @@ export default function VerifyOtpScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.bgPrimary,
-    },
+        backgroundColor: theme.colors.bgPrimary },
     glowOrbTop: {
         position: 'absolute',
         top: -100,
@@ -152,8 +151,7 @@ const styles = StyleSheet.create({
         height: 300,
         borderRadius: 150,
         backgroundColor: theme.colors.primaryDark,
-        opacity: 0.5,
-    },
+        opacity: 0.5 },
     glowOrbBottom: {
         position: 'absolute',
         bottom: -150,
@@ -161,18 +159,15 @@ const styles = StyleSheet.create({
         width: 400,
         height: 400,
         borderRadius: 200,
-        backgroundColor: "#EAB30810",
-    },
+        backgroundColor: "#EAB30810" },
     content: {
         flex: 1,
         justifyContent: "center",
         padding: theme.spacing.lg,
-        zIndex: 1,
-    },
+        zIndex: 1 },
     header: {
         alignItems: "center",
-        marginBottom: theme.spacing.xl,
-    },
+        marginBottom: theme.spacing.xl },
     title: {
         color: theme.colors.textPrimary,
         fontSize: 32,
@@ -183,20 +178,16 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 10,
         marginBottom: 4,
-        textAlign: 'center',
-    },
+        textAlign: 'center' },
     subtitle: {
         color: theme.colors.accent,
         fontSize: theme.typography.sm,
         fontWeight: "600",
-        textAlign: "center",
-    },
+        textAlign: "center" },
     card: {
-        paddingTop: theme.spacing.xl,
-    },
+        paddingTop: theme.spacing.xl },
     inputGroup: {
-        marginBottom: theme.spacing.lg,
-    },
+        marginBottom: theme.spacing.lg },
     inputLabel: {
         color: theme.colors.textMuted,
         fontSize: 10,
@@ -204,8 +195,7 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
         letterSpacing: 1,
         marginBottom: 8,
-        textAlign: 'center',
-    },
+        textAlign: 'center' },
     input: {
         backgroundColor: theme.colors.surfaceSoft,
         color: theme.colors.textPrimary,
@@ -215,14 +205,11 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
         fontSize: theme.typography.xl,
         textAlign: "center",
-        letterSpacing: 10,
-    },
+        letterSpacing: 10 },
     verifyButton: {
-        marginTop: theme.spacing.sm,
-    },
+        marginTop: theme.spacing.sm },
     resendButton: {
-        marginTop: theme.spacing.md,
-    },
+        marginTop: theme.spacing.md },
     error: {
         color: theme.colors.error,
         marginBottom: theme.spacing.md,
@@ -231,8 +218,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         backgroundColor: "rgba(239, 68, 68, 0.1)",
         padding: 10,
-        borderRadius: theme.radius.sm,
-    },
+        borderRadius: theme.radius.sm },
     message: {
         color: theme.colors.success,
         marginBottom: theme.spacing.md,
@@ -241,15 +227,14 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         backgroundColor: "rgba(16, 185, 129, 0.1)",
         padding: 10,
-        borderRadius: theme.radius.sm,
-    },
+        borderRadius: theme.radius.sm },
     link: {
         marginTop: theme.spacing.xl,
-        alignItems: "center",
-    },
+        alignItems: "center" },
     linkText: {
         color: theme.colors.textMuted,
         fontSize: theme.typography.sm,
-        fontWeight: "500",
-    },
-});
+        fontWeight: "500" } });
+
+
+

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, Alert, TextInput, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Modal,  TextInput, ScrollView } from "react-native"
+import { customAlert as Alert } from '../../components/CustomAlert';
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -85,7 +86,7 @@ export default function BuildingsScreen() {
                         setModalVisible(true);
                     }
                 } else {
-                    Alert.alert(
+                    Alert(
                         "ZONE LOCKED",
                         `You must physically deploy to ${data.name} to unlock its AR capabilities.`,
                         [{ text: "ACKNOWLEDGE" }]
@@ -105,9 +106,7 @@ export default function BuildingsScreen() {
                 buildingId: selectedBuilding.id,
                 buildingName: selectedBuilding.name,
                 buildingDescription: selectedBuilding.description,
-                modelUrl: selectedBuilding.model_url,
-            },
-        });
+                modelUrl: selectedBuilding.model_url } });
     };
 
     const handleVirtualTour = () => {
@@ -126,8 +125,7 @@ export default function BuildingsScreen() {
                 modelUrl: selectedBuilding.model_url,
                 hotspots: JSON.stringify(selectedBuilding.hotspots || []),
                 controlMode: controlMode, // 'joystick' | 'gyroscope'
-            },
-        });
+            } });
     };
 
     const handleViewPanorama = () => {
@@ -136,9 +134,7 @@ export default function BuildingsScreen() {
             pathname: '/panorama-viewer',
             params: {
                 buildingId: selectedBuilding.id,
-                buildingName: selectedBuilding.name,
-            },
-        });
+                buildingName: selectedBuilding.name } });
     };
 
     const filteredTargetBuildings = allBuildings.filter(b => 
@@ -562,33 +558,28 @@ export default function BuildingsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.surfaceSoft,
-    },
+        backgroundColor: theme.colors.surfaceSoft },
     webview: {
         flex: 1,
-        backgroundColor: theme.colors.surfaceSoft,
-    },
+        backgroundColor: theme.colors.surfaceSoft },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: theme.colors.bgPrimary,
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10,
-    },
+        zIndex: 10 },
     loadingText: {
         color: theme.colors.arHighlight,
         marginTop: 10,
         fontWeight: 'bold',
-        letterSpacing: 2,
-    },
+        letterSpacing: 2 },
     hudTopBar: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         paddingTop: 50, // Safe area top
-        paddingHorizontal: theme.spacing.md,
-    },
+        paddingHorizontal: theme.spacing.md },
     routeCard: {
         backgroundColor: theme.colors.bgPrimary,
         borderRadius: theme.radius.lg,
@@ -599,35 +590,28 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 5,
-    },
+        elevation: 5 },
     routeInputRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: theme.spacing.sm,
-    },
+        paddingHorizontal: theme.spacing.sm },
     routeInputWrapper: {
         flex: 1,
-        marginLeft: theme.spacing.sm,
-    },
+        marginLeft: theme.spacing.sm },
     routeInput: {
         height: 40,
         color: theme.colors.textPrimary,
         fontSize: 15,
-        fontWeight: 'bold',
-    },
+        fontWeight: 'bold' },
     routeInputDisabled: {
-        color: theme.colors.success,
-    },
+        color: theme.colors.success },
     routeDivider: {
         height: 1,
         backgroundColor: theme.colors.surfaceSoft,
         marginVertical: 4,
-        marginLeft: 36,
-    },
+        marginLeft: 36 },
     clearRouteBtn: {
-        padding: theme.spacing.xs,
-    },
+        padding: theme.spacing.xs },
     searchResultsContainer: {
         marginTop: theme.spacing.sm,
         backgroundColor: theme.colors.bgPrimary,
@@ -639,49 +623,40 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 3,
-    },
+        elevation: 3 },
     searchResultsList: {
-        flexGrow: 0,
-    },
+        flexGrow: 0 },
     searchResultItem: {
         padding: theme.spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.surfaceSoft,
-    },
+        borderBottomColor: theme.colors.surfaceSoft },
     searchResultName: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: theme.colors.textPrimary,
-    },
+        color: theme.colors.textPrimary },
     searchResultStatus: {
         fontSize: 10,
         color: theme.colors.success,
         fontWeight: 'bold',
-        marginTop: 2,
-    },
+        marginTop: 2 },
     searchResultStatusInactive: {
-        color: theme.colors.error,
-    },
+        color: theme.colors.error },
     searchNoResult: {
         padding: theme.spacing.md,
         color: theme.colors.textMuted,
         fontStyle: 'italic',
-        textAlign: 'center',
-    },
+        textAlign: 'center' },
     distanceContainer: {
         marginTop: theme.spacing.sm,
         paddingTop: theme.spacing.sm,
         borderTopWidth: 1,
         borderTopColor: theme.colors.surfaceSoft,
-        alignItems: 'center',
-    },
+        alignItems: 'center' },
     distanceText: {
         color: theme.colors.arHighlight,
         fontSize: 12,
         fontWeight: 'bold',
-        letterSpacing: 1,
-    },
+        letterSpacing: 1 },
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -700,22 +675,19 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: -3 },
         shadowOpacity: 0.2,
         shadowRadius: 10,
-        elevation: 10,
-    },
+        elevation: 10 },
     sheetHandle: {
         width: 40,
         height: 5,
         backgroundColor: theme.colors.bgSecondary,
         borderRadius: 3,
         alignSelf: 'center',
-        marginBottom: theme.spacing.md,
-    },
+        marginBottom: theme.spacing.md },
     sheetHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: theme.spacing.sm,
-    },
+        marginBottom: theme.spacing.sm },
     buildingName: {
         fontFamily: fonts.heading.bold,
         fontSize: 22,
@@ -723,67 +695,55 @@ const styles = StyleSheet.create({
         color: theme.colors.textPrimary,
         flex: 1,
         letterSpacing: 1,
-        textTransform: 'uppercase',
-    },
+        textTransform: 'uppercase' },
     badge: {
         backgroundColor: "rgba(16, 185, 129, 0.2)",
         borderColor: theme.colors.success,
         borderWidth: 1,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 4,
-        borderRadius: theme.radius.sm,
-    },
+        borderRadius: theme.radius.sm },
     badgeRole: {
         backgroundColor: theme.colors.surfaceSoft,
-        borderColor: theme.colors.textSecondary,
-    },
+        borderColor: theme.colors.textSecondary },
     badgeText: {
         color: theme.colors.textPrimary,
         fontSize: 10,
         fontWeight: "bold",
-        letterSpacing: 1,
-    },
+        letterSpacing: 1 },
     badgeInactive: {
         backgroundColor: "rgba(239, 68, 68, 0.2)",
-        borderColor: theme.colors.error,
-    },
+        borderColor: theme.colors.error },
     badgeTextInactive: {
-        color: theme.colors.error,
-    },
+        color: theme.colors.error },
     description: {
         fontSize: 13,
         color: theme.colors.textMuted,
         marginBottom: theme.spacing.lg,
-        lineHeight: 20,
-    },
+        lineHeight: 20 },
     actionButtons: {
-        gap: theme.spacing.sm,
-    },
+        gap: theme.spacing.sm },
     view3dButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: theme.colors.arHighlight,
         paddingVertical: 14,
-        borderRadius: theme.radius.md,
-    },
+        borderRadius: theme.radius.md },
     view3dText: {
         fontFamily: fonts.heading.bold,
         color: "#FFFFFF",
         fontSize: 14,
         fontWeight: "900",
         letterSpacing: 1,
-        marginLeft: theme.spacing.sm,
-    },
+        marginLeft: theme.spacing.sm },
     no3dContainer: {
         paddingVertical: theme.spacing.sm,
-        alignItems: 'center',
-    },
+        alignItems: 'center' },
     no3dText: {
         fontSize: 12,
         color: theme.colors.textMuted,
-        fontStyle: "italic",
-    },
+        fontStyle: "italic" },
     viewPanoramaButton: {
         flexDirection: "row",
         alignItems: "center",
@@ -792,30 +752,26 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.arHighlight,
         paddingVertical: 12,
-        borderRadius: theme.radius.md,
-    },
+        borderRadius: theme.radius.md },
     viewPanoramaText: {
         fontFamily: fonts.heading.bold,
         color: theme.colors.arHighlight,
         fontSize: 14,
         fontWeight: "bold",
         letterSpacing: 1,
-        marginLeft: theme.spacing.sm,
-    },
+        marginLeft: theme.spacing.sm },
     restrictedContainer: {
         paddingVertical: theme.spacing.md,
         backgroundColor: "rgba(239, 68, 68, 0.1)",
         borderWidth: 1,
         borderColor: theme.colors.error,
         borderRadius: theme.radius.md,
-        alignItems: 'center',
-    },
+        alignItems: 'center' },
     restrictedText: {
         fontSize: 12,
         color: theme.colors.error,
         fontWeight: "bold",
-        letterSpacing: 1,
-    },
+        letterSpacing: 1 },
 
     // --- Control Mode Picker ---
     controlPickerOverlay: {
@@ -823,8 +779,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.75)',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 24,
-    },
+        paddingHorizontal: 24 },
     controlPickerCard: {
         width: '100%',
         backgroundColor: theme.colors.bgSecondary,
@@ -832,8 +787,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.border,
         paddingBottom: theme.spacing.md,
-        overflow: 'hidden',
-    },
+        overflow: 'hidden' },
     controlPickerHeader: {
         alignItems: 'center',
         paddingTop: theme.spacing.xl,
@@ -841,27 +795,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: theme.spacing.lg,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.border,
-        gap: 6,
-    },
+        gap: 6 },
     controlPickerTitle: {
         color: theme.colors.arHighlight,
         fontSize: 16,
         fontWeight: '900',
         letterSpacing: 3,
-        marginTop: 8,
-    },
+        marginTop: 8 },
     controlPickerSubtitle: {
         color: theme.colors.textSecondary,
         fontSize: 12,
-        textAlign: 'center',
-    },
+        textAlign: 'center' },
     controlOption: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: theme.spacing.lg,
         paddingVertical: 18,
-        gap: 14,
-    },
+        gap: 14 },
     controlOptionIcon: {
         width: 56,
         height: 56,
@@ -870,39 +820,32 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(0, 229, 255, 0.3)',
         justifyContent: 'center',
-        alignItems: 'center',
-    },
+        alignItems: 'center' },
     controlOptionIconGyro: {
         backgroundColor: 'rgba(46, 204, 113, 0.1)',
-        borderColor: 'rgba(46, 204, 113, 0.3)',
-    },
+        borderColor: 'rgba(46, 204, 113, 0.3)' },
     controlOptionText: {
         flex: 1,
-        gap: 3,
-    },
+        gap: 3 },
     controlOptionTitle: {
         color: theme.colors.arHighlight,
         fontSize: 14,
         fontWeight: '800',
-        letterSpacing: 2,
-    },
+        letterSpacing: 2 },
     controlOptionDesc: {
         color: theme.colors.textMuted,
         fontSize: 12,
-        lineHeight: 17,
-    },
+        lineHeight: 17 },
     controlOptionBadge: {
         color: theme.colors.success,
         fontSize: 10,
         fontWeight: 'bold',
         letterSpacing: 1.5,
-        marginTop: 2,
-    },
+        marginTop: 2 },
     controlDivider: {
         height: 1,
         backgroundColor: theme.colors.border,
-        marginHorizontal: theme.spacing.lg,
-    },
+        marginHorizontal: theme.spacing.lg },
     controlCancelBtn: {
         marginTop: theme.spacing.md,
         marginHorizontal: theme.spacing.lg,
@@ -910,14 +853,12 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        alignItems: 'center',
-    },
+        alignItems: 'center' },
     controlCancelText: {
         color: theme.colors.textMuted,
         fontSize: 13,
         fontWeight: 'bold',
-        letterSpacing: 2,
-    },
+        letterSpacing: 2 },
     mapLegend: {
         position: 'absolute',
         bottom: 24,
@@ -931,29 +872,25 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 4,
-    },
+        elevation: 4 },
     legendTitle: {
         fontSize: 10,
         fontWeight: 'bold',
         color: theme.colors.textMuted,
         letterSpacing: 1,
-        marginBottom: 8,
-    },
+        marginBottom: 8 },
     legendRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 6,
-    },
+        marginBottom: 6 },
     legendDot: {
         width: 14,
         height: 14,
         borderRadius: 7,
-        marginRight: 8,
-    },
+        marginRight: 8 },
     legendText: {
         fontSize: 12,
         color: theme.colors.textPrimary,
-        fontWeight: '500',
-    },
-});
+        fontWeight: '500' } });
+
+

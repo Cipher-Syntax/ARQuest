@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Alert } from "react-native";
+import { } from "react-native"
+import { customAlert as Alert } from '../components/CustomAlert';
 import { api } from "../services/api";
 import { authService } from "../services/authService";
 
@@ -42,13 +43,13 @@ export const AuthProvider = ({ children }) => {
                         // Small delay ensures the UI is ready before showing the alert
                         setTimeout(() => {
                             if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
-                                Alert.alert(
+                                Alert(
                                     `🔥 ${newStreak}-Day Streak!`,
                                     `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
                                     [{ text: 'Awesome!', style: 'default' }]
                                 );
                             } else {
-                                Alert.alert(
+                                Alert(
                                     `✅ Daily Check-in`,
                                     `You earned +${streakBonusExp} EXP for logging in today. Keep your streak going!`,
                                     [{ text: 'Okay', style: 'default' }]
@@ -77,8 +78,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await api.post("/api/auth/login/", {
                 username,
-                password,
-            });
+                password });
 
             // Extract tokens from the response
             const payload = response.data.data || response.data;
@@ -124,3 +124,5 @@ export const useAuth = () => {
     }
     return context;
 };
+
+

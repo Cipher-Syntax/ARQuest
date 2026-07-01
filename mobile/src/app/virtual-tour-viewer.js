@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native'
+import { customAlert as Alert } from '../components/CustomAlert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -97,8 +98,7 @@ export default function VirtualTourViewerScreen() {
 				type: 'init',
 				modelUrl: localModelUrl,
 				hotspots: liveHotspots,
-				controlMode: controlMode || 'joystick',
-			}));
+				controlMode: controlMode || 'joystick' }));
 		}
 
 		return () => {
@@ -201,7 +201,7 @@ export default function VirtualTourViewerScreen() {
 				setLoading(false);
 				setError(data.message || 'Failed to load model');
 			} else if (data.type === 'interact_door') {
-				Alert.alert(
+				Alert(
 					'Locked Door',
 					'Do you want to unlock this door?',
 					[
@@ -212,11 +212,9 @@ export default function VirtualTourViewerScreen() {
 								if (webViewRef.current) {
 									webViewRef.current.postMessage(JSON.stringify({
 										type: 'unlock_door',
-										doorName: data.doorName,
-									}));
+										doorName: data.doorName }));
 								}
-							},
-						},
+							} },
 					]
 				);
 			}
@@ -290,12 +288,10 @@ export default function VirtualTourViewerScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000',
-	},
+		backgroundColor: '#000' },
 	webview: {
 		...StyleSheet.absoluteFillObject,
-		backgroundColor: 'transparent',
-	},
+		backgroundColor: 'transparent' },
 	floatingBackButton: {
 		position: 'absolute',
 		top: 20,
@@ -308,15 +304,13 @@ const styles = StyleSheet.create({
 		borderColor: theme.colors.border,
 		justifyContent: 'center',
 		alignItems: 'center',
-		zIndex: 20,
-	},
+		zIndex: 20 },
 	hudTopContainer: {
 		position: 'absolute',
 		top: 20,
 		left: 20,
 		zIndex: 10,
-		alignItems: 'flex-start',
-	},
+		alignItems: 'flex-start' },
 	buildingName: {
 		fontSize: 16,
 		fontWeight: '900',
@@ -325,8 +319,7 @@ const styles = StyleSheet.create({
 		textTransform: 'uppercase',
 		textShadowColor: 'rgba(0, 0, 0, 0.75)',
 		textShadowOffset: { width: -1, height: 1 },
-		textShadowRadius: 10,
-	},
+		textShadowRadius: 10 },
 	hudSubtitle: {
 		fontSize: 10,
 		color: theme.colors.success,
@@ -335,45 +328,39 @@ const styles = StyleSheet.create({
 		marginTop: 4,
 		textShadowColor: 'rgba(0, 0, 0, 0.75)',
 		textShadowOffset: { width: -1, height: 1 },
-		textShadowRadius: 10,
-	},
+		textShadowRadius: 10 },
 	loadingOverlay: {
 		...StyleSheet.absoluteFillObject,
 		justifyContent: 'center',
 		alignItems: 'center',
 		backgroundColor: '#000',
-		zIndex: 30,
-	},
+		zIndex: 30 },
 	loadingCard: {
 		backgroundColor: 'transparent',
-		alignItems: 'center',
-	},
+		alignItems: 'center' },
 	loadingText: {
 		color: theme.colors.arHighlight,
 		marginTop: theme.spacing.md,
 		fontSize: 12,
 		fontWeight: 'bold',
-		letterSpacing: 2,
-	},
+		letterSpacing: 2 },
 	errorOverlay: {
 		...StyleSheet.absoluteFillObject,
 		justifyContent: 'center',
 		alignItems: 'center',
 		backgroundColor: '#000',
-		zIndex: 30,
-	},
+		zIndex: 30 },
 	errorCard: {
 		backgroundColor: '#fff',
 		padding: theme.spacing.xl,
 		borderRadius: theme.radius.lg,
 		alignItems: 'center',
-		maxWidth: '80%',
-	},
+		maxWidth: '80%' },
 	errorText: {
 		color: theme.colors.error,
 		marginTop: theme.spacing.md,
 		fontSize: 16,
 		textAlign: 'center',
-		fontWeight: 'bold',
-	},
-});
+		fontWeight: 'bold' } });
+
+

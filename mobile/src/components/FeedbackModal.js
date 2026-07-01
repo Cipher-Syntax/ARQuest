@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ActivityIndicator,  KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import { customAlert as Alert } from './CustomAlert';
 import { X, MessageSquare, AlertCircle, Lightbulb } from 'lucide-react-native';
 import theme from '../theme/tokens';
 import { fonts } from '../constants/typography';
@@ -12,7 +13,7 @@ export default function FeedbackModal({ visible, onClose }) {
 
     const handleSubmit = async () => {
         if (!message.trim()) {
-            Alert.alert("Error", "Please enter a message before submitting.");
+            Alert("Error", "Please enter a message before submitting.");
             return;
         }
 
@@ -24,7 +25,7 @@ export default function FeedbackModal({ visible, onClose }) {
             });
 
             if (res.data) {
-                Alert.alert(
+                Alert(
                     "Thank You!", 
                     "Your feedback has been submitted successfully. We appreciate your help in making ARQuest better!",
                     [{ text: "OK", onPress: () => {
@@ -36,7 +37,7 @@ export default function FeedbackModal({ visible, onClose }) {
             }
         } catch (error) {
             console.error("Failed to submit feedback", error);
-            Alert.alert("Submission Failed", "There was an error submitting your feedback. Please try again later.");
+            Alert("Submission Failed", "There was an error submitting your feedback. Please try again later.");
         } finally {
             setSubmitting(false);
         }
@@ -123,46 +124,38 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
+        justifyContent: 'flex-end' },
     modalContent: {
         backgroundColor: theme.colors.surface,
         borderTopLeftRadius: theme.radius.xl,
         borderTopRightRadius: theme.radius.xl,
         maxHeight: '90%',
-        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    },
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20 },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
-    },
+        borderBottomColor: theme.colors.border },
     title: {
         fontFamily: fonts.heading.bold,
         fontSize: 18,
-        color: theme.colors.textPrimary,
-    },
+        color: theme.colors.textPrimary },
     closeButton: {
-        padding: 5,
-    },
+        padding: 5 },
     scrollContent: {
-        padding: 20,
-    },
+        padding: 20 },
     label: {
         fontFamily: fonts.body.bold,
         fontSize: 14,
         color: theme.colors.textPrimary,
-        marginBottom: 10,
-    },
+        marginBottom: 10 },
     typeSelector: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 10,
-        marginBottom: 20,
-    },
+        marginBottom: 20 },
     typeOption: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -174,16 +167,13 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.bgPrimary,
         flexGrow: 1,
         justifyContent: 'center',
-        gap: 8,
-    },
+        gap: 8 },
     typeOptionSelected: {
-        borderWidth: 2,
-    },
+        borderWidth: 2 },
     typeOptionText: {
         fontFamily: fonts.body.medium,
         fontSize: 13,
-        color: theme.colors.textSecondary,
-    },
+        color: theme.colors.textSecondary },
     input: {
         backgroundColor: theme.colors.bgPrimary,
         borderWidth: 1,
@@ -194,8 +184,7 @@ const styles = StyleSheet.create({
         fontFamily: fonts.body.regular,
         fontSize: 14,
         color: theme.colors.textPrimary,
-        marginBottom: 25,
-    },
+        marginBottom: 25 },
     submitButton: {
         backgroundColor: theme.colors.primary,
         borderRadius: theme.radius.full,
@@ -205,15 +194,13 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
-        elevation: 4,
-    },
+        elevation: 4 },
     submitButtonDisabled: {
-        opacity: 0.6,
-    },
+        opacity: 0.6 },
     submitButtonText: {
         fontFamily: fonts.hud.bold,
         color: '#FFF',
         fontSize: 16,
-        letterSpacing: 1,
-    },
-});
+        letterSpacing: 1 } });
+
+
