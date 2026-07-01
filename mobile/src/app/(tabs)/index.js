@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, Animated, Image, RefreshControl } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 import theme from "../../theme/tokens";
@@ -111,145 +113,142 @@ export default function HomeScreen() {
     }, []);
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={styles.glowOrbTop} />
+        <View style={styles.container}>
+            <StatusBar style="light" />
             <ScrollView 
                 contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={"#FFFFFF"} />}
             >
-                
-                <View style={styles.headerCard}>
-                    <View style={styles.headerLeft}>
-                        <Text style={styles.greeting}>SYSTEM ONLINE</Text>
-                        <Text style={styles.title}>Welcome, {user?.username || "Guest"}</Text>
-                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap'}}>
-                            <View style={styles.roleBadge}>
-                                <Text style={styles.roleText}>{user?.role?.toUpperCase() || "UNKNOWN"}</Text>
-                            </View>
+                {/* Massive Crimson Header */}
+                <LinearGradient colors={['#9b1b30', '#7a1525']} style={styles.crimsonHeader}>
+                    <View style={styles.headerTopRow}>
+                        <View style={styles.userInfo}>
+                            <Text style={styles.greeting}>SYSTEM ONLINE</Text>
+                            <Text style={styles.username}>{user?.username || "Guest"}</Text>
                             {user?.role === 'student' && user?.rank_info && (
-                                <View style={styles.rankBadgeHome}>
-                                    <Text style={styles.rankIconHome}>{user.rank_info.icon}</Text>
-                                    <Text style={styles.rankTextHome}>Lv.{user.rank_info.level}</Text>
-                                </View>
+                                <Text style={styles.userLevel}>Lv.{user.rank_info.level} Explorer</Text>
                             )}
+                        </View>
+                        <View style={styles.headerRight}>
                             {user?.role === 'student' && user?.streak_count > 0 && (
-                                <View style={styles.streakChipHome}>
+                                <View style={styles.streakBadge}>
                                     <Text style={styles.streakFlame}>🔥</Text>
-                                    <Text style={styles.streakTextHome}>{user.streak_count}</Text>
+                                    <Text style={styles.streakText}>{user.streak_count}</Text>
                                 </View>
                             )}
                         </View>
                     </View>
-                    <View style={styles.headerRight}>
-                        <View style={[styles.gpsIndicator, location ? styles.gpsActive : styles.gpsSearching]} />
-                        <Text style={styles.gpsText}>{location ? "GPS LOCKED" : "SEARCHING..."}</Text>
-                    </View>
-                </View>
-
-                {/* --- Daily Mission Hero Card (#5) --- */}
-                <View style={styles.heroCard}>
-                    <View style={styles.heroTopRow}>
-                        <View style={styles.heroLabelChip}>
-                            <Crosshair color="rgba(255,255,255,0.9)" size={12} />
-                            <Text style={styles.heroChipText}>DAILY MISSION</Text>
-                        </View>
-                        {activeQuest && (
-                            <View style={styles.heroExpBadge}>
-                                <Text style={styles.heroExpText}>+{activeQuest.reward_points} EXP</Text>
+                    
+                    {user?.role === 'student' && (
+                        <View style={styles.expContainer}>
+                            <View style={styles.expTextRow}>
+                                <Text style={styles.expLabel}>EXP PROGRESS</Text>
+                                <Text style={styles.expValue}>{stats?.points || 0} PTS</Text>
                             </View>
-                        )}
-                    </View>
-
-                    <Text style={styles.heroQuestTitle} numberOfLines={2}>
-                        {loading ? 'Loading...' : (activeQuest ? activeQuest.title : 'STANDBY FOR ORDERS')}
-                    </Text>
-
-                    <View style={styles.heroBottomRow}>
-                        <View style={styles.heroTargetInfo}>
-                            <Text style={styles.heroTargetLabel}>TARGET NODE</Text>
-                            <Text style={styles.heroTargetValue} numberOfLines={1}>
-                                {activeQuest ? activeQuest.target_building_name : 'No active quests'}
-                            </Text>
+                            <View style={styles.expBarTrack}>
+                                <View style={[styles.expBarFill, { width: '65%' }]} /> 
+                            </View>
                         </View>
-                        <TouchableOpacity
-                            style={[styles.heroDeployBtn, !activeQuest && styles.heroDeployBtnDisabled]}
-                            onPress={() => router.push('/(tabs)/ar')}
-                            disabled={!activeQuest}
-                        >
-                            <Text style={[styles.heroDeployText, !activeQuest && styles.heroDeployTextDisabled]}>
-                                {activeQuest ? 'DEPLOY' : 'STANDBY'}
-                            </Text>
-                            <ChevronRight
-                                color={activeQuest ? theme.colors.primary : 'rgba(255,255,255,0.4)'}
-                                size={16}
-                            />
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                    )}
+                </LinearGradient>
 
-                {user?.role === 'student' && (
-                    <View style={styles.splitRow}>
-                        <ARGlassCard style={styles.splitCard}>
-                            {loading ? (
-                                <ActivityIndicator color={theme.colors.arHighlight} />
-                            ) : (
-                                <View style={styles.splitCardInner}>
-                                    <Trophy color={theme.colors.accent} size={24} />
-                                    <Text style={styles.splitValue}>{stats?.points || 0}</Text>
-                                    <Text style={styles.splitLabel}>EXP POINTS</Text>
-                                    
-                                    <View style={styles.miniDivider} />
-                                    
-                                    <Text style={styles.splitSubValue}>#{stats?.rank || "--"}</Text>
-                                    <Text style={styles.splitSubLabel}>GLOBAL RANK</Text>
+                <View style={styles.contentArea}>
+                    {/* --- Daily Mission Hero Card --- */}
+                    <View style={styles.heroCard}>
+                        <View style={styles.heroTopRow}>
+                            <View style={styles.heroLabelChip}>
+                                <Crosshair color={theme.colors.primary} size={14} />
+                                <Text style={styles.heroChipText}>DAILY MISSION</Text>
+                            </View>
+                            {activeQuest && (
+                                <View style={styles.heroExpBadge}>
+                                    <Text style={styles.heroExpText}>+{activeQuest.reward_points} EXP</Text>
                                 </View>
                             )}
-                        </ARGlassCard>
+                        </View>
 
-                        <ARGlassCard style={styles.splitCard}>
-                            <View style={styles.splitCardInner}>
-                                <MapPin color={theme.colors.arHighlight} size={24} />
-                                <Text style={styles.splitValue}>{distanceToNearest !== null ? `${(distanceToNearest / 1000).toFixed(2)} km` : "--"}</Text>
-                                <Text style={styles.splitLabel}>DISTANCE</Text>
-                                
-                                <View style={styles.miniDivider} />
-                                
-                                <Text style={styles.targetName} numberOfLines={2}>
-                                    {nearestBuilding ? nearestBuilding.name : "ACQUIRING TARGET"}
+                        <Text style={styles.heroQuestTitle} numberOfLines={2}>
+                            {loading ? 'Loading...' : (activeQuest ? activeQuest.title : 'STANDBY FOR ORDERS')}
+                        </Text>
+
+                        <View style={styles.heroBottomRow}>
+                            <View style={styles.heroTargetInfo}>
+                                <Text style={styles.heroTargetLabel}>TARGET NODE</Text>
+                                <Text style={styles.heroTargetValue} numberOfLines={1}>
+                                    {activeQuest ? activeQuest.target_building_name : 'No active quests'}
                                 </Text>
-                                <Text style={styles.splitSubLabel}>NEAREST NODE</Text>
                             </View>
-                        </ARGlassCard>
-                    </View>
-                )}
-
-                {challenges.length > 0 && (
-                    <View style={styles.section}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>LIMITED CHALLENGES</Text>
-                            {challenges.length > 1 && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <Text style={{ fontSize: 10, color: theme.colors.textMuted, marginRight: 4, fontFamily: fonts.body.bold }}>SWIPE</Text>
-                                    <ChevronRight color={theme.colors.textMuted} size={16} />
-                                </View>
-                            )}
+                            <TouchableOpacity
+                                style={[styles.heroDeployBtn, !activeQuest && styles.heroDeployBtnDisabled]}
+                                onPress={() => router.push('/(tabs)/ar')}
+                                disabled={!activeQuest}
+                            >
+                                <Text style={[styles.heroDeployText, !activeQuest && styles.heroDeployTextDisabled]}>
+                                    {activeQuest ? 'DEPLOY' : 'STANDBY'}
+                                </Text>
+                                <ChevronRight
+                                    color={activeQuest ? '#FFFFFF' : 'rgba(138,21,56,0.5)'}
+                                    size={18}
+                                />
+                            </TouchableOpacity>
                         </View>
-                        <Animated.ScrollView 
-                            horizontal 
-                            showsHorizontalScrollIndicator={false} 
-                            style={{ marginHorizontal: -20, paddingTop: 10, paddingBottom: 20 }}
-                            contentContainerStyle={{ paddingHorizontal: INSET_HORIZONTAL }} 
-                            pagingEnabled={false} 
-                            snapToInterval={FULL_ITEM_WIDTH} 
-                            decelerationRate="fast"
-                            onScroll={Animated.event(
-                                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                                { useNativeDriver: true }
-                            )}
-                            scrollEventThrottle={16}
-                        >
-                            {challenges.map((challenge, index) => {
-                                const expires = new Date(challenge.expires_at);
+                    </View>
+
+                    {/* Quick Stats Split Row */}
+                    {user?.role === 'student' && (
+                        <View style={styles.splitRow}>
+                            <View style={styles.splitCard}>
+                                <View style={styles.splitIconWrap}>
+                                    <Trophy color={theme.colors.primary} size={24} />
+                                </View>
+                                <Text style={styles.splitValue}>#{stats?.rank || "--"}</Text>
+                                <Text style={styles.splitLabel}>GLOBAL RANK</Text>
+                            </View>
+
+                            <View style={styles.splitCard}>
+                                <View style={styles.splitIconWrap}>
+                                    <MapPin color={theme.colors.primary} size={24} />
+                                </View>
+                                <Text style={styles.splitValue}>{distanceToNearest !== null ? `${(distanceToNearest / 1000).toFixed(2)}km` : "--"}</Text>
+                                <Text style={styles.splitLabel}>NEAREST NODE</Text>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Quick Actions */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>COMMAND CENTER</Text>
+                        <View style={styles.actionGrid}>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/ar')}>
+                                <View style={styles.actionIconWrap}>
+                                    <ScanLine color={theme.colors.primary} size={24} />
+                                </View>
+                                <Text style={styles.actionText}>AR Scanner</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/leaderboard')}>
+                                <View style={styles.actionIconWrap}>
+                                    <BarChart2 color={theme.colors.primary} size={24} />
+                                </View>
+                                <Text style={styles.actionText}>Rankings</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/badges')}>
+                                <View style={styles.actionIconWrap}>
+                                    <Trophy color={theme.colors.primary} size={24} />
+                                </View>
+                                <Text style={styles.actionText}>Badges</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/buildings')}>
+                                <View style={styles.actionIconWrap}>
+                                    <MapIcon color={theme.colors.primary} size={24} />
+                                </View>
+                                <Text style={styles.actionText}>Locations</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </ScrollView>
+        </View>
+    );
                                 const isExpired = expires < new Date();
                                 if (isExpired || challenge.is_completed) return null;
                                 
@@ -386,351 +385,152 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.bgPrimary,
-    },
-    glowOrbTop: {
-        position: 'absolute',
-        top: -50,
-        right: -100,
-        width: 250,
-        height: 250,
-        borderRadius: 125,
-        backgroundColor: theme.colors.primaryDark,
-        opacity: 0.6,
+        backgroundColor: '#F9FAFB', // Crisp off-white background
     },
     scrollContent: {
-        padding: theme.spacing.lg,
-        paddingBottom: 40,
+        paddingBottom: 60,
     },
-    headerCard: {
+    crimsonHeader: {
+        paddingTop: 80, // Safe area + padding
+        paddingBottom: 50,
+        paddingHorizontal: 20,
+        borderBottomLeftRadius: 35,
+        borderBottomRightRadius: 35,
+        shadowColor: '#9b1b30',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.35,
+        shadowRadius: 20,
+        elevation: 15,
+        zIndex: 10,
+    },
+    headerTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: theme.spacing.xl,
-        marginTop: theme.spacing.md,
-        backgroundColor: theme.colors.surfaceSoft,
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        marginBottom: 20,
     },
-    headerLeft: {
+    userInfo: {
         flex: 1,
-    },
-    headerRight: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingLeft: 10,
-    },
-    gpsIndicator: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        marginBottom: 4,
-    },
-    gpsActive: {
-        backgroundColor: theme.colors.success,
-        shadowColor: theme.colors.success,
-        shadowOpacity: 0.8,
-        shadowRadius: 5,
-        shadowOffset: { width: 0, height: 0 },
-    },
-    gpsSearching: {
-        backgroundColor: theme.colors.accent,
-    },
-    gpsText: {
-        fontFamily: fonts.body.bold,
-        fontSize: 8,
-        color: theme.colors.textMuted,
-        letterSpacing: 1,
     },
     greeting: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.arHighlight,
-        fontSize: 12,
-        fontWeight: "bold",
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 10,
         letterSpacing: 2,
         marginBottom: 4,
     },
-    title: {
+    username: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.textPrimary,
+        color: '#FFFFFF',
         fontSize: 28,
-        fontWeight: "900",
-        textTransform: "uppercase",
-        letterSpacing: 1,
-        marginBottom: 10,
-    },
-    roleBadge: {
-        backgroundColor: "rgba(234, 179, 8, 0.15)",
-        alignSelf: "flex-start",
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: theme.radius.sm,
-        borderWidth: 1,
-        borderColor: theme.colors.accent,
-    },
-    roleText: {
-        fontFamily: fonts.body.medium,
-        color: theme.colors.accent,
-        fontSize: 10,
-        fontWeight: "bold",
         letterSpacing: 1,
     },
-    rankBadgeHome: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: theme.radius.sm,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    rankIconHome: {
-        fontSize: 12,
-        marginRight: 4,
-    },
-    rankTextHome: {
+    userLevel: {
         fontFamily: fonts.body.bold,
-        color: theme.colors.white,
-        fontSize: 10,
-        fontWeight: "bold",
-        letterSpacing: 0.5,
+        color: '#FFFFFF',
+        fontSize: 13,
+        marginTop: 4,
+        opacity: 0.9,
     },
-    streakChipHome: {
+    headerRight: {
+        alignItems: 'flex-end',
+    },
+    streakBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(241, 100, 30, 0.15)',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: theme.radius.sm,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(241, 100, 30, 0.5)',
+        borderColor: 'rgba(255,255,255,0.4)',
     },
     streakFlame: {
-        fontSize: 12,
-        marginRight: 3,
+        fontSize: 16,
+        marginRight: 4,
     },
-    streakTextHome: {
-        fontFamily: fonts.body.bold,
-        color: '#F1641E',
-        fontSize: 10,
-        fontWeight: 'bold',
-        letterSpacing: 0.5,
-    },
-    splitRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: theme.spacing.xl,
-        gap: 12,
-    },
-    splitCard: {
-        flex: 1,
-        padding: theme.spacing.md,
-    },
-    splitCardInner: {
-        alignItems: 'center',
-    },
-    splitValue: {
-        fontFamily: fonts.hud.bold,
-        color: theme.colors.textPrimary,
-        fontSize: 32,
-        fontWeight: "900",
-        marginTop: 8,
-    },
-    splitLabel: {
-        fontFamily: fonts.hud.medium,
-        color: theme.colors.textMuted,
-        fontSize: 10,
-        fontWeight: "bold",
-        letterSpacing: 1,
-        marginTop: 4,
-    },
-    miniDivider: {
-        width: '50%',
-        height: 1,
-        backgroundColor: theme.colors.border,
-        marginVertical: 12,
-    },
-    splitSubValue: {
-        fontFamily: fonts.hud.bold,
-        color: theme.colors.arHighlight,
-        fontSize: 18,
-        fontWeight: "900",
-    },
-    targetName: {
+    streakText: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.arHighlight,
+        color: '#FFFFFF',
         fontSize: 14,
-        fontWeight: "bold",
-        textAlign: 'center',
     },
-    splitSubLabel: {
-        fontFamily: fonts.hud.medium,
-        color: theme.colors.textSecondary,
-        fontSize: 8,
-        fontWeight: "bold",
-        letterSpacing: 1,
-        marginTop: 2,
+    expContainer: {
+        marginTop: 10,
     },
-    section: {
-        marginBottom: theme.spacing.lg,
-    },
-    sectionTitle: {
-        fontFamily: fonts.heading.medium,
-        color: theme.colors.textSecondary,
-        fontSize: 12,
-        fontWeight: "bold",
-        letterSpacing: 2,
-        marginBottom: theme.spacing.sm,
-    },
-    actionGrid: {
+    expTextRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        gap: 12,
-    },
-    actionButton: {
-        flex: 1,
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
-        padding: theme.spacing.md,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    actionIconWrap: {
-        backgroundColor: 'rgba(178, 24, 48, 0.1)',
-        padding: 12,
-        borderRadius: 24,
         marginBottom: 8,
     },
-    actionText: {
-        fontFamily: fonts.heading.medium,
-        color: theme.colors.textPrimary,
-        fontSize: 11,
-        fontWeight: 'bold',
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: theme.spacing.sm,
-    },
-    seeAll: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    seeAllText: {
-        fontFamily: fonts.body.bold,
-        color: theme.colors.arHighlight,
+    expLabel: {
+        fontFamily: fonts.heading.bold,
+        color: 'rgba(255,255,255,0.8)',
         fontSize: 10,
-        marginRight: 2,
+        letterSpacing: 1,
     },
-    targetCard: {
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+    expValue: {
+        fontFamily: fonts.hud.bold,
+        color: '#FFFFFF',
+        fontSize: 12,
+    },
+    expBarTrack: {
+        height: 8,
+        backgroundColor: 'rgba(0,0,0,0.25)',
+        borderRadius: 4,
         overflow: 'hidden',
     },
-    targetImagePlaceholder: {
-        height: 120,
-        backgroundColor: theme.colors.surfaceSoft,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    targetInfo: {
-        padding: theme.spacing.md,
-    },
-    targetCardTitle: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.textPrimary,
-        fontSize: 18,
-        marginBottom: 2,
-    },
-    targetCardSub: {
-        fontFamily: fonts.body.regular,
-        color: theme.colors.textMuted,
-        fontSize: 12,
-        marginBottom: 10,
-    },
-    expBadge: {
-        backgroundColor: 'rgba(234, 179, 8, 0.15)',
-        alignSelf: 'flex-start',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+    expBarFill: {
+        height: '100%',
+        backgroundColor: '#FFFFFF',
         borderRadius: 4,
-        borderWidth: 1,
-        borderColor: theme.colors.accent,
     },
-    expBadgeText: {
-        fontFamily: fonts.hud.bold,
-        color: theme.colors.accent,
-        fontSize: 12,
+    contentArea: {
+        paddingHorizontal: 20,
+        marginTop: -30, // Pull up into the header slightly to overlap
+        zIndex: 20,
     },
-    assetScroll: {
-        gap: 12,
-        paddingRight: 20,
-    },
-    assetCard: {
-        backgroundColor: theme.colors.surfaceSoft,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        width: 120,
-        height: 120,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: theme.spacing.sm,
-    },
-    assetName: {
-        fontFamily: fonts.heading.medium,
-        color: theme.colors.textPrimary,
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    // ── Daily Mission Hero Card ──
     heroCard: {
-        marginTop: theme.spacing.xs,
-        marginBottom: theme.spacing.xl,
-        backgroundColor: theme.colors.primary,
-        borderRadius: theme.radius.md,
+        backgroundColor: '#FFFFFF',
+        borderRadius: theme.radius.lg,
         padding: theme.spacing.lg,
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 12,
-        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.08,
+        shadowRadius: 20,
+        elevation: 8,
+        marginBottom: 24,
     },
     heroTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: theme.spacing.sm,
+        marginBottom: 16,
     },
     heroLabelChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        gap: 6,
+        backgroundColor: 'rgba(155, 27, 48, 0.1)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: theme.radius.full,
     },
     heroChipText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: 'rgba(255,255,255,0.9)',
+        color: theme.colors.primary,
         letterSpacing: 1.5,
     },
     heroExpBadge: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: theme.colors.primary,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: theme.radius.full,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.35)',
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 4,
     },
     heroExpText: {
         fontFamily: fonts.hud.bold,
@@ -738,12 +538,11 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     heroQuestTitle: {
-        fontFamily: fonts.hud.bold,
-        fontSize: 20,
-        color: '#FFFFFF',
-        textTransform: 'uppercase',
-        marginBottom: theme.spacing.md,
-        lineHeight: 26,
+        fontFamily: fonts.heading.bold,
+        fontSize: 22,
+        color: theme.colors.textPrimary,
+        lineHeight: 28,
+        marginBottom: 20,
     },
     heroBottomRow: {
         flexDirection: 'row',
@@ -757,34 +556,115 @@ const styles = StyleSheet.create({
     heroTargetLabel: {
         fontFamily: fonts.body.regular,
         fontSize: 10,
-        color: 'rgba(255,255,255,0.6)',
+        color: theme.colors.textMuted,
         letterSpacing: 1,
-        marginBottom: 2,
+        marginBottom: 4,
     },
     heroTargetValue: {
-        fontFamily: fonts.body.bold,
+        fontFamily: fonts.heading.bold,
         fontSize: 14,
-        color: '#FFFFFF',
+        color: theme.colors.textPrimary,
     },
     heroDeployBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: theme.radius.md,
-        gap: 4,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: theme.radius.sm,
+        gap: 6,
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 5,
     },
     heroDeployBtnDisabled: {
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: theme.colors.surfaceSoft,
+        shadowOpacity: 0,
+        elevation: 0,
     },
     heroDeployText: {
         fontFamily: fonts.heading.bold,
-        fontSize: 13,
-        color: theme.colors.primary,
+        fontSize: 14,
+        color: '#FFFFFF',
         letterSpacing: 1,
     },
     heroDeployTextDisabled: {
-        color: 'rgba(255,255,255,0.4)',
+        color: theme.colors.textMuted,
+    },
+    splitRow: {
+        flexDirection: 'row',
+        gap: 16,
+        marginBottom: 30,
+    },
+    splitCard: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        borderRadius: theme.radius.lg,
+        padding: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 4,
+    },
+    splitIconWrap: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(155, 27, 48, 0.08)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    splitValue: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 24,
+        color: theme.colors.textPrimary,
+        marginBottom: 4,
+    },
+    splitLabel: {
+        fontFamily: fonts.body.bold,
+        fontSize: 10,
+        color: theme.colors.textMuted,
+        letterSpacing: 1,
+    },
+    section: {
+        marginBottom: 30,
+    },
+    sectionTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        letterSpacing: 1.5,
+        marginBottom: 16,
+    },
+    actionGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 16,
+    },
+    actionCard: {
+        flex: 1,
+        minWidth: '28%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: theme.radius.lg,
+        padding: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 4,
+    },
+    actionIconWrap: {
+        marginBottom: 12,
+    },
+    actionText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 12,
+        color: theme.colors.textPrimary,
     },
 });
