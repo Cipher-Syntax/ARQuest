@@ -10,6 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { AVATARS } from '../../constants/Avatars';
 import { fonts } from '../../constants/typography';
 import FeedbackModal from '../../components/FeedbackModal';
+import { customAlert as Alert } from '../../components/CustomAlert';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
@@ -19,8 +20,18 @@ export default function ProfileScreen() {
     const [questHistory, setQuestHistory] = useState([]);
     const [myBadges, setMyBadges] = useState([]);
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+    const [rankModalVisible, setRankModalVisible] = useState(false);
 
     const [refreshing, setRefreshing] = useState(false);
+
+    const ALL_RANKS = [
+        { level: 1, title: 'Freshman', min_exp: 0, icon: '🎒' },
+        { level: 2, title: 'Explorer', min_exp: 100, icon: '🗺️' },
+        { level: 3, title: 'Scout', min_exp: 300, icon: '⛺' },
+        { level: 4, title: 'Ranger', min_exp: 600, icon: '🦅' },
+        { level: 5, title: 'Veteran', min_exp: 1000, icon: '⚔️' },
+        { level: 6, title: 'Campus Legend', min_exp: 2000, icon: '👑' },
+    ];
 
     const loadData = async () => {
         try {
@@ -126,7 +137,12 @@ export default function ProfileScreen() {
                             ) : (
                                 <>
                                     <View style={styles.progressHeader}>
-                                        <Text style={styles.progressTitle}>RANK PROGRESS</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                            <Text style={styles.progressTitle}>RANK PROGRESS</Text>
+                                            <TouchableOpacity onPress={() => setRankModalVisible(true)} style={{ marginLeft: 6 }}>
+                                                <HelpCircle size={14} color="rgba(255,255,255,0.7)" />
+                                            </TouchableOpacity>
+                                        </View>
                                         <Text style={styles.progressPoints}>{user.exploration_points} EXP</Text>
                                     </View>
                                     
@@ -172,12 +188,16 @@ export default function ProfileScreen() {
                         </View>
                         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgesCarousel}>
                             {myBadges.length > 0 ? myBadges.map((badge, idx) => (
-                                <View key={badge.id || idx} style={[styles.badgeItem, !badge.earned && styles.badgeItemLocked]}>
+                                <TouchableOpacity 
+                                    key={badge.id || idx} 
+                                    style={[styles.badgeItem, !badge.earned && styles.badgeItemLocked]}
+                                    onPress={() => Alert(badge.name, badge.description || "Keep playing to unlock this achievement!")}
+                                >
                                     <View style={[styles.badgeIconWrapper, !badge.earned && styles.badgeIconWrapperLocked]}>
                                         <Text style={styles.badgeIcon}>{badge.earned ? badge.icon : '🔒'}</Text>
                                     </View>
                                     <Text style={[styles.badgeName, !badge.earned && styles.badgeNameLocked]} numberOfLines={2}>{badge.name}</Text>
-                                </View>
+                                </TouchableOpacity>
                             )) : (
                                 <View style={styles.emptyContainer}>
                                     <Text style={styles.emptyText}>No badges available.</Text>
@@ -296,6 +316,46 @@ export default function ProfileScreen() {
                 visible={feedbackModalVisible} 
                 onClose={() => setFeedbackModalVisible(false)} 
             />
+
+            {/* Rank Guide Modal */}
+            {rankModalVisible && (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }]}>
+                    <View style={{ backgroundColor: theme.colors.surface, width: '85%', borderRadius: theme.radius.xl, padding: 24, maxHeight: '80%' }}>
+                        <Text style={{ fontFamily: fonts.heading.bold, fontSize: 20, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Rank Progression</Text>
+                        <Text style={{ fontFamily: fonts.body.regular, fontSize: 13, color: theme.colors.textSecondary, marginBottom: 20, textAlign: 'center' }}>Earn EXP by exploring the campus and completing quests to level up your rank!</Text>
+                        
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {ALL_RANKS.map((rank, index) => {
+                                const isCurrentRank = user?.rank_info?.level === rank.level;
+                                const isLocked = (user?.exploration_points || 0) < rank.min_exp;
+                                return (
+                                    <View key={rank.level} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: index < ALL_RANKS.length - 1 ? 1 : 0, borderBottomColor: theme.colors.border, opacity: isLocked ? 0.6 : 1 }}>
+                                        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: isCurrentRank ? 'rgba(178,24,48,0.1)' : theme.colors.surfaceSoft, justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 1, borderColor: isCurrentRank ? theme.colors.primary : theme.colors.border }}>
+                                            <Text style={{ fontSize: 24 }}>{rank.icon}</Text>
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ fontFamily: fonts.heading.bold, fontSize: 16, color: isCurrentRank ? theme.colors.primary : theme.colors.textPrimary }}>Lv.{rank.level} {rank.title}</Text>
+                                            <Text style={{ fontFamily: fonts.body.bold, fontSize: 12, color: theme.colors.textSecondary }}>{rank.min_exp} EXP Required</Text>
+                                        </View>
+                                        {isCurrentRank && (
+                                            <View style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                                                <Text style={{ fontFamily: fonts.hud.bold, color: '#FFF', fontSize: 10 }}>CURRENT</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })}
+                        </ScrollView>
+
+                        <TouchableOpacity 
+                            style={{ backgroundColor: theme.colors.primary, padding: 14, borderRadius: theme.radius.lg, marginTop: 20, alignItems: 'center' }} 
+                            onPress={() => setRankModalVisible(false)}
+                        >
+                            <Text style={{ fontFamily: fonts.heading.bold, color: '#FFFFFF', fontSize: 16 }}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
