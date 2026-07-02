@@ -1,6 +1,6 @@
 <div align="center">
   
-# 🎓 ARQuest 
+<img src="arquest-logo.svg" alt="ARQuest Logo" width="600" />
 
 **A Sensor-Assisted Campus Exploration and Accreditation Support System**  
 *Featuring GPS Geofencing, 3D Building Visualization, Gamification, and 360° Virtual Walkthroughs.*
