@@ -33,9 +33,10 @@ export default function ProfileScreen() {
 
             const resBadges = await api.get('/api/gamification/badges/');
             if (resBadges.data.success) {
-                const earnedBadges = resBadges.data.data.filter(b => b.earned);
-                setBadgeCount(`${earnedBadges.length}/${resBadges.data.data.length}`);
-                setMyBadges(earnedBadges.slice(0, 6)); // Top 6 for showcase
+                const allBadges = resBadges.data.data;
+                const earnedBadges = allBadges.filter(b => b.earned);
+                setBadgeCount(`${earnedBadges.length}/${allBadges.length}`);
+                setMyBadges(allBadges);
             }
 
             const resHistory = await api.get('/api/gamification/quests/history/');
@@ -163,20 +164,20 @@ export default function ProfileScreen() {
                                 <ChevronRight size={14} color={theme.colors.arHighlight} />
                             </TouchableOpacity>
                         </View>
-                        <View style={styles.badgeGrid}>
+                        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgesCarousel}>
                             {myBadges.length > 0 ? myBadges.map((badge, idx) => (
-                                <View key={badge.id || idx} style={styles.badgeCard}>
-                                    <View style={[styles.badgeIconWrapper, { backgroundColor: badge.color_hex + '20' }]}>
-                                        <Text style={styles.badgeIcon}>{badge.icon}</Text>
+                                <View key={badge.id || idx} style={[styles.badgeItem, !badge.earned && styles.badgeItemLocked]}>
+                                    <View style={[styles.badgeIconWrapper, !badge.earned && styles.badgeIconWrapperLocked]}>
+                                        <Text style={styles.badgeIcon}>{badge.earned ? badge.icon : '🔒'}</Text>
                                     </View>
-                                    <Text style={styles.badgeName} numberOfLines={1}>{badge.name}</Text>
+                                    <Text style={[styles.badgeName, !badge.earned && styles.badgeNameLocked]} numberOfLines={2}>{badge.name}</Text>
                                 </View>
                             )) : (
                                 <View style={styles.emptyContainer}>
-                                    <Text style={styles.emptyText}>No badges earned yet.</Text>
+                                    <Text style={styles.emptyText}>No badges available.</Text>
                                 </View>
                             )}
-                        </View>
+                        </ScrollView>
                     </View>
                 )}
 
@@ -457,33 +458,54 @@ const styles = StyleSheet.create({
         fontSize: 10,
         letterSpacing: 1,
         marginRight: 2 },
-    badgeGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-        justifyContent: 'space-between' },
-    badgeCard: {
-        width: '31%',
-        backgroundColor: theme.colors.surface,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        borderRadius: theme.radius.md,
-        padding: theme.spacing.sm,
-        alignItems: 'center' },
+    badgesCarousel: {
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        gap: 16,
+    },
+    badgeItem: {
+        width: 72,
+        alignItems: 'center',
+    },
+    badgeItemLocked: {
+        opacity: 0.6,
+    },
     badgeIconWrapper: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 6 },
+        marginBottom: 8,
+        backgroundColor: 'rgba(220, 20, 60, 0.1)',
+        borderWidth: 2,
+        borderColor: '#DC143C',
+        shadowColor: '#DC143C',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    badgeIconWrapperLocked: {
+        borderWidth: 2,
+        borderColor: theme.colors.border,
+        borderStyle: 'dashed',
+        backgroundColor: theme.colors.surfaceSoft,
+        shadowOpacity: 0,
+        elevation: 0,
+    },
     badgeIcon: {
-        fontSize: 20 },
+        fontSize: 24,
+    },
     badgeName: {
         fontFamily: fonts.heading.medium,
         color: theme.colors.textPrimary,
-        fontSize: 9,
-        textAlign: 'center' },
+        fontSize: 10,
+        textAlign: 'center',
+    },
+    badgeNameLocked: {
+        color: theme.colors.textMuted,
+    },
     emptyContainer: {
         padding: 20,
         alignItems: 'center',
