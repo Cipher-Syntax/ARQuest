@@ -1,284 +1,154 @@
-# ARQuest: A Sensor-Assisted Campus Exploration and Accreditation Support System with GPS Geofencing, 3D Building Visualization, QR-Based Optional Verification, and 360° Virtual Walkthroughs
+<div align="center">
+  
+# 🎓 ARQuest 
+
+**A Sensor-Assisted Campus Exploration and Accreditation Support System**  
+*Featuring GPS Geofencing, 3D Building Visualization, Gamification, and 360° Virtual Walkthroughs.*
+
+![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Expo](https://img.shields.io/badge/Expo-1B1F23?style=for-the-badge&logo=expo&logoColor=white)
+![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Three.js](https://img.shields.io/badge/ThreeJs-black?style=for-the-badge&logo=three.js&logoColor=white)
+![Google Maps](https://img.shields.io/badge/Google_Maps-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
+
+</div>
 
 ---
 
-# PROJECT OVERVIEW
+<div align="justify">
 
-ARQuest is a mobile-based campus exploration and accreditation support system designed to enhance spatial learning, navigation, and institutional evaluation through location-aware and visual technologies.
+## 📌 Project Overview
 
-The system integrates GPS geofencing, 3D building visualization, QR-based optional interaction, and 360° panoramic walkthroughs into a unified Android-compatible application built using React Native (Expo) with a Django REST backend.
+**ARQuest** is a mobile-based campus exploration and accreditation support system designed to enhance spatial learning, navigation, and institutional evaluation through location-aware and visual technologies. 
 
-It supports four user roles: Admin, Students, Professionals (Accreditors/Personnel), and Visitors.
+The system integrates GPS geofencing, 3D building visualization, gamified exploration, and 360° panoramic walkthroughs into a unified Android-compatible application. It is built using **React Native (Expo)** on the frontend and powered by a robust **Django REST Framework (DRF)** backend. 
 
----
-
-# 1. WHAT THE SYSTEM DOES
-
-ARQuest transforms a physical campus into a digitally interactive environment.
-
-It allows users to:
-
-- Automatically unlock buildings based on GPS geofencing
-- Access 3D building models when inside a campus zone
-- View building information, trivia, and learning content
-- Explore campus through an interactive list-based system
-- Use QR codes as optional verification or bonus interaction
-- Access 360° virtual walkthroughs for accreditation and evaluation
-- Allow administrators to manage campus content dynamically
-
-The system focuses on location-triggered visualization rather than full AR world tracking.
+It supports four distinct user roles: **Admin**, **Students**, **Professionals (Accreditors/Personnel)**, and **Visitors**, providing tailored experiences for each.
 
 ---
 
-# 2. USERS AND THEIR NEEDS
+## ✨ Core Features
 
-## Students
-- Need guided and engaging campus exploration
-- Need automatic building discovery through location
-- Need visual understanding of campus structures via 3D models
-- Need trivia and learning reinforcement
+### 📍 GPS Geofencing & Campus Navigation (Google Maps)
+- Detects user location in real-time to trigger automated building unlocks.
+- Defines campus zones per building using precise latitude/longitude radiuses.
+- Powered by the **Google Maps API** for robust point-to-point visual routing and highly accurate map tiles.
 
-## Professionals (Accreditors / Personnel)
-- Need remote or assisted facility evaluation
-- Need structured 360° walkthroughs per building
-- Need organized documentation per department
+### 🎮 Gamification & Quest System
+- **Daily Login Streaks:** Rewards consistent daily engagement with bonus exploration points.
+- **Dynamic Quests:** Directs students to specific buildings to complete objectives.
+- **Trivia & Learning:** Displays building-specific quizzes, flashcards, and trivia facts to reinforce contextual learning.
+- **Leaderboard & Ranks:** Global student rankings with Gold/Silver/Bronze tiers based on total exploration points.
 
-## Admins
-- Need to manage campus data (buildings, coordinates, content)
-- Need to upload images, 360° panoramas, and 3D models
-- Need to configure geofence zones
-- Need control over system content updates
+### 🏢 3D Building Visualization
+- Displays interactive, pre-created `.glb/.gltf` 3D building models.
+- Accessible immediately after a building is unlocked via geofencing.
+- Supports touch-based rotation, zoom, and spatial inspection of campus layouts.
 
-## Visitors
-- Need simplified campus information access
-- Need visual and location-based navigation support
+### 📸 AR-Style Camera Interface & Branded Selfies
+- Immersive camera-based UI that overlays 3D models and floating labels onto the live camera feed.
+- **Branded Selfies:** Users can capture composite photos featuring the camera feed, the 3D model, and a custom WMSU campus frame, instantly saving it to their device gallery.
 
----
+### 🌐 360° Virtual Walkthroughs & Magic Window VR
+- **Panorama-based Navigation:** Allows users to virtually explore campus spaces (e.g., Entrance → Hallway → Classroom → Office) via clickable hotspots.
+- **Magic Window VR (Accreditor Mode):** Exclusive to professional accounts, this mode utilizes the device's gyroscope to create a first-person virtual reality experience for remote building inspection and evaluation.
 
-# 3. CORE USER FLOWS
-
-## Student Flow
-
-1. Open ARQuest mobile application
-2. System continuously detects GPS location
-3. User enters a predefined campus zone (e.g., CCS building)
-4. System automatically unlocks the building
-5. 3D model becomes available for interaction
-6. User accesses:
-   - building information
-   - trivia and quizzes
-   - learning content
-7. Optional QR scan provides bonus or verification content
-8. Progress is stored in the system
+### 🛡️ Robust Admin Management System (React Web Dashboard)
+- **Draft Workflows & Soft-Deletes:** Safe content management allowing admins to save incomplete drafts and archive buildings without permanent data loss.
+- **Interactive Geofence Editor:** Visual map interface for defining campus boundaries.
+- **System Feature Toggles:** Admins can instantly enable or disable modules (GPS, QR, Trivia, Maintenance Mode) on the fly without requiring mobile app updates.
 
 ---
 
-## Accreditor Flow
+## 👥 Users and Their Needs
 
-1. Open Accreditation Mode
-2. Select a building
-3. Access 360° virtual walkthrough
-4. Navigate hotspot-based views (Entrance → Hallway → Rooms → Offices)
-5. Review building documentation and multimedia content
-6. Proceed to other campus areas for evaluation
+### 🎓 Students
+- Need guided, engaging, and gamified campus exploration.
+- Benefit from automatic building discovery, daily streak incentives, and interactive trivia.
+- Require visual understanding of campus structures via 3D models and customized profiles (avatars).
 
----
+### 👔 Professionals (Accreditors / Personnel)
+- Need remote or assisted facility evaluation without physical geofence restrictions.
+- Require structured 360° walkthroughs and Gyroscope-enabled VR tours for immersive inspections.
+- Need organized documentation per department and building.
 
-## Admin Flow
+### 🛠️ Administrators
+- Manage the entire platform via a dedicated web dashboard.
+- Upload images, 360° panoramas, 3D models, and define geofence zones.
+- Control gamification content, quests, system settings, and professional account provisioning.
 
-1. Login to admin dashboard
-2. Create or update building entry
-3. Input:
-   - GPS coordinates (geofence definition)
-   - building information
-   - trivia and quizzes
-   - 360° images
-   - pre-created 3D model files
-4. Upload photos and media assets
-5. Publish updates to the mobile system
+### 🚶 Visitors
+- Need simplified, read-only campus information access.
+- Benefit from visual and location-based navigation support before deciding to register.
 
 ---
 
-# 4. CORE FEATURES
+## 🚀 Core User Flows
 
-## GPS Geofencing System (PRIMARY TRIGGER)
+### 1️⃣ Student Flow
+1. **Open App:** Launch ARQuest; session is restored via secure JWT tokens.
+2. **Explore:** System continuously tracks GPS location via the campus map.
+3. **Discover:** User enters a predefined campus zone.
+4. **Unlock:** System automatically unlocks the building and awards points.
+5. **Interact:** User views the 3D model, completes quests, reads trivia, or takes a branded AR selfie.
+6. **Progress:** Points, streaks, and ranks are updated on the global leaderboard.
 
-- Detects user location in real time
-- Defines campus zones per building
-- Automatically unlocks buildings when user enters a zone
-- Serves as the main trigger for content access
+### 2️⃣ Accreditor Flow
+1. **Login:** Access the system via an admin-provisioned professional account.
+2. **Select:** Choose any campus building (bypassing geofence requirements).
+3. **Inspect:** Enter the **360° Virtual Walkthrough** or activate **Magic Window VR** (Gyroscope mode).
+4. **Evaluate:** Navigate hotspot-based views to review building layouts and documentation remotely.
 
----
-
-## Building List System
-
-A simplified campus map interface:
-
-- CCS ✔ Unlocked
-- Library 🔒 Locked
-- Admin Building 🔒 Locked
-
-Buildings unlock dynamically based on GPS detection.
-
----
-
-## 3D Building Visualization System
-
-- Displays pre-created building models
-- Accessible after geofence unlock
-- Supports rotation, zoom, and inspection
-- Provides spatial understanding of campus layout
+### 3️⃣ Admin Flow
+1. **Dashboard:** Log into the React 19 web admin dashboard.
+2. **Draft & Create:** Add a new building, saving it as a draft until all assets are ready.
+3. **Configure:** Define geofences via the interactive map, upload `.glb` models, and set up 360° panorama hotspots.
+4. **Publish:** Change the building status to `VISIBLE`, instantly pushing the content to all mobile users.
 
 ---
 
-## QR-Based Optional Verification System
+## 💻 Technology Stack
 
-- QR scanning is NOT required for access
-- Used for:
-  - optional verification of physical presence
-  - bonus content unlocking
-  - fallback interaction method if GPS is inaccurate
+### 📱 Mobile Application
+- **Framework:** React Native (Expo Managed Workflow)
+- **Mapping:** Google Maps API & Expo Location (GPS/Geofencing)
+- **Camera/Media:** Expo Camera API, react-native-view-shot, Expo Media Library
+- **3D/Rendering:** WebView, Three.js (for GLB rendering and panoramic spheres)
 
----
+### ⚙️ Backend API
+- **Framework:** Django 5 & Django REST Framework (DRF)
+- **Authentication:** SimpleJWT (Access/Refresh Tokens), Brevo SMTP (OTP Emails)
+- **Database:** PostgreSQL (with custom Soft-Delete architecture)
 
-## Trivia and Learning System
+### 🖥️ Admin Web Dashboard
+- **Framework:** React 19, Vite, React Router DOM
+- **HTTP Client:** Axios (with interceptors)
+- **Mapping/UI:** Leaflet (for geofence configuration), TailwindCSS / Vanilla CSS
 
-- Building-based quizzes and flashcards
-- Provides contextual learning per location
-- Enhances student engagement and retention
-
----
-
-## AR-Style Visualization Layer (Camera-Based UI)
-
-- Camera interface used for immersive presentation
-- Displays overlays, 3D previews, and UI panels
-- Does NOT implement full ARCore world tracking
-- Focuses on visual augmentation through interface layers
+### 🎨 3D Modeling & Visualization
+- **Creation:** SketchUp, Blender
+- **Format:** Optimized `.glb` / `.gltf`
+- **Engine:** Three.js
 
 ---
 
-## AR Selfie Feature
+## 🎯 Scope & Design Principles
 
-- Users can take photos with overlays and frames
-- Includes building-themed visuals and campus branding
-- Enhances engagement and user interaction
+### **Included in Scope**
+- GPS-based automatic building unlocking (geofencing).
+- 3D building visualization and 360° virtual accreditation walkthroughs.
+- Gamified learning (Trivia, Quests, Streaks, Leaderboards).
+- AR-style camera-based UI experience (non-ARCore).
+- Admin dashboard for comprehensive content, asset, and system management.
 
----
+### **Out of Scope**
+- Full ARCore world-anchored augmented reality (real-time spatial tracking).
+- Indoor centimeter-level positioning systems.
+- Unity-based immersive VR headset simulation.
+- LiDAR / RoomPlan-based automatic 3D reconstruction.
 
-## 360° Virtual Walkthrough System (Accreditation Mode)
+### **Key Design Principle**
+ARQuest is a **location-triggered** system, not a real-time world-tracking AR application. GPS geofencing is the primary mechanism for unlocking campus content. The architecture prioritizes lightweight deployability on standard Android devices using Expo React Native, relying on pre-created 3D models and 360° media for robust visualization without the overhead of heavy native game engines.
 
-- Panorama-based virtual navigation
-- Hotspot transitions between areas
-- Simulated walkthrough of real campus spaces:
-  Entrance → Hallway → Classroom → Office
-
----
-
-# 5. TECHNOLOGY STACK
-
-## Mobile Application
-- React Native (Expo Managed Workflow)
-- Expo Location API (GPS and geofencing)
-- Expo Camera API (QR scanning and camera usage)
-- WebView (3D and 360° rendering support)
-
-## Backend
-- Django
-- Django REST Framework (DRF)
-
-## Database
-- PostgreSQL
-
-## 3D Modeling
-- SketchUp (Primary tool for building modeling)
-- Blender (Optional for conversion and optimization)
-- GLB / GLTF format for mobile rendering
-
-## Visualization
-- Three.js (for 3D rendering in WebView)
-- A-Frame (optional for 3D scenes)
-
-## Mapping System
-- GPS Geolocation Services
-- Geofencing logic (client + backend validation)
-
-## Media Storage
-- Django media storage system
-- Optional cloud storage for large assets
-
----
-
-# 6. SYSTEM ARCHITECTURE
-
-```text
-React Native (Expo App)
-        ↓
-GPS Geofencing Engine
-        ↓
-Building Unlock System
-        ↓
-3D Visualization Module (WebView / Renderer)
-        ↓
-Optional QR Verification Layer
-        ↓
-Trivia & Learning System
-        ↓
-360° Accreditation Module
-        ↓
-Django REST API
-        ↓
-PostgreSQL Database
-
-```
-
-# SCOPE
-
-The system focuses on a mobile-based campus exploration and accreditation support platform that integrates GPS geofencing, 3D visualization, and 360° virtual walkthroughs.
-
-It covers location-based learning, building-level content unlocking, and administrative content management for campus information systems.
-
-# INCLUDED
-
-- GPS-based automatic building unlocking (geofencing)
-- 3D building visualization per campus location
-- Trivia and flashcard learning system
-- AR-style camera-based UI experience (non-ARCore)
-- Optional QR-based verification and bonus interaction system
-- 360° virtual accreditation walkthrough system
-- Admin dashboard for managing buildings, media, and content
-
-# EXCLUDED (OUT OF SCOPE)
-
-- Full ARCore world-anchored augmented reality (real-time spatial tracking)
-- Indoor centimeter-level positioning systems
-- Unity-based immersive VR headset simulation
-- Real-time multiplayer AR interaction between users
-- LiDAR / RoomPlan-based automatic 3D reconstruction
-- AI-generated 3D models from uploaded images
-- Fully simulated real-time 3D campus environment engine
-
-# KEY DESIGN PRINCIPLE
-
-ARQuest is a location-triggered campus exploration and accreditation support system.
-
-GPS geofencing is the primary mechanism for unlocking campus content. Once a user enters a defined zone, building information and 3D visualization become immediately available.
-
-QR codes are optional and serve only as verification or enhancement tools.
-
-The system is designed with the following principles:
-
-- Feasibility on standard Android devices using Expo React Native
-- Lightweight and deployable architecture
-- Location-based learning over full AR world tracking
-- Use of pre-created 3D models and 360° media for visualization
-
-# FINAL OUTPUT GOAL
-
-The system aims to provide:
-
-- A GPS-driven interactive campus exploration experience for students
-- A 3D visualization-based learning system for understanding campus structures
-- A structured 360° virtual walkthrough system for accreditation and evaluation
-- A centralized admin-controlled platform for managing campus content
-- A deployable Android application that supports location-based learning and virtual campus inspection
+</div>
