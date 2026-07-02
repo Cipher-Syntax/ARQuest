@@ -6,7 +6,7 @@ Phase 5 of the UI/UX Redesign focuses on the AR Camera Tab (`mobile/src/app/(tab
 ## Architecture & Components
 1. **The HUD Overlays (`ar.js`)**:
    - **Reticle (Targeting Center):** Replaced with a pulsing, animated White/Crimson crosshair.
-   - **Target Card (Top HUD):** Upgraded to a translucent, frosted glass panel (`rgba(15, 23, 42, 0.85)`) with glowing Crimson borders. Typography will use `Rajdhani` for a terminal/tech feel.
+   - **Target Card (Top HUD):** Upgraded to a crisp, clean White card (`#FFFFFF`) with glowing Crimson borders, matching the Home Tab aesthetic. Typography will use `Rajdhani` for a terminal/tech feel, with deep crimson text.
    - **Action Buttons:** The "Claim Reward" button will match the gamified action grid buttons (white/crimson).
 2. **Trivia Modal**:
    - The popup that slides down upon claiming a quest will retain a **Clean White and Crimson** look to match the aesthetic established in the Home Tab cards.
@@ -15,7 +15,7 @@ Phase 5 of the UI/UX Redesign focuses on the AR Camera Tab (`mobile/src/app/(tab
    - Badges and Rank Up toasts will be updated to match the HUD styling.
 
 ## Implementation Plan Scope
-- Overhaul `StyleSheet` in `ar.js` to implement glassmorphism and glowing borders.
+- Overhaul `StyleSheet` in `ar.js` to implement the strict Crimson and White theme (no dark mode panels).
 - Add `Animated.Value` loops for the reticle pulsing effect.
 - Update fonts to `Rajdhani` / `Exo 2` within the camera HUD.
 - No backend or data flow changes are required; this is purely a presentation layer redesign.
