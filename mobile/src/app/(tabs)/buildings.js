@@ -5,6 +5,7 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from 'expo-linear-gradient';
 import theme from "../../theme/tokens";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
@@ -249,55 +250,39 @@ export default function BuildingsScreen() {
             />
 
             {/* Routing Search Overlay */}
-            <View style={styles.hudTopBar}>
-                <View style={styles.routeCard}>
-                    <View style={styles.routeInputRow}>
-                        <Navigation color={theme.colors.success} size={18} />
-                        <View style={styles.routeInputWrapper}>
-                            <TextInput 
-                                style={[styles.routeInput, !routeOrigin && styles.routeInputDisabled]}
-                                placeholder="Your Location (GPS)"
-                                placeholderTextColor={theme.colors.success}
-                                value={originQuery}
-                                onChangeText={setOriginQuery}
-                                onFocus={() => setIsOriginFocused(true)}
-                                onBlur={() => setTimeout(() => setIsOriginFocused(false), 200)}
-                            />
-                        </View>
-                        {routeOrigin && (
-                            <TouchableOpacity onPress={handleClearOrigin} style={styles.clearRouteBtn}>
-                                <X color={theme.colors.textMuted} size={18} />
-                            </TouchableOpacity>
-                        )}
+            <LinearGradient
+                colors={['rgba(0,0,0,0.95)', 'rgba(0,0,0,0.8)', 'transparent']}
+                style={styles.searchTerminal}
+                pointerEvents="box-none"
+            >
+                <Text style={styles.terminalHeader}>[ NAV_SYS // ONLINE ]</Text>
+                
+                <View style={styles.terminalInputContainer}>
+                    <View style={styles.terminalInputRow}>
+                        <Text style={styles.terminalInputLabel}>ORG:</Text>
+                        <TextInput
+                            style={styles.terminalInput}
+                            placeholder="LOCALIZATION ACTIVE"
+                            placeholderTextColor="#666666"
+                            value={originQuery}
+                            onChangeText={setOriginQuery}
+                            onFocus={() => { setIsOriginFocused(true); setIsSearchFocused(false); }}
+                            onBlur={() => setTimeout(() => setIsOriginFocused(false), 200)}
+                        />
                     </View>
                     
-                    <View style={styles.routeDivider} />
-                    
-                    <View style={styles.routeInputRow}>
-                        <Search color={theme.colors.arHighlight} size={18} />
-                        <View style={styles.routeInputWrapper}>
-                            <TextInput 
-                                style={styles.routeInput}
-                                placeholder="Search target building..."
-                                placeholderTextColor={theme.colors.textMuted}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                onFocus={() => setIsSearchFocused(true)}
-                                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                            />
-                        </View>
-                        {routeTarget && (
-                            <TouchableOpacity onPress={handleClearRoute} style={styles.clearRouteBtn}>
-                                <X color={theme.colors.textMuted} size={18} />
-                            </TouchableOpacity>
-                        )}
+                    <View style={styles.terminalInputRowActive}>
+                        <Text style={styles.terminalInputLabel}>DST:</Text>
+                        <TextInput
+                            style={styles.terminalInputActive}
+                            placeholder="INPUT COORDINATES"
+                            placeholderTextColor="#888888"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            onFocus={() => { setIsSearchFocused(true); setIsOriginFocused(false); }}
+                            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                        />
                     </View>
-
-                    {routeDistance !== null && (
-                        <View style={styles.distanceContainer}>
-                            <Text style={styles.distanceText}>Straight-line distance: {routeDistance}m</Text>
-                        </View>
-                    )}
                 </View>
 
                 {isOriginFocused && originQuery.length > 0 && (
@@ -349,7 +334,7 @@ export default function BuildingsScreen() {
                         </ScrollView>
                     </View>
                 )}
-            </View>
+            </LinearGradient>
 
             {/* AR Gamified Bottom Sheet Modal */}
             <Modal
@@ -570,47 +555,68 @@ const styles = StyleSheet.create({
         marginTop: 10,
         fontWeight: 'bold',
         letterSpacing: 2 },
-    hudTopBar: {
+    searchTerminal: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        paddingTop: 50, // Safe area top
-        paddingHorizontal: theme.spacing.md },
-    routeCard: {
-        backgroundColor: theme.colors.bgPrimary,
-        borderRadius: theme.radius.lg,
-        padding: theme.spacing.sm,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 5 },
-    routeInputRow: {
+        paddingTop: 60,
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+        borderTopWidth: 4,
+        borderTopColor: theme.colors.primary,
+        zIndex: 10,
+    },
+    terminalHeader: {
+        fontFamily: 'monospace',
+        fontSize: 10,
+        color: theme.colors.primary,
+        letterSpacing: 2,
+        marginBottom: 16,
+    },
+    terminalInputContainer: {
+        borderLeftWidth: 2,
+        borderLeftColor: theme.colors.primary,
+        paddingLeft: 12,
+        gap: 12,
+    },
+    terminalInputRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: theme.spacing.sm },
-    routeInputWrapper: {
+    },
+    terminalInputRowActive: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    terminalInputLabel: {
+        fontFamily: 'monospace',
+        fontSize: 12,
+        color: '#666666',
+        width: 35,
+    },
+    terminalInput: {
         flex: 1,
-        marginLeft: theme.spacing.sm },
-    routeInput: {
-        height: 40,
-        color: theme.colors.textPrimary,
-        fontFamily: fonts.heading.medium,
-        fontSize: 16,
-        letterSpacing: 1 },
-    routeInputDisabled: {
-        color: theme.colors.success,
-        fontFamily: fonts.heading.bold },
-    routeDivider: {
-        height: 1,
-        backgroundColor: theme.colors.surfaceSoft,
-        marginVertical: 4,
-        marginLeft: 36 },
-    clearRouteBtn: {
-        padding: theme.spacing.xs },
+        fontFamily: 'monospace',
+        fontSize: 12,
+        color: '#FFFFFF',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderColor: '#333333',
+    },
+    terminalInputActive: {
+        flex: 1,
+        fontFamily: 'monospace',
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: theme.colors.primary,
+        backgroundColor: 'rgba(178,24,48,0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+    },
     searchResultsContainer: {
         marginTop: theme.spacing.sm,
         backgroundColor: theme.colors.bgPrimary,
