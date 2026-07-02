@@ -251,7 +251,7 @@ export default function BuildingsScreen() {
 
             {/* Routing Search Overlay */}
             <LinearGradient
-                colors={['rgba(0,0,0,0.95)', 'rgba(0,0,0,0.8)', 'transparent']}
+                colors={['rgba(0,0,0,0.95)', 'rgba(0,0,0,0.8)', 'rgba(0,0,0,0.4)']}
                 style={styles.searchTerminal}
                 pointerEvents="box-none"
             >
@@ -261,7 +261,7 @@ export default function BuildingsScreen() {
                     <View style={styles.terminalInputRow}>
                         <Text style={styles.terminalInputLabel}>ORG:</Text>
                         <TextInput
-                            style={styles.terminalInput}
+                            style={[styles.terminalInput, !routeOrigin && { color: theme.colors.success, fontWeight: 'bold' }]}
                             placeholder="LOCALIZATION ACTIVE"
                             placeholderTextColor="#666666"
                             value={originQuery}
@@ -294,7 +294,9 @@ export default function BuildingsScreen() {
                         )}
                     </View>
                 </View>
+            </LinearGradient>
 
+            <View style={{ position: 'absolute', top: 150, left: 0, right: 0, paddingHorizontal: 20, zIndex: 20 }} pointerEvents="box-none">
                 {isOriginFocused && originQuery.length > 0 && (
                     <View style={styles.searchResultsContainer}>
                         <ScrollView style={styles.searchResultsList} keyboardShouldPersistTaps="handled">
@@ -344,7 +346,7 @@ export default function BuildingsScreen() {
                         </ScrollView>
                     </View>
                 )}
-            </LinearGradient>
+            </View>
 
             {/* AR Gamified Bottom Sheet Modal */}
             <Modal
