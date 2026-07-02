@@ -2,62 +2,55 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Overhaul the Explore Map Tab to match the Gamified Crimson + White visual aesthetic using tactical HUD elements.
+**Goal:** Overhaul the Map Tab (buildings.js) to match the Gamified Crimson + White visual aesthetic using tactical HUD elements.
 
-**Architecture:** We will apply frontend styling updates to `mobile/src/app/(tabs)/explore.js`. We will redesign the search overlay into a Cyberpunk Side Terminal, and the building details modal into a Tactical HUD Command Panel. The underlying React Native Maps and location hooks will remain unchanged.
+**Architecture:** We will apply frontend styling updates to `mobile/src/app/(tabs)/buildings.js` and `mobile/assets/buildings-map.html`. We will redesign the search overlay into a Cyberpunk Side Terminal, the building details modal into a Tactical HUD Command Panel, and update the Leaflet map styles for route lines and markers.
 
-**Tech Stack:** React Native, Expo Router, React Native Maps, Lucide Icons, Expo Linear Gradient
+**Tech Stack:** React Native, Expo Router, Leaflet (via WebView), Lucide Icons, Expo Linear Gradient
 
 ---
 
-### Task 1: Update Map Polyline & Markers
+### Task 1: Update Leaflet Map Polyline & Markers
 
 **Files:**
-- Modify: `mobile/src/app/(tabs)/explore.js`
+- Modify: `mobile/assets/buildings-map.html`
 
-- [ ] **Step 1: Update Map Polyline Styles**
-Update the `<Polyline>` inside the `<MapView>` to use the Crimson theme.
+- [ ] **Step 1: Update Routing Polyline Styles**
+Locate the `L.polyline` creation (in `updateRoute` or similar) in `buildings-map.html` and update its visual style to match the glowing Crimson theme.
 ```javascript
-<Polyline
-    coordinates={routeCoordinates}
-    strokeColor="#B21830"
-    strokeWidth={4}
-    lineDashPattern={[8, 4]}
-/>
+// Existing: L.polyline(routeCoords, { color: 'blue', weight: 4 }).addTo(routeLayer);
+// New:
+L.polyline(routeCoords, { 
+    color: '#B21830', 
+    weight: 5,
+    dashArray: '10, 5'
+}).addTo(routeLayer);
 ```
 
-- [ ] **Step 2: Update Building Markers**
-Update the `<Marker>` rendering loop. Apply a distinct dark-grey/crimson look for unlocked vs locked buildings.
+- [ ] **Step 2: Update Building Markers HTML/CSS**
+Locate the marker creation logic (usually `L.divIcon` inside `renderMarkers` or similar). Update the HTML and CSS of the marker to reflect the dark-grey/crimson look for unlocked vs locked buildings.
 ```javascript
-{buildingsList.map((building) => {
-    const isUnlocked = unlockedBuildings.includes(building.id);
-    return (
-        <Marker
-            key={building.id}
-            coordinate={{ latitude: building.latitude, longitude: building.longitude }}
-            onPress={() => handleBuildingSelect(building)}
-        >
-            <View style={{
-                backgroundColor: isUnlocked ? '#333333' : 'rgba(0,0,0,0.6)',
-                borderWidth: 2,
-                borderColor: isUnlocked ? theme.colors.primary : '#555555',
-                padding: 4,
-                borderRadius: 4
-            }}>
-                <MapPin size={24} color={isUnlocked ? theme.colors.primary : '#888888'} />
-            </View>
-        </Marker>
-    );
-})}
+// Find the logic where marker HTML is constructed based on 'isUnlocked'
+// Update the HTML string to use the new tactical aesthetic:
+const bgColor = isUnlocked ? '#333333' : 'rgba(0,0,0,0.6)';
+const borderColor = isUnlocked ? '#B21830' : '#555555';
+const iconColor = isUnlocked ? '#B21830' : '#888888';
+
+const customIcon = L.divIcon({
+    className: 'custom-div-icon',
+    html: `<div style="background-color: ${bgColor}; border: 2px solid ${borderColor}; padding: 4px; border-radius: 4px; display: flex; justify-content: center; align-items: center; width: 24px; height: 24px;">
+               <div style="width: 12px; height: 12px; background-color: ${iconColor}; border-radius: 50%;"></div>
+           </div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+});
 ```
+*(Adjust the exact HTML string as needed to fit into the existing Leaflet marker setup, but ensure the colors `#B21830`, `#333333` and `#555555` are used).*
 
-- [ ] **Step 3: Run app to verify map styling**
-Run: `npm start` inside `mobile` directory. Open the Explore tab and manually verify the map markers and routing line colors are updated.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 ```bash
-git add mobile/src/app/\(tabs\)/explore.js
-git commit -m "feat(mobile): style map routing and markers for explore tab"
+git add mobile/assets/buildings-map.html
+git commit -m "feat(mobile): style leaflet map routing and markers"
 ```
 
 ---
@@ -65,13 +58,13 @@ git commit -m "feat(mobile): style map routing and markers for explore tab"
 ### Task 2: Cyberpunk Side Terminal (Search Overlay)
 
 **Files:**
-- Modify: `mobile/src/app/(tabs)/explore.js`
+- Modify: `mobile/src/app/(tabs)/buildings.js`
 
 - [ ] **Step 1: Replace Search Overlay JSX**
-Replace the existing search bar container with a top-anchored LinearGradient terminal.
+Locate the `<View style={styles.searchOverlay}>` (around lines 230-290) in `buildings.js` containing the origin and destination `<TextInput>`s. Replace it with a `<LinearGradient>` top-anchored terminal. Note: you will need to import `LinearGradient` from `'expo-linear-gradient'`.
 ```javascript
 <LinearGradient
-    colors={['rgba(0,0,0,0.9)', 'transparent']}
+    colors={['rgba(0,0,0,0.95)', 'rgba(0,0,0,0.8)', 'transparent']}
     style={styles.searchTerminal}
     pointerEvents="box-none"
 >
@@ -84,7 +77,10 @@ Replace the existing search bar container with a top-anchored LinearGradient ter
                 style={styles.terminalInput}
                 placeholder="LOCALIZATION ACTIVE"
                 placeholderTextColor="#666666"
-                editable={false}
+                value={originQuery}
+                onChangeText={setOriginQuery}
+                onFocus={() => { setIsOriginFocused(true); setIsSearchFocused(false); }}
+                onBlur={() => setTimeout(() => setIsOriginFocused(false), 200)}
             />
         </View>
         
@@ -96,6 +92,8 @@ Replace the existing search bar container with a top-anchored LinearGradient ter
                 placeholderTextColor="#888888"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                onFocus={() => { setIsSearchFocused(true); setIsOriginFocused(false); }}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
             />
         </View>
     </View>
@@ -103,7 +101,7 @@ Replace the existing search bar container with a top-anchored LinearGradient ter
 ```
 
 - [ ] **Step 2: Add Terminal Styles**
-Add the corresponding styles to the `StyleSheet`.
+Remove the old `searchOverlay`, `searchInputWrapper`, `searchInput` styles and add the new terminal styles.
 ```javascript
 searchTerminal: {
     position: 'absolute',
@@ -115,6 +113,7 @@ searchTerminal: {
     paddingBottom: 40,
     borderTopWidth: 4,
     borderTopColor: theme.colors.primary,
+    zIndex: 10,
 },
 terminalHeader: {
     fontFamily: 'monospace',
@@ -148,22 +147,29 @@ terminalInput: {
     fontFamily: 'monospace',
     fontSize: 12,
     color: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#333333',
 },
 terminalInputActive: {
     flex: 1,
     fontFamily: 'monospace',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: theme.colors.primary,
+    backgroundColor: 'rgba(178,24,48,0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
 },
 ```
 
-- [ ] **Step 3: Test Search Overlay UI**
-Check the Expo app manually to ensure the side terminal overlay appears correctly over the map.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 ```bash
-git add mobile/src/app/\(tabs\)/explore.js
+git add mobile/src/app/\(tabs\)/buildings.js
 git commit -m "feat(mobile): implement cyberpunk side terminal for map search"
 ```
 
@@ -172,55 +178,83 @@ git commit -m "feat(mobile): implement cyberpunk side terminal for map search"
 ### Task 3: Tactical HUD Command Panel (Bottom Modal)
 
 **Files:**
-- Modify: `mobile/src/app/(tabs)/explore.js`
+- Modify: `mobile/src/app/(tabs)/buildings.js`
 
 - [ ] **Step 1: Replace Building Modal JSX**
-Locate the existing modal/popup for selected buildings and replace it with the Tactical HUD Bottom Sheet.
+Locate the existing Modal for `selectedBuilding` (around line 354, containing `bottomSheet`, `sheetHeader`, etc.). Replace the `TouchableOpacity` active area inside the modal with the Tactical HUD structure.
 ```javascript
-{selectedBuilding && (
-    <View style={styles.tacticalModalContainer}>
-        <View style={styles.tacticalModalHeader}>
-            <View>
-                <Text style={styles.tacticalModalSubtitle}>TARGET ACQUIRED</Text>
-                <Text style={styles.tacticalModalTitle}>{selectedBuilding.name}</Text>
-                <Text style={styles.tacticalModalDistance}>Distance: {selectedBuilding.distance || '?'}m</Text>
-            </View>
-            <View style={[styles.tacticalModalBadge, !unlockedBuildings.includes(selectedBuilding.id) && styles.tacticalModalBadgeLocked]}>
-                <Text style={[styles.tacticalBadgeText, !unlockedBuildings.includes(selectedBuilding.id) && styles.tacticalBadgeTextLocked]}>
-                    {unlockedBuildings.includes(selectedBuilding.id) ? 'UNLOCKED' : 'LOCKED'}
-                </Text>
-            </View>
-        </View>
-
-        <View style={styles.tacticalActionGrid}>
-            <TouchableOpacity 
-                style={[styles.tacticalActionBtn, !unlockedBuildings.includes(selectedBuilding.id) && styles.tacticalActionBtnDisabled]}
-                disabled={!unlockedBuildings.includes(selectedBuilding.id)}
-                onPress={() => handleDeployAR(selectedBuilding)}
-            >
-                <Text style={styles.tacticalActionText}>DEPLOY AR</Text>
-            </TouchableOpacity>
+{/* AR Gamified Bottom Sheet Modal */}
+<Modal
+    animationType="slide"
+    transparent={true}
+    visible={modalVisible}
+    onRequestClose={() => setModalVisible(false)}
+>
+    <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setModalVisible(false)}>
+        <TouchableOpacity activeOpacity={1} style={styles.tacticalModalContainer}>
             
-            <TouchableOpacity 
-                style={[styles.tacticalActionBtn, !unlockedBuildings.includes(selectedBuilding.id) && styles.tacticalActionBtnDisabled]}
-                disabled={!unlockedBuildings.includes(selectedBuilding.id)}
-                onPress={() => handleVirtualTour(selectedBuilding)}
-            >
-                <Text style={styles.tacticalActionText}>3D SCAN</Text>
-            </TouchableOpacity>
-        </View>
+            {selectedBuilding && (
+                <>
+                    <View style={styles.tacticalModalHeader}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.tacticalModalSubtitle}>TARGET ACQUIRED</Text>
+                            <Text style={styles.tacticalModalTitle} numberOfLines={2}>{selectedBuilding.name}</Text>
+                            {routeDistance && (
+                                <Text style={styles.tacticalModalDistance}>Distance: {routeDistance}</Text>
+                            )}
+                        </View>
+                        
+                        <View style={[
+                            styles.tacticalModalBadge, 
+                            !unlockedBuildings.some(b => b.id === selectedBuilding.id) && styles.tacticalModalBadgeLocked
+                        ]}>
+                            <Text style={[
+                                styles.tacticalBadgeText,
+                                !unlockedBuildings.some(b => b.id === selectedBuilding.id) && styles.tacticalBadgeTextLocked
+                            ]}>
+                                {unlockedBuildings.some(b => b.id === selectedBuilding.id) ? 'UNLOCKED' : 'LOCKED'}
+                            </Text>
+                        </View>
+                    </View>
 
-        {!unlockedBuildings.includes(selectedBuilding.id) && (
-            <Text style={styles.tacticalWarningText}>
-                ⚠ PHYSICAL DEPLOYMENT REQUIRED TO UNLOCK
-            </Text>
-        )}
-    </View>
-)}
+                    <View style={styles.tacticalActionGrid}>
+                        <TouchableOpacity 
+                            style={[
+                                styles.tacticalActionBtn, 
+                                (!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor') && styles.tacticalActionBtnDisabled
+                            ]}
+                            disabled={!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor'}
+                            onPress={handleDeployAR}
+                        >
+                            <Text style={styles.tacticalActionText}>DEPLOY AR</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                            style={[
+                                styles.tacticalActionBtn, 
+                                (!canView3D) && styles.tacticalActionBtnDisabled
+                            ]}
+                            disabled={!canView3D}
+                            onPress={handleView3D}
+                        >
+                            <Text style={styles.tacticalActionText}>3D SCAN</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {(!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor') && (
+                        <Text style={styles.tacticalWarningText}>
+                            ⚠ PHYSICAL DEPLOYMENT REQUIRED TO UNLOCK
+                        </Text>
+                    )}
+                </>
+            )}
+        </TouchableOpacity>
+    </TouchableOpacity>
+</Modal>
 ```
 
 - [ ] **Step 2: Add Tactical Modal Styles**
-Add the styles to `explore.js`.
+Remove the old `bottomSheet`, `sheetHeader`, `buildingName`, `badge`, `actionButtons`, `view3dButton`, etc., and replace them with the Tactical HUD styles. Ensure you keep unrelated modal styles (like `modalOverlay`).
 ```javascript
 tacticalModalContainer: {
     position: 'absolute',
@@ -264,6 +298,7 @@ tacticalModalBadge: {
     borderColor: '#999999',
     paddingHorizontal: 8,
     paddingVertical: 4,
+    marginLeft: 12,
 },
 tacticalModalBadgeLocked: {
     backgroundColor: 'rgba(178,24,48,0.2)',
@@ -309,11 +344,8 @@ tacticalWarningText: {
 },
 ```
 
-- [ ] **Step 3: Test Modal Functionality**
-Select a locked and an unlocked building on the map and verify the popup renders the Tactical HUD accurately.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 ```bash
-git add mobile/src/app/\(tabs\)/explore.js
+git add mobile/src/app/\(tabs\)/buildings.js
 git commit -m "feat(mobile): implement tactical hud command panel for building selection"
 ```
