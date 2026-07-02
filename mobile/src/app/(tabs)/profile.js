@@ -183,23 +183,15 @@ export default function ProfileScreen() {
 
                 {/* --- Quest History --- */}
                 <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>RECENT QUESTS</Text>
-                    <View style={styles.settingsCard}>
+                    <Text style={styles.sectionTitle}>MISSION LOG</Text>
+                    <View style={styles.missionLogCard}>
                         {questHistory.length > 0 ? questHistory.slice(0, 5).map((quest, idx) => (
-                            <View key={idx} style={[styles.historyRow, idx < Math.min(questHistory.length, 5) - 1 && styles.historyDivider]}>
-                                <View style={styles.historyIconWrapper}>
-                                    <Crosshair size={16} color={theme.colors.primary} />
-                                </View>
-                                <View style={styles.historyTextContainer}>
-                                    <Text style={styles.historyTitle} numberOfLines={1}>{quest.quest_title}</Text>
-                                    <Text style={styles.historySubtitle}>{quest.building_name}</Text>
-                                </View>
-                                <View style={styles.historyRight}>
-                                    <Text style={styles.historyPoints}>+{quest.points} EXP</Text>
-                                    <Text style={styles.historyTime}>
-                                        {new Date(quest.time_ago).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
-                                    </Text>
-                                </View>
+                            <View key={idx} style={[styles.missionLogRow, idx < Math.min(questHistory.length, 5) - 1 && styles.missionLogDivider]}>
+                                <Text style={styles.missionLogText}>
+                                    <Text style={styles.missionLogPrefix}>[COMPLETED]</Text> {new Date(quest.time_ago).toLocaleDateString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit'})}
+                                </Text>
+                                <Text style={styles.missionLogText}>TARGET: {quest.target_building || quest.building_name}</Text>
+                                <Text style={styles.missionLogReward}>REWARD: +{quest.points} EXP</Text>
                             </View>
                         )) : (
                             <View style={styles.emptyContainer}>
@@ -574,43 +566,30 @@ const styles = StyleSheet.create({
         color: theme.colors.error,
         fontSize: 16,
         fontWeight: "bold" },
-    historyRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16 },
-    historyDivider: {
+    missionLogCard: {
+        backgroundColor: theme.colors.surfaceSoft,
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.primary,
+        padding: 12,
+        borderRadius: 4 },
+    missionLogRow: {
+        paddingVertical: 10 },
+    missionLogDivider: {
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border },
-    historyIconWrapper: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: theme.colors.primarySoft,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12 },
-    historyTextContainer: {
-        flex: 1 },
-    historyTitle: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.textPrimary,
-        fontSize: 13,
-        marginBottom: 2 },
-    historySubtitle: {
-        fontFamily: fonts.body.regular,
+        borderBottomColor: theme.colors.border,
+        borderStyle: 'dashed' },
+    missionLogText: {
+        fontFamily: 'monospace',
         color: theme.colors.textSecondary,
-        fontSize: 11 },
-    historyRight: {
-        alignItems: 'flex-end' },
-    historyPoints: {
-        fontFamily: fonts.hud.bold,
-        color: theme.colors.accent,
         fontSize: 12,
-        marginBottom: 2 },
-    historyTime: {
-        fontFamily: fonts.body.regular,
-        color: theme.colors.textMuted,
-        fontSize: 10 } });
+        marginBottom: 4 },
+    missionLogPrefix: {
+        color: theme.colors.primary,
+        fontWeight: 'bold' },
+    missionLogReward: {
+        fontFamily: 'monospace',
+        color: theme.colors.primary,
+        fontWeight: 'bold',
+        fontSize: 12 } });
 
 
