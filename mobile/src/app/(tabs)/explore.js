@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { router } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, RefreshControl } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, RefreshControl, Easing } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
@@ -53,7 +54,6 @@ export default function ExploreScreen() {
         }
     };
 
-    // Fetch total buildings for progress bar and active quests
     useEffect(() => {
         loadData();
     }, []);
@@ -88,25 +88,46 @@ export default function ExploreScreen() {
                 distance: getDistance(location.latitude, location.longitude, b.latitude, b.longitude)
             }))
             .sort((a, b) => a.distance - b.distance)
-            .slice(0, 5); // top 5 closest
+            .slice(0, 5);
     }, [location, buildingsList]);
 
-    // Radar Pulse Animation
-    const pulseAnim = useRef(new Animated.Value(1)).current;
+    // Radar Pulse & Spin Animations
+    const pulseAnim1 = useRef(new Animated.Value(1)).current;
+    const pulseAnim2 = useRef(new Animated.Value(1)).current;
+    const spinAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (isTracking) {
             Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, { toValue: 1.3, duration: 1200, useNativeDriver: true }),
-                    Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true })
+                Animated.stagger(600, [
+                    Animated.sequence([
+                        Animated.timing(pulseAnim1, { toValue: 1.5, duration: 1800, useNativeDriver: true }),
+                        Animated.timing(pulseAnim1, { toValue: 1, duration: 0, useNativeDriver: true })
+                    ]),
+                    Animated.sequence([
+                        Animated.timing(pulseAnim2, { toValue: 1.5, duration: 1800, useNativeDriver: true }),
+                        Animated.timing(pulseAnim2, { toValue: 1, duration: 0, useNativeDriver: true })
+                    ])
                 ])
             ).start();
+
+            Animated.loop(
+                Animated.timing(spinAnim, { toValue: 1, duration: 4000, easing: Easing.linear, useNativeDriver: true })
+            ).start();
         } else {
-            pulseAnim.setValue(1);
-            Animated.timing(pulseAnim).stop();
+            pulseAnim1.setValue(1);
+            pulseAnim2.setValue(1);
+            spinAnim.setValue(0);
+            Animated.timing(pulseAnim1).stop();
+            Animated.timing(pulseAnim2).stop();
+            Animated.timing(spinAnim).stop();
         }
     }, [isTracking]);
+
+    const spinInterpolate = spinAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg']
+    });
 
     useEffect(() => {
         if (location) {
@@ -129,7 +150,7 @@ export default function ExploreScreen() {
             if (result.status === 'inside' && result.building) {
                 const buildingId = result.building.id;
                 if (result.building.is_active === false) {
-                    // Building is closed, do not attempt to unlock
+                    // Building is closed
                 } else if (lastUnlockAttempt !== buildingId) {
                     try {
                         const unlockResult = await attemptUnlock(location.latitude, location.longitude, location.accuracy || 10);
@@ -137,12 +158,11 @@ export default function ExploreScreen() {
                         
                         SoundManager.play('building_unlock');
 
-                        // Show badge toast if any newly earned
                         const badges = unlockResult?.newly_earned_badges || [];
                         if (badges.length > 0) {
                             setTimeout(() => {
                                 SoundManager.play('badge_earned');
-                            }, 1500); // slight delay so it doesn't clash with building unlock
+                            }, 1500);
 
                             setEarnedBadges(badges);
                             badgeAnim.setValue(0);
@@ -174,7 +194,12 @@ export default function ExploreScreen() {
     };
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
+        {/* Subtle Background Gradient */}
+        <LinearGradient
+            colors={['#FFFFFF', '#F2F4F7']}
+            style={StyleSheet.absoluteFillObject}
+        />
         <ScrollView 
             style={styles.container} 
             contentContainerStyle={styles.contentContainer} 
@@ -185,39 +210,60 @@ export default function ExploreScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>AR Explorer</Text>
-                <Text style={styles.subtitle}>Scan campus to unlock AR content</Text>
+                <Text style={styles.subtitle}>Start scanning to find nearby buildings</Text>
             </View>
 
-            {/* Radar Section */}
+            {/* Premium Radar Section */}
             <View style={styles.radarContainer}>
+                {/* Sonar Rings */}
                 <Animated.View style={[
                     styles.radarRing, 
                     isTracking && styles.radarRingActive,
-                    { transform: [{ scale: pulseAnim }] }
+                    { transform: [{ scale: pulseAnim1 }], opacity: pulseAnim1.interpolate({ inputRange: [1, 1.5], outputRange: [isTracking ? 0.8 : 0, 0] }) }
+                ]} />
+                <Animated.View style={[
+                    styles.radarRing, 
+                    isTracking && styles.radarRingActive,
+                    { transform: [{ scale: pulseAnim2 }], opacity: pulseAnim2.interpolate({ inputRange: [1, 1.5], outputRange: [isTracking ? 0.6 : 0, 0] }) }
                 ]} />
                 
+                {/* Rotating Dashed Ring */}
+                {isTracking && (
+                    <Animated.View style={[
+                        styles.radarDashedRing,
+                        { transform: [{ rotate: spinInterpolate }] }
+                    ]} />
+                )}
+                
                 <TouchableOpacity 
-                    style={[styles.radarButton, isTracking && styles.radarButtonActive]} 
+                    style={styles.radarButtonWrapper} 
                     onPress={isTracking ? stopTracking : handleStartTracking}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                 >
-                    <Ionicons name={isTracking ? "power" : "scan-circle"} size={50} color={theme.colors.white} />
-                    <Text style={styles.radarButtonText}>
-                        {isTracking ? "STOP SCAN" : "START SCAN"}
-                    </Text>
+                    <LinearGradient
+                        colors={isTracking ? ['#850F22', '#B21830'] : ['#B21830', '#E53935']}
+                        style={styles.radarButton}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        <Ionicons name={isTracking ? "stop" : "search"} size={48} color={theme.colors.white} />
+                        <Text style={styles.radarButtonText}>
+                            {isTracking ? "STOP SCAN" : "START SCAN"}
+                        </Text>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
 
             {/* Error States */}
             {permissionStatus === 'denied' && (
                 <View style={styles.alertBox}>
-                    <Ionicons name="warning" size={24} color={theme.colors.error} />
-                    <Text style={styles.alertText}>Location permission denied. Please enable it in settings.</Text>
+                    <Ionicons name="warning" size={28} color={theme.colors.error} />
+                    <Text style={styles.alertText}>Location access denied. Please enable in settings.</Text>
                 </View>
             )}
             {error && (
                 <View style={styles.alertBox}>
-                    <Ionicons name="alert-circle" size={24} color={theme.colors.error} />
+                    <Ionicons name="alert-circle" size={28} color={theme.colors.error} />
                     <Text style={styles.alertText}>{error}</Text>
                 </View>
             )}
@@ -226,50 +272,46 @@ export default function ExploreScreen() {
             {isTracking && (
                 <View style={styles.card}>
                     <View style={styles.cardHeaderRow}>
-                        <Ionicons name="hardware-chip-outline" size={20} color={theme.colors.primary} />
-                        <Text style={styles.cardTitle}>TELEMETRY DATA</Text>
+                        <Ionicons name="location" size={22} color={theme.colors.primary} />
+                        <Text style={styles.cardTitle}>YOUR LOCATION</Text>
+                        {isValidating && <ActivityIndicator size="small" color={theme.colors.primary} style={{marginLeft: 'auto'}}/>}
                     </View>
                     
                     {location ? (
                         <View style={styles.telemetryGrid}>
-                            <View style={styles.telemetryItem}>
-                                <Text style={styles.telemetryLabel}>LATITUDE</Text>
-                                <Text style={styles.telemetryValue}>{location.latitude.toFixed(5)}°</Text>
+                            <View style={styles.telemetryPill}>
+                                <Text style={styles.telemetryLabel}>Latitude</Text>
+                                <Text style={styles.telemetryValue}>{location.latitude.toFixed(5)}</Text>
                             </View>
-                            <View style={styles.telemetryItem}>
-                                <Text style={styles.telemetryLabel}>LONGITUDE</Text>
-                                <Text style={styles.telemetryValue}>{location.longitude.toFixed(5)}°</Text>
+                            <View style={styles.telemetryPill}>
+                                <Text style={styles.telemetryLabel}>Longitude</Text>
+                                <Text style={styles.telemetryValue}>{location.longitude.toFixed(5)}</Text>
                             </View>
-                            <View style={styles.telemetryItem}>
-                                <Text style={styles.telemetryLabel}>ACCURACY</Text>
-                                <Text style={styles.telemetryValue}>±{location.accuracy?.toFixed(1)}m</Text>
+                            <View style={styles.telemetryPill}>
+                                <Text style={styles.telemetryLabel}>Accuracy</Text>
+                                <Text style={styles.telemetryValue}>± {location.accuracy?.toFixed(0)}m</Text>
                             </View>
                         </View>
                     ) : (
                         <View style={styles.loadingBox}>
                             <ActivityIndicator size="small" color={theme.colors.primary} />
-                            <Text style={styles.loadingText}>Acquiring GPS Signal...</Text>
+                            <Text style={styles.loadingText}>Finding your location...</Text>
                         </View>
                     )}
 
                     <View style={styles.divider} />
 
                     <View style={styles.cardHeaderRow}>
-                        <Ionicons name="radar-outline" size={20} color={theme.colors.primary} />
-                        <Text style={styles.cardTitle}>TARGET SCAN</Text>
+                        <Ionicons name="business" size={22} color={theme.colors.primary} />
+                        <Text style={styles.cardTitle}>TARGET BUILDING</Text>
                     </View>
 
-                    {isValidating ? (
-                        <View style={styles.loadingBox}>
-                            <ActivityIndicator size="small" color={theme.colors.primary} />
-                            <Text style={styles.loadingText}>Analyzing surroundings...</Text>
-                        </View>
-                    ) : validationResult?.building ? (
-                        <View style={[styles.targetBox, validationResult.status === 'inside' ? (validationResult.building.is_active === false ? styles.targetLocked : styles.targetUnlocked) : styles.targetLocked]}>
+                    {validationResult?.building ? (
+                        <View style={[styles.targetBox, validationResult.status === 'inside' ? (validationResult.building.is_active === false ? styles.targetLocked : styles.targetUnlocked) : styles.targetSearching]}>
                             <View style={styles.targetIcon}>
                                 <Ionicons 
-                                    name={validationResult.status === 'inside' ? (validationResult.building.is_active === false ? "warning" : "unlock") : "lock-closed"} 
-                                    size={30} 
+                                    name={validationResult.status === 'inside' ? (validationResult.building.is_active === false ? "warning" : "star") : "walk"} 
+                                    size={32} 
                                     color={validationResult.status === 'inside' && validationResult.building.is_active !== false ? theme.colors.white : theme.colors.primary} 
                                 />
                             </View>
@@ -279,14 +321,15 @@ export default function ExploreScreen() {
                                 </Text>
                                 <Text style={[styles.targetDistance, validationResult.status === 'inside' && validationResult.building.is_active !== false && styles.textWhite, validationResult.building.is_active === false && {color: theme.colors.error}]}>
                                     {validationResult.status === 'inside' 
-                                        ? (validationResult.building.is_active === false ? 'Building Closed / Under Renovation' : 'AR Content Unlocked!') 
-                                        : `Distance: ${validationResult.distance_meters}m away`}
+                                        ? (validationResult.building.is_active === false ? 'Building is Closed' : 'AR Content Unlocked!') 
+                                        : `Distance: ${validationResult.distance_meters} meters away`}
                                 </Text>
                             </View>
                         </View>
                     ) : (
                         <View style={styles.noTargetBox}>
-                            <Text style={styles.noTargetText}>No buildings detected in immediate vicinity.</Text>
+                            <Ionicons name="search" size={24} color={theme.colors.textMuted} style={{marginRight: 10}} />
+                            <Text style={styles.noTargetText}>Searching for nearby buildings...</Text>
                         </View>
                     )}
                 </View>
@@ -296,8 +339,8 @@ export default function ExploreScreen() {
             {nearbyBuildings.length > 0 && (
                 <View style={styles.card}>
                     <View style={styles.cardHeaderRow}>
-                        <Ionicons name="location-outline" size={20} color={theme.colors.primary} />
-                        <Text style={styles.cardTitle}>NEARBY LOCATIONS</Text>
+                        <Ionicons name="map" size={22} color={theme.colors.primary} />
+                        <Text style={styles.cardTitle}>NEARBY BUILDINGS</Text>
                     </View>
                     
                     {nearbyBuildings.map((building, index) => {
@@ -305,25 +348,25 @@ export default function ExploreScreen() {
                         const hasVisited = unlockedRecord ? (role === 'professional' ? unlockedRecord.visited : true) : false;
                         return (
                             <View key={building.id} style={[styles.nearbyRow, index < nearbyBuildings.length - 1 && styles.nearbyDivider]}>
-                                <View style={styles.nearbyIconWrapper}>
+                                <View style={[styles.nearbyIconWrapper, hasVisited && styles.nearbyIconWrapperActive]}>
                                     <Ionicons 
-                                        name={hasVisited ? "checkmark-circle" : "lock-closed"} 
-                                        size={20} 
-                                        color={hasVisited ? theme.colors.arHighlight : theme.colors.textMuted} 
+                                        name={hasVisited ? "checkmark" : "lock-closed"} 
+                                        size={18} 
+                                        color={hasVisited ? theme.colors.white : theme.colors.primary} 
                                     />
                                 </View>
                                 <View style={styles.nearbyInfo}>
                                     <Text style={styles.nearbyName} numberOfLines={1}>{building.name}</Text>
-                                    <Text style={styles.nearbyDistance}>{building.distance}m away</Text>
+                                    <View style={styles.nearbyDistBadge}>
+                                        <Text style={styles.nearbyDistance}>{building.distance} meters</Text>
+                                    </View>
                                 </View>
                                 <TouchableOpacity 
                                     style={styles.navigateBtn}
-                                    onPress={() => {
-                                        router.push('/buildings');
-                                    }}
+                                    onPress={() => router.push('/buildings')}
                                 >
                                     <Ionicons name="navigate" size={16} color={theme.colors.white} />
-                                    <Text style={styles.navigateText}>NAV</Text>
+                                    <Text style={styles.navigateText}>View Map</Text>
                                 </TouchableOpacity>
                             </View>
                         );
@@ -331,67 +374,53 @@ export default function ExploreScreen() {
                 </View>
             )}
 
-            {/* Gamified Widgets (Visible regardless of tracking, but hidden for visitors) */}
-            
+            {/* Gamified Widgets */}
             {role !== 'visitor' && (
                 <>
-                    {/* 1. Progress Tracker */}
+                    {/* Progress Tracker */}
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>EXPLORATION PROGRESS</Text>
+                        <View style={styles.cardHeaderRow}>
+                            <Ionicons name="bar-chart" size={22} color={theme.colors.primary} />
+                            <Text style={styles.cardTitle}>YOUR PROGRESS</Text>
+                        </View>
                         <View style={styles.progressBarContainer}>
-                            <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
+                            <LinearGradient 
+                                colors={['#B21830', '#E53935']} 
+                                style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} 
+                                start={{x:0, y:0}} end={{x:1, y:0}}
+                            />
                         </View>
                         <Text style={styles.progressText}>
-                            {unlockedBuildings.length} / {totalBuildings || 15} Buildings Unlocked
+                            {unlockedBuildings.length} of {totalBuildings || 15} Buildings Unlocked
                         </Text>
                     </View>
 
-                    {/* 2. Daily Quest */}
+                    {/* Daily Quest */}
                     <View style={styles.card}>
                         <View style={styles.cardHeaderRow}>
-                            <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
-                            <Text style={styles.cardTitle}>YOUR DAILY QUEST</Text>
+                            <Ionicons name="star" size={22} color={theme.colors.primary} />
+                            <Text style={styles.cardTitle}>TODAY'S MISSION</Text>
                         </View>
                         
                         {activeQuests.length > 0 ? (
                             activeQuests.map((quest) => {
-                                if (quest.is_completed) return null; // Skip completed quests here
+                                if (quest.is_completed) return null;
                                 return (
-                                    <View key={quest.id} style={{ marginBottom: theme.spacing.md }}>
-                                        <Text style={styles.questHint}>
-                                            "{quest.hint}"
-                                        </Text>
+                                    <View key={quest.id} style={{ marginBottom: theme.spacing.sm }}>
+                                        <View style={styles.questBriefBox}>
+                                            <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 16, marginBottom: 4 }}>{quest.title}</Text>
+                                            <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Target: {quest.target_building_name}</Text>
+                                            <Text style={styles.questHint}>Hint: "{quest.hint}"</Text>
+                                        </View>
                                         <View style={styles.compassContainer}>
-                                            <Ionicons name="star" size={20} color={theme.colors.primary} />
-                                            <Text style={styles.compassText}>Reward: {quest.reward_points} Points</Text>
+                                            <Ionicons name="gift" size={20} color={theme.colors.primary} />
+                                            <Text style={styles.compassText}>Reward: {quest.reward_points} EXP</Text>
                                         </View>
                                     </View>
                                 );
                             })
                         ) : (
-                            <Text style={styles.emptyLogText}>No active quests at the moment. Keep exploring!</Text>
-                        )}
-                    </View>
-
-                    {/* 4. Discovery Log */}
-                    <View style={styles.card}>
-                        <View style={styles.cardHeaderRow}>
-                            <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
-                            <Text style={styles.cardTitle}>RECENT DISCOVERIES</Text>
-                        </View>
-                        
-                        {unlockedBuildings.length > 0 ? (
-                            unlockedBuildings.slice(0, 3).map((b, idx) => (
-                                <View key={b.id} style={styles.logItem}>
-                                    <View style={styles.logDot} />
-                                    <View style={styles.logContent}>
-                                        <Text style={styles.logTime}>{idx === 0 ? 'Just Now' : 'Earlier'}</Text>
-                                        <Text style={styles.logText}>Unlocked {b.name} AR capabilities</Text>
-                                    </View>
-                                </View>
-                            ))
-                        ) : (
-                            <Text style={styles.emptyLogText}>No discoveries yet. Start scanning!</Text>
+                            <Text style={styles.emptyLogText}>You've finished all missions for today! Great job.</Text>
                         )}
                     </View>
                 </>
@@ -405,9 +434,10 @@ export default function ExploreScreen() {
                     opacity: badgeAnim,
                     transform: [{ translateY: badgeAnim.interpolate({ inputRange: [0, 1], outputRange: [-80, 0] }) }]
                 }]}>
+                    <LinearGradient colors={['rgba(30,30,30,0.98)', 'rgba(15,15,15,0.98)']} style={StyleSheet.absoluteFillObject} borderRadius={16} />
                     <Text style={styles.badgeToastEmoji}>{earnedBadges[0].icon}</Text>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.badgeToastLabel}>BADGE UNLOCKED</Text>
+                    <View style={{ flex: 1, zIndex: 2 }}>
+                        <Text style={styles.badgeToastLabel}>ACHIEVEMENT UNLOCKED</Text>
                         <Text style={styles.badgeToastName}>{earnedBadges[0].name}</Text>
                     </View>
                 </Animated.View>
@@ -419,7 +449,6 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.bgPrimary,
     },
     contentContainer: {
         padding: theme.spacing.lg,
@@ -427,12 +456,12 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        marginTop: theme.spacing.md,
-        marginBottom: theme.spacing.lg,
+        marginTop: theme.spacing.xl,
+        marginBottom: theme.spacing.xl,
     },
     title: {
         fontFamily: fonts.heading.bold,
-        fontSize: 28,
+        fontSize: 34,
         fontWeight: '900',
         color: theme.colors.primary,
         letterSpacing: 1,
@@ -440,307 +469,200 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontFamily: fonts.body.regular,
-        fontSize: theme.typography.md,
+        fontSize: 16,
         color: theme.colors.textSecondary,
-        marginTop: 4,
+        marginTop: 6,
     },
     radarContainer: {
         alignItems: 'center',
         justifyContent: 'center',
-        height: 220,
-        marginBottom: theme.spacing.md,
+        height: 250,
+        marginBottom: theme.spacing.xl,
     },
     radarRing: {
         position: 'absolute',
-        width: 180,
-        height: 180,
-        borderRadius: 90,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        backgroundColor: 'rgba(0,0,0,0.02)',
+        width: 170,
+        height: 170,
+        borderRadius: 85,
+        borderWidth: 1,
+        borderColor: 'rgba(178, 24, 48, 0.2)',
+        backgroundColor: 'rgba(178, 24, 48, 0.02)',
     },
     radarRingActive: {
-        borderColor: 'rgba(178, 24, 48, 0.4)', // Web Red
-        backgroundColor: 'rgba(178, 24, 48, 0.05)',
+        borderColor: 'rgba(178, 24, 48, 0.6)',
+        backgroundColor: 'rgba(178, 24, 48, 0.08)',
     },
-    radarButton: {
+    radarDashedRing: {
+        position: 'absolute',
+        width: 210,
+        height: 210,
+        borderRadius: 105,
+        borderWidth: 2,
+        borderColor: 'rgba(178, 24, 48, 0.4)',
+        borderStyle: 'dashed',
+    },
+    radarButtonWrapper: {
         width: 140,
         height: 140,
         borderRadius: 70,
-        backgroundColor: theme.colors.primary,
+    },
+    radarButton: {
+        flex: 1,
+        borderRadius: 70,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 8,
-    },
-    radarButtonActive: {
-        backgroundColor: '#610F27',
-        shadowOpacity: 0.5,
+        borderWidth: 3,
+        borderColor: 'rgba(255,255,255,0.4)',
     },
     radarButtonText: {
         fontFamily: fonts.heading.bold,
         color: theme.colors.white,
-        fontSize: 14,
-        fontWeight: 'bold',
+        fontSize: 15,
         marginTop: 8,
         letterSpacing: 1,
     },
     alertBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff0f0',
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.md,
+        backgroundColor: '#FFF0F0',
+        padding: theme.spacing.lg,
+        borderRadius: theme.radius.lg,
         borderWidth: 1,
-        borderColor: '#ffcaca',
-        marginBottom: theme.spacing.md,
+        borderColor: '#FFCACA',
+        marginBottom: theme.spacing.lg,
     },
     alertText: {
         flex: 1,
         color: theme.colors.error,
-        marginLeft: theme.spacing.sm,
-        fontSize: theme.typography.sm,
+        marginLeft: theme.spacing.md,
+        fontSize: 16,
+        fontFamily: fonts.body.medium,
+        lineHeight: 22,
     },
     card: {
-        backgroundColor: theme.colors.surface,
+        backgroundColor: theme.colors.white,
         borderRadius: theme.radius.lg,
         padding: theme.spacing.lg,
+        marginBottom: theme.spacing.lg,
         borderWidth: 1,
-        borderColor: theme.colors.border,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
-        marginBottom: theme.spacing.md,
+        borderColor: 'rgba(0,0,0,0.06)',
+        overflow: 'hidden',
     },
     cardHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: theme.spacing.md,
+        marginBottom: theme.spacing.lg,
     },
     cardTitle: {
         fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        fontWeight: '900',
-        color: theme.colors.textSecondary,
-        letterSpacing: 1.5,
-        marginLeft: 6,
+        fontSize: 16,
+        color: theme.colors.textPrimary,
+        letterSpacing: 1,
+        marginLeft: 10,
     },
     telemetryGrid: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: theme.colors.bgSecondary,
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.md,
+        gap: 12,
     },
-    telemetryItem: {
+    telemetryPill: {
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+        paddingVertical: 14,
+        paddingHorizontal: 8,
+        borderRadius: theme.radius.lg,
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
     },
     telemetryLabel: {
-        fontSize: 10,
+        fontFamily: fonts.body.medium,
+        fontSize: 13,
         color: theme.colors.textSecondary,
-        marginBottom: 4,
-        letterSpacing: 0.5,
+        marginBottom: 6,
     },
     telemetryValue: {
-        fontFamily: fonts.hud.bold,
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: theme.colors.textPrimary,
+        fontFamily: fonts.heading.bold,
+        fontSize: 16,
+        color: theme.colors.primary,
     },
     loadingBox: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: theme.spacing.md,
+        padding: theme.spacing.lg,
     },
     loadingText: {
+        fontFamily: fonts.body.medium,
         color: theme.colors.textSecondary,
-        marginLeft: theme.spacing.sm,
-        fontSize: theme.typography.sm,
+        marginLeft: theme.spacing.md,
+        fontSize: 15,
     },
     divider: {
         height: 1,
-        backgroundColor: theme.colors.border,
-        marginVertical: theme.spacing.lg,
+        backgroundColor: '#F3F4F6',
+        marginVertical: theme.spacing.xl,
     },
     targetBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        borderWidth: 2,
+        padding: 16,
+        borderRadius: theme.radius.lg,
+        borderWidth: 1.5,
+    },
+    targetSearching: {
+        backgroundColor: '#F9FAFB',
+        borderColor: '#E5E7EB',
     },
     targetLocked: {
-        backgroundColor: theme.colors.bgSecondary,
-        borderColor: theme.colors.border,
+        backgroundColor: '#FFF0F0',
+        borderColor: '#FECACA',
     },
     targetUnlocked: {
-        backgroundColor: theme.colors.success,
-        borderColor: theme.colors.success,
+        backgroundColor: '#10B981', // Clean success green
+        borderColor: '#059669',
     },
     targetIcon: {
-        marginRight: theme.spacing.md,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
     },
     targetInfo: {
         flex: 1,
     },
     targetName: {
         fontFamily: fonts.heading.bold,
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 18,
         color: theme.colors.textPrimary,
-        marginBottom: 2,
+        marginBottom: 6,
     },
     targetDistance: {
-        fontFamily: fonts.hud.bold,
-        fontSize: 13,
-        color: theme.colors.primary,
-        fontWeight: '600',
+        fontFamily: fonts.body.medium,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
     },
     textWhite: {
         color: theme.colors.white,
     },
     noTargetBox: {
+        flexDirection: 'row',
         alignItems: 'center',
-        padding: theme.spacing.md,
-        backgroundColor: theme.colors.bgSecondary,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        justifyContent: 'center',
+        padding: 20,
+        backgroundColor: '#F9FAFB',
+        borderRadius: theme.radius.lg,
+        borderWidth: 1.5,
+        borderColor: '#E5E7EB',
         borderStyle: 'dashed',
     },
     noTargetText: {
+        fontFamily: fonts.body.medium,
         color: theme.colors.textSecondary,
-        fontSize: theme.typography.sm,
-        fontStyle: 'italic',
-    },
-    progressBarContainer: {
-        height: 12,
-        backgroundColor: theme.colors.bgSecondary,
-        borderRadius: 6,
-        overflow: 'hidden',
-        marginBottom: theme.spacing.sm,
-    },
-    progressBarFill: {
-        height: '100%',
-        backgroundColor: theme.colors.primary,
-    },
-    progressText: {
-        fontSize: theme.typography.sm,
-        color: theme.colors.textSecondary,
-        textAlign: 'right',
-        fontWeight: '600',
-    },
-    questHint: {
         fontSize: 15,
-        color: theme.colors.textPrimary,
-        fontStyle: 'italic',
-        lineHeight: 22,
-        marginBottom: theme.spacing.md,
-    },
-    compassContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.bgSecondary,
-        padding: theme.spacing.sm,
-        borderRadius: theme.radius.sm,
-    },
-    compassText: {
-        fontSize: theme.typography.sm,
-        color: theme.colors.textSecondary,
-        marginLeft: theme.spacing.sm,
-        fontWeight: '600',
-    },
-    challengeText: {
-        fontSize: theme.typography.md,
-        color: theme.colors.textPrimary,
-        marginBottom: theme.spacing.sm,
-    },
-    challengeProgress: {
-        fontSize: theme.typography.sm,
-        color: theme.colors.primary,
-        fontWeight: 'bold',
-    },
-    logItem: {
-        flexDirection: 'row',
-        marginBottom: theme.spacing.md,
-    },
-    logDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: theme.colors.primary,
-        marginTop: 4,
-        marginRight: theme.spacing.sm,
-    },
-    logDotGray: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: theme.colors.border,
-        marginTop: 4,
-        marginRight: theme.spacing.sm,
-    },
-    logContent: {
-        flex: 1,
-    },
-    logTime: {
-        fontSize: 10,
-        color: theme.colors.textSecondary,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        marginBottom: 2,
-    },
-    logText: {
-        fontSize: theme.typography.sm,
-        color: theme.colors.textPrimary,
-    },
-    emptyLogText: {
-        fontSize: theme.typography.sm,
-        color: theme.colors.textMuted,
-        fontStyle: 'italic',
-        marginBottom: theme.spacing.md,
-    },
-    badgeToast: {
-        position: 'absolute',
-        top: 60,
-        left: 16,
-        right: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(20, 20, 20, 0.96)',
-        borderRadius: 16,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: '#FFD700',
-        gap: 12,
-        zIndex: 999,
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
-        elevation: 20,
-    },
-    badgeToastEmoji: {
-        fontSize: 32,
-    },
-    badgeToastLabel: {
-        color: '#FFD700',
-        fontSize: 10,
-        fontWeight: '900',
-        letterSpacing: 2,
-        marginBottom: 2,
-    },
-    badgeToastName: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: 'bold',
-        letterSpacing: 0.5,
     },
     nearbyRow: {
         flexDirection: 'row',
@@ -749,16 +671,19 @@ const styles = StyleSheet.create({
     },
     nearbyDivider: {
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: '#F3F4F6',
     },
     nearbyIconWrapper: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
+    },
+    nearbyIconWrapperActive: {
+        backgroundColor: theme.colors.primary,
     },
     nearbyInfo: {
         flex: 1,
@@ -766,29 +691,111 @@ const styles = StyleSheet.create({
     nearbyName: {
         fontFamily: fonts.heading.bold,
         color: theme.colors.textPrimary,
-        fontSize: 13,
-        marginBottom: 2,
+        fontSize: 17,
+        marginBottom: 6,
+    },
+    nearbyDistBadge: {
+        alignSelf: 'flex-start',
+        backgroundColor: 'rgba(178, 24, 48, 0.08)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
     },
     nearbyDistance: {
-        fontFamily: fonts.hud.medium,
+        fontFamily: fonts.body.bold,
         color: theme.colors.primary,
-        fontSize: 11,
-        letterSpacing: 1,
+        fontSize: 13,
     },
     navigateBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: theme.colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12,
-        marginLeft: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        marginLeft: 12,
     },
     navigateText: {
-        fontFamily: fonts.hud.bold,
+        fontFamily: fonts.heading.bold,
         color: theme.colors.white,
+        fontSize: 12,
+        marginLeft: 6,
+    },
+    progressBarContainer: {
+        height: 12,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 6,
+        overflow: 'hidden',
+        marginBottom: 12,
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 6,
+    },
+    progressText: {
+        fontFamily: fonts.body.medium,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        textAlign: 'right',
+    },
+    questBriefBox: {
+        backgroundColor: theme.colors.white,
+        padding: 16,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        marginBottom: 12,
+    },
+    questHint: {
+        fontFamily: fonts.body.regular,
+        fontSize: 16,
+        color: theme.colors.textPrimary,
+        fontStyle: 'italic',
+        lineHeight: 24,
+    },
+    compassContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    compassText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 15,
+        color: theme.colors.primary,
+        marginLeft: 8,
+    },
+    emptyLogText: {
+        fontFamily: fonts.body.regular,
+        fontSize: 15,
+        color: theme.colors.textSecondary,
+    },
+    badgeToast: {
+        position: 'absolute',
+        top: 60,
+        left: 16,
+        right: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 215, 0, 0.5)',
+        gap: 16,
+        zIndex: 999,
+    },
+    badgeToastEmoji: {
+        fontSize: 38,
+        zIndex: 2,
+    },
+    badgeToastLabel: {
+        fontFamily: fonts.heading.bold,
+        color: '#FFD700',
         fontSize: 11,
-        marginLeft: 4,
+        letterSpacing: 2,
+        marginBottom: 6,
+    },
+    badgeToastName: {
+        fontFamily: fonts.heading.bold,
+        color: '#fff',
+        fontSize: 18,
+        letterSpacing: 0.5,
     },
 });
-

@@ -423,19 +423,26 @@ export default function CmsPage() {
 										</div>
 
 										<div className="space-y-4">
-											{activeTab === 'quests' && quests.filter(q => q.target_building === selectedBuilding.id || q.target_building_name === selectedBuilding.name).map(quest => (
-												<div key={quest.id} className="bg-white p-4 rounded-lg border-l-4 border-[#B21830] border-y border-r border-gray-200 shadow-sm flex items-start justify-between gap-4 group hover:border-y-[#B21830]/30 hover:border-r-[#B21830]/30 transition-all">
+											{activeTab === 'quests' && quests.filter(q => q.target_building === selectedBuilding.id || q.target_building_name === selectedBuilding.name).map(quest => {
+												const isExpired = quest.expires_at && new Date(quest.expires_at) < new Date();
+												return (
+												<div key={quest.id} className={`bg-white p-4 rounded-lg border-l-4 ${isExpired ? 'border-gray-400 opacity-70' : 'border-[#B21830]'} border-y border-r border-gray-200 shadow-sm flex items-start justify-between gap-4 group hover:border-y-[#B21830]/30 hover:border-r-[#B21830]/30 transition-all`}>
 													<div className="flex gap-3">
-														<div className="mt-0.5 bg-[#B21830]/10 p-2 rounded-md text-[#B21830] shrink-0">
+														<div className={`mt-0.5 p-2 rounded-md shrink-0 ${isExpired ? 'bg-gray-100 text-gray-400' : 'bg-[#B21830]/10 text-[#B21830]'}`}>
 															<Target size={20} />
 														</div>
 														<div className="flex-1 min-w-0">
 															<div className="flex items-center gap-2 mb-1">
-																<h4 className="font-extrabold text-gray-900 truncate">{quest.title}</h4>
-																<span className="inline-block text-[10px] font-bold text-[#B21830] bg-[#B21830]/10 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">+{quest.reward_points} pts</span>
+																<h4 className={`font-extrabold truncate ${isExpired ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{quest.title}</h4>
+																<span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider ${isExpired ? 'bg-gray-100 text-gray-500' : 'text-[#B21830] bg-[#B21830]/10'}`}>+{quest.reward_points} pts</span>
 																{quest.target_role && quest.target_role !== 'all' && (
 																	<span className="inline-block text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider border border-gray-200">
 																		{quest.target_role}
+																	</span>
+																)}
+																{isExpired && (
+																	<span className="inline-block text-[10px] font-bold text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-sm uppercase tracking-wider border border-gray-300">
+																		Expired
 																	</span>
 																)}
 															</div>
@@ -455,7 +462,8 @@ export default function CmsPage() {
 														<button onClick={() => handleDeleteQuest(quest.id)} className="p-1.5 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={14}/></button>
 													</div>
 												</div>
-											))}
+											);
+											})}
 
 											{activeTab === 'trivias' && trivias.filter(t => t.building === selectedBuilding.id || t.building_name === selectedBuilding.name).map(trivia => (
 												<div key={trivia.id} className="bg-white p-4 rounded-lg border-l-4 border-[#B21830] border-y border-r border-gray-200 shadow-sm flex items-start justify-between gap-4 group hover:border-y-[#B21830]/30 hover:border-r-[#B21830]/30 transition-all">

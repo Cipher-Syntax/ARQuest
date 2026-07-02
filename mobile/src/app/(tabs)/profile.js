@@ -105,9 +105,9 @@ export default function ProfileScreen() {
                     style={styles.playerCard}
                 >
                     <View style={styles.playerCardTop}>
-                        {user?.avatar_id && AVATARS.find(a => a.id === user.avatar_id)?.uri ? (
+                        {user?.avatar_id && AVATARS.find(a => a.id === user.avatar_id)?.source ? (
                             <Image 
-                                source={{ uri: AVATARS.find(a => a.id === user.avatar_id).uri }} 
+                                source={AVATARS.find(a => a.id === user.avatar_id).source} 
                                 style={styles.playerAvatar} 
                             />
                         ) : (
@@ -262,8 +262,8 @@ export default function ProfileScreen() {
                         <SettingsRow 
                             icon={UserIcon} 
                             title="Account Settings" 
-                            subtitle="Update your password"
-                            onPress={() => {}} 
+                            subtitle="Update your profile and avatar"
+                            onPress={() => router.push('/account-settings')} 
                         />
                         
                         <SettingsRow 

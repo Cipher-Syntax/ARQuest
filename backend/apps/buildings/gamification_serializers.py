@@ -14,10 +14,11 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 	rank = serializers.SerializerMethodField()
 	points = serializers.IntegerField(source='exploration_points')
 	rank_info = serializers.SerializerMethodField()
+	quests_completed = serializers.SerializerMethodField()
 
 	class Meta:
 		model = User
-		fields = ['username', 'points', 'rank', 'rank_info']
+		fields = ['username', 'points', 'rank', 'rank_info', 'quests_completed']
 
 	def get_rank(self, obj):
 		return self.context.get('rank', 0)
@@ -25,6 +26,10 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 	def get_rank_info(self, obj):
 		from apps.buildings.gamification_utils import get_rank_info
 		return get_rank_info(obj.exploration_points)
+
+	def get_quests_completed(self, obj):
+		from .models import UserQuestProgress
+		return UserQuestProgress.objects.filter(user=obj, is_completed=True).count()
 
 class QuestSerializer(serializers.ModelSerializer):
 	target_building_name = serializers.CharField(source='target_building.name', read_only=True)

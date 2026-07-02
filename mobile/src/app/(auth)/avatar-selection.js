@@ -38,7 +38,7 @@ export default function AvatarSelectionScreen() {
             style={[styles.avatarContainer, selectedId === item.id && styles.selected]}
             onPress={() => setSelectedId(item.id)}
           >
-            <Image source={{ uri: item.uri }} style={styles.avatar} />
+            <Image source={item.source} style={styles.avatar} />
           </TouchableOpacity>
         )}
       />

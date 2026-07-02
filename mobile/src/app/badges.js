@@ -73,7 +73,7 @@ export default function BadgesScreen() {
 					)}
 				</View>
 				<Text style={[styles.badgeName, !earned && styles.badgeNameLocked]} numberOfLines={2}>
-					{earned ? item.name : '???'}
+					{item.name}
 				</Text>
 			</TouchableOpacity>
 		);
@@ -145,10 +145,10 @@ export default function BadgesScreen() {
 								<Text style={styles.detailEmoji}>{selected.icon}</Text>
 							</View>
 							<Text style={[styles.detailName, { color: selected.earned ? selected.color_hex : theme.colors.textMuted }]}>
-								{selected.earned ? selected.name : 'LOCKED'}
+								{selected.name}
 							</Text>
 							<Text style={styles.detailDesc}>
-								{selected.earned ? selected.description : 'Keep exploring the campus to unlock this badge.'}
+								{selected.description}
 							</Text>
 							{selected.earned && (
 								<View style={[styles.earnedBadgePill, { backgroundColor: `${selected.color_hex}22`, borderColor: selected.color_hex }]}>

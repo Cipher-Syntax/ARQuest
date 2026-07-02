@@ -140,10 +140,10 @@ export default function HomeScreen() {
                 <LinearGradient colors={['#9b1b30', '#7a1525']} style={styles.crimsonHeader}>
                     <View style={styles.headerTopRow}>
                         <View style={styles.userInfo}>
-                            <Text style={styles.greeting}>SYSTEM ONLINE</Text>
+                            <Text style={styles.greeting}>WELCOME BACK</Text>
                             <Text style={styles.username}>{user?.username || "Guest"}</Text>
                             {user?.role === 'student' && user?.rank_info && (
-                                <Text style={styles.userLevel}>Lv.{user.rank_info.level} {user.rank_info.title}</Text>
+                                <Text style={styles.userLevel}>{user.rank_info.icon || '🎒'} Lv.{user.rank_info.level} {user.rank_info.title}</Text>
                             )}
                         </View>
                         <View style={styles.headerRight}>
@@ -159,7 +159,7 @@ export default function HomeScreen() {
                     {user?.role === 'student' && (
                         <View style={styles.expContainer}>
                             <View style={styles.expTextRow}>
-                                <Text style={styles.expLabel}>EXP PROGRESS</Text>
+                                <Text style={styles.expLabel}>YOUR EXP</Text>
                                 <Text style={styles.expValue}>{stats?.points || 0} PTS</Text>
                             </View>
                             <View style={styles.expBarTrack}>
@@ -175,24 +175,24 @@ export default function HomeScreen() {
                         <View style={styles.heroTopRow}>
                             <View style={styles.heroLabelChip}>
                                 <Crosshair color={theme.colors.primary} size={14} />
-                                <Text style={styles.heroChipText}>DAILY MISSION</Text>
+                                <Text style={styles.heroChipText}>TODAY'S MISSION</Text>
                             </View>
                             {activeQuest && (
                                 <View style={styles.heroExpBadge}>
-                                    <Text style={styles.heroExpText}>+{activeQuest.reward_points} EXP</Text>
+                                    <Text style={styles.heroExpText}>Reward: {activeQuest.reward_points} EXP</Text>
                                 </View>
                             )}
                         </View>
 
                         <Text style={styles.heroQuestTitle} numberOfLines={2}>
-                            {loading ? 'Loading...' : (activeQuest ? activeQuest.title : 'STANDBY FOR ORDERS')}
+                            {loading ? 'Loading...' : (activeQuest ? activeQuest.title : "You've finished all missions for today!")}
                         </Text>
 
                         <View style={styles.heroBottomRow}>
                             <View style={styles.heroTargetInfo}>
-                                <Text style={styles.heroTargetLabel}>TARGET NODE</Text>
+                                <Text style={styles.heroTargetLabel}>Target Building</Text>
                                 <Text style={styles.heroTargetValue} numberOfLines={1}>
-                                    {activeQuest ? activeQuest.target_building_name : 'No active quests'}
+                                    {activeQuest ? activeQuest.target_building_name : 'None'}
                                 </Text>
                             </View>
                             <TouchableOpacity
@@ -201,7 +201,7 @@ export default function HomeScreen() {
                                 disabled={!activeQuest}
                             >
                                 <Text style={[styles.heroDeployText, !activeQuest && styles.heroDeployTextDisabled]}>
-                                    {activeQuest ? 'DEPLOY' : 'STANDBY'}
+                                    {activeQuest ? 'Start Mission' : 'WAITING'}
                                 </Text>
                                 <ChevronRight
                                     color={activeQuest ? '#FFFFFF' : 'rgba(138,21,56,0.5)'}
@@ -214,7 +214,7 @@ export default function HomeScreen() {
                     {/* --- Limited Challenges --- */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>LIMITED QUESTS</Text>
+                            <Text style={styles.sectionTitle}>Limited Missions</Text>
                             {challenges.length > 1 && (
                                 <View style={styles.swipeHint}>
                                     <Text style={styles.swipeHintText}>SWIPE</Text>
@@ -259,7 +259,7 @@ export default function HomeScreen() {
                                                     </Text>
                                                 </View>
                                                 <View style={styles.ticketDeployBtn}>
-                                                    <Text style={styles.ticketDeployText}>DEPLOY</Text>
+                                                    <Text style={styles.ticketDeployText}>START</Text>
                                                 </View>
                                             </View>
                                         </View>
@@ -275,12 +275,12 @@ export default function HomeScreen() {
                                         <View style={styles.ticketCutoutBottom} />
                                     </View>
                                     <View style={styles.ticketBody}>
-                                        <Text style={[styles.ticketTitle, { color: theme.colors.textMuted }]} numberOfLines={2}>No active limited quests</Text>
+                                        <Text style={[styles.ticketTitle, { color: theme.colors.textMuted }]} numberOfLines={2}>No active limited missions</Text>
                                         <View style={styles.ticketFooter}>
                                             <View>
                                                 <Text style={styles.ticketTargetLabel}>STATUS</Text>
                                                 <Text style={[styles.ticketTargetValue, { color: theme.colors.textMuted }]}>
-                                                    STANDBY
+                                                    Waiting
                                                 </Text>
                                             </View>
                                             <View style={[styles.ticketDeployBtn, { backgroundColor: theme.colors.surfaceSoft }]}>
@@ -301,7 +301,7 @@ export default function HomeScreen() {
                                     <Trophy color={theme.colors.primary} size={24} />
                                 </View>
                                 <Text style={styles.splitValue}>#{stats?.rank || "--"}</Text>
-                                <Text style={styles.splitLabel}>GLOBAL RANK</Text>
+                                <Text style={styles.splitLabel}>Global Rank</Text>
                             </View>
 
                             <View style={styles.splitCard}>
@@ -309,7 +309,7 @@ export default function HomeScreen() {
                                     <MapPin color={theme.colors.primary} size={24} />
                                 </View>
                                 <Text style={styles.splitValue}>{distanceToNearest !== null ? `${(distanceToNearest / 1000).toFixed(2)}km` : "--"}</Text>
-                                <Text style={styles.splitLabel}>NEAREST NODE</Text>
+                                <Text style={styles.splitLabel}>Nearest Building</Text>
                             </View>
                         </View>
                     )}
@@ -322,14 +322,14 @@ export default function HomeScreen() {
                                 <View style={styles.actionIconWrap}>
                                     <ScanLine color={theme.colors.primary} size={24} />
                                 </View>
-                                <Text style={styles.actionText}>Deploy AR</Text>
+                                <Text style={styles.actionText}>AR Camera</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/buildings')}>
                                 <View style={styles.actionIconWrap}>
                                     <MapIcon color={theme.colors.primary} size={24} />
                                 </View>
-                                <Text style={styles.actionText}>Radar Map</Text>
+                                <Text style={styles.actionText}>Nearby Map</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/leaderboard')}>
@@ -350,7 +350,7 @@ export default function HomeScreen() {
 
                     {/* --- Campus Radar Preview --- */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>CAMPUS RADAR</Text>
+                        <Text style={styles.sectionTitle}>Nearby Map</Text>
                         <View style={styles.mapPreviewContainer}>
                             <View style={styles.mapPreviewWrapper}>
                                 <WebView
@@ -378,7 +378,7 @@ export default function HomeScreen() {
                                 activeOpacity={0.9}
                             >
                                 <ScanLine color="#FFFFFF" size={18} style={{ marginRight: 6 }} />
-                                <Text style={styles.mapFullscreenText}>FULL SCREEN RADAR</Text>
+                                <Text style={styles.mapFullscreenText}>View Full Map</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -723,16 +723,12 @@ const styles = StyleSheet.create({
     },
     mapPreviewContainer: {
         backgroundColor: '#FFFFFF',
-        borderRadius: theme.radius.md,
+        borderRadius: theme.radius.lg,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 4,
         position: 'relative',
-        height: 160,
+        height: 280,
+        overflow: 'hidden',
     },
     mapPreviewWrapper: {
         flex: 1,

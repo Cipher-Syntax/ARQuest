@@ -231,8 +231,8 @@ export default function BuildingsScreen() {
             
             {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
                 <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color={theme.colors.arHighlight} />
-                    <Text style={styles.loadingText}>INITIALIZING MAP GRID...</Text>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <Text style={styles.loadingText}>Loading Map...</Text>
                 </View>
             )}
 
@@ -255,7 +255,7 @@ export default function BuildingsScreen() {
                 style={styles.searchTerminal}
                 pointerEvents="box-none"
             >
-                <Text style={styles.terminalHeader}>[ NAV_SYS // ONLINE ]</Text>
+                <Text style={styles.terminalHeader}>Map Navigation</Text>
                 
                 <View style={styles.terminalInputContainer}>
                     <View style={styles.terminalInputRow}>
@@ -362,10 +362,10 @@ export default function BuildingsScreen() {
                             <>
                                 <View style={styles.tacticalModalHeader}>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.tacticalModalSubtitle}>TARGET ACQUIRED</Text>
+                                        <Text style={styles.tacticalModalSubtitle}>Selected Location</Text>
                                         <Text style={styles.tacticalModalTitle} numberOfLines={2}>{selectedBuilding.name}</Text>
                                         {routeDistance && (
-                                            <Text style={styles.tacticalModalDistance}>Distance: {routeDistance}m</Text>
+                                            <Text style={styles.tacticalModalDistance}>Distance: {routeDistance} meters</Text>
                                         )}
                                     </View>
                                     
@@ -385,29 +385,29 @@ export default function BuildingsScreen() {
                                 {selectedBuilding.is_active === false ? (
                                     <View style={styles.restrictedContainer}>
                                         <ShieldAlert color={theme.colors.error} size={20} style={{marginBottom: 4}} />
-                                        <Text style={styles.restrictedText}>BUILDING CLOSED / UNDER RENOVATION</Text>
+                                        <Text style={styles.restrictedText}>Building Closed / Under Renovation</Text>
                                     </View>
                                 ) : canAccessBuildingFeatures(true) ? (
                                     <View style={styles.tacticalActionGrid}>
                                         {selectedBuilding.model_active && selectedBuilding.model_url && canView3D ? (
                                             <TouchableOpacity style={styles.tacticalActionBtn} onPress={handleView3D}>
-                                                <Text style={styles.tacticalActionText}>DEPLOY 3D MODEL</Text>
+                                                <Text style={styles.tacticalActionText}>View 3D Model</Text>
                                             </TouchableOpacity>
                                         ) : (
                                             <View style={[styles.tacticalActionBtn, styles.tacticalActionBtnDisabled]}>
-                                                <Text style={styles.tacticalActionText}>3D ASSETS OFFLINE</Text>
+                                                <Text style={[styles.tacticalActionText, { color: theme.colors.textMuted }]}>3D Assets Offline</Text>
                                             </View>
                                         )}
                                         
                                         {canViewPanorama && (role === 'professional' || role === 'admin') && selectedBuilding.model_active && selectedBuilding.model_url && (
                                             <TouchableOpacity style={styles.tacticalActionBtn} onPress={handleVirtualTour}>
-                                                <Text style={styles.tacticalActionText}>ENTER VIRTUAL TOUR</Text>
+                                                <Text style={styles.tacticalActionText}>Start Virtual Tour</Text>
                                             </TouchableOpacity>
                                         )}
 
                                         {canViewPanorama && (role === 'student' || role === 'admin') && (
                                             <TouchableOpacity style={styles.tacticalActionBtn} onPress={handleViewPanorama}>
-                                                <Text style={styles.tacticalActionText}>ENTER 360° SIMULATION</Text>
+                                                <Text style={styles.tacticalActionText}>View 360° Panorama</Text>
                                             </TouchableOpacity>
                                         )}
                                         
@@ -418,14 +418,14 @@ export default function BuildingsScreen() {
                                                 setQuizModalVisible(true);
                                             }}
                                         >
-                                            <Text style={[styles.tacticalActionText, { color: theme.colors.primary }]}>PLAY TRIVIA QUIZ</Text>
+                                            <Text style={[styles.tacticalActionText, { color: theme.colors.primary }]}>Take Quiz</Text>
                                         </TouchableOpacity>
                                     </View>
                                 ) : (
                                     <View style={{ alignItems: 'center', marginTop: 16 }}>
                                         <ShieldAlert color={theme.colors.primary} size={24} style={{marginBottom: 8}} />
                                         <Text style={styles.tacticalWarningText}>
-                                            ⚠ PHYSICAL DEPLOYMENT REQUIRED TO UNLOCK
+                                            ⚠ You must visit this location in person to unlock its features
                                         </Text>
                                     </View>
                                 )}
@@ -507,11 +507,11 @@ export default function BuildingsScreen() {
                     </View>
                     <View style={styles.legendRow}>
                         <View style={[styles.legendDot, { backgroundColor: '#8a1538', borderWidth: 2, borderColor: '#FFFFFF' }]} />
-                        <Text style={styles.legendText}>{role === 'professional' ? 'Visited' : 'Unlocked'} Node</Text>
+                        <Text style={styles.legendText}>{role === 'professional' ? 'Visited' : 'Unlocked'} Location</Text>
                     </View>
                     <View style={styles.legendRow}>
                         <View style={[styles.legendDot, { backgroundColor: '#6b7280', borderWidth: 2, borderColor: '#FFFFFF' }]} />
-                        <Text style={styles.legendText}>{role === 'professional' ? 'Unvisited' : 'Locked'} Node</Text>
+                        <Text style={styles.legendText}>{role === 'professional' ? 'Unvisited' : 'Locked'} Location</Text>
                     </View>
                 </View>
             )}
@@ -540,10 +540,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 10 },
     loadingText: {
-        color: theme.colors.arHighlight,
+        color: theme.colors.primary,
         marginTop: 10,
-        fontWeight: 'bold',
-        letterSpacing: 2 },
+        fontFamily: fonts.heading.bold,
+        letterSpacing: 1 },
     searchTerminal: {
         position: 'absolute',
         top: 0,
@@ -557,10 +557,10 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     terminalHeader: {
-        fontFamily: 'monospace',
-        fontSize: 10,
+        fontFamily: fonts.heading.bold,
+        fontSize: 14,
         color: theme.colors.primary,
-        letterSpacing: 2,
+        letterSpacing: 1,
         marginBottom: 16,
     },
     terminalInputContainer: {
@@ -578,33 +578,34 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     terminalInputLabel: {
-        fontFamily: 'monospace',
+        fontFamily: fonts.body.bold,
         fontSize: 12,
-        color: '#666666',
-        width: 35,
+        color: theme.colors.textSecondary,
+        width: 45,
     },
     terminalInput: {
         flex: 1,
-        fontFamily: 'monospace',
-        fontSize: 12,
-        color: '#000000',
+        fontFamily: fonts.body.regular,
+        fontSize: 14,
+        color: theme.colors.textPrimary,
         backgroundColor: '#FFFFFF',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         borderWidth: 1,
-        borderColor: '#CCCCCC',
+        borderColor: theme.colors.border,
+        borderRadius: theme.radius.md,
     },
     terminalInputActive: {
         flex: 1,
-        fontFamily: 'monospace',
+        fontFamily: fonts.body.regular,
         fontSize: 14,
-        fontWeight: 'bold',
         color: theme.colors.primary,
         backgroundColor: '#FFFFFF',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         borderWidth: 1,
         borderColor: theme.colors.primary,
+        borderRadius: theme.radius.md,
     },
     clearRouteBtn: {
         padding: theme.spacing.xs },
@@ -614,12 +615,7 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        maxHeight: 200,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 4 },
+        maxHeight: 200 },
     searchResultsList: {
         flexGrow: 0 },
     searchResultItem: {
@@ -658,6 +654,11 @@ const styles = StyleSheet.create({
         borderTopColor: theme.colors.primary,
         padding: 20,
         paddingBottom: 40,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 10,
     },
     tacticalModalHeader: {
         flexDirection: 'row',
@@ -666,10 +667,10 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     tacticalModalSubtitle: {
-        fontFamily: 'monospace',
-        fontSize: 10,
+        fontFamily: fonts.heading.bold,
+        fontSize: 12,
         color: theme.colors.primary,
-        letterSpacing: 2,
+        letterSpacing: 1,
         marginBottom: 4,
     },
     tacticalModalTitle: {
@@ -680,9 +681,9 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     tacticalModalDistance: {
-        fontFamily: 'monospace',
-        fontSize: 12,
-        color: '#666666',
+        fontFamily: fonts.body.regular,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
     },
     tacticalModalBadge: {
         backgroundColor: 'rgba(0,0,0,0.05)',
@@ -697,10 +698,10 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.primary,
     },
     tacticalBadgeText: {
-        fontFamily: 'monospace',
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#333333',
+        fontFamily: fonts.body.bold,
+        fontSize: 11,
+        color: theme.colors.textPrimary,
+        letterSpacing: 1,
     },
     tacticalBadgeTextLocked: {
         color: theme.colors.primary,
@@ -714,22 +715,23 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderWidth: 1,
         borderColor: '#CCCCCC',
+        borderRadius: theme.radius.md,
         alignItems: 'center',
     },
     tacticalActionBtnDisabled: {
         opacity: 0.5,
+        backgroundColor: theme.colors.bgSecondary,
     },
     tacticalActionText: {
-        fontFamily: 'monospace',
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#333333',
+        fontFamily: fonts.heading.bold,
+        fontSize: 14,
+        color: theme.colors.textPrimary,
+        letterSpacing: 1,
     },
     tacticalWarningText: {
-        fontFamily: 'monospace',
-        fontSize: 10,
+        fontFamily: fonts.body.bold,
+        fontSize: 12,
         color: theme.colors.primary,
-        letterSpacing: 1,
         textAlign: 'center',
     },
     restrictedContainer: {
@@ -742,8 +744,8 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     restrictedText: {
-        fontSize: 11,
-        fontFamily: 'monospace',
+        fontSize: 12,
+        fontFamily: fonts.heading.bold,
         color: theme.colors.error,
         letterSpacing: 1,
         marginTop: 8,
