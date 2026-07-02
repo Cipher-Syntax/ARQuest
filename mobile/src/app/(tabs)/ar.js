@@ -45,6 +45,7 @@ export default function ARScreen() {
     const slideAnim = useRef(new Animated.Value(400)).current;
     const badgeAnim = useRef(new Animated.Value(0)).current;
     const rankAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(0.3)).current;
 
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
@@ -73,6 +74,23 @@ export default function ARScreen() {
         };
         fetchQuests();
     }, []);
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 0.3,
+                    duration: 1000,
+                    useNativeDriver: true
+                })
+            ])
+        ).start();
+    }, [pulseAnim]);
 
     useEffect(() => {
         if (location) {
@@ -388,7 +406,7 @@ export default function ARScreen() {
                         <View style={styles.reticleTopRight} />
                         <View style={styles.reticleBottomLeft} />
                         <View style={styles.reticleBottomRight} />
-                        <View style={styles.reticleCenterPoint} />
+                        <Animated.View style={[styles.reticleCenterPoint, { opacity: pulseAnim, transform: [{ scale: pulseAnim }] }]} />
                     </View>
                 ) : (
                     <View style={[styles.reticleContainer, { borderColor: theme.colors.success, borderWidth: 2, backgroundColor: 'rgba(16, 185, 129, 0.1)' }]} pointerEvents="none">
@@ -583,33 +601,32 @@ const styles = StyleSheet.create({
         right: 20,
         zIndex: 10 },
     targetCard: {
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: '#FFFFFF',
         borderWidth: 1,
-        borderColor: theme.colors.arHighlight,
+        borderColor: 'rgba(178, 24, 48, 0.5)',
         borderRadius: theme.radius.md,
         padding: 16,
-        shadowColor: theme.colors.arHighlight,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10 },
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 5 },
     targetLabel: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.arHighlight,
-        fontSize: 10,
-        fontWeight: 'bold',
+        color: theme.colors.primary,
+        fontSize: 12,
         letterSpacing: 2,
         marginBottom: 4 },
     buildingLabel: {
         fontFamily: fonts.heading.bold,
         color: theme.colors.textPrimary,
         fontSize: 22,
-        fontWeight: '900',
         letterSpacing: 1.5,
         textTransform: 'uppercase' },
     buildingStatus: {
+        fontFamily: fonts.body.bold,
         color: theme.colors.accent,
         fontSize: 12,
-        fontWeight: 'bold',
         marginTop: 4,
         letterSpacing: 1 },
     controls: {
@@ -661,28 +678,29 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.colors.arHighlight,
-        paddingVertical: 12,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+        paddingVertical: 14,
         paddingHorizontal: 20,
         borderRadius: theme.radius.md,
         marginTop: 16,
-        shadowColor: theme.colors.arHighlight,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 15,
-        elevation: 10 },
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 5 },
     claimQuestBtnText: {
         fontFamily: fonts.heading.bold,
-        color: '#000',
+        color: theme.colors.primary,
         fontSize: 14,
-        fontWeight: '900',
         letterSpacing: 1 },
     claimPointsText: {
-        fontFamily: fonts.hud.bold,
-        color: '#000',
-        fontSize: 10,
-        fontWeight: 'bold',
-        opacity: 0.8 },
+        fontFamily: fonts.body.bold,
+        color: theme.colors.success,
+        fontSize: 11,
+        marginTop: 2,
+        letterSpacing: 1 },
     reticleContainer: {
         position: 'absolute',
         top: '50%',
@@ -692,30 +710,27 @@ const styles = StyleSheet.create({
         marginLeft: -100,
         marginTop: -100,
         zIndex: 5 },
-    reticleTopLeft: { position: 'absolute', top: 0, left: 0, width: 30, height: 30, borderTopWidth: 3, borderLeftWidth: 3, borderColor: theme.colors.primary },
-    reticleTopRight: { position: 'absolute', top: 0, right: 0, width: 30, height: 30, borderTopWidth: 3, borderRightWidth: 3, borderColor: theme.colors.primary },
-    reticleBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 30, height: 30, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: theme.colors.primary },
-    reticleBottomRight: { position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderBottomWidth: 3, borderRightWidth: 3, borderColor: theme.colors.primary },
-    reticleCenterPoint: { position: 'absolute', top: '50%', left: '50%', width: 4, height: 4, marginLeft: -2, marginTop: -2, backgroundColor: theme.colors.primary, borderRadius: 2 },
+    reticleTopLeft: { position: 'absolute', top: 0, left: 0, width: 30, height: 30, borderTopWidth: 3, borderLeftWidth: 3, borderColor: '#B21830' },
+    reticleTopRight: { position: 'absolute', top: 0, right: 0, width: 30, height: 30, borderTopWidth: 3, borderRightWidth: 3, borderColor: '#B21830' },
+    reticleBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 30, height: 30, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: '#B21830' },
+    reticleBottomRight: { position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderBottomWidth: 3, borderRightWidth: 3, borderColor: '#B21830' },
+    reticleCenterPoint: { position: 'absolute', top: '50%', left: '50%', width: 6, height: 6, marginLeft: -3, marginTop: -3, backgroundColor: '#B21830', borderRadius: 3 },
     triviaModal: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: theme.colors.surfaceSoft,
-        borderTopLeftRadius: theme.radius.lg,
-        borderTopRightRadius: theme.radius.lg,
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
         padding: 24,
         paddingBottom: 40,
         zIndex: 100,
-        borderTopWidth: 2,
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-        borderColor: theme.colors.arHighlight,
-        shadowColor: theme.colors.arHighlight,
-        shadowOffset: { width: 0, height: -5 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20 },
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 10 },
     triviaModalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -723,31 +738,29 @@ const styles = StyleSheet.create({
         marginBottom: 16 },
     triviaTitle: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.arHighlight,
-        fontSize: 16,
-        fontWeight: '900',
-        letterSpacing: 3 },
+        color: theme.colors.primary,
+        fontSize: 18,
+        letterSpacing: 2 },
     closeTriviaBtn: {
-        backgroundColor: theme.colors.bgSecondary,
+        backgroundColor: theme.colors.surfaceSoft,
         padding: 6,
         borderRadius: 20 },
     triviaContentBorder: {
         borderLeftWidth: 2,
-        borderLeftColor: theme.colors.border,
-        paddingLeft: 12,
+        borderLeftColor: theme.colors.primary,
+        paddingLeft: 16,
         marginBottom: 20 },
     triviaBuildingName: {
-        color: theme.colors.textPrimary,
-        fontSize: 12,
-        fontWeight: 'bold',
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.primary,
+        fontSize: 14,
         marginBottom: 8,
-        letterSpacing: 2,
-        opacity: 0.7 },
+        letterSpacing: 2 },
     triviaText: {
+        fontFamily: fonts.body.regular,
         color: theme.colors.textSecondary,
-        fontSize: 15,
-        lineHeight: 24,
-        fontFamily: 'monospace' },
+        fontSize: 14,
+        lineHeight: 22 },
     rewardBadge: {
         flexDirection: 'row',
         alignItems: 'center',
