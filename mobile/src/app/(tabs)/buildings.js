@@ -12,7 +12,7 @@ import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
 import { geofencingService } from "../../services/geofencingService";
-import { Crosshair, ShieldAlert, X } from "lucide-react-native";
+import { ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/QuizModal";
 
@@ -627,6 +627,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.primary,
     },
+    clearRouteBtn: {
+        padding: theme.spacing.xs },
     searchResultsContainer: {
         marginTop: theme.spacing.sm,
         backgroundColor: theme.colors.bgPrimary,
