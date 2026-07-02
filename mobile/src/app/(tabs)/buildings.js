@@ -227,7 +227,7 @@ export default function BuildingsScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="dark" />
+            <StatusBar style="light" />
             
             {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
                 <View style={styles.loadingOverlay}>
@@ -573,8 +573,8 @@ const styles = StyleSheet.create({
         paddingTop: 60,
         paddingHorizontal: 20,
         paddingBottom: 40,
-        borderTopWidth: 4,
-        borderTopColor: theme.colors.primary,
+        borderBottomWidth: 4,
+        borderBottomColor: theme.colors.primary,
         zIndex: 10,
     },
     terminalHeader: {
