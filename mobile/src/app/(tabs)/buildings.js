@@ -251,7 +251,7 @@ export default function BuildingsScreen() {
 
             {/* Routing Search Overlay */}
             <LinearGradient
-                colors={['rgba(0,0,0,0.95)', 'rgba(0,0,0,0.8)', 'rgba(0,0,0,0.4)']}
+                colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0.95)', 'rgba(255,255,255,0.8)']}
                 style={styles.searchTerminal}
                 pointerEvents="box-none"
             >
@@ -356,101 +356,60 @@ export default function BuildingsScreen() {
                 onRequestClose={() => setModalVisible(false)}
             >
                 <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setModalVisible(false)}>
-                    <TouchableOpacity activeOpacity={1} style={styles.bottomSheet}>
-                        <View style={styles.sheetHandle} />
+                    <TouchableOpacity activeOpacity={1} style={styles.tacticalModalContainer}>
                         
                         {selectedBuilding && (
                             <>
-                                <View style={styles.sheetHeader}>
-                                    <Text style={styles.buildingName}>{selectedBuilding.name}</Text>
+                                <View style={styles.tacticalModalHeader}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.tacticalModalSubtitle}>TARGET ACQUIRED</Text>
+                                        <Text style={styles.tacticalModalTitle} numberOfLines={2}>{selectedBuilding.name}</Text>
+                                        {routeDistance && (
+                                            <Text style={styles.tacticalModalDistance}>Distance: {routeDistance}m</Text>
+                                        )}
+                                    </View>
+                                    
                                     <View style={[
-                                        styles.badge, 
-                                        role === 'professional' && !selectedBuilding.visited && styles.badgeRole,
-                                        selectedBuilding.unlock_source === 'role_access' && role !== 'professional' && styles.badgeRole,
-                                        selectedBuilding.is_active === false && styles.badgeInactive
+                                        styles.tacticalModalBadge, 
+                                        !unlockedBuildings.some(b => b.id === selectedBuilding.id) && styles.tacticalModalBadgeLocked
                                     ]}>
                                         <Text style={[
-                                            styles.badgeText,
-                                            selectedBuilding.is_active === false && styles.badgeTextInactive
+                                            styles.tacticalBadgeText,
+                                            !unlockedBuildings.some(b => b.id === selectedBuilding.id) && styles.tacticalBadgeTextLocked
                                         ]}>
-                                            {selectedBuilding.is_active === false ? 'INACTIVE' : 
-                                             role === 'professional' ? (selectedBuilding.visited ? 'VISITED' : 'NOT VISITED') :
-                                             (selectedBuilding.unlock_source === 'geofence' || selectedBuilding.unlock_source === 'qr' ? 'SECURED' : 'OVERRIDE')}
+                                            {unlockedBuildings.some(b => b.id === selectedBuilding.id) ? 'UNLOCKED' : 'LOCKED'}
                                         </Text>
                                     </View>
                                 </View>
-                                
-                                {selectedBuilding.unlocked_at && (
-                                    <Text style={{ fontSize: 11, color: theme.colors.textMuted, marginTop: -4, marginBottom: 8 }}>
-                                        {role === 'professional' ? 'Visited on: ' : 'Unlocked on: '}
-                                        {new Date(selectedBuilding.unlocked_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+
+                                <View style={styles.tacticalActionGrid}>
+                                    <TouchableOpacity 
+                                        style={[
+                                            styles.tacticalActionBtn, 
+                                            (!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor') && styles.tacticalActionBtnDisabled
+                                        ]}
+                                        disabled={!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor'}
+                                        onPress={handleViewPanorama}
+                                    >
+                                        <Text style={styles.tacticalActionText}>DEPLOY AR</Text>
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity 
+                                        style={[
+                                            styles.tacticalActionBtn, 
+                                            (!canView3D || !selectedBuilding.model_active) && styles.tacticalActionBtnDisabled
+                                        ]}
+                                        disabled={!canView3D || !selectedBuilding.model_active}
+                                        onPress={handleView3D}
+                                    >
+                                        <Text style={styles.tacticalActionText}>3D SCAN</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {(!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor') && (
+                                    <Text style={styles.tacticalWarningText}>
+                                        ⚠ PHYSICAL DEPLOYMENT REQUIRED TO UNLOCK
                                     </Text>
-                                )}
-                                
-                                {selectedBuilding.departments && selectedBuilding.departments.length > 0 && (
-                                    <View style={{ marginVertical: 8, paddingHorizontal: 4 }}>
-                                        <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.colors.textMuted || '#888', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Colleges</Text>
-                                        {selectedBuilding.departments.map(dept => (
-                                            <View key={dept.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
-                                                <Text style={{ fontSize: 14, color: theme.colors.textPrimary || '#333' }}>• {dept.name} </Text>
-                                                <Text style={{ fontSize: 12, color: '#10b981', fontWeight: 'bold' }}>(Available)</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                )}
-                                
-
-                                {selectedBuilding.is_active === false ? (
-                                    <View style={styles.restrictedContainer}>
-                                        <ShieldAlert color={theme.colors.error} size={20} style={{marginBottom: 4}} />
-                                        <Text style={styles.restrictedText}>BUILDING CLOSED / UNDER RENOVATION</Text>
-                                    </View>
-                                ) : canAccessBuildingFeatures(true) ? (
-                                    <View style={styles.actionButtons}>
-                                        {selectedBuilding.model_active && selectedBuilding.model_url && canView3D ? (
-                                            <TouchableOpacity style={styles.view3dButton} onPress={handleView3D}>
-                                                <Ionicons name="cube-outline" size={20} color="#FFFFFF" />
-                                                <Text style={styles.view3dText}>DEPLOY 3D MODEL</Text>
-                                            </TouchableOpacity>
-                                        ) : (
-                                            <View style={styles.no3dContainer}>
-                                                <Text style={styles.no3dText}>3D assets currently offline</Text>
-                                            </View>
-                                        )}
-                                        
-                                        {/* Virtual Tour tailored for Professionals (and Admins) */}
-                                        {canViewPanorama && (role === 'professional' || role === 'admin') && selectedBuilding.model_active && selectedBuilding.model_url && (
-                                            <TouchableOpacity style={styles.viewPanoramaButton} onPress={handleVirtualTour}>
-                                                <Ionicons name="glasses-outline" size={20} color={theme.colors.arHighlight} />
-                                                <Text style={styles.viewPanoramaText}>ENTER VIRTUAL TOUR</Text>
-                                            </TouchableOpacity>
-                                        )}
-
-                                        {/* Original 360 Walkthrough for Students (and Admins) */}
-                                        {canViewPanorama && (role === 'student' || role === 'admin') && (
-                                            <TouchableOpacity style={styles.viewPanoramaButton} onPress={handleViewPanorama}>
-                                                <Ionicons name="camera-outline" size={20} color={theme.colors.arHighlight} />
-                                                <Text style={styles.viewPanoramaText}>ENTER 360° SIMULATION</Text>
-                                            </TouchableOpacity>
-                                        )}
-                                        
-                                        {/* Trivia Quiz */}
-                                        <TouchableOpacity 
-                                            style={[styles.viewPanoramaButton, { borderColor: theme.colors.primary, marginTop: theme.spacing.xs }]} 
-                                            onPress={() => {
-                                                setModalVisible(false);
-                                                setQuizModalVisible(true);
-                                            }}
-                                        >
-                                            <Ionicons name="school-outline" size={20} color={theme.colors.primary} />
-                                            <Text style={[styles.viewPanoramaText, { color: theme.colors.primary }]}>PLAY TRIVIA QUIZ</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                ) : (
-                                    <View style={styles.restrictedContainer}>
-                                        <ShieldAlert color={theme.colors.error} size={20} style={{marginBottom: 4}} />
-                                        <Text style={styles.restrictedText}>CLEARANCE LEVEL INSUFFICIENT</Text>
-                                    </View>
                                 )}
                             </>
                         )}
@@ -610,12 +569,12 @@ const styles = StyleSheet.create({
         flex: 1,
         fontFamily: 'monospace',
         fontSize: 12,
-        color: '#FFFFFF',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        color: '#000000',
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderWidth: 1,
-        borderColor: '#333333',
+        borderColor: '#CCCCCC',
     },
     terminalInputActive: {
         flex: 1,
@@ -623,7 +582,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
         color: theme.colors.primary,
-        backgroundColor: 'rgba(178,24,48,0.1)',
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderWidth: 1,
@@ -671,114 +630,92 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'flex-end',
         backgroundColor: 'rgba(0, 0, 0, 0.4)' },
-    bottomSheet: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        padding: theme.spacing.lg,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -10 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
-        elevation: 10 },
-    sheetHandle: {
-        width: 48,
-        height: 6,
-        backgroundColor: '#E2E8F0',
-        borderRadius: 3,
-        alignSelf: 'center',
-        marginBottom: 20 },
-    sheetHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: theme.spacing.sm },
-    buildingName: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 26,
-        color: theme.colors.textPrimary,
-        flex: 1,
-        letterSpacing: 1,
-        textTransform: 'uppercase' },
-    badge: {
-        backgroundColor: "rgba(16, 185, 129, 0.1)",
-        borderColor: theme.colors.success,
-        borderWidth: 1,
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: 4,
-        borderRadius: theme.radius.sm },
-    badgeRole: {
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        borderColor: theme.colors.textSecondary },
-    badgeText: {
-        color: theme.colors.success,
-        fontFamily: fonts.body.bold,
+    tacticalModalContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderTopWidth: 3,
+        borderTopColor: theme.colors.primary,
+        padding: 20,
+        paddingBottom: 40,
+    },
+    tacticalModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 20,
+    },
+    tacticalModalSubtitle: {
+        fontFamily: 'monospace',
         fontSize: 10,
-        letterSpacing: 1 },
-    badgeInactive: {
-        backgroundColor: "rgba(226, 54, 54, 0.1)",
-        borderColor: theme.colors.error },
-    badgeTextInactive: {
-        color: theme.colors.error },
-    description: {
-        fontSize: 14,
-        fontFamily: fonts.body.regular,
-        color: theme.colors.textSecondary,
-        marginBottom: theme.spacing.lg,
-        lineHeight: 22 },
-    actionButtons: {
-        gap: theme.spacing.sm },
-    view3dButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme.colors.arHighlight,
-        paddingVertical: 14,
-        borderRadius: theme.radius.md },
-    view3dText: {
+        color: theme.colors.primary,
+        letterSpacing: 2,
+        marginBottom: 4,
+    },
+    tacticalModalTitle: {
         fontFamily: fonts.heading.bold,
-        color: "#FFFFFF",
-        fontSize: 14,
-        fontWeight: "900",
-        letterSpacing: 1,
-        marginLeft: theme.spacing.sm },
-    no3dContainer: {
-        paddingVertical: theme.spacing.sm,
-        alignItems: 'center' },
-    no3dText: {
+        fontSize: 22,
+        color: '#000000',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    tacticalModalDistance: {
+        fontFamily: 'monospace',
         fontSize: 12,
-        color: theme.colors.textMuted,
-        fontStyle: "italic" },
-    viewPanoramaButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "transparent",
+        color: '#666666',
+    },
+    tacticalModalBadge: {
+        backgroundColor: 'rgba(0,0,0,0.05)',
         borderWidth: 1,
-        borderColor: theme.colors.arHighlight,
-        paddingVertical: 12,
-        borderRadius: theme.radius.md },
-    viewPanoramaText: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.arHighlight,
-        fontSize: 14,
-        fontWeight: "bold",
-        letterSpacing: 1,
-        marginLeft: theme.spacing.sm },
-    restrictedContainer: {
-        paddingVertical: theme.spacing.lg,
-        backgroundColor: "rgba(226, 54, 54, 0.05)",
+        borderColor: '#CCCCCC',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        marginLeft: 12,
+    },
+    tacticalModalBadgeLocked: {
+        backgroundColor: 'rgba(178,24,48,0.1)',
+        borderColor: theme.colors.primary,
+    },
+    tacticalBadgeText: {
+        fontFamily: 'monospace',
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#333333',
+    },
+    tacticalBadgeTextLocked: {
+        color: theme.colors.primary,
+    },
+    tacticalActionGrid: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    tacticalActionBtn: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 14,
         borderWidth: 1,
-        borderColor: theme.colors.error,
-        borderRadius: theme.radius.md,
+        borderColor: '#CCCCCC',
         alignItems: 'center',
-        width: '100%' },
-    restrictedText: {
-        fontSize: 11,
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.error,
+    },
+    tacticalActionBtnDisabled: {
+        opacity: 0.5,
+    },
+    tacticalActionText: {
+        fontFamily: 'monospace',
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#333333',
+    },
+    tacticalWarningText: {
+        fontFamily: 'monospace',
+        fontSize: 10,
+        color: theme.colors.primary,
         letterSpacing: 1,
-        marginTop: 8 },
+        textAlign: 'center',
+        marginTop: 16,
+    },
 
     // --- Control Mode Picker ---
     controlPickerOverlay: {
