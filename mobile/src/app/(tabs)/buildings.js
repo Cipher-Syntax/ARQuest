@@ -259,11 +259,11 @@ export default function BuildingsScreen() {
                 
                 <View style={styles.terminalInputContainer}>
                     <View style={styles.terminalInputRow}>
-                        <Text style={styles.terminalInputLabel}>ORG:</Text>
+                        <Text style={styles.terminalInputLabel}>FROM</Text>
                         <TextInput
                             style={[styles.terminalInput, !routeOrigin && { color: theme.colors.success, fontWeight: 'bold' }]}
-                            placeholder="LOCALIZATION ACTIVE"
-                            placeholderTextColor="#666666"
+                            placeholder="Your Location"
+                            placeholderTextColor={!routeOrigin ? theme.colors.success : "#999999"}
                             value={originQuery}
                             onChangeText={setOriginQuery}
                             onFocus={() => { setIsOriginFocused(true); setIsSearchFocused(false); }}
@@ -277,11 +277,11 @@ export default function BuildingsScreen() {
                     </View>
                     
                     <View style={styles.terminalInputRowActive}>
-                        <Text style={styles.terminalInputLabel}>DST:</Text>
+                        <Text style={styles.terminalInputLabel}>TO</Text>
                         <TextInput
                             style={styles.terminalInputActive}
-                            placeholder="INPUT COORDINATES"
-                            placeholderTextColor="#888888"
+                            placeholder="Search Destination"
+                            placeholderTextColor="#999999"
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             onFocus={() => { setIsSearchFocused(true); setIsOriginFocused(false); }}
@@ -382,34 +382,52 @@ export default function BuildingsScreen() {
                                     </View>
                                 </View>
 
-                                <View style={styles.tacticalActionGrid}>
-                                    <TouchableOpacity 
-                                        style={[
-                                            styles.tacticalActionBtn, 
-                                            (!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor') && styles.tacticalActionBtnDisabled
-                                        ]}
-                                        disabled={!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor'}
-                                        onPress={handleViewPanorama}
-                                    >
-                                        <Text style={styles.tacticalActionText}>DEPLOY AR</Text>
-                                    </TouchableOpacity>
-                                    
-                                    <TouchableOpacity 
-                                        style={[
-                                            styles.tacticalActionBtn, 
-                                            (!canView3D || !selectedBuilding.model_active) && styles.tacticalActionBtnDisabled
-                                        ]}
-                                        disabled={!canView3D || !selectedBuilding.model_active}
-                                        onPress={handleView3D}
-                                    >
-                                        <Text style={styles.tacticalActionText}>3D SCAN</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                {selectedBuilding.is_active === false ? (
+                                    <View style={styles.restrictedContainer}>
+                                        <ShieldAlert color={theme.colors.error} size={20} style={{marginBottom: 4}} />
+                                        <Text style={styles.restrictedText}>BUILDING CLOSED / UNDER RENOVATION</Text>
+                                    </View>
+                                ) : canAccessBuildingFeatures(true) ? (
+                                    <View style={styles.tacticalActionGrid}>
+                                        {selectedBuilding.model_active && selectedBuilding.model_url && canView3D ? (
+                                            <TouchableOpacity style={styles.tacticalActionBtn} onPress={handleView3D}>
+                                                <Text style={styles.tacticalActionText}>DEPLOY 3D MODEL</Text>
+                                            </TouchableOpacity>
+                                        ) : (
+                                            <View style={[styles.tacticalActionBtn, styles.tacticalActionBtnDisabled]}>
+                                                <Text style={styles.tacticalActionText}>3D ASSETS OFFLINE</Text>
+                                            </View>
+                                        )}
+                                        
+                                        {canViewPanorama && (role === 'professional' || role === 'admin') && selectedBuilding.model_active && selectedBuilding.model_url && (
+                                            <TouchableOpacity style={styles.tacticalActionBtn} onPress={handleVirtualTour}>
+                                                <Text style={styles.tacticalActionText}>ENTER VIRTUAL TOUR</Text>
+                                            </TouchableOpacity>
+                                        )}
 
-                                {(!unlockedBuildings.some(b => b.id === selectedBuilding.id) && role !== 'visitor') && (
-                                    <Text style={styles.tacticalWarningText}>
-                                        ⚠ PHYSICAL DEPLOYMENT REQUIRED TO UNLOCK
-                                    </Text>
+                                        {canViewPanorama && (role === 'student' || role === 'admin') && (
+                                            <TouchableOpacity style={styles.tacticalActionBtn} onPress={handleViewPanorama}>
+                                                <Text style={styles.tacticalActionText}>ENTER 360° SIMULATION</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                        
+                                        <TouchableOpacity 
+                                            style={[styles.tacticalActionBtn, { borderColor: theme.colors.primary }]} 
+                                            onPress={() => {
+                                                setModalVisible(false);
+                                                setQuizModalVisible(true);
+                                            }}
+                                        >
+                                            <Text style={[styles.tacticalActionText, { color: theme.colors.primary }]}>PLAY TRIVIA QUIZ</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <View style={{ alignItems: 'center', marginTop: 16 }}>
+                                        <ShieldAlert color={theme.colors.primary} size={24} style={{marginBottom: 8}} />
+                                        <Text style={styles.tacticalWarningText}>
+                                            ⚠ PHYSICAL DEPLOYMENT REQUIRED TO UNLOCK
+                                        </Text>
+                                    </View>
                                 )}
                             </>
                         )}
@@ -688,11 +706,10 @@ const styles = StyleSheet.create({
         color: theme.colors.primary,
     },
     tacticalActionGrid: {
-        flexDirection: 'row',
-        gap: 12,
+        flexDirection: 'column',
+        gap: 8,
     },
     tacticalActionBtn: {
-        flex: 1,
         backgroundColor: '#FFFFFF',
         paddingVertical: 14,
         borderWidth: 1,
@@ -714,7 +731,22 @@ const styles = StyleSheet.create({
         color: theme.colors.primary,
         letterSpacing: 1,
         textAlign: 'center',
-        marginTop: 16,
+    },
+    restrictedContainer: {
+        paddingVertical: 16,
+        backgroundColor: "rgba(226, 54, 54, 0.05)",
+        borderWidth: 1,
+        borderColor: theme.colors.error,
+        alignItems: 'center',
+        width: '100%',
+        marginTop: 12,
+    },
+    restrictedText: {
+        fontSize: 11,
+        fontFamily: 'monospace',
+        color: theme.colors.error,
+        letterSpacing: 1,
+        marginTop: 8,
     },
 
     // --- Control Mode Picker ---
