@@ -22,6 +22,7 @@ graph TD
     EmailSvc["Email Provider<br/>(Brevo)"]
     GPSSvc["Location Services<br/>(Device GPS)"]
     MediaSvc["Media Storage<br/>(File System / Cloud)"]
+    MapsSvc["Google Maps API<br/>(Map Tiles & Geocoding)"]
 
     %% Interactions
     Student -- "Explores campus, unlocks buildings, completes quests, views 3D/AR content" --> ARQuest
@@ -31,6 +32,7 @@ graph TD
     ARQuest -- "Sends OTP verification emails" --> EmailSvc
     ARQuest -- "Requests location data for geofence validation" --> GPSSvc
     ARQuest -- "Stores and retrieves 3D models, panoramas, and images" --> MediaSvc
+    ARQuest -- "Fetches map tiles for campus routing and UI" --> MapsSvc
 ```
 
 ---
@@ -43,7 +45,7 @@ The Context Diagram provides a high-level view of the ARQuest system boundaries.
 
 ### Actors
 
-**Student / Visitor**: The primary end-users of the mobile application. They interact with the system by physically navigating the campus, triggering geofence unlocks, completing AR quests for gamification points, and exploring 3D building models and 360° panoramas.
+**Student / Visitor**: The primary end-users of the mobile application. They interact with the system by physically navigating the campus, triggering geofence unlocks, completing AR quests for gamification points (maintaining daily login streaks), choosing custom WMSU avatars, and exploring 3D building models and 360° panoramas.
 
 **Professional / Accreditor**: Specialized users who use the mobile application for remote building inspection. They are granted access to Magic Window VR virtual tours without needing to physically unlock buildings via geofencing.
 
@@ -56,3 +58,5 @@ The Context Diagram provides a high-level view of the ARQuest system boundaries.
 **Location Services (Device GPS)**: The mobile application relies on the device's native GPS capabilities (accessed via Expo Location) to determine the user's coordinates for geofence validation.
 
 **Media Storage**: The system stores heavy media assets like `.glb` 3D models and equirectangular panorama images. While currently managed by Django, it represents an externalized storage dependency that could be backed by a cloud provider like S3.
+
+**Google Maps API**: Replaces default mapping services to provide highly accurate map tiles, styling, and robust point-to-point visual routing on the campus explore map.

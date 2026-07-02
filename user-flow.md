@@ -29,6 +29,8 @@ flowchart TD
     VISITOR --> VISITOR_HOME["Visitor Home\nCampus Overview"]
 
     REGISTER --> OTP["OTP Verification Screen\n(6-digit email code)"]
+    REGISTER --> AVATAR["Avatar Selection Screen\n(Choose WMSU character)"]
+    AVATAR --> OTP
     OTP -->|"Code correct"| STUDENT_HOME
     OTP -->|"Code wrong / expired"| RESEND["Resend OTP"]
     RESEND --> OTP

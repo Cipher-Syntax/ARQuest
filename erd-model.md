@@ -31,6 +31,9 @@ flowchart TD
     u_pts(["exploration_points"])
     u_ver(["email_verified"])
     u_act(["is_active"])
+    u_av(["avatar_id"])
+    u_strk(["streak_count"])
+    u_ld(["last_login_date"])
     
     USER --- u_id
     USER --- u_user
@@ -40,6 +43,9 @@ flowchart TD
     USER --- u_pts
     USER --- u_ver
     USER --- u_act
+    USER --- u_av
+    USER --- u_strk
+    USER --- u_ld
 
     %% Attributes for EMAIL_OTP (Ovals)
     o_id(["id (PK)"])

@@ -353,7 +353,7 @@ PostgreSQL table groups, soft-delete pattern, media storage, and JWT token lifec
 ```mermaid
 graph TD
     subgraph AUTH_TABLES ["authentication app tables"]
-        T_USER["USER\nid · username · email · password\nrole · email_verified\nexploration_points\nis_active · is_staff · is_superuser"]
+        T_USER["USER\nid · username · email · password\nrole · email_verified\nexploration_points · avatar_id\nstreak_count · last_login_date\nis_active · is_staff · is_superuser"]
         T_OTP["EMAIL_OTP\nid · email · otp\ncreated_at · expires_at · is_used"]
         T_JWT_BL["JWT Blacklist\n(simplejwt_blacklistedtoken)\nrevoked refresh tokens"]
     end

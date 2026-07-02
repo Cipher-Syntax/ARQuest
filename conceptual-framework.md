@@ -58,10 +58,11 @@ The system ingests data from two primary sources: mobile device sensors and user
 
 The core logic of ARQuest resides in its processing layer, primarily handled by the Django backend and mobile WebViews:
 - **Location Processing**: The geofencing engine uses the Haversine formula to validate user proximity to building boundaries.
-- **Visualization Rendering**: Three.js engines inside mobile WebViews parse 3D models and map equirectangular images into interactive 360° spheres or Magic Window VR views.
-- **Gamification Logic**: The backend validates quest completions, calculates reward points, issues trivia facts, and updates user progress atomically.
+- **Visualization Rendering**: Three.js engines inside mobile WebViews parse 3D models and map equirectangular images into interactive 360° spheres or Magic Window VR views with Gyroscope controls.
+- **Gamification Logic**: The backend validates quest completions, calculates reward points and daily streaks, issues trivia facts, and updates user progress atomically.
 - **Security & Access**: All incoming requests are routed through JWT validation and strict Role-Based Access Control (RBAC) to ensure users only access what their role (Student, Admin, Professional) permits.
+- **Content Management**: Advanced features like Soft-Delete Archiving, multi-building department grouping, and draft workflows ensure data integrity without permanent data loss.
 
 ### Outputs
 
-The processed data results in tangible outputs for the user. Successful authentication yields JWT tokens. Geofence validation results in building unlocks or proximity warnings. 3D rendering processes output interactive, explorable models and immersive AR overlays. Gamification processes output increased exploration points, trivia displays, and updated leaderboard standings. For administrators, the system outputs structured dashboard metrics and configuration states.
+The processed data results in tangible outputs for the user. Successful authentication yields JWT tokens and session data (including customizable avatars). Geofence validation results in building unlocks or proximity warnings (e.g. A-to-B navigation routing). 3D rendering processes output interactive, explorable models and immersive AR overlays. Gamification processes output increased exploration points, daily streak bonuses, trivia displays, and updated leaderboard standings. For administrators, the system outputs structured dashboard metrics and configuration states.

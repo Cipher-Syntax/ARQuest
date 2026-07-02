@@ -15,7 +15,7 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant Email as Email Provider (Brevo)
 
-    User->>App: Fill register form\n(username, email, password)
+    User->>App: Fill register form\n(username, email, password, avatar_id)
     App->>API: POST /api/auth/register/
     API->>DB: Create User (email_verified=false, role=student)
     API->>DB: Create EmailOTP (expires in 10 min)

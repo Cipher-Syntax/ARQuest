@@ -23,6 +23,9 @@ erDiagram
         boolean     is_active
         boolean     is_staff
         boolean     is_superuser
+        string      avatar_id           "e.g. explorer_1"
+        int         streak_count
+        date        last_login_date
         datetime    date_joined
         datetime    last_login
     }
@@ -196,6 +199,9 @@ Django custom user (`AbstractUser`). Stores credentials, role, email verificatio
 | `role` | Enum: `admin`, `student`, `professional`, `visitor` |
 | `email_verified` | Set to `true` after OTP confirmation |
 | `exploration_points` | Incremented on quest completion |
+| `avatar_id` | String ID mapping to a local asset |
+| `streak_count` | Number of consecutive daily logins |
+| `last_login_date` | Date of last login for streak tracking |
 
 ---
 
@@ -346,7 +352,7 @@ The database is the single source of truth for all system state. The Django back
 
 The authentication domain has two models: `User` and `EmailOTP`.
 
-The `User` model extends Django's built-in `AbstractUser`, inheriting standard fields like `username`, `password`, `email`, `first_name`, `last_name`, `is_active`, `is_staff`, and `is_superuser`. ARQuest adds three custom fields on top of these. The `role` field is an enumerated string that assigns the user one of four types: `admin`, `student`, `professional`, or `visitor`. This field controls all role-based access decisions at the API level. The `email_verified` boolean tracks whether the user has confirmed their email through the OTP flow. Accounts with `email_verified=false` cannot log in. The `exploration_points` integer holds the total gamification points a user has earned by completing quests.
+The `User` model extends Django's built-in `AbstractUser`, inheriting standard fields like `username`, `password`, `email`, `first_name`, `last_name`, `is_active`, `is_staff`, and `is_superuser`. ARQuest adds several custom fields on top of these. The `role` field is an enumerated string that assigns the user one of four types: `admin`, `student`, `professional`, or `visitor`. This field controls all role-based access decisions at the API level. The `email_verified` boolean tracks whether the user has confirmed their email through the OTP flow. Accounts with `email_verified=false` cannot log in. The `exploration_points` integer holds the total gamification points a user has earned by completing quests. The `avatar_id` stores the user's selected profile picture identifier. The `streak_count` and `last_login_date` fields manage the daily login streak mechanics, rewarding users with bonus points for consecutive daily activity.
 
 The `EmailOTP` model stores the six-digit one-time password sent during registration or resend requests. Each OTP is tied to an email address and has a `created_at` and `expires_at` timestamp. The expiry is set ten minutes after creation. Once used during verification, `is_used` is set to `true` and the OTP is no longer valid. This model is not linked to `User` by a foreign key. The association goes through the shared `email` field so that OTPs can be created before the user account is fully verified.
 

@@ -29,6 +29,7 @@ flowchart LR
         UC11(["Manage Quests & Trivia"])
         UC12(["Manage Users & Professionals"])
         UC13(["Toggle System Feature Flags"])
+        UC14(["Manage Account Settings & Avatar"])
     end
 
     %% Left Side
@@ -38,8 +39,10 @@ flowchart LR
     Student --- UC4
     Student --- UC5
     Student --- UC6
+    Student --- UC14
     Professional --- UC4
     Professional --- UC7
+    Professional --- UC14
 
     %% Right Side
     UC8 --- Admin
@@ -65,8 +68,9 @@ The Student (or Visitor) interacts exclusively with the mobile application to ex
 - **Explore Campus via GPS**: Students view their real-time location on the campus map and see nearby building geofences.
 - **Unlock Building**: By physically entering a geofence or scanning a fallback QR code, students unlock access to a building's digital content.
 - **View 3D Model & 360° Walkthrough**: Once unlocked, students can manipulate 3D architectural models and navigate through panoramic indoor walkthroughs.
-- **Complete Quest & Claim Points**: Students receive directions to specific buildings. Upon arrival, they use the AR camera to claim exploration points.
+- **Complete Quest & Claim Points**: Students receive directions to specific buildings. Upon arrival, they use the AR camera to claim exploration points and maintain their daily login streaks.
 - **Take Branded AR Selfie**: Students can overlay the 3D model onto their live camera feed, take a picture with a branded frame, and save it to their device.
+- **Manage Account Settings & Avatar**: Students can customize their profile by choosing from a set of generated WMSU-themed avatars.
 
 ### Actor: Professional
 
