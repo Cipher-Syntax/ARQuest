@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, DeviceEventEmitter, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Medal, LogOut, ChevronRight, User as UserIcon, ShieldAlert, Settings, HelpCircle, Award, Crosshair, Map, MessageSquare } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { api } from '../../services/api';
 import theme from '../../theme/tokens';
@@ -86,7 +87,12 @@ export default function ProfileScreen() {
             >
                 
                 {/* --- Player ID Card (#6) --- */}
-                <View style={styles.playerCard}>
+                <LinearGradient
+                    colors={['#8A1538', '#B21830']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.playerCard}
+                >
                     <View style={styles.playerCardTop}>
                         {user?.avatar_id && AVATARS.find(a => a.id === user.avatar_id)?.uri ? (
                             <Image 
@@ -152,7 +158,7 @@ export default function ProfileScreen() {
                             )}
                         </View>
                     )}
-                </View>
+                </LinearGradient>
 
                 {/* --- Badge Showcase --- */}
                 {user?.role === 'student' && (
