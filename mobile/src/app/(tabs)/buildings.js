@@ -12,7 +12,7 @@ import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
 import { geofencingService } from "../../services/geofencingService";
-import { Crosshair, ShieldAlert, Navigation, Search, X } from "lucide-react-native";
+import { Crosshair, ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/QuizModal";
 
@@ -269,6 +269,11 @@ export default function BuildingsScreen() {
                             onFocus={() => { setIsOriginFocused(true); setIsSearchFocused(false); }}
                             onBlur={() => setTimeout(() => setIsOriginFocused(false), 200)}
                         />
+                        {routeOrigin && (
+                            <TouchableOpacity onPress={handleClearOrigin} style={styles.clearRouteBtn}>
+                                <X color={theme.colors.textMuted} size={18} />
+                            </TouchableOpacity>
+                        )}
                     </View>
                     
                     <View style={styles.terminalInputRowActive}>
@@ -282,6 +287,11 @@ export default function BuildingsScreen() {
                             onFocus={() => { setIsSearchFocused(true); setIsOriginFocused(false); }}
                             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                         />
+                        {routeTarget && (
+                            <TouchableOpacity onPress={handleClearRoute} style={styles.clearRouteBtn}>
+                                <X color={theme.colors.textMuted} size={18} />
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
 
@@ -653,17 +663,6 @@ const styles = StyleSheet.create({
         fontFamily: fonts.body.regular,
         fontStyle: 'italic',
         textAlign: 'center' },
-    distanceContainer: {
-        marginTop: theme.spacing.sm,
-        paddingTop: theme.spacing.sm,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
-        alignItems: 'center' },
-    distanceText: {
-        color: '#FFFFFF',
-        fontFamily: fonts.heading.bold,
-        fontSize: 14,
-        letterSpacing: 1.5 },
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
