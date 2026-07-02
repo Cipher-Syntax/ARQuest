@@ -115,7 +115,7 @@ export default function ProfileScreen() {
                     {user?.role === 'student' && (
                         <View style={styles.playerCardBottom}>
                             {loading ? (
-                                <ActivityIndicator size="small" color="#FFF" style={{ padding: 10 }} />
+                                <ActivityIndicator size="small" color={theme.colors.primary} style={{ padding: 10 }} />
                             ) : (
                                 <>
                                     <View style={styles.progressHeader}>
@@ -134,6 +134,17 @@ export default function ProfileScreen() {
                                         <View style={styles.miniStreak}>
                                             <Text style={styles.miniStreakFlame}>🔥</Text>
                                             <Text style={styles.miniStreakText}>{user?.streak_count || 0}</Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.gamifiedStatsGrid}>
+                                        <View style={styles.gamifiedStatBox}>
+                                            <Text style={styles.gamifiedStatLabel}>TOTAL QUESTS</Text>
+                                            <Text style={styles.gamifiedStatValue}>{myStats?.quests_completed || 0}</Text>
+                                        </View>
+                                        <View style={styles.gamifiedStatBox}>
+                                            <Text style={styles.gamifiedStatLabel}>TOTAL BADGES</Text>
+                                            <Text style={styles.gamifiedStatValue}>{badgeCount ? badgeCount.split('/')[0] : 0}</Text>
                                         </View>
                                     </View>
                                 </>
@@ -310,10 +321,10 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingBottom: 40 },
     playerCard: {
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: '#FFFFFF',
         borderRadius: theme.radius.xl,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderWidth: 2,
+        borderColor: theme.colors.primary,
         overflow: 'hidden',
         marginBottom: theme.spacing.xl },
     playerCardTop: {
@@ -324,15 +335,15 @@ const styles = StyleSheet.create({
         width: 70,
         height: 70,
         borderRadius: 35,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: '#FFFFFF',
         justifyContent: "center",
         alignItems: "center",
         marginRight: theme.spacing.md,
         borderWidth: 2,
-        borderColor: theme.colors.primarySoft },
+        borderColor: theme.colors.primary },
     avatarText: {
         fontFamily: fonts.heading.bold,
-        color: "#FFF",
+        color: theme.colors.primary,
         fontSize: 32 },
     playerInfo: {
         flex: 1 },
@@ -353,53 +364,85 @@ const styles = StyleSheet.create({
         fontSize: 12,
         letterSpacing: 1 },
     playerCardBottom: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
         padding: theme.spacing.lg },
     progressHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 8 },
     progressTitle: {
-        fontFamily: fonts.hud.bold,
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 10,
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.primary,
+        fontSize: 12,
         letterSpacing: 1 },
     progressPoints: {
-        fontFamily: fonts.hud.bold,
-        color: '#FFF',
-        fontSize: 12 },
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.primary,
+        fontSize: 14 },
     progressBarContainer: {
         height: 8,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: theme.colors.surfaceSoft,
         borderRadius: 4,
         overflow: 'hidden',
-        marginBottom: 8 },
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.border },
     progressBarFill: {
         height: '100%',
-        backgroundColor: '#FFF',
+        backgroundColor: theme.colors.primary,
         borderRadius: 4 },
     progressFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center' },
+        alignItems: 'center',
+        marginBottom: 16 },
     progressSubtext: {
         fontFamily: fonts.body.regular,
-        color: 'rgba(255,255,255,0.8)',
+        color: theme.colors.textSecondary,
         fontSize: 12 },
     miniStreak: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: theme.colors.surfaceSoft,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 12,
-        gap: 4 },
+        gap: 4,
+        borderWidth: 1,
+        borderColor: theme.colors.border },
     miniStreakFlame: {
         fontSize: 12 },
     miniStreakText: {
         fontFamily: fonts.hud.bold,
-        color: '#FFF',
+        color: theme.colors.textPrimary,
         fontSize: 10 },
+    gamifiedStatsGrid: {
+        flexDirection: 'row',
+        gap: 12,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
+        paddingTop: 16 },
+    gamifiedStatBox: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.surfaceSoft,
+        paddingVertical: 10,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border },
+    gamifiedStatLabel: {
+        fontFamily: fonts.hud.bold,
+        color: theme.colors.textSecondary,
+        fontSize: 10,
+        letterSpacing: 1,
+        marginBottom: 4 },
+    gamifiedStatValue: {
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.primary,
+        fontSize: 18 },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
