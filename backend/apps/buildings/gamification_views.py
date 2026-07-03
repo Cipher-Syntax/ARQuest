@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -151,25 +152,27 @@ class CompleteQuestView(views.APIView):
 				'error': 'Quest not found or inactive'
 			}, status=status.HTTP_404_NOT_FOUND)
 
-		progress, created = UserQuestProgress.objects.get_or_create(
-			user=request.user,
-			quest=quest
-		)
+		with transaction.atomic():
+			progress, created = UserQuestProgress.objects.get_or_create(
+				user=request.user,
+				quest=quest
+			)
+			progress = UserQuestProgress.objects.select_for_update().get(id=progress.id)
 
-		if progress.is_completed:
-			return Response({
-				'success': False,
-				'error': 'Quest already completed'
-			}, status=status.HTTP_400_BAD_REQUEST)
+			if progress.is_completed:
+				return Response({
+					'success': False,
+					'error': 'Quest already completed'
+				}, status=status.HTTP_400_BAD_REQUEST)
 
-		# Mark completed and award points
-		progress.is_completed = True
-		progress.completed_at = timezone.now()
-		progress.save()
+			# Mark completed and award points
+			progress.is_completed = True
+			progress.completed_at = timezone.now()
+			progress.save()
 
-		user = request.user
-		user.exploration_points += quest.reward_points
-		user.save()
+			user = User.objects.select_for_update().get(id=request.user.id)
+			user.exploration_points += quest.reward_points
+			user.save()
 
 		# Check and award badges
 		newly_earned_badges = check_and_award_badges(user)

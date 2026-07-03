@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
@@ -500,26 +501,29 @@ def submit_quiz_answer(request):
     newly_earned_badges = []
     
     from .models import UserQuizProgress
-    progress, created = UserQuizProgress.objects.get_or_create(user=request.user, question=question)
-    
-    if progress.is_correct:
-        return success_response({
-            'is_correct': True,
-            'correct_option': question.correct_option,
-            'exp_awarded': 0,
-            'newly_earned_badges': [],
-            'message': 'You have already completed this trivia question.'
-        })
-    
-    if is_correct:
-        progress.is_correct = True
-        progress.save(update_fields=['is_correct'])
-        request.user.exploration_points += question.exp_reward
-        request.user.save(update_fields=['exploration_points'])
-        exp_awarded = question.exp_reward
+    with transaction.atomic():
+        progress, created = UserQuizProgress.objects.get_or_create(user=request.user, question=question)
+        progress = UserQuizProgress.objects.select_for_update().get(id=progress.id)
         
-        from apps.buildings.gamification_views import check_and_award_badges
-        newly_earned_badges = check_and_award_badges(request.user)
+        if progress.is_correct:
+            return success_response({
+                'is_correct': True,
+                'correct_option': question.correct_option,
+                'exp_awarded': 0,
+                'newly_earned_badges': [],
+                'message': 'You have already completed this trivia question.'
+            })
+        
+        if is_correct:
+            progress.is_correct = True
+            progress.save(update_fields=['is_correct'])
+            user = request.user.__class__.objects.select_for_update().get(id=request.user.id)
+            user.exploration_points += question.exp_reward
+            user.save(update_fields=['exploration_points'])
+            exp_awarded = question.exp_reward
+            
+            from apps.buildings.gamification_views import check_and_award_badges
+            newly_earned_badges = check_and_award_badges(user)
         
     return success_response({
         'is_correct': is_correct,

@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from datetime import timedelta, date
 import random
@@ -39,39 +39,41 @@ class User(AbstractUser):
     def is_visitor_role(self):
         return self.role == self.Role.VISITOR
     
+    @transaction.atomic
     def update_streak(self):
         """
         Call on every successful login.
         Returns the bonus EXP awarded (5 normally, 10 on every 3rd consecutive day).
         """
+        fresh_self = type(self).objects.select_for_update().get(pk=self.pk)
+        
         today = date.today()
         bonus_exp = 0
 
-        if self.last_login_date is None:
-            # First ever login — start streak at 1
-            self.streak_count = 1
+        if fresh_self.last_login_date is None:
+            fresh_self.streak_count = 1
             bonus_exp = 5
-        elif self.last_login_date == today:
-            # Already logged in today — no change
-            pass
-        elif self.last_login_date == today - timedelta(days=1):
-            # Consecutive day — extend streak
-            self.streak_count += 1
-            # Award +10 EXP on every 3rd consecutive day, otherwise +5
-            if self.streak_count > 0 and self.streak_count % 3 == 0:
+        elif fresh_self.last_login_date == today:
+            return 0
+        elif fresh_self.last_login_date == today - timedelta(days=1):
+            fresh_self.streak_count += 1
+            if fresh_self.streak_count > 0 and fresh_self.streak_count % 3 == 0:
                 bonus_exp = 10
             else:
                 bonus_exp = 5
         else:
-            # Missed one or more days — reset
-            self.streak_count = 1
+            fresh_self.streak_count = 1
             bonus_exp = 5
 
-        if self.last_login_date != today:
-            self.last_login_date = today
-            if bonus_exp > 0:
-                self.exploration_points += bonus_exp
-            self.save(update_fields=['streak_count', 'last_login_date', 'exploration_points'])
+        fresh_self.last_login_date = today
+        if bonus_exp > 0:
+            fresh_self.exploration_points += bonus_exp
+            
+        fresh_self.save(update_fields=['streak_count', 'last_login_date', 'exploration_points'])
+
+        self.streak_count = fresh_self.streak_count
+        self.last_login_date = fresh_self.last_login_date
+        self.exploration_points = fresh_self.exploration_points
 
         return bonus_exp
 
