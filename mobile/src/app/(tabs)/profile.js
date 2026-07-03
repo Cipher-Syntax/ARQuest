@@ -13,7 +13,7 @@ import FeedbackModal from '../../components/FeedbackModal';
 import { customAlert as Alert } from '../../components/CustomAlert';
 
 export default function ProfileScreen() {
-    const { user, logout } = useAuth();
+    const { user, logout, checkToken } = useAuth();
     const [myStats, setMyStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [badgeCount, setBadgeCount] = useState(null);
@@ -35,6 +35,7 @@ export default function ProfileScreen() {
 
     const loadData = async () => {
         try {
+            if (checkToken) await checkToken(); // Refresh global user EXP and rank
             if (user?.role === 'student') {
                 const resStats = await api.get('/api/gamification/leaderboard/');
                 if (resStats.data.success) {

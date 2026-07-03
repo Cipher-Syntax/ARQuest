@@ -55,11 +55,21 @@ export const useLocationTracking = () => {
                     timeInterval: 5000,
                 },
                 (newLocation) => {
+                    const accuracy = newLocation.coords.accuracy;
+                    const isWeak = accuracy > 40;
+                    
+                    if (isWeak) {
+                        setError('Weak GPS Signal. Please step outside or use QR code fallback.');
+                    } else {
+                        setError(null);
+                    }
+
                     setLocation({
                         latitude: newLocation.coords.latitude,
                         longitude: newLocation.coords.longitude,
-                        accuracy: newLocation.coords.accuracy,
+                        accuracy: accuracy,
                         timestamp: newLocation.timestamp,
+                        isWeakSignal: isWeak,
                     });
                 }
             );

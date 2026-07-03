@@ -33,6 +33,8 @@ export const assetService = {
 
     downloadAsset: async (url, assetId, version, onProgress) => {
         await ensureCacheDir();
+        await assetService.evictIfCacheFull(); // Ensure we don't balloon storage
+
         const localUri = assetService.getLocalPath(assetId, version);
         
         // Cleanup old versions
@@ -68,5 +70,35 @@ export const assetService = {
     clearCache: async () => {
         await FileSystem.deleteAsync(CACHE_DIR, { idempotent: true });
         await ensureCacheDir();
+    },
+
+    getCacheSize: async () => {
+        try {
+            await ensureCacheDir();
+            const dirContent = await FileSystem.readDirectoryAsync(CACHE_DIR);
+            let totalSize = 0;
+            for (const file of dirContent) {
+                const info = await FileSystem.getInfoAsync(`${CACHE_DIR}${file}`);
+                if (info.exists && !info.isDirectory) {
+                    totalSize += info.size;
+                }
+            }
+            return totalSize;
+        } catch (e) {
+            console.error('Failed to get cache size', e);
+            return 0;
+        }
+    },
+
+    evictIfCacheFull: async (maxSizeBytes = 200 * 1024 * 1024) => { // 200MB limit
+        try {
+            const size = await assetService.getCacheSize();
+            if (size > maxSizeBytes) {
+                console.log(`Cache size (${(size / 1024 / 1024).toFixed(2)}MB) exceeds limit. Clearing cache...`);
+                await assetService.clearCache();
+            }
+        } catch (e) {
+            console.warn('Failed to run cache eviction', e);
+        }
     }
 };
