@@ -11,9 +11,11 @@ import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ExploreScreen() {
     const { role } = useRoleAccess();
+    const { checkToken } = useAuth();
     const {
         location,
         error,
@@ -157,6 +159,7 @@ export default function ExploreScreen() {
                         setLastUnlockAttempt(buildingId);
                         
                         SoundManager.play('building_unlock');
+                        if (checkToken) await checkToken(); // Refresh global EXP immediately!
 
                         const badges = unlockResult?.newly_earned_badges || [];
                         if (badges.length > 0) {

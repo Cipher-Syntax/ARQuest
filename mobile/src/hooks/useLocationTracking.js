@@ -57,8 +57,12 @@ export const useLocationTracking = () => {
                 (newLocation) => {
                     const accuracy = newLocation.coords.accuracy;
                     const isWeak = accuracy > 40;
+                    const isMocked = newLocation.mocked === true;
                     
-                    if (isWeak) {
+                    if (isMocked) {
+                        setError('Fake GPS detected! Please disable mock locations to play.');
+                        return; // Prevent spoofing
+                    } else if (isWeak) {
                         setError('Weak GPS Signal. Please step outside or use QR code fallback.');
                     } else {
                         setError(null);

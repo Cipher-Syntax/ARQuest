@@ -41,6 +41,7 @@ export default function ARScreen() {
     const [claimedQuest, setClaimedQuest] = useState(null);
     const [fetchedTrivia, setFetchedTrivia] = useState(null);
     const [newlyEarnedBadges, setNewlyEarnedBadges] = useState([]);
+    const [isClaiming, setIsClaiming] = useState(false);
     const [rankUpInfo, setRankUpInfo] = useState(null);
     const slideAnim = useRef(new Animated.Value(400)).current;
     const badgeAnim = useRef(new Animated.Value(0)).current;
@@ -120,7 +121,8 @@ export default function ARScreen() {
     const matchingQuest = activeQuests.find(q => nearbyBuildingFull && q.target_building === nearbyBuildingFull.id && !q.is_completed);
 
     const handleClaimQuest = async () => {
-        if (!matchingQuest) return;
+        if (!matchingQuest || isClaiming) return;
+        setIsClaiming(true);
         try {
             const res = await api.post(`/api/gamification/quests/${matchingQuest.id}/complete/`);
             if (res.data.success) {
