@@ -3,6 +3,8 @@ import { } from "react-native"
 import { customAlert as Alert } from '../components/CustomAlert';
 import { api } from "../services/api";
 import { authService } from "../services/authService";
+import NetInfo from '@react-native-community/netinfo';
+import { offlineQueueService } from '../services/offlineQueueService';
 
 const AuthContext = createContext(null);
 
@@ -12,6 +14,15 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         checkToken();
+        
+        // Listen for network restoration to process offline queue
+        const unsubscribe = NetInfo.addEventListener(state => {
+            if (state.isConnected) {
+                offlineQueueService.processQueue();
+            }
+        });
+        
+        return () => unsubscribe();
     }, []);
 
     const checkToken = async () => {
@@ -22,7 +33,20 @@ export const AuthProvider = ({ children }) => {
                 // The backend `success_response` wraps in { data: { user: {...} } }
                 const payload = response.data.data || response.data;
                 const restoredUser = payload.user;
-                setUser(restoredUser);
+                setUser(prev => {
+                    if (prev?.rank_info && restoredUser?.rank_info) {
+                        if (restoredUser.rank_info.level > prev.rank_info.level) {
+                            setTimeout(() => {
+                                Alert(
+                                    `⭐ Level Up!`,
+                                    `Congratulations! You've reached Level ${restoredUser.rank_info.level}: ${restoredUser.rank_info.title}.`,
+                                    [{ text: 'Awesome!', style: 'default' }]
+                                );
+                            }, 1200);
+                        }
+                    }
+                    return restoredUser;
+                });
 
                 // Fire daily streak on every app open — safe to call repeatedly,
                 // update_streak() is a no-op when already checked in today.
