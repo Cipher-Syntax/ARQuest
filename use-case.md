@@ -7,50 +7,63 @@
 ## 1. System Use Cases
 
 ```mermaid
-flowchart LR
+flowchart TB
     %% Actors
-    Student(("🧑‍🎓 Student"))
-    Professional(("👔 Professional"))
-    Admin(("🛠️ Administrator"))
+    Student(("Student"))
+    Professional(("Professional"))
+    Admin(("Administrator"))
 
-    %% Centralized System Boundary
+    %% System Boundary
     subgraph System ["ARQuest System"]
-        direction TB
-        UC1(["Register & Verify OTP"])
-        UC2(["Explore Campus via GPS"])
-        UC3(["Unlock Building (Geofence/QR)"])
-        UC4(["View 3D Model & Walkthrough"])
-        UC5(["Complete Quest & Claim Points"])
-        UC6(["Take Branded AR Selfie"])
-        UC7(["Access VR Virtual Tour"])
-        UC8(["Manage Buildings & Departments"])
-        UC9(["Configure Map Geofences"])
-        UC10(["Upload 3D Models & Media"])
-        UC11(["Manage Quests & Trivia"])
-        UC12(["Manage Users & Professionals"])
-        UC13(["Toggle System Feature Flags"])
-        UC14(["Manage Account Settings & Avatar"])
+        
+        subgraph App ["Mobile App"]
+            UC1(["Register & Verify OTP"])
+            UC2(["Explore Campus via GPS"])
+            UC3(["Unlock Building (Geofence/QR)"])
+            UC5(["Complete Quest & Claim Points"])
+            UC6(["Take Branded AR Selfie"])
+            UC4(["View 3D Model & Walkthrough"])
+            UC14(["Manage Account Settings & Avatar"])
+            UC7(["Access VR Virtual Tour"])
+            
+            %% Force vertical list to prevent horizontal spread
+            UC1 ~~~ UC2 ~~~ UC3 ~~~ UC5 ~~~ UC6 ~~~ UC4 ~~~ UC14 ~~~ UC7
+        end
+
+        subgraph Web ["Web Dashboard"]
+            UC8(["Manage Buildings & Departments"])
+            UC9(["Configure Map Geofences"])
+            UC10(["Upload 3D Models & Media"])
+            UC11(["Manage Quests & Trivia"])
+            UC12(["Manage Users & Professionals"])
+            UC13(["Toggle System Feature Flags"])
+            
+            %% Force vertical list to prevent horizontal spread
+            UC8 ~~~ UC9 ~~~ UC10 ~~~ UC11 ~~~ UC12 ~~~ UC13
+        end
     end
 
-    %% Left Side
+    %% Student Connections (Top)
     Student --- UC1
     Student --- UC2
     Student --- UC3
-    Student --- UC4
     Student --- UC5
     Student --- UC6
+    Student --- UC4
     Student --- UC14
-    Professional --- UC4
-    Professional --- UC7
-    Professional --- UC14
 
-    %% Right Side
-    UC8 --- Admin
-    UC9 --- Admin
-    UC10 --- Admin
-    UC11 --- Admin
-    UC12 --- Admin
-    UC13 --- Admin
+    %% Professional Connections (Middle)
+    Professional --- UC4
+    Professional --- UC14
+    Professional --- UC7
+
+    %% Admin Connections (Right)
+    Admin --- UC8
+    Admin --- UC9
+    Admin --- UC10
+    Admin --- UC11
+    Admin --- UC12
+    Admin --- UC13
 ```
 
 ---
