@@ -199,23 +199,6 @@ export default function VirtualTourViewerScreen() {
 			} else if (data.type === 'error') {
 				setLoading(false);
 				setError(data.message || 'Failed to load model');
-			} else if (data.type === 'interact_door') {
-				Alert(
-					'Locked Door',
-					'Do you want to unlock this door?',
-					[
-						{ text: 'Cancel', style: 'cancel' },
-						{
-							text: 'Unlock',
-							onPress: () => {
-								if (webViewRef.current) {
-									webViewRef.current.postMessage(JSON.stringify({
-										type: 'unlock_door',
-										doorName: data.doorName }));
-								}
-							} },
-					]
-				);
 			}
 		} catch (e) {
 			console.error('WebView message error:', e);

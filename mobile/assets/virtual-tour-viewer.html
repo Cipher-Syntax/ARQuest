@@ -12,7 +12,6 @@
 		#ghost-btn { position: absolute; top: 80px; right: 20px; background: rgba(0, 229, 255, 0.2); color: #00E5FF; border: 1px solid #00E5FF; padding: 8px 12px; border-radius: 8px; font-family: system-ui; font-weight: bold; z-index: 100; }
 		#camera-zone { position: absolute; top: 0; right: 0; width: 50%; height: 100%; z-index: 10; }
 		#crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: rgba(255,255,255,0.8); border-radius: 50%; transform: translate(-50%, -50%); z-index: 50; pointer-events: none; }
-		#interact-btn { position: absolute; bottom: 40px; left: 50%; padding: 10px 20px; background: rgba(0, 229, 255, 0.9); color: black; font-weight: bold; border: none; border-radius: 8px; display: none; transform: translateX(-50%); z-index: 100; font-family: system-ui; }
 		#info-panel {
 			position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
 			background: rgba(0, 0, 0, 0.85); border: 2px solid #00E5FF;
@@ -61,7 +60,6 @@
 	<div id="camera-zone"></div>
 	<button id="ghost-btn" onclick="toggleGhostMode()">PHYSICS: ON</button>
 	<div id="crosshair"></div>
-	<button id="interact-btn" onclick="onInteractClick()">UNLOCK DOOR</button>
 
 	<!-- Gyroscope mode indicator -->
 	<div id="gyro-indicator">⬡ GYROSCOPE ACTIVE</div>
@@ -105,7 +103,6 @@
 		const centerRaycaster = new THREE.Raycaster();
 		const downVector = new THREE.Vector3(0, -1, 0);
 		let worldBounds;
-		let currentDoor = null;
 
 		let hotspots = [];
 		const tapRaycaster = new THREE.Raycaster();
@@ -199,15 +196,6 @@
 			document.getElementById('info-panel').style.display = 'none';
 		};
 
-		window.onInteractClick = () => {
-			if (currentDoor) {
-				window.ReactNativeWebView?.postMessage(JSON.stringify({
-					type: 'interact_door',
-					doorName: currentDoor.name
-				}));
-			}
-		};
-
 		window.toggleGhostMode = () => {
 			ghostMode = !ghostMode;
 			document.getElementById('ghost-btn').textContent = ghostMode ? 'PHYSICS: OFF (GHOST)' : 'PHYSICS: ON';
@@ -236,8 +224,6 @@
 						document.getElementById('info-desc').textContent = hit.userData.desc;
 						document.getElementById('info-panel').style.display = 'block';
 					}
-				} else if (currentDoor) {
-					window.onInteractClick();
 				}
 			}
 		});
@@ -424,46 +410,6 @@
 					h.position.y += Math.sin(time + h.position.x) * 0.002;
 				});
 
-				// Door Interaction Raycast (centre crosshair)
-				centerRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-				const interacts = centerRaycaster.intersectObject(model, true);
-				let foundDoor = null;
-				if (interacts.length > 0 && interacts[0].distance < 3.0) {
-					let obj = interacts[0].object;
-					while (obj) {
-						if (obj.name && obj.name.toLowerCase().includes('interactivedoor') && !obj.userData.isOpen) {
-							foundDoor = obj;
-							break;
-						}
-						obj = obj.parent;
-					}
-				}
-
-				if (foundDoor) {
-					if (currentDoor !== foundDoor) {
-						currentDoor = foundDoor;
-						document.getElementById('crosshair').style.background = '#00E5FF';
-						document.getElementById('crosshair').style.transform = 'translate(-50%, -50%) scale(1.5)';
-						document.getElementById('interact-btn').style.display = 'block';
-					}
-				} else {
-					if (currentDoor) {
-						currentDoor = null;
-						document.getElementById('crosshair').style.background = 'rgba(255,255,255,0.8)';
-						document.getElementById('crosshair').style.transform = 'translate(-50%, -50%) scale(1)';
-						document.getElementById('interact-btn').style.display = 'none';
-					}
-				}
-
-				// Animate opening doors
-				model.traverse((child) => {
-					if (child.userData.isOpen && child.userData.targetRotationY !== undefined) {
-						if (Math.abs(child.rotation.y - child.userData.targetRotationY) > 0.01) {
-							child.rotation.y += (child.userData.targetRotationY - child.rotation.y) * 0.05;
-						}
-					}
-				});
-
 				// Downward Raycast for Floor Height (Stairs / Gravity)
 				const origin = camera.position.clone();
 				origin.y += 1.0; // Cast from slightly above eye level to detect stairs
@@ -583,19 +529,6 @@
 				onGyroData(data.alpha, data.beta, data.gamma, data.orientAngle);
 			} else if (data.type === 'dispose') {
 				dispose();
-			} else if (data.type === 'unlock_door') {
-				if (model) {
-					model.traverse((child) => {
-						if (child.name === data.doorName) {
-							child.userData.isOpen = true;
-							child.userData.targetRotationY = child.rotation.y + (Math.PI / 2);
-						}
-					});
-					currentDoor = null;
-					document.getElementById('crosshair').style.background = 'rgba(255,255,255,0.8)';
-					document.getElementById('crosshair').style.transform = 'translate(-50%, -50%) scale(1)';
-					document.getElementById('interact-btn').style.display = 'none';
-				}
 			}
 		}
 
