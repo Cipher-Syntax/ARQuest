@@ -13,6 +13,10 @@ To prevent the diagram from becoming an unreadable web, the models are grouped l
 
 ## 1. Authentication Domain
 
+The authentication domain revolves around the `USER` and `EMAIL_OTP` models.
+- **USER**: Extends Django's `AbstractUser` with custom fields such as `role` (admin, student, professional, visitor), `email_verified`, `exploration_points` for gamification, and `streak_count` for daily logins.
+- **EMAIL_OTP**: Stores six-digit one-time passwords for email verification. They expire after 10 minutes and are linked to the user via the `email` field rather than a foreign key to allow OTP creation prior to account verification.
+
 ```mermaid
 flowchart TD
     %% Entities (Rectangles)
@@ -68,6 +72,13 @@ flowchart TD
 ---
 
 ## 2. Buildings & Geofencing Domain
+
+This domain handles the core physical mapping and access control features.
+- **DEPARTMENT**: Groups buildings by academic unit and dictates map pin colors.
+- **BUILDING**: The central entity supporting soft-delete. Contains 3D model metadata, statuses (`DRAFT`, `HIDDEN`, `VISIBLE`), and QR secrets for unlock fallbacks.
+- **GEOFENCE**: Defines GPS boundaries (center coordinates and radius) for buildings, evaluated via Haversine calculations.
+- **BUILDING_UNLOCK**: Tracks when a user gains access to a building (via geofence, QR scan, or admin grant).
+- **BUILDING_ASSET**: Manages versioned file metadata for media assets (3D models, panoramas) tied to buildings, using checksums for cache invalidation.
 
 ```mermaid
 flowchart TD
@@ -154,6 +165,11 @@ flowchart TD
 
 ## 3. Gamification Domain (Quests & Trivia)
 
+This domain tracks user engagement and gamification tied to buildings.
+- **QUEST**: A task directing a student to visit a building. Completion grants `reward_points` that add to the user's total `exploration_points`.
+- **USER_QUEST_PROGRESS**: A join table recording whether and when a specific user has completed a quest.
+- **TRIVIA_FACT**: Factual content tied to a building shown in AR upon quest completion. Soft-deletes when the parent building is archived.
+
 ```mermaid
 flowchart TD
     %% External Entity Ref
@@ -211,6 +227,10 @@ flowchart TD
 
 ## 4. Panorama Walkthrough Domain
 
+This domain models the 360° virtual walkthrough feature.
+- **PANORAMA_SCENE**: A single 360° image for a building. Only one scene per building can be marked as the start scene.
+- **PANORAMA_HOTSPOT**: A clickable navigation marker that links a source scene to a target scene using `yaw` and `pitch` coordinates, enabling movement through the building.
+
 ```mermaid
 flowchart TD
     %% External Entity Ref
@@ -258,6 +278,9 @@ flowchart TD
 ---
 
 ## 5. API & System Setting Domain
+
+This domain provides global configuration for the system.
+- **SYSTEM_SETTING**: A singleton model (`pk=1` always) storing global feature flags such as `maintenance_mode`, GPS and QR toggles, AR/trivia activation status, and default quest rewards. The mobile app reads this state on startup.
 
 ```mermaid
 flowchart TD
