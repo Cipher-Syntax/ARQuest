@@ -378,7 +378,7 @@ export default function ExploreScreen() {
             )}
 
             {/* Gamified Widgets */}
-            {role !== 'visitor' && (
+            {role === 'student' && (
                 <>
                     {/* Progress Tracker */}
                     <View style={styles.card}>
@@ -431,11 +431,11 @@ export default function ExploreScreen() {
 
         </ScrollView>
 
-            {/* Badge Earned Toast */}
-            {earnedBadges.length > 0 && (
+            {/* Newly Earned Badges Toast */}
+            {role === 'student' && earnedBadges.length > 0 && (
                 <Animated.View style={[styles.badgeToast, {
                     opacity: badgeAnim,
-                    transform: [{ translateY: badgeAnim.interpolate({ inputRange: [0, 1], outputRange: [-80, 0] }) }]
+                    transform: [{ translateY: badgeAnim.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }]
                 }]}>
                     <LinearGradient colors={['rgba(30,30,30,0.98)', 'rgba(15,15,15,0.98)']} style={StyleSheet.absoluteFillObject} borderRadius={16} />
                     <Text style={styles.badgeToastEmoji}>{earnedBadges[0].icon}</Text>

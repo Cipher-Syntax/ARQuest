@@ -170,128 +170,154 @@ export default function HomeScreen() {
                 </LinearGradient>
 
                 <View style={styles.contentArea}>
-                    {/* --- Daily Mission Hero Card --- */}
-                    <View style={styles.heroCard}>
-                        <View style={styles.heroTopRow}>
-                            <View style={styles.heroLabelChip}>
-                                <Crosshair color={theme.colors.primary} size={14} />
-                                <Text style={styles.heroChipText}>TODAY'S MISSION</Text>
-                            </View>
-                            {activeQuest && (
-                                <View style={styles.heroExpBadge}>
-                                    <Text style={styles.heroExpText}>Reward: {activeQuest.reward_points} EXP</Text>
+                    {user?.role === 'student' ? (
+                        <>
+                            {/* --- Daily Mission Hero Card --- */}
+                            <View style={styles.heroCard}>
+                                <View style={styles.heroTopRow}>
+                                    <View style={styles.heroLabelChip}>
+                                        <Crosshair color={theme.colors.primary} size={14} />
+                                        <Text style={styles.heroChipText}>TODAY'S MISSION</Text>
+                                    </View>
+                                    {activeQuest && (
+                                        <View style={styles.heroExpBadge}>
+                                            <Text style={styles.heroExpText}>Reward: {activeQuest.reward_points} EXP</Text>
+                                        </View>
+                                    )}
                                 </View>
-                            )}
-                        </View>
 
-                        <Text style={styles.heroQuestTitle} numberOfLines={2}>
-                            {loading ? 'Loading...' : (activeQuest ? activeQuest.title : "You've finished all missions for today!")}
-                        </Text>
-
-                        <View style={styles.heroBottomRow}>
-                            <View style={styles.heroTargetInfo}>
-                                <Text style={styles.heroTargetLabel}>Target Building</Text>
-                                <Text style={styles.heroTargetValue} numberOfLines={1}>
-                                    {activeQuest ? activeQuest.target_building_name : 'None'}
+                                <Text style={styles.heroQuestTitle} numberOfLines={2}>
+                                    {loading ? 'Loading...' : (activeQuest ? activeQuest.title : "You've finished all missions for today!")}
                                 </Text>
-                            </View>
-                            <TouchableOpacity
-                                style={[styles.heroDeployBtn, !activeQuest && styles.heroDeployBtnDisabled]}
-                                onPress={() => router.push('/(tabs)/ar')}
-                                disabled={!activeQuest}
-                            >
-                                <Text style={[styles.heroDeployText, !activeQuest && styles.heroDeployTextDisabled]}>
-                                    {activeQuest ? 'Start Mission' : 'WAITING'}
-                                </Text>
-                                <ChevronRight
-                                    color={activeQuest ? '#FFFFFF' : 'rgba(138,21,56,0.5)'}
-                                    size={18}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
 
-                    {/* --- Limited Challenges --- */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Limited Missions</Text>
-                            {challenges.length > 1 && (
-                                <View style={styles.swipeHint}>
-                                    <Text style={styles.swipeHintText}>SWIPE</Text>
-                                    <ChevronRight color={theme.colors.textMuted} size={12} />
-                                </View>
-                            )}
-                        </View>
-                        <ScrollView 
-                            horizontal 
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.ticketScroll}
-                            contentContainerStyle={styles.ticketScrollContent}
-                            snapToInterval={SCREEN_WIDTH - 60}
-                            decelerationRate="fast"
-                        >
-                            {challenges.length > 0 ? challenges.map((challenge, index) => {
-                                const expires = new Date(challenge.expires_at);
-                                const isExpired = expires < new Date();
-                                if (isExpired || challenge.is_completed) return null;
-
-                                return (
-                                    <TouchableOpacity 
-                                        key={challenge.id}
-                                        style={styles.ticketCard}
+                                <View style={styles.heroBottomRow}>
+                                    <View style={styles.heroTargetInfo}>
+                                        <Text style={styles.heroTargetLabel}>Target Building</Text>
+                                        <Text style={styles.heroTargetValue} numberOfLines={1}>
+                                            {activeQuest ? activeQuest.target_building_name : 'None'}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={[styles.heroDeployBtn, !activeQuest && styles.heroDeployBtnDisabled]}
                                         onPress={() => router.push('/(tabs)/ar')}
-                                        activeOpacity={0.9}
+                                        disabled={!activeQuest}
                                     >
-                                        <View style={styles.ticketStub}>
-                                            <Timer color="#FFFFFF" size={20} style={{ marginBottom: 4 }} />
-                                            <Text style={styles.ticketStubValue}>+{challenge.reward_points}</Text>
-                                            <Text style={styles.ticketStubLabel}>EXP</Text>
-                                            <View style={styles.ticketCutoutTop} />
-                                            <View style={styles.ticketCutoutBottom} />
-                                        </View>
-                                        <View style={styles.ticketBody}>
-                                            <Text style={styles.ticketTitle} numberOfLines={2}>{challenge.title}</Text>
-                                            <View style={styles.ticketFooter}>
-                                                <View>
-                                                    <Text style={styles.ticketTargetLabel}>EXPIRES AT</Text>
-                                                    <Text style={styles.ticketTargetValue}>
-                                                        {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </Text>
-                                                </View>
-                                                <View style={styles.ticketDeployBtn}>
-                                                    <Text style={styles.ticketDeployText}>START</Text>
-                                                </View>
-                                            </View>
-                                        </View>
+                                        <Text style={[styles.heroDeployText, !activeQuest && styles.heroDeployTextDisabled]}>
+                                            {activeQuest ? 'Start Mission' : 'WAITING'}
+                                        </Text>
+                                        <ChevronRight
+                                            color={activeQuest ? '#FFFFFF' : 'rgba(138,21,56,0.5)'}
+                                            size={18}
+                                        />
                                     </TouchableOpacity>
-                                );
-                            }) : (
-                                <View style={[styles.ticketCard, { opacity: 0.6 }]}>
-                                    <View style={[styles.ticketStub, { backgroundColor: theme.colors.textMuted, borderColor: 'rgba(255,255,255,0.1)' }]}>
-                                        <Timer color="#FFFFFF" size={20} style={{ marginBottom: 4 }} />
-                                        <Text style={styles.ticketStubValue}>---</Text>
-                                        <Text style={styles.ticketStubLabel}>EXP</Text>
-                                        <View style={styles.ticketCutoutTop} />
-                                        <View style={styles.ticketCutoutBottom} />
-                                    </View>
-                                    <View style={styles.ticketBody}>
-                                        <Text style={[styles.ticketTitle, { color: theme.colors.textMuted }]} numberOfLines={2}>No active limited missions</Text>
-                                        <View style={styles.ticketFooter}>
-                                            <View>
-                                                <Text style={styles.ticketTargetLabel}>STATUS</Text>
-                                                <Text style={[styles.ticketTargetValue, { color: theme.colors.textMuted }]}>
-                                                    Waiting
-                                                </Text>
+                                </View>
+                            </View>
+
+                            {/* --- Limited Challenges --- */}
+                            <View style={styles.section}>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={styles.sectionTitle}>Limited Missions</Text>
+                                    {challenges.length > 1 && (
+                                        <View style={styles.swipeHint}>
+                                            <Text style={styles.swipeHintText}>SWIPE</Text>
+                                            <ChevronRight color={theme.colors.textMuted} size={12} />
+                                        </View>
+                                    )}
+                                </View>
+                                <ScrollView 
+                                    horizontal 
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.ticketScroll}
+                                    contentContainerStyle={styles.ticketScrollContent}
+                                    snapToInterval={SCREEN_WIDTH - 60}
+                                    decelerationRate="fast"
+                                >
+                                    {challenges.length > 0 ? challenges.map((challenge, index) => {
+                                        const expires = new Date(challenge.expires_at);
+                                        const isExpired = expires < new Date();
+                                        if (isExpired || challenge.is_completed) return null;
+
+                                        return (
+                                            <TouchableOpacity 
+                                                key={challenge.id}
+                                                style={styles.ticketCard}
+                                                onPress={() => router.push('/(tabs)/ar')}
+                                                activeOpacity={0.9}
+                                            >
+                                                <View style={styles.ticketStub}>
+                                                    <Timer color="#FFFFFF" size={20} style={{ marginBottom: 4 }} />
+                                                    <Text style={styles.ticketStubValue}>+{challenge.reward_points}</Text>
+                                                    <Text style={styles.ticketStubLabel}>EXP</Text>
+                                                    <View style={styles.ticketCutoutTop} />
+                                                    <View style={styles.ticketCutoutBottom} />
+                                                </View>
+                                                <View style={styles.ticketBody}>
+                                                    <Text style={styles.ticketTitle} numberOfLines={2}>{challenge.title}</Text>
+                                                    <View style={styles.ticketFooter}>
+                                                        <View>
+                                                            <Text style={styles.ticketTargetLabel}>EXPIRES AT</Text>
+                                                            <Text style={styles.ticketTargetValue}>
+                                                                {expires.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </Text>
+                                                        </View>
+                                                        <View style={styles.ticketDeployBtn}>
+                                                            <Text style={styles.ticketDeployText}>START</Text>
+                                                        </View>
+                                                    </View>
+                                                </View>
+                                            </TouchableOpacity>
+                                        );
+                                    }) : (
+                                        <View style={[styles.ticketCard, { opacity: 0.6 }]}>
+                                            <View style={[styles.ticketStub, { backgroundColor: theme.colors.textMuted, borderColor: 'rgba(255,255,255,0.1)' }]}>
+                                                <Timer color="#FFFFFF" size={20} style={{ marginBottom: 4 }} />
+                                                <Text style={styles.ticketStubValue}>---</Text>
+                                                <Text style={styles.ticketStubLabel}>EXP</Text>
+                                                <View style={styles.ticketCutoutTop} />
+                                                <View style={styles.ticketCutoutBottom} />
                                             </View>
-                                            <View style={[styles.ticketDeployBtn, { backgroundColor: theme.colors.surfaceSoft }]}>
-                                                <Text style={[styles.ticketDeployText, { color: theme.colors.textMuted }]}>WAITING</Text>
+                                            <View style={styles.ticketBody}>
+                                                <Text style={[styles.ticketTitle, { color: theme.colors.textMuted }]} numberOfLines={2}>No active limited missions</Text>
+                                                <View style={styles.ticketFooter}>
+                                                    <View>
+                                                        <Text style={styles.ticketTargetLabel}>STATUS</Text>
+                                                        <Text style={[styles.ticketTargetValue, { color: theme.colors.textMuted }]}>
+                                                            Waiting
+                                                        </Text>
+                                                    </View>
+                                                    <View style={[styles.ticketDeployBtn, { backgroundColor: theme.colors.surfaceSoft }]}>
+                                                        <Text style={[styles.ticketDeployText, { color: theme.colors.textMuted }]}>WAITING</Text>
+                                                    </View>
+                                                </View>
                                             </View>
                                         </View>
-                                    </View>
+                                    )}
+                                </ScrollView>
+                            </View>
+                        </>
+                    ) : (
+                        <View style={styles.heroCard}>
+                            <View style={styles.heroTopRow}>
+                                <View style={styles.heroLabelChip}>
+                                    <Activity color={theme.colors.primary} size={14} />
+                                    <Text style={styles.heroChipText}>ACCREDITOR PORTAL</Text>
                                 </View>
-                            )}
-                        </ScrollView>
-                    </View>
+                            </View>
+
+                            <Text style={styles.heroQuestTitle} numberOfLines={2}>
+                                Welcome to the Campus AR Tour
+                            </Text>
+
+                            <View style={styles.heroBottomRow}>
+                                <View style={styles.heroTargetInfo}>
+                                    <Text style={styles.heroTargetLabel}>Access Level</Text>
+                                    <Text style={styles.heroTargetValue} numberOfLines={1}>
+                                        All Facilities Unlocked
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
 
                     {/* Quick Stats Split Row */}
                     {user?.role === 'student' && (
@@ -332,19 +358,23 @@ export default function HomeScreen() {
                                 <Text style={styles.actionText}>Nearby Map</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/leaderboard')}>
-                                <View style={styles.actionIconWrap}>
-                                    <BarChart2 color={theme.colors.primary} size={24} />
-                                </View>
-                                <Text style={styles.actionText}>Rankings</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/badges')}>
-                                <View style={styles.actionIconWrap}>
-                                    <Trophy color={theme.colors.primary} size={24} />
-                                </View>
-                                <Text style={styles.actionText}>Badges</Text>
-                            </TouchableOpacity>
+                            {user?.role === 'student' && (
+                                <>
+                                    <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/leaderboard')}>
+                                        <View style={styles.actionIconWrap}>
+                                            <BarChart2 color={theme.colors.primary} size={24} />
+                                        </View>
+                                        <Text style={styles.actionText}>Rankings</Text>
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/badges')}>
+                                        <View style={styles.actionIconWrap}>
+                                            <Trophy color={theme.colors.primary} size={24} />
+                                        </View>
+                                        <Text style={styles.actionText}>Badges</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </ScrollView>
                     </View>
 

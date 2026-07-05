@@ -405,21 +405,23 @@ export default function BuildingsScreen() {
                                             </TouchableOpacity>
                                         )}
 
-                                        {canViewPanorama && (role === 'student' || role === 'admin') && (
+                                        {canViewPanorama && (
                                             <TouchableOpacity style={styles.tacticalActionBtn} onPress={handleViewPanorama}>
                                                 <Text style={styles.tacticalActionText}>View 360° Panorama</Text>
                                             </TouchableOpacity>
                                         )}
                                         
-                                        <TouchableOpacity 
-                                            style={[styles.tacticalActionBtn, { borderColor: theme.colors.primary }]} 
-                                            onPress={() => {
-                                                setModalVisible(false);
-                                                setQuizModalVisible(true);
-                                            }}
-                                        >
-                                            <Text style={[styles.tacticalActionText, { color: theme.colors.primary }]}>Take Quiz</Text>
-                                        </TouchableOpacity>
+                                        {role === 'student' && (
+                                            <TouchableOpacity 
+                                                style={[styles.tacticalActionBtn, { borderColor: theme.colors.primary }]} 
+                                                onPress={() => {
+                                                    setModalVisible(false);
+                                                    setQuizModalVisible(true);
+                                                }}
+                                            >
+                                                <Text style={[styles.tacticalActionText, { color: theme.colors.primary }]}>Take Quiz</Text>
+                                            </TouchableOpacity>
+                                        )}
                                     </View>
                                 ) : (
                                     <View style={{ alignItems: 'center', marginTop: 16 }}>

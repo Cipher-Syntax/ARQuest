@@ -209,24 +209,26 @@ export default function ProfileScreen() {
                 )}
 
                 {/* --- Quest History --- */}
-                <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>MISSION LOG</Text>
-                    <View style={styles.missionLogCard}>
-                        {questHistory.length > 0 ? questHistory.slice(0, 5).map((quest, idx) => (
-                            <View key={idx} style={[styles.missionLogRow, idx < Math.min(questHistory.length, 5) - 1 && styles.missionLogDivider]}>
-                                <Text style={styles.missionLogText}>
-                                    <Text style={styles.missionLogPrefix}>[COMPLETED]</Text> {new Date(quest.time_ago).toLocaleDateString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit'})}
-                                </Text>
-                                <Text style={styles.missionLogText}>TARGET: {quest.target_building || quest.building_name}</Text>
-                                <Text style={styles.missionLogReward}>REWARD: +{quest.points} EXP</Text>
-                            </View>
-                        )) : (
-                            <View style={styles.emptyContainer}>
-                                <Text style={styles.emptyText}>No quests completed recently.</Text>
-                            </View>
-                        )}
+                {user?.role === 'student' && (
+                    <View style={styles.sectionContainer}>
+                        <Text style={styles.sectionTitle}>MISSION LOG</Text>
+                        <View style={styles.missionLogCard}>
+                            {questHistory.length > 0 ? questHistory.slice(0, 5).map((quest, idx) => (
+                                <View key={idx} style={[styles.missionLogRow, idx < Math.min(questHistory.length, 5) - 1 && styles.missionLogDivider]}>
+                                    <Text style={styles.missionLogText}>
+                                        <Text style={styles.missionLogPrefix}>[COMPLETED]</Text> {new Date(quest.time_ago).toLocaleDateString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit'})}
+                                    </Text>
+                                    <Text style={styles.missionLogText}>TARGET: {quest.target_building || quest.building_name}</Text>
+                                    <Text style={styles.missionLogReward}>REWARD: +{quest.points} EXP</Text>
+                                </View>
+                            )) : (
+                                <View style={styles.emptyContainer}>
+                                    <Text style={styles.emptyText}>No quests completed recently.</Text>
+                                </View>
+                            )}
+                        </View>
                     </View>
-                </View>
+                )}
 
                 {/* General Settings */}
                 <View style={styles.sectionContainer}>

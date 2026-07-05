@@ -198,6 +198,29 @@ export default function ARScreen() {
         }
     };
 
+    const handleViewTriviaOnly = async () => {
+        try {
+            const triviaRes = await api.get(`/api/buildings/trivias/?building_id=${nearbyBuildingFull.id}`);
+            if (triviaRes.data.success && triviaRes.data.data.length > 0) {
+                const trivias = triviaRes.data.data;
+                const randomTrivia = trivias[Math.floor(Math.random() * trivias.length)];
+                setFetchedTrivia(randomTrivia.fact);
+            } else {
+                setFetchedTrivia(null);
+            }
+        } catch (e) {
+            console.error('Error fetching trivia', e);
+            setFetchedTrivia(null);
+        }
+
+        setTriviaModalVisible(true);
+        Animated.spring(slideAnim, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true }).start();
+    };
+
     const closeTriviaModal = () => {
         Animated.timing(slideAnim, {
             toValue: 400,
@@ -472,14 +495,26 @@ export default function ARScreen() {
                             </View>
                             
                             {/* Gamified Claim Button (Uses existing Quest API) */}
-                            {matchingQuest && geofenceStatus?.status === 'inside' && !triviaModalVisible && !capturing && (
-                                <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
-                                    <Ionicons name="sparkles" size={24} color="#FFFFFF" />
-                                    <View style={{marginLeft: 8}}>
-                                        <Text style={styles.claimQuestBtnText}>Reveal Discovery</Text>
-                                        <Text style={styles.claimPointsText}>+{matchingQuest.reward_points} EXP</Text>
-                                    </View>
-                                </TouchableOpacity>
+                            {user?.role === 'student' ? (
+                                matchingQuest && geofenceStatus?.status === 'inside' && !triviaModalVisible && !capturing && (
+                                    <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
+                                        <Ionicons name="sparkles" size={24} color="#FFFFFF" />
+                                        <View style={{marginLeft: 8}}>
+                                            <Text style={styles.claimQuestBtnText}>Reveal Discovery</Text>
+                                            <Text style={styles.claimPointsText}>+{matchingQuest.reward_points} EXP</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                )
+                            ) : (
+                                geofenceStatus?.status === 'inside' && nearbyBuildingFull && !triviaModalVisible && !capturing && (
+                                    <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
+                                        <Ionicons name="information-circle" size={24} color="#FFFFFF" />
+                                        <View style={{marginLeft: 8}}>
+                                            <Text style={styles.claimQuestBtnText}>View Information</Text>
+                                            <Text style={styles.claimPointsText}>{nearbyBuildingFull.name}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                )
                             )}
                         </>
                     )}
@@ -493,13 +528,13 @@ export default function ARScreen() {
             </View>
             {/* --- END CAPTURE TARGET --- */}
 
-            {/* --- TRIVIA MODAL (GAMIFIED) --- */}
-            {triviaModalVisible && claimedQuest && (
+            {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
+            {triviaModalVisible && (user?.role === 'student' ? claimedQuest : true) && (
                 <Animated.View style={[styles.triviaModal, { transform: [{ translateY: slideAnim }] }]}>
                     <View style={styles.triviaModalHeader}>
                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
                             <Ionicons name="book" color={theme.colors.primary} size={22} style={{marginRight: 8}} />
-                            <Text style={styles.triviaTitle}>New Discovery</Text>
+                            <Text style={styles.triviaTitle}>{user?.role === 'student' ? 'New Discovery' : 'Building Information'}</Text>
                         </View>
                         <TouchableOpacity onPress={closeTriviaModal} style={styles.closeTriviaBtn}>
                             <X color={theme.colors.primary} size={20} />
@@ -509,14 +544,16 @@ export default function ARScreen() {
                     <View style={styles.triviaContentBorder}>
                         <Text style={styles.triviaBuildingName}>{nearbyBuildingFull?.name || "Unknown Building"}</Text>
                         <Text style={styles.triviaText}>
-                            {fetchedTrivia || claimedQuest.hint || nearbyBuildingFull?.description || "No information available for this location."}
+                            {fetchedTrivia || claimedQuest?.hint || nearbyBuildingFull?.description || "No information available for this location."}
                         </Text>
                     </View>
                     
-                    <View style={styles.rewardBadge}>
-                        <Ionicons name="sparkles" color={theme.colors.primary} size={20} />
-                        <Text style={styles.rewardText}>+{claimedQuest.reward_points} EXP</Text>
-                    </View>
+                    {user?.role === 'student' && claimedQuest && (
+                        <View style={styles.rewardBadge}>
+                            <Ionicons name="sparkles" color={theme.colors.primary} size={20} />
+                            <Text style={styles.rewardText}>+{claimedQuest.reward_points} EXP</Text>
+                        </View>
+                    )}
                 </Animated.View>
             )}
 
@@ -542,7 +579,7 @@ export default function ARScreen() {
                 </View>
             )}
             {/* --- BADGE EARNED TOAST --- */}
-            {newlyEarnedBadges.length > 0 && (
+            {user?.role === 'student' && newlyEarnedBadges.length > 0 && (
                 <Animated.View style={[styles.badgeToast, {
                     opacity: badgeAnim,
                     transform: [{ translateY: badgeAnim.interpolate({ inputRange: [0, 1], outputRange: [-80, 0] }) }]
@@ -556,7 +593,7 @@ export default function ARScreen() {
             )}
             
             {/* --- RANK UP TOAST --- */}
-            {rankUpInfo && (
+            {user?.role === 'student' && rankUpInfo && (
                 <Animated.View style={[styles.rankUpToast, {
                     opacity: rankAnim,
                     transform: [{ translateY: rankAnim.interpolate({ inputRange: [0, 1], outputRange: [-80, 0] }) }]

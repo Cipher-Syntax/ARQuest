@@ -103,7 +103,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
 }
 
 export default function TabLayout() {
-    const { user, loading } = useAuth();
+    const { user, isLoading } = useAuth();
 
     useEffect(() => {
         if (user) {
@@ -111,7 +111,7 @@ export default function TabLayout() {
         }
     }, [user]);
 
-    if (loading) return null;
+    if (isLoading) return null;
 
     if (!user) {
         return <Redirect href="/(auth)/login" />;
