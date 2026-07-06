@@ -321,6 +321,8 @@ export default function ARScreen() {
         try {
             const res = await api.post("/api/buildings/unlock/qr/", {
                 qr_code_secret: data,
+                lat: location?.latitude,
+                lng: location?.longitude
             });
             if (res.data.success) {
                 SoundManager.play("building_unlock");
