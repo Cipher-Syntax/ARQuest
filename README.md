@@ -1,6 +1,6 @@
 <div align="center">
   
-<img src="web/public/logo.png" alt="ARQuest Logo" width="200" />
+<img src="web/public/logo.png" alt="ARQuest Logo" width="500" />
 
 # ARQuest
 
