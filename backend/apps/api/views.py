@@ -39,16 +39,68 @@ def dashboard_stats(request):
         source='geofence'
     ).count()
 
-    # Weekly GPS Unlocks
-    weekly_data = []
+    import calendar
+    
+    # Dynamic GPS Unlocks
+    gps_unlocks = {
+        'daily': [],
+        'weekly': [],
+        'monthly': [],
+        'yearly': []
+    }
+    
+    # Daily: Last 7 days
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
         count = BuildingUnlock.objects.filter(
             unlocked_at__date=day,
             source='geofence'
         ).count()
-        weekly_data.append({
-            'day': day.strftime('%a'),
+        gps_unlocks['daily'].append({
+            'label': day.strftime('%a'),
+            'value': count
+        })
+
+    # Weekly: Last 4 weeks
+    for i in range(3, -1, -1):
+        start_date = today - timedelta(days=i*7 + 7)
+        end_date = today - timedelta(days=i*7)
+        count = BuildingUnlock.objects.filter(
+            unlocked_at__date__gte=start_date,
+            unlocked_at__date__lt=end_date,
+            source='geofence'
+        ).count()
+        gps_unlocks['weekly'].append({
+            'label': f"W{4-i}",
+            'value': count
+        })
+
+    # Monthly: Last 12 months
+    for i in range(11, -1, -1):
+        m = today.month - i
+        y = today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        count = BuildingUnlock.objects.filter(
+            unlocked_at__year=y,
+            unlocked_at__month=m,
+            source='geofence'
+        ).count()
+        gps_unlocks['monthly'].append({
+            'label': calendar.month_abbr[m],
+            'value': count
+        })
+
+    # Yearly: Last 5 years
+    for i in range(4, -1, -1):
+        y = today.year - i
+        count = BuildingUnlock.objects.filter(
+            unlocked_at__year=y,
+            source='geofence'
+        ).count()
+        gps_unlocks['yearly'].append({
+            'label': str(y),
             'value': count
         })
 
@@ -83,7 +135,7 @@ def dashboard_stats(request):
         'active_students': active_students,
         'trivia_facts': trivia_facts,
         'gps_unlocks_today': gps_unlocks_today,
-        'weekly_data': weekly_data,
+        'gps_unlocks': gps_unlocks,
         'building_status': building_status,
         'most_visited': most_visited,
         'least_visited': least_visited,

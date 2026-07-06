@@ -4,24 +4,28 @@ import {
 	Users,
 	Navigation,
 	HelpCircle,
-	ArrowUpRight,
-	MoreVertical,
-	ChevronRight,
 	Target,
 	TrendingUp,
 	TrendingDown
 } from 'lucide-react'
 import { Card, Badge } from '../components/ui'
 import { dashboardService } from '../services/dashboardService'
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, Bar, AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function Dashboard() {
+	const [timeframe, setTimeframe] = useState('weekly')
+	const [chartType, setChartType] = useState('bar')
 	const [stats, setStats] = useState({
 		total_buildings: 0,
 		active_students: 0,
 		trivia_facts: 0,
 		gps_unlocks_today: 0,
-		weekly_data: [],
+		gps_unlocks: {
+			daily: [],
+			weekly: [],
+			monthly: [],
+			yearly: []
+		},
 		building_status: [],
 		most_visited: [],
 		least_visited: [],
@@ -115,100 +119,107 @@ export default function Dashboard() {
 				))}
 			</div>
 
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				<Card className="lg:col-span-2">
+			<div className="w-full">
+				<Card>
 					<div className="flex items-center justify-between mb-6">
-						<div>
-							<h3 className="font-bold text-gray-900">Weekly GPS Unlocks</h3>
+						<div className="flex-1">
+							<h3 className="font-bold text-gray-900">GPS Unlocks</h3>
 							<p className="text-xs text-gray-500 mt-0.5">
-								Building unlocks recorded this week
+								Building unlocks recorded over time
 							</p>
 						</div>
-						<button className="text-[11px] font-bold text-brand uppercase tracking-wider flex items-center gap-1 hover:underline">
-							7D View
-							<ChevronRight size={12} />
-						</button>
-					</div>
-
-					<div className="h-48 mt-4">
-						<ResponsiveContainer width="100%" height="100%">
-							<BarChart data={stats.weekly_data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-								<XAxis 
-									dataKey="day" 
-									axisLine={false} 
-									tickLine={false} 
-									tick={{ fontSize: 11, fill: '#9CA3AF', fontWeight: 'bold' }} 
-									dy={10}
-								/>
-								<Tooltip 
-									cursor={{ fill: 'rgba(138, 21, 56, 0.05)' }}
-									contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-									labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
-								/>
-								<Bar 
-									dataKey="value" 
-									fill="#8A1538" 
-									radius={[4, 4, 0, 0]} 
-									barSize={32}
-								/>
-							</BarChart>
-						</ResponsiveContainer>
-					</div>
-				</Card>
-
-				<Card>
-					<div className="flex items-center justify-between mb-4">
-						<h3 className="font-bold text-gray-900">Building Status</h3>
-						<button className="text-gray-400 hover:text-brand transition-colors">
-							<MoreVertical size={18} />
-						</button>
-					</div>
-
-					{statusData.length > 0 && (
-						<div className="h-40 mb-6">
-							<ResponsiveContainer width="100%" height="100%">
-								<PieChart>
-									<Pie 
-										data={statusData} 
-										innerRadius={45} 
-										outerRadius={70} 
-										paddingAngle={2}
-										dataKey="value"
+						
+						<div className="flex-1 flex justify-center">
+							<div className="flex items-center bg-gray-100 rounded-md p-1">
+								{['daily', 'weekly', 'monthly', 'yearly'].map((t) => (
+									<button
+										key={t}
+										onClick={() => setTimeframe(t)}
+										className={`px-3 py-1 text-xs font-bold rounded-md capitalize transition-colors ${
+											timeframe === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+										}`}
 									>
-										{statusData.map((entry, index) => (
-											<Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#8A1538'} />
-										))}
-									</Pie>
+										{t}
+									</button>
+								))}
+							</div>
+						</div>
+						
+						<div className="flex-1 flex justify-end">
+							<div className="flex items-center bg-gray-100 rounded-md p-1">
+								<button
+									onClick={() => setChartType('bar')}
+									className={`px-2 py-1 text-xs font-bold rounded-md transition-colors ${
+										chartType === 'bar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+									}`}
+								>
+									Bar
+								</button>
+								<button
+									onClick={() => setChartType('area')}
+									className={`px-2 py-1 text-xs font-bold rounded-md transition-colors ${
+										chartType === 'area' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+									}`}
+								>
+									Area
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<div className="h-[320px] mt-8 -mb-4">
+						<ResponsiveContainer width="100%" height="100%">
+							{chartType === 'bar' ? (
+								<BarChart data={stats.gps_unlocks?.[timeframe] || []} margin={{ top: 10, right: 10, left: 0, bottom: -10 }}>
+									<XAxis 
+										dataKey="label" 
+										axisLine={false} 
+										tickLine={false} 
+										tick={{ fontSize: 11, fill: '#9CA3AF', fontWeight: 'bold' }} 
+										dy={5}
+									/>
+									<Tooltip 
+										cursor={{ fill: 'rgba(138, 21, 56, 0.05)' }}
+										contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+										labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
+									/>
+									<Bar 
+										dataKey="value" 
+										fill="#8A1538" 
+										radius={[4, 4, 0, 0]} 
+										barSize={32}
+									/>
+								</BarChart>
+							) : (
+								<AreaChart data={stats.gps_unlocks?.[timeframe] || []} margin={{ top: 10, right: 10, left: 0, bottom: -10 }}>
+									<defs>
+										<linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+											<stop offset="5%" stopColor="#8A1538" stopOpacity={0.3}/>
+											<stop offset="95%" stopColor="#8A1538" stopOpacity={0}/>
+										</linearGradient>
+									</defs>
+									<XAxis 
+										dataKey="label" 
+										axisLine={false} 
+										tickLine={false} 
+										tick={{ fontSize: 11, fill: '#9CA3AF', fontWeight: 'bold' }} 
+										dy={5}
+									/>
 									<Tooltip 
 										contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+										labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
 									/>
-								</PieChart>
-							</ResponsiveContainer>
-						</div>
-					)}
-
-					<div className="space-y-1">
-						{stats.building_status.map((b, i) => (
-							<div
-								key={i}
-								className="flex items-center justify-between py-2.5 border-b border-brand-border last:border-0"
-							>
-								<div className="flex items-center gap-3">
-									<div className="w-9 h-9 rounded-md bg-brand-light flex items-center justify-center text-brand font-bold text-[10px] shrink-0">
-										{b.code}
-									</div>
-									<p className="text-sm font-semibold text-gray-700 leading-tight">
-										{b.name}
-									</p>
-								</div>
-								<Badge variant={b.status === 'Live' ? 'success' : 'warning'}>
-									{b.status}
-									{b.status === 'Live' && (
-										<ArrowUpRight size={10} className="ml-1 inline" />
-									)}
-								</Badge>
-							</div>
-						))}
+									<Area 
+										type="monotone" 
+										dataKey="value" 
+										stroke="#8A1538" 
+										strokeWidth={3}
+										fillOpacity={1} 
+										fill="url(#colorValue)" 
+									/>
+								</AreaChart>
+							)}
+						</ResponsiveContainer>
 					</div>
 				</Card>
 			</div>
