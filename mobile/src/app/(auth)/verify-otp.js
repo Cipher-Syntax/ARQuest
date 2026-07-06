@@ -16,6 +16,7 @@ import theme from "../../theme/tokens";
 import { api } from "../../services/api";
 import ARGlassCard from "../../components/ARGlassCard";
 import ARButton from "../../components/ARButton";
+import { validateString } from "../../utils/validation";
 
 export default function VerifyOtpScreen() {
     const router = useRouter();
@@ -27,12 +28,16 @@ export default function VerifyOtpScreen() {
     const [isResending, setIsResending] = useState(false);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const handleVerify = async () => {
-        if (!otp || otp.length !== 6) {
-            setError("Access code must be 6 digits.");
+        const otpError = validateString(otp, 6, "OTP must be exactly 6 digits.");
+        if (otpError || otp.length !== 6) {
+            setFieldErrors({ otp: otpError || "OTP must be exactly 6 digits." });
             return;
         }
+
+        setFieldErrors({});
 
         setError("");
         setIsLoading(true);
@@ -98,15 +103,19 @@ export default function VerifyOtpScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Transmission Code</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, fieldErrors.otp && { borderColor: 'red' }]}
                             placeholder="000000"
                             placeholderTextColor={theme.colors.textMuted}
                             value={otp}
-                            onChangeText={setOtp}
+                            onChangeText={(text) => {
+                                setOtp(text);
+                                if (fieldErrors.otp) setFieldErrors({});
+                            }}
                             keyboardType="numeric"
                             maxLength={6}
                             textAlign="center"
                         />
+                        {fieldErrors.otp && <Text style={{ color: 'red', fontSize: 12, marginTop: 4, textAlign: 'center' }}>{fieldErrors.otp}</Text>}
                     </View>
 
                     <ARButton
