@@ -74,7 +74,7 @@ const LoginPage = () => {
                 <div className="z-10 flex flex-col w-full h-full">
                     <div className="w-80 h-80 mx-auto flex items-center justify-center mb-12 relative mt-12">
                         <img
-                            src="/logo.svg"
+                            src="/logo.png"
                             alt="ARQuest Logo"
                             className="w-72 h-72 object-contain filter drop-shadow-lg"
                         />
@@ -103,7 +103,7 @@ const LoginPage = () => {
                     <div className="text-center space-y-2">
                         <div className="w-16 h-16 mx-auto mb-4 lg:hidden flex items-center justify-center">
                             <img
-                                src="/logo.svg"
+                                src="/logo.png"
                                 alt="ARQuest"
                                 className="w-16 h-16 object-contain"
                             />
