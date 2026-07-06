@@ -85,9 +85,12 @@ export default function LoginScreen() {
             <View style={styles.glowOrbBottom} />
 
             <View style={styles.content}>
-                {/* Logo Placeholder */}
+                {/* App Logo */}
                 <View style={styles.logoBox}>
-                    <Text style={styles.logoText}>Logo Here</Text>
+                    <Image 
+                        source={require('../../../../assets/images/logo.png')} 
+                        style={{ width: 120, height: 120, resizeMode: 'contain' }} 
+                    />
                 </View>
 
                 <View style={styles.header}>
@@ -256,24 +259,16 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     logoBox: {
-        width: 100,
-        height: 100,
-        alignSelf: "center",
-        backgroundColor: theme.colors.surface,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderStyle: "dashed",
-        borderRadius: theme.radius.md,
+        width: 140,
+        height: 140,
+        borderRadius: 30,
+        backgroundColor: "rgba(255, 255, 255, 0.15)",
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.3)",
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: theme.spacing.lg,
-    },
-    logoText: {
-        color: "rgba(255,255,255,0.6)",
-        fontSize: theme.typography.sm,
-        fontWeight: "bold",
-        textTransform: "uppercase",
-        textAlign: "center",
+        alignSelf: "center",
+        marginBottom: 24,
     },
     header: {
         alignItems: "center",
