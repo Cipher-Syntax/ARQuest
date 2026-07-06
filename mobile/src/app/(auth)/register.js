@@ -394,13 +394,6 @@ const styles = StyleSheet.create({
     inputGroup: {
         marginBottom: theme.spacing.md,
     },
-    logoText: {
-        color: "rgba(255,255,255,0.6)",
-        fontSize: theme.typography.xs,
-        fontWeight: "bold",
-        textTransform: "uppercase",
-        textAlign: "center",
-    },
     inputLabel: {
         color: "rgba(255,255,255,0.6)",
         fontSize: 10,
@@ -449,19 +442,6 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(239, 68, 68, 0.1)",
         padding: 10,
         borderRadius: theme.radius.sm,
-    },
-    logoBox: {
-        width: 80,
-        height: 80,
-        alignSelf: "center",
-        backgroundColor: theme.colors.surface,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderStyle: "dashed",
-        borderRadius: theme.radius.md,
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: theme.spacing.md,
     },
     link: {
         marginTop: theme.spacing.lg,

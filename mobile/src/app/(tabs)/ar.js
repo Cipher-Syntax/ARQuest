@@ -318,9 +318,17 @@ export default function ARScreen() {
         setScannedData(data);
         setIsScanningQr(false); // Stop scanning immediately after successful read
 
+        if (!location) {
+            setScannedData(null);
+            Alert("Permission Required", "Please enable GPS location permissions to verify this QR code.");
+            return;
+        }
+
         try {
             const res = await api.post("/api/buildings/unlock/qr/", {
                 qr_code_secret: data,
+                lat: location?.latitude,
+                lng: location?.longitude
             });
             if (res.data.success) {
                 SoundManager.play("building_unlock");
@@ -365,7 +373,8 @@ export default function ARScreen() {
             }
         } catch (error) {
             console.error("QR unlock error:", error);
-            Alert("Error", "Failed to connect to server.");
+            const errorMsg = error.response?.data?.error || "Failed to connect to server.";
+            Alert("Error", errorMsg);
             setScannedData(null); // allow rescan
         }
     };

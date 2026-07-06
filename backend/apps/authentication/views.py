@@ -38,7 +38,7 @@ def register(request):
     try:
         send_mail(
             subject='ARQuest - Verify Your Email',
-            message=f'Your verification code is: {otp}\n\nThis code will expire in 10 minutes.',
+            message=f'Your verification code is: {otp}\n\nThis code will expire in 5 minutes.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
@@ -125,7 +125,7 @@ def resend_otp(request):
         
         send_mail(
             subject='ARQuest - Verify Your Email',
-            message=f'Your verification code is: {otp}\n\nThis code will expire in 10 minutes.',
+            message=f'Your verification code is: {otp}\n\nThis code will expire in 5 minutes.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[email],
             fail_silently=False,

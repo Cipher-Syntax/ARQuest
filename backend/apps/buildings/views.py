@@ -199,6 +199,21 @@ def unlock_building(request):
         radius = float(geofence.radius_meters)
         
         if distance <= radius:
+            # Server-side Time-Distance Speed Validation
+            last_unlock = BuildingUnlock.objects.filter(user=request.user).exclude(building=building).order_by('-last_validated_at').first()
+            if last_unlock:
+                last_geofence = last_unlock.building.geofences.filter(is_active=True).first()
+                if last_geofence:
+                    dist_between = calculate_distance(
+                        float(geofence.latitude), float(geofence.longitude),
+                        float(last_geofence.latitude), float(last_geofence.longitude)
+                    )
+                    time_diff = (timezone.now() - last_unlock.last_validated_at).total_seconds()
+                    if time_diff > 0:
+                        speed = dist_between / time_diff
+                        if speed > 50:  # > 50 m/s (approx 180 km/h) is impossible walking/driving on campus
+                            return error_response('speed_violation', 'Movement too fast, spoofing detected.', status_code=400)
+
             unlock, created = BuildingUnlock.objects.get_or_create(
                 user=request.user,
                 building=building,
@@ -235,6 +250,22 @@ def unlock_building_qr(request):
         building = Building.objects.get(qr_code_secret=qr_secret, is_active=True, status='VISIBLE')
     except Building.DoesNotExist:
         return error_response('invalid_qr', 'Invalid or inactive QR code', status_code=status.HTTP_404_NOT_FOUND)
+
+    lat = request.data.get('lat')
+    lng = request.data.get('lng')
+
+    if not lat or not lng:
+        return error_response('location_required', 'GPS location is required to verify the QR code.', status_code=status.HTTP_400_BAD_REQUEST)
+
+    geofence = building.geofences.filter(is_active=True).first()
+    if geofence:
+        distance = calculate_distance(
+            float(lat), float(lng),
+            float(geofence.latitude), float(geofence.longitude)
+        )
+        # 50 meter strict threshold for QR
+        if distance > 50:
+            return error_response('too_far', 'You must be within 50 meters of the building to scan its QR code.', status_code=status.HTTP_400_BAD_REQUEST)
 
     unlock, created = BuildingUnlock.objects.get_or_create(
         user=request.user,
