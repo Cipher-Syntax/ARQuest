@@ -7,6 +7,7 @@ import { departmentService } from '../services/departmentService'
 import GeofenceEditor from '../components/GeofenceEditor'
 import DragDropFileUpload from '../components/common/DragDropFileUpload'
 import { theme } from '../theme'
+import { validateForm, validateString } from '../utils/validation'
 
 const BuildingEditorPage = () => {
 	const { id } = useParams()
@@ -153,16 +154,31 @@ const BuildingEditorPage = () => {
 		return building.model_url || null;
 	}, [building.model_file, building.model_url]);
 
-	const validateForm = () => {
-		const newErrors = {}
+	const runValidation = () => {
+		const schema = {
+			name: (val) => validateString(val, 1),
+			latitude: (val) => {
+				if (building.status !== 'DRAFT' && !val) return 'Latitude is required to publish'
+				if (val) {
+					const num = Number(val)
+					if (isNaN(num) || num < -90 || num > 90) return 'Latitude must be between -90 and 90'
+				}
+				return null
+			},
+			longitude: (val) => {
+				if (building.status !== 'DRAFT' && !val) return 'Longitude is required to publish'
+				if (val) {
+					const num = Number(val)
+					if (isNaN(num) || num < -180 || num > 180) return 'Longitude must be between -180 and 180'
+				}
+				return null
+			}
+		}
+
+		const validationErrors = validateForm(building, schema)
 		const newGeofenceErrors = {}
 
-		if (!building.name.trim()) newErrors.name = 'Name is required'
-		
 		if (building.status !== 'DRAFT') {
-			if (!building.latitude) newErrors.latitude = 'Latitude is required to publish'
-			if (!building.longitude) newErrors.longitude = 'Longitude is required to publish'
-
 			if (!geofence.latitude || !geofence.longitude) {
 				newGeofenceErrors.center = 'Click on map to set geofence center to publish'
 			}
@@ -171,24 +187,15 @@ const BuildingEditorPage = () => {
 			}
 		}
 
-		if (building.latitude) {
-			const lat = parseFloat(building.latitude)
-			if (lat < -90 || lat > 90) newErrors.latitude = 'Latitude must be between -90 and 90'
-		}
-		if (building.longitude) {
-			const lon = parseFloat(building.longitude)
-			if (lon < -180 || lon > 180) newErrors.longitude = 'Longitude must be between -180 and 180'
-		}
-
-		setErrors(newErrors)
+		setErrors(validationErrors)
 		setGeofenceErrors(newGeofenceErrors)
 
-		return Object.keys(newErrors).length === 0 && Object.keys(newGeofenceErrors).length === 0
+		return Object.keys(validationErrors).length === 0 && Object.keys(newGeofenceErrors).length === 0
 	}
 
 	const handleSubmit = async (e) => {
 		e.preventDefault()
-		if (!validateForm()) return
+		if (!runValidation()) return
 
 		setSaving(true)
 		try {

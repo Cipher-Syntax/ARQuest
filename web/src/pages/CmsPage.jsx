@@ -6,6 +6,7 @@ import { triviaService } from '../services/triviaService'
 import { quizService } from '../services/quizService'
 import { settingsService } from '../services/settingsService'
 import { Card, Button, Badge } from '../components/ui'
+import { validateForm, validateString, validateNumber } from '../utils/validation'
 import '@google/model-viewer'
 
 export default function CmsPage() {
@@ -35,6 +36,8 @@ export default function CmsPage() {
 	const [formOptionC, setFormOptionC] = useState('')
 	const [formOptionD, setFormOptionD] = useState('')
 	const [formCorrectOption, setFormCorrectOption] = useState('A')
+
+	const [errors, setErrors] = useState({})
 
 	const [searchTerm, setSearchTerm] = useState('')
 
@@ -68,7 +71,15 @@ export default function CmsPage() {
 	}
 
 	const handleSaveQuest = async () => {
-		if (!formTitle || !formHint) return
+		const schema = {
+			title: (val) => validateString(val, 1),
+			hint: (val) => validateString(val, 1),
+			reward_points: (val) => validateNumber(val, 0)
+		}
+		const formData = { title: formTitle, hint: formHint, reward_points: formReward }
+		const validationErrors = validateForm(formData, schema)
+		setErrors(validationErrors)
+		if (Object.keys(validationErrors).length > 0) return
 		try {
 			const payload = {
 				title: formTitle,
@@ -102,7 +113,10 @@ export default function CmsPage() {
 	}
 
 	const handleSaveTrivia = async () => {
-		if (!formFact) return
+		const schema = { fact: (val) => validateString(val, 1) }
+		const validationErrors = validateForm({ fact: formFact }, schema)
+		setErrors(validationErrors)
+		if (Object.keys(validationErrors).length > 0) return
 		try {
 			const payload = {
 				building: selectedBuilding.id,
@@ -132,7 +146,25 @@ export default function CmsPage() {
 	}
 
 	const handleSaveQuiz = async () => {
-		if (!formQuestion || !formOptionA || !formOptionB) return
+		const schema = {
+			question: (val) => validateString(val, 1),
+			option_a: (val) => validateString(val, 1),
+			option_b: (val) => validateString(val, 1),
+			option_c: (val) => validateString(val, 1),
+			option_d: (val) => validateString(val, 1),
+			exp_reward: (val) => validateNumber(val, 0)
+		}
+		const formData = {
+			question: formQuestion,
+			option_a: formOptionA,
+			option_b: formOptionB,
+			option_c: formOptionC,
+			option_d: formOptionD,
+			exp_reward: formReward
+		}
+		const validationErrors = validateForm(formData, schema)
+		setErrors(validationErrors)
+		if (Object.keys(validationErrors).length > 0) return
 		try {
 			const payload = {
 				building: selectedBuilding.id,
@@ -181,6 +213,7 @@ export default function CmsPage() {
 		setFormOptionD('')
 		setFormCorrectOption('A')
 		setFormReward(systemSettings?.default_quest_reward || 50)
+		setErrors({})
 	}
 
 	const filteredBuildings = buildings.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -330,11 +363,13 @@ export default function CmsPage() {
 											<div className="space-y-4">
 												<div>
 													<label className="block text-sm font-semibold mb-1 text-gray-700">Quest Title</label>
-													<input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none" placeholder="e.g. Find the hidden lab" />
+													<input type="text" value={formTitle} onChange={e => { setFormTitle(e.target.value); setErrors(prev => ({...prev, title: null})) }} className={`w-full p-2.5 border ${errors.title ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none`} placeholder="e.g. Find the hidden lab" />
+													{errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
 												</div>
 												<div>
 													<label className="block text-sm font-semibold mb-1 text-gray-700">Hint / Instructions</label>
-													<textarea value={formHint} onChange={e => setFormHint(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm h-24 focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none" placeholder="e.g. Look behind the main staircase on the first floor..." />
+													<textarea value={formHint} onChange={e => { setFormHint(e.target.value); setErrors(prev => ({...prev, hint: null})) }} className={`w-full p-2.5 border ${errors.hint ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm h-24 focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none`} placeholder="e.g. Look behind the main staircase on the first floor..." />
+													{errors.hint && <p className="text-red-500 text-xs mt-1">{errors.hint}</p>}
 												</div>
 												<div className="grid grid-cols-2 gap-4">
 													<div>
@@ -348,7 +383,8 @@ export default function CmsPage() {
 													</div>
 													<div>
 														<label className="block text-sm font-semibold mb-1 text-gray-700">Reward Points</label>
-														<input type="number" value={formReward} onChange={e => setFormReward(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none" />
+														<input type="number" value={formReward} onChange={e => { setFormReward(e.target.value); setErrors(prev => ({...prev, reward_points: null})) }} className={`w-full p-2.5 border ${errors.reward_points ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none`} />
+														{errors.reward_points && <p className="text-red-500 text-xs mt-1">{errors.reward_points}</p>}
 													</div>
 												</div>
 												<div>
@@ -365,7 +401,8 @@ export default function CmsPage() {
 											<div className="space-y-4">
 												<div>
 													<label className="block text-sm font-semibold mb-1 text-gray-700">Trivia Fact</label>
-													<textarea value={formFact} onChange={e => setFormFact(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm h-32 focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none" placeholder="e.g. This building was constructed in 1980..." />
+													<textarea value={formFact} onChange={e => { setFormFact(e.target.value); setErrors(prev => ({...prev, fact: null})) }} className={`w-full p-2.5 border ${errors.fact ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm h-32 focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none`} placeholder="e.g. This building was constructed in 1980..." />
+													{errors.fact && <p className="text-red-500 text-xs mt-1">{errors.fact}</p>}
 												</div>
 												<div className="flex justify-end pt-2">
 													<Button onClick={handleSaveTrivia} className="bg-[#B21830] hover:bg-[#8e1326] text-white">Save Trivia</Button>
@@ -376,24 +413,29 @@ export default function CmsPage() {
 											<div className="space-y-4">
 												<div>
 													<label className="block text-sm font-semibold mb-1 text-gray-700">Question</label>
-													<textarea value={formQuestion} onChange={e => setFormQuestion(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-md text-sm h-20 focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none resize-none" placeholder="Enter question..." />
+													<textarea value={formQuestion} onChange={e => { setFormQuestion(e.target.value); setErrors(prev => ({...prev, question: null})) }} className={`w-full p-2.5 border ${errors.question ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm h-20 focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none resize-none`} placeholder="Enter question..." />
+													{errors.question && <p className="text-red-500 text-xs mt-1">{errors.question}</p>}
 												</div>
 												<div className="grid grid-cols-2 gap-3">
 													<div>
 														<label className="block text-xs font-semibold mb-1 text-gray-700">Option A</label>
-														<input type="text" value={formOptionA} onChange={e => setFormOptionA(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+														<input type="text" value={formOptionA} onChange={e => { setFormOptionA(e.target.value); setErrors(prev => ({...prev, option_a: null})) }} className={`w-full p-2 border ${errors.option_a ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm`} />
+														{errors.option_a && <p className="text-red-500 text-xs mt-1">{errors.option_a}</p>}
 													</div>
 													<div>
 														<label className="block text-xs font-semibold mb-1 text-gray-700">Option B</label>
-														<input type="text" value={formOptionB} onChange={e => setFormOptionB(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+														<input type="text" value={formOptionB} onChange={e => { setFormOptionB(e.target.value); setErrors(prev => ({...prev, option_b: null})) }} className={`w-full p-2 border ${errors.option_b ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm`} />
+														{errors.option_b && <p className="text-red-500 text-xs mt-1">{errors.option_b}</p>}
 													</div>
 													<div>
 														<label className="block text-xs font-semibold mb-1 text-gray-700">Option C</label>
-														<input type="text" value={formOptionC} onChange={e => setFormOptionC(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+														<input type="text" value={formOptionC} onChange={e => { setFormOptionC(e.target.value); setErrors(prev => ({...prev, option_c: null})) }} className={`w-full p-2 border ${errors.option_c ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm`} />
+														{errors.option_c && <p className="text-red-500 text-xs mt-1">{errors.option_c}</p>}
 													</div>
 													<div>
 														<label className="block text-xs font-semibold mb-1 text-gray-700">Option D</label>
-														<input type="text" value={formOptionD} onChange={e => setFormOptionD(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+														<input type="text" value={formOptionD} onChange={e => { setFormOptionD(e.target.value); setErrors(prev => ({...prev, option_d: null})) }} className={`w-full p-2 border ${errors.option_d ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm`} />
+														{errors.option_d && <p className="text-red-500 text-xs mt-1">{errors.option_d}</p>}
 													</div>
 												</div>
 												<div className="flex gap-4">
@@ -405,7 +447,8 @@ export default function CmsPage() {
 													</div>
 													<div className="flex-1">
 														<label className="block text-xs font-semibold mb-1 text-gray-700">EXP Reward</label>
-														<input type="number" value={formReward} onChange={e => setFormReward(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+														<input type="number" value={formReward} onChange={e => { setFormReward(e.target.value); setErrors(prev => ({...prev, exp_reward: null})) }} className={`w-full p-2 border ${errors.exp_reward ? 'border-red-500' : 'border-gray-300'} rounded-md text-sm`} />
+														{errors.exp_reward && <p className="text-red-500 text-xs mt-1">{errors.exp_reward}</p>}
 													</div>
 												</div>
 												<div className="flex justify-end pt-2">

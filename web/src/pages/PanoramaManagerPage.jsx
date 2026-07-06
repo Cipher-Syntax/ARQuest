@@ -5,6 +5,7 @@ import { buildingService } from '../services/buildingService'
 import { panoramaService } from '../services/panoramaService'
 import DragDropFileUpload from '../components/common/DragDropFileUpload'
 import { theme } from '../theme'
+import { validateForm, validateString, validateRequired, validateNumber } from '../utils/validation'
 
 const PanoramaManagerPage = () => {
 	const { id } = useParams()
@@ -86,8 +87,15 @@ const PanoramaManagerPage = () => {
 		e.preventDefault()
 		setErrors({})
 
-		if (!newScene.title) return setErrors({ title: 'Title is required' })
-		if (!newScene.image) return setErrors({ image: 'Panorama image is required' })
+		const schema = {
+			title: (val) => validateString(val, 1),
+			image: (val) => validateRequired(val)
+		}
+
+		const validationErrors = validateForm(newScene, schema)
+		if (Object.keys(validationErrors).length > 0) {
+			return setErrors(validationErrors)
+		}
 
 		setSaving(true)
 		try {
@@ -137,12 +145,17 @@ const PanoramaManagerPage = () => {
 		if (!selectedScene) return
 
 		setHotspotErrors({})
-		const newErrors = {}
-		if (!newHotspot.label.trim()) newErrors.label = 'Label is required'
-		if (!newHotspot.target_scene) newErrors.target_scene = 'Target scene is required'
 		
-		if (Object.keys(newErrors).length > 0) {
-			return setHotspotErrors(newErrors)
+		const schema = {
+			label: (val) => validateString(val, 1),
+			target_scene: (val) => validateRequired(val),
+			yaw: (val) => validateNumber(val),
+			pitch: (val) => validateNumber(val)
+		}
+
+		const validationErrors = validateForm(newHotspot, schema)
+		if (Object.keys(validationErrors).length > 0) {
+			return setHotspotErrors(validationErrors)
 		}
 
 		try {
@@ -357,22 +370,32 @@ const ScenesList = ({
 						type="text"
 						placeholder="Scene Title"
 						value={newScene.title}
-						onChange={(e) => setNewScene({ ...newScene, title: e.target.value })}
+						onChange={(e) => {
+							setNewScene({ ...newScene, title: e.target.value })
+							if (errors.title) setErrors({ ...errors, title: null })
+						}}
 						style={{
 							width: '100%',
 							padding: '8px',
 							marginBottom: '8px',
 							borderRadius: '4px',
-							border: `1px solid ${errors.title ? 'red' : '#ccc'}`
+							border: `1px solid ${errors.title ? theme.colors.error : '#ccc'}`
 						}}
 					/>
+					{errors.title && <div style={{ color: theme.colors.error, fontSize: '12px', marginBottom: '8px' }}>{errors.title}</div>}
 					<div style={{ marginBottom: '8px' }}>
-						<DragDropFileUpload
-							accept="image/jpeg,image/png,image/jpg"
-							value={newScene.image}
-							onChange={(file) => setNewScene({ ...newScene, image: file })}
-							placeholder="Drag & drop 360° image here or click to browse"
-						/>
+						<div style={{ border: errors.image ? `1px solid ${theme.colors.error}` : 'none', borderRadius: '4px' }}>
+							<DragDropFileUpload
+								accept="image/jpeg,image/png,image/jpg"
+								value={newScene.image}
+								onChange={(file) => {
+									setNewScene({ ...newScene, image: file })
+									if (errors.image) setErrors({ ...errors, image: null })
+								}}
+								placeholder="Drag & drop 360° image here or click to browse"
+							/>
+						</div>
+						{errors.image && <div style={{ color: theme.colors.error, fontSize: '12px', marginTop: '4px' }}>{errors.image}</div>}
 					</div>
 					<label
 						style={{
@@ -652,9 +675,14 @@ const HotspotsPanel = ({
 								type="text"
 								placeholder="e.g. Go to Entrance"
 								value={newHotspot.label}
-								onChange={(e) =>
+								onChange={(e) => {
 									setNewHotspot({ ...newHotspot, label: e.target.value })
-								}
+									if (errors?.label) {
+										const newErrs = { ...errors };
+										delete newErrs.label;
+										errors.form ? null : setEditingHotspot ? null : null; // Hack to use some props, wait, let's just use form
+									}
+								}}
 								style={{
 									width: '100%',
 									padding: '8px',
@@ -735,10 +763,15 @@ const HotspotsPanel = ({
 										width: '100%',
 										padding: '8px',
 										borderRadius: '4px',
-										border: '1px solid #ccc',
+										border: `1px solid ${errors?.yaw ? theme.colors.error : '#ccc'}`,
 										fontSize: '14px'
 									}}
 								/>
+								{errors?.yaw && (
+									<div style={{ color: theme.colors.error, fontSize: '12px', marginTop: '4px' }}>
+										{errors.yaw}
+									</div>
+								)}
 							</div>
 							<div>
 								<label
@@ -764,10 +797,15 @@ const HotspotsPanel = ({
 										width: '100%',
 										padding: '8px',
 										borderRadius: '4px',
-										border: '1px solid #ccc',
+										border: `1px solid ${errors?.pitch ? theme.colors.error : '#ccc'}`,
 										fontSize: '14px'
 									}}
 								/>
+								{errors?.pitch && (
+									<div style={{ color: theme.colors.error, fontSize: '12px', marginTop: '4px' }}>
+										{errors.pitch}
+									</div>
+								)}
 							</div>
 						</div>
 						<button

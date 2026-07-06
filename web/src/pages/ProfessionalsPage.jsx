@@ -3,6 +3,7 @@ import { Search, Plus, X } from 'lucide-react'
 import { Card, Badge, Button, Pagination } from '../components/ui'
 import { userService } from '../services/userService'
 import { getAvatarUri } from '../utils/avatarUtils'
+import { validateForm, validateString, validateEmail } from '../utils/validation'
 
 function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
 	const [formData, setFormData] = useState({
@@ -14,17 +15,33 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
 	})
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState('')
+	const [errors, setErrors] = useState({})
 
 	if (!isOpen) return null
 
 	const handleChange = (e) => {
 		const { name, value } = e.target
 		setFormData(prev => ({ ...prev, [name]: value }))
+		if (errors[name]) {
+			setErrors(prev => ({ ...prev, [name]: null }))
+		}
 	}
 
 	const handleSubmit = async (e) => {
 		e.preventDefault()
 		setError('')
+
+		const schema = {
+			username: (val) => validateString(val, 3),
+			email: (val) => validateEmail(val),
+			password: (val) => validateString(val, 8),
+			first_name: (val) => null,
+			last_name: (val) => null
+		}
+		const validationErrors = validateForm(formData, schema)
+		setErrors(validationErrors)
+		if (Object.keys(validationErrors).length > 0) return
+
 		setIsLoading(true)
 
 		try {
@@ -64,9 +81,10 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
 							required
 							value={formData.username}
 							onChange={handleChange}
-							className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm"
+							className={`w-full px-3 py-2 border ${errors.username ? 'border-red-500' : 'border-brand-border'} rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm`}
 							placeholder="johndoe123"
 						/>
+						{errors.username && <p className="text-red-500 text-xs">{errors.username}</p>}
 					</div>
 
 					<div className="space-y-1">
@@ -77,9 +95,10 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
 							required
 							value={formData.email}
 							onChange={handleChange}
-							className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm"
+							className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-brand-border'} rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm`}
 							placeholder="john@example.com"
 						/>
+						{errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
 					</div>
 
 					<div className="space-y-1">
@@ -91,9 +110,10 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
 							minLength={8}
 							value={formData.password}
 							onChange={handleChange}
-							className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm"
+							className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-brand-border'} rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm`}
 							placeholder="••••••••"
 						/>
+						{errors.password && <p className="text-red-500 text-xs">{errors.password}</p>}
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">
