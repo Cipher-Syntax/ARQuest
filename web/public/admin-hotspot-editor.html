@@ -1,283 +1,419 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <title>3D Hotspot Editor</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: system-ui; }
-        #canvas { width: 100%; height: 100%; display: block; }
-        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00E5FF; font-weight: bold; letter-spacing: 2px; pointer-events: none; }
-        
-        #ui-overlay { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; }
-        #ui-overlay h3 { margin: 0 0 5px 0; color: #00E5FF; }
-        #ui-overlay p { margin: 0; font-size: 14px; color: #ccc; }
+    <head>
+        <meta charset="utf-8" />
+        <title>3D Hotspot Editor</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #1a1a1a;
+                font-family: system-ui;
+            }
+            #canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+            #loading {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #00e5ff;
+                font-weight: bold;
+                letter-spacing: 2px;
+                pointer-events: none;
+            }
 
-        #hotspot-form {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #2a2a2a; border: 1px solid #444; padding: 20px; border-radius: 8px;
-            width: 300px; display: none; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        #hotspot-form input, #hotspot-form textarea {
-            width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 10px;
-            background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 4px;
-        }
-        .btn-group { display: flex; gap: 10px; }
-        .btn { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .btn-save { background: #00E5FF; color: black; }
-        .btn-cancel { background: #444; color: white; }
+            #ui-overlay {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                color: white;
+                pointer-events: none;
+            }
+            #ui-overlay h3 {
+                margin: 0 0 5px 0;
+                color: #00e5ff;
+            }
+            #ui-overlay p {
+                margin: 0;
+                font-size: 14px;
+                color: #ccc;
+            }
 
-        .btn-save-all {
-            position: absolute; bottom: 20px; right: 20px;
-            background: #00E5FF; color: black; border: none; padding: 12px 24px;
-            border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,229,255,0.3);
-        }
-    </style>
-</head>
-<body>
-    <div id="loading">LOADING EDITOR...</div>
-    
-    <div id="ui-overlay">
-        <h3>Hotspot Editor</h3>
-        <p>1. Right-Click and drag to move camera.</p>
-        <p>2. Double-Click anywhere on the model to place a hotspot.</p>
-        <p>3. Click on an existing hotspot to Edit or Delete it.</p>
-        <p>4. Click "Save All Hotspots" when finished.</p>
-    </div>
+            #hotspot-form {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #2a2a2a;
+                border: 1px solid #444;
+                padding: 20px;
+                border-radius: 8px;
+                width: 300px;
+                display: none;
+                color: white;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            }
+            #hotspot-form input,
+            #hotspot-form textarea {
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 15px;
+                padding: 10px;
+                background: #1a1a1a;
+                border: 1px solid #444;
+                color: white;
+                border-radius: 4px;
+            }
+            .btn-group {
+                display: flex;
+                gap: 10px;
+            }
+            .btn {
+                flex: 1;
+                padding: 10px;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+            .btn-save {
+                background: #00e5ff;
+                color: black;
+            }
+            .btn-cancel {
+                background: #444;
+                color: white;
+            }
 
-    <div id="hotspot-form">
-        <h3 id="form-title" style="margin-top:0;color:#00E5FF;">New Hotspot</h3>
-        <input type="text" id="hs-title" placeholder="e.g. Server Room">
-        <textarea id="hs-desc" placeholder="Description..." rows="3"></textarea>
-        <div class="btn-group">
-            <button class="btn btn-cancel" onclick="cancelHotspot()">Cancel</button>
-            <button class="btn btn-save" onclick="saveHotspot()">Save</button>
+            .btn-save-all {
+                position: absolute;
+                bottom: 20px;
+                right: 20px;
+                background: #00e5ff;
+                color: black;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 16px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 229, 255, 0.3);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="loading">LOADING EDITOR...</div>
+
+        <div id="ui-overlay">
+            <h3>Hotspot Editor</h3>
+            <p>1. Right-Click and drag to move camera.</p>
+            <p>2. Double-Click anywhere on the model to place a hotspot.</p>
+            <p>3. Click on an existing hotspot to Edit or Delete it.</p>
+            <p>4. Click "Save All Hotspots" when finished.</p>
         </div>
-        <button id="btn-delete" class="btn btn-cancel" style="width: 100%; margin-top: 10px; background: #ff4444;" onclick="deleteHotspot()" style="display:none;">Delete Hotspot</button>
-    </div>
 
-    <button class="btn-save-all" onclick="sendDataToReact()">SAVE ALL HOTSPOTS</button>
+        <div id="hotspot-form">
+            <h3 id="form-title" style="margin-top: 0; color: #00e5ff">
+                New Hotspot
+            </h3>
+            <input type="text" id="hs-title" placeholder="e.g. Server Room" />
+            <textarea
+                id="hs-desc"
+                placeholder="Description..."
+                rows="3"
+            ></textarea>
+            <div class="btn-group">
+                <button class="btn btn-cancel" onclick="cancelHotspot()">
+                    Cancel
+                </button>
+                <button class="btn btn-save" onclick="saveHotspot()">
+                    Save
+                </button>
+            </div>
+            <button
+                id="btn-delete"
+                class="btn btn-cancel"
+                style="width: 100%; margin-top: 10px; background: #ff4444"
+                onclick="deleteHotspot()"
+                style="display: none"
+            >
+                Delete Hotspot
+            </button>
+        </div>
 
-    <canvas id="canvas"></canvas>
+        <button class="btn-save-all" onclick="sendDataToReact()">
+            SAVE ALL HOTSPOTS
+        </button>
 
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
+        <canvas id="canvas"></canvas>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-        let scene, camera, renderer, controls, model;
-        let hotspotsData = [];
-        let hotspotMeshes = [];
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        let pendingCoordinate = null;
-        let editingHotspotId = null;
-
-        // Initialize from React iframe message
-        window.addEventListener('message', (event) => {
-            const data = event.data;
-            if (data.type === 'INIT_EDITOR') {
-                if (data.hotspots) hotspotsData = data.hotspots;
-                init(data.modelUrl);
-            }
-        });
-
-        // Fallback for direct testing (if opened without React)
-        if (!window.parent || window === window.parent) {
-            // Un-comment to test directly with a valid URL
-            // init('YOUR_MODEL_URL_HERE');
-        }
-
-        function init(modelUrl) {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x222222);
-            
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            
-            const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambient);
-            const directional = new THREE.DirectionalLight(0xffffff, 0.5);
-            directional.position.set(5, 10, 7.5);
-            scene.add(directional);
-
-            controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-
-            document.addEventListener('dblclick', onDoubleClick);
-            document.addEventListener('pointerdown', onPointerDown);
-            
-            loadModel(modelUrl);
-            animate();
-        }
-
-        function loadModel(url) {
-            if (!url) return;
-            const loader = new GLTFLoader();
-            loader.load(
-                url,
-                (gltf) => {
-                    model = gltf.scene;
-                    scene.add(model);
-                    
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = box.getCenter(new THREE.Vector3());
-                    const size = box.getSize(new THREE.Vector3());
-                    
-                    camera.position.set(center.x, center.y + size.y/2, center.z + size.z);
-                    controls.target.copy(center);
-                    controls.update();
-                    
-                    document.getElementById('loading').style.display = 'none';
-
-                    // Re-render saved hotspots
-                    hotspotsData.forEach(h => {
-                        if (!h.id) h.id = Math.random().toString(36).substr(2, 9);
-                        createHotspotMesh(h);
-                    });
-                },
-                undefined,
-                (err) => console.error(err)
-            );
-        }
-
-        function onDoubleClick(event) {
-            if (event.target.id !== 'canvas') return;
-            if (!model) return;
-
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(model, true);
-
-            if (intersects.length > 0) {
-                pendingCoordinate = intersects[0].point;
-                editingHotspotId = null;
-                document.getElementById('form-title').innerText = "New Hotspot";
-                document.getElementById('btn-delete').style.display = 'none';
-                document.getElementById('hs-title').value = '';
-                document.getElementById('hs-desc').value = '';
-                document.getElementById('hotspot-form').style.display = 'block';
-                document.getElementById('hs-title').focus();
-            }
-        }
-
-        function onPointerDown(event) {
-            if (event.target.id !== 'canvas') return;
-            
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(hotspotMeshes, false);
-            
-            if (intersects.length > 0) {
-                const mesh = intersects[0].object;
-                const hsData = mesh.userData.hotspot;
-                
-                editingHotspotId = hsData.id;
-                pendingCoordinate = new THREE.Vector3(hsData.x, hsData.y, hsData.z);
-                
-                document.getElementById('form-title').innerText = "Edit Hotspot";
-                document.getElementById('btn-delete').style.display = 'block';
-                document.getElementById('hs-title').value = hsData.title || '';
-                document.getElementById('hs-desc').value = hsData.desc || '';
-                document.getElementById('hotspot-form').style.display = 'block';
-            }
-        }
-
-        window.cancelHotspot = () => {
-            document.getElementById('hotspot-form').style.display = 'none';
-            document.getElementById('hs-title').value = '';
-            document.getElementById('hs-desc').value = '';
-            pendingCoordinate = null;
-            editingHotspotId = null;
-        };
-
-        window.saveHotspot = () => {
-            const title = document.getElementById('hs-title').value;
-            const desc = document.getElementById('hs-desc').value;
-            if (!title || !pendingCoordinate) return;
-
-            if (editingHotspotId) {
-                const hs = hotspotsData.find(h => h.id === editingHotspotId);
-                if (hs) {
-                    hs.title = title;
-                    hs.desc = desc;
-                    const mesh = hotspotMeshes.find(m => m.userData.hotspot.id === editingHotspotId);
-                    if (mesh) mesh.userData.hotspot = hs;
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
                 }
-            } else {
-                const newHotspot = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    title: title,
-                    desc: desc,
-                    x: pendingCoordinate.x,
-                    y: pendingCoordinate.y,
-                    z: pendingCoordinate.z
-                };
-                hotspotsData.push(newHotspot);
-                createHotspotMesh(newHotspot);
             }
-            
-            cancelHotspot();
-        };
+        </script>
 
-        window.deleteHotspot = () => {
-            if (!editingHotspotId) return;
-            
-            hotspotsData = hotspotsData.filter(h => h.id !== editingHotspotId);
-            const meshIndex = hotspotMeshes.findIndex(m => m.userData.hotspot.id === editingHotspotId);
-            if (meshIndex > -1) {
-                scene.remove(hotspotMeshes[meshIndex]);
-                hotspotMeshes.splice(meshIndex, 1);
+        <script type="module">
+            import * as THREE from "three";
+            import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+            import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+            let scene, camera, renderer, controls, model;
+            let hotspotsData = [];
+            let hotspotMeshes = [];
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            let pendingCoordinate = null;
+            let editingHotspotId = null;
+
+            // Initialize from React iframe message
+            window.addEventListener("message", (event) => {
+                const data = event.data;
+                if (data.type === "INIT_EDITOR") {
+                    if (data.hotspots) hotspotsData = data.hotspots;
+                    init(data.modelUrl);
+                }
+            });
+
+            // Fallback for direct testing (if opened without React)
+            if (!window.parent || window === window.parent) {
+                // Un-comment to test directly with a valid URL
+                // init('YOUR_MODEL_URL_HERE');
             }
-            cancelHotspot();
-        };
 
-        function createHotspotMesh(hs) {
-            const geom = new THREE.SphereGeometry(0.3, 16, 16);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x00E5FF, wireframe: true });
-            const sphere = new THREE.Mesh(geom, mat);
-            sphere.position.set(hs.x, hs.y, hs.z);
-            sphere.userData = { hotspot: hs };
-            scene.add(sphere);
-            hotspotMeshes.push(sphere);
-        }
+            function init(modelUrl) {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x222222);
 
-        window.sendDataToReact = () => {
-            window.parent.postMessage({
-                type: 'SAVE_HOTSPOTS',
-                hotspots: hotspotsData
-            }, '*');
-        };
+                camera = new THREE.PerspectiveCamera(
+                    75,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    1000,
+                );
 
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            hotspotMeshes.forEach(h => { h.rotation.y += 0.02; });
-            renderer.render(scene, camera);
-        }
+                renderer = new THREE.WebGLRenderer({
+                    canvas: document.getElementById("canvas"),
+                    antialias: true,
+                });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
 
-        window.addEventListener('resize', () => {
-            if(!camera) return;
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
+                const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+                scene.add(ambient);
+                const directional = new THREE.DirectionalLight(0xffffff, 0.5);
+                directional.position.set(5, 10, 7.5);
+                scene.add(directional);
+
+                controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+
+                document.addEventListener("dblclick", onDoubleClick);
+                document.addEventListener("pointerdown", onPointerDown);
+
+                loadModel(modelUrl);
+                animate();
+            }
+
+            function loadModel(url) {
+                if (!url) return;
+                const loader = new GLTFLoader();
+                loader.load(
+                    url,
+                    (gltf) => {
+                        model = gltf.scene;
+                        scene.add(model);
+
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        const size = box.getSize(new THREE.Vector3());
+
+                        camera.position.set(
+                            center.x,
+                            center.y + size.y / 2,
+                            center.z + size.z,
+                        );
+                        controls.target.copy(center);
+                        controls.update();
+
+                        document.getElementById("loading").style.display =
+                            "none";
+
+                        // Re-render saved hotspots
+                        hotspotsData.forEach((h) => {
+                            if (!h.id)
+                                h.id = Math.random().toString(36).substr(2, 9);
+                            createHotspotMesh(h);
+                        });
+                    },
+                    undefined,
+                    (err) => console.error(err),
+                );
+            }
+
+            function onDoubleClick(event) {
+                if (event.target.id !== "canvas") return;
+                if (!model) return;
+
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(model, true);
+
+                if (intersects.length > 0) {
+                    pendingCoordinate = intersects[0].point;
+                    editingHotspotId = null;
+                    document.getElementById("form-title").innerText =
+                        "New Hotspot";
+                    document.getElementById("btn-delete").style.display =
+                        "none";
+                    document.getElementById("hs-title").value = "";
+                    document.getElementById("hs-desc").value = "";
+                    document.getElementById("hotspot-form").style.display =
+                        "block";
+                    document.getElementById("hs-title").focus();
+                }
+            }
+
+            function onPointerDown(event) {
+                if (event.target.id !== "canvas") return;
+
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(
+                    hotspotMeshes,
+                    false,
+                );
+
+                if (intersects.length > 0) {
+                    const mesh = intersects[0].object;
+                    const hsData = mesh.userData.hotspot;
+
+                    editingHotspotId = hsData.id;
+                    pendingCoordinate = new THREE.Vector3(
+                        hsData.x,
+                        hsData.y,
+                        hsData.z,
+                    );
+
+                    document.getElementById("form-title").innerText =
+                        "Edit Hotspot";
+                    document.getElementById("btn-delete").style.display =
+                        "block";
+                    document.getElementById("hs-title").value =
+                        hsData.title || "";
+                    document.getElementById("hs-desc").value =
+                        hsData.desc || "";
+                    document.getElementById("hotspot-form").style.display =
+                        "block";
+                }
+            }
+
+            window.cancelHotspot = () => {
+                document.getElementById("hotspot-form").style.display = "none";
+                document.getElementById("hs-title").value = "";
+                document.getElementById("hs-desc").value = "";
+                pendingCoordinate = null;
+                editingHotspotId = null;
+            };
+
+            window.saveHotspot = () => {
+                const title = document.getElementById("hs-title").value;
+                const desc = document.getElementById("hs-desc").value;
+                if (!title || !pendingCoordinate) return;
+
+                if (editingHotspotId) {
+                    const hs = hotspotsData.find(
+                        (h) => h.id === editingHotspotId,
+                    );
+                    if (hs) {
+                        hs.title = title;
+                        hs.desc = desc;
+                        const mesh = hotspotMeshes.find(
+                            (m) => m.userData.hotspot.id === editingHotspotId,
+                        );
+                        if (mesh) mesh.userData.hotspot = hs;
+                    }
+                } else {
+                    const newHotspot = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        title: title,
+                        desc: desc,
+                        x: pendingCoordinate.x,
+                        y: pendingCoordinate.y,
+                        z: pendingCoordinate.z,
+                    };
+                    hotspotsData.push(newHotspot);
+                    createHotspotMesh(newHotspot);
+                }
+
+                cancelHotspot();
+            };
+
+            window.deleteHotspot = () => {
+                if (!editingHotspotId) return;
+
+                hotspotsData = hotspotsData.filter(
+                    (h) => h.id !== editingHotspotId,
+                );
+                const meshIndex = hotspotMeshes.findIndex(
+                    (m) => m.userData.hotspot.id === editingHotspotId,
+                );
+                if (meshIndex > -1) {
+                    scene.remove(hotspotMeshes[meshIndex]);
+                    hotspotMeshes.splice(meshIndex, 1);
+                }
+                cancelHotspot();
+            };
+
+            function createHotspotMesh(hs) {
+                const geom = new THREE.SphereGeometry(0.3, 16, 16);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: 0x00e5ff,
+                    wireframe: true,
+                });
+                const sphere = new THREE.Mesh(geom, mat);
+                sphere.position.set(hs.x, hs.y, hs.z);
+                sphere.userData = { hotspot: hs };
+                scene.add(sphere);
+                hotspotMeshes.push(sphere);
+            }
+
+            window.sendDataToReact = () => {
+                window.parent.postMessage(
+                    {
+                        type: "SAVE_HOTSPOTS",
+                        hotspots: hotspotsData,
+                    },
+                    "*",
+                );
+            };
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                hotspotMeshes.forEach((h) => {
+                    h.rotation.y += 0.02;
+                });
+                renderer.render(scene, camera);
+            }
+
+            window.addEventListener("resize", () => {
+                if (!camera) return;
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        </script>
+    </body>
 </html>
