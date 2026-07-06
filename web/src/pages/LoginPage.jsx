@@ -72,14 +72,11 @@ const LoginPage = () => {
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,transparent_100%)]"></div>
 
                 <div className="z-10 flex flex-col w-full h-full">
-                    <div className="w-80 h-80 mx-auto bg-white/10 border-2 border-white/20 border-dashed rounded-md flex items-center justify-center mb-12 backdrop-blur-sm shadow-xl relative group transition-all duration-300 hover:bg-white/20 mt-12">
-                        <span className="text-white/60 font-bold uppercase tracking-widest text-lg absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
-                            Logo Here
-                        </span>
+                    <div className="w-80 h-80 mx-auto flex items-center justify-center mb-12 relative mt-12">
                         <img
-                            src="/logo.png"
+                            src="/logo.svg"
                             alt="ARQuest Logo"
-                            className="w-64 h-64 object-contain opacity-50 group-hover:opacity-100 transition-opacity"
+                            className="w-72 h-72 object-contain filter drop-shadow-lg"
                         />
                     </div>
 
@@ -104,11 +101,11 @@ const LoginPage = () => {
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-brand-light/30">
                 <div className="w-full max-w-md space-y-8 bg-white p-8 sm:p-10 rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
                     <div className="text-center space-y-2">
-                        <div className="w-12 h-12 bg-brand/10 text-brand rounded-md flex items-center justify-center mx-auto mb-4 lg:hidden">
+                        <div className="w-16 h-16 mx-auto mb-4 lg:hidden flex items-center justify-center">
                             <img
-                                src="/logo.png"
+                                src="/logo.svg"
                                 alt="ARQuest"
-                                className="w-8 h-8 object-contain"
+                                className="w-16 h-16 object-contain"
                             />
                         </div>
                         <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
