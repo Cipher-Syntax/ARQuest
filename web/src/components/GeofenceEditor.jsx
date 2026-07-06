@@ -1,243 +1,281 @@
-import React, { useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap, Tooltip, Popup } from 'react-leaflet'
-import { theme } from '../theme'
-import 'leaflet/dist/leaflet.css'
-import '../utils/leafletConfig'
-import '@google/model-viewer'
+import React, { useEffect } from "react";
+import {
+    MapContainer,
+    TileLayer,
+    Marker,
+    Circle,
+    useMapEvents,
+    useMap,
+    Tooltip,
+    Popup,
+} from "react-leaflet";
+import { theme } from "../theme";
+import "leaflet/dist/leaflet.css";
+import "../utils/leafletConfig";
+import "@google/model-viewer";
 
-const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 }
+const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
 const WMSU_BOUNDS = [
-	[6.9095, 122.0575],
-	[6.9155, 122.064]
-]
+    [6.9095, 122.0575],
+    [6.9155, 122.064],
+];
 
 const MapClickHandler = ({ onMapClick }) => {
-	useMapEvents({
-		click: (e) => {
-			onMapClick(e.latlng)
-		}
-	})
-	return null
-}
+    useMapEvents({
+        click: (e) => {
+            onMapClick(e.latlng);
+        },
+    });
+    return null;
+};
 
 const MapUpdater = ({ center }) => {
-	const map = useMap()
-	
-	useEffect(() => {
-		const lat = parseFloat(center.lat)
-		const lng = parseFloat(center.lng)
-		
-		if (isNaN(lat) || isNaN(lng)) return
-		
-		const timeoutId = setTimeout(() => {
-			map.flyTo([lat, lng], map.getZoom(), {
-				animate: true,
-				duration: 0.5
-			})
-		}, 500)
+    const map = useMap();
 
-		return () => clearTimeout(timeoutId)
-	}, [center.lat, center.lng, map])
+    useEffect(() => {
+        const lat = parseFloat(center.lat);
+        const lng = parseFloat(center.lng);
 
-	return null
-}
+        if (isNaN(lat) || isNaN(lng)) return;
 
-const GeofenceEditor = ({ value, onChange, errors, existingBuildings = [], currentBuildingId = null }) => {
-	const center = {
-		lat: value?.latitude || WMSU_CENTER.lat,
-		lng: value?.longitude || WMSU_CENTER.lng
-	}
+        const timeoutId = setTimeout(() => {
+            map.flyTo([lat, lng], map.getZoom(), {
+                animate: true,
+                duration: 0.5,
+            });
+        }, 500);
 
-	const handleMapClick = (latlng) => {
-		
-		const lat = latlng.lat.toFixed(6)
-		const lng = latlng.lng.toFixed(6)
-		onChange({ ...value, latitude: lat, longitude: lng })
-	}
+        return () => clearTimeout(timeoutId);
+    }, [center.lat, center.lng, map]);
 
-	return (
-		<div>
-			<div style={{ marginBottom: theme.spacing.md }}>
-				<label
-					style={{
-						display: 'block',
-						marginBottom: theme.spacing.xs,
-						fontSize: '14px',
-						fontWeight: '500'
-					}}
-				>
-					Radius (meters) *
-				</label>
-				<input
-					type="number"
-					value={value?.radius_meters || ''}
-					onChange={(e) => onChange({ ...value, radius_meters: e.target.value })}
-					min="1"
-					style={{
-						width: '100%',
-						padding: theme.spacing.sm,
-						border: `1px solid ${errors?.radius ? theme.colors.error : theme.colors.border}`,
-						borderRadius: theme.radius.sm,
-						fontSize: '14px'
-					}}
-				/>
-				{errors?.radius && (
-					<div
-						style={{
-							color: theme.colors.error,
-							fontSize: '12px',
-							marginTop: theme.spacing.xs
-						}}
-					>
-						{errors.radius}
-					</div>
-				)}
-			</div>
+    return null;
+};
 
-			<div style={{ marginBottom: theme.spacing.md }}>
-				<label
-					style={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: theme.spacing.sm,
-						fontSize: '14px'
-					}}
-				>
-					<input
-						type="checkbox"
-						checked={value?.is_active !== false}
-						onChange={(e) => onChange({ ...value, is_active: e.target.checked })}
-					/>
-					Active
-				</label>
-			</div>
+const GeofenceEditor = ({
+    value,
+    onChange,
+    errors,
+    existingBuildings = [],
+    currentBuildingId = null,
+}) => {
+    const center = {
+        lat: value?.latitude || WMSU_CENTER.lat,
+        lng: value?.longitude || WMSU_CENTER.lng,
+    };
 
-			<div
-				style={{
-					marginBottom: theme.spacing.md,
-					height: '400px',
-					border: `1px solid ${theme.colors.border}`,
-					borderRadius: theme.radius.sm,
-					overflow: 'hidden'
-				}}
-			>
-				<MapContainer
-					center={[center.lat, center.lng]}
-					zoom={17}
-					style={{ height: '100%', width: '100%' }}
-					maxBounds={WMSU_BOUNDS}
-					maxBoundsViscosity={1.0}
-					minZoom={16}
-					maxZoom={19}
-				>
-					<TileLayer
-						url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-						attribution="&copy; Google Maps"
-						maxNativeZoom={18}
-						maxZoom={20}
-					/>
-					<MapClickHandler onMapClick={handleMapClick} />
-					<MapUpdater center={center} />
-					
-					{}
-					{existingBuildings.map((b) => {
-						if (currentBuildingId && b.id === currentBuildingId) return null; 
-						if (!b.lat && !b.latitude) return null; 
-						const lat = parseFloat(b.lat || b.latitude);
-						const lng = parseFloat(b.lng || b.longitude);
-						const radius = b.geofences && b.geofences.length > 0 
-							? parseFloat(b.geofences[0].radius_meters) 
-							: 20;
+    const handleMapClick = (latlng) => {
+        const lat = latlng.lat.toFixed(6);
+        const lng = latlng.lng.toFixed(6);
+        onChange({ ...value, latitude: lat, longitude: lng });
+    };
 
-						const bldgName = b.name || "Building";
+    return (
+        <div>
+            <div style={{ marginBottom: theme.spacing.md }}>
+                <label
+                    style={{
+                        display: "block",
+                        marginBottom: theme.spacing.xs,
+                        fontSize: "14px",
+                        fontWeight: "500",
+                    }}
+                >
+                    Radius (meters) *
+                </label>
+                <input
+                    type="number"
+                    value={value?.radius_meters || ""}
+                    onChange={(e) =>
+                        onChange({ ...value, radius_meters: e.target.value })
+                    }
+                    min="1"
+                    style={{
+                        width: "100%",
+                        padding: theme.spacing.sm,
+                        border: `1px solid ${errors?.radius ? theme.colors.error : theme.colors.border}`,
+                        borderRadius: theme.radius.sm,
+                        fontSize: "14px",
+                    }}
+                />
+                {errors?.radius && (
+                    <div
+                        style={{
+                            color: theme.colors.error,
+                            fontSize: "12px",
+                            marginTop: theme.spacing.xs,
+                        }}
+                    >
+                        {errors.radius}
+                    </div>
+                )}
+            </div>
 
-						return (
-							<React.Fragment key={b.id}>
-								<Circle
-									center={[lat, lng]}
-									radius={radius}
-									pathOptions={{
-										color: '#ef4444',
-										fillColor: '#ef4444',
-										fillOpacity: 0.15,
-										dashArray: '5, 5'
-									}}
-								/>
-								<Marker position={[lat, lng]}>
-									<Tooltip 
-										direction="top" 
-										permanent 
-										className="text-[10px] font-bold text-red-600 shadow-sm border-0 bg-white/80"
-									>
-										{bldgName}
-									</Tooltip>
-									{b.model_url && (
-										<Popup offset={[0, -10]} className="overflow-hidden rounded-lg">
-											<div style={{ width: '220px', height: '220px', background: '#f8fafc', margin: '-14px', position: 'relative' }}>
-												<model-viewer
-													src={b.model_url}
-													auto-rotate
-													rotation-per-second="45deg"
-													camera-controls
-													style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
-												></model-viewer>
-												<div className="absolute bottom-2 left-0 w-full text-center pointer-events-none">
-													<span className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-red-600 uppercase tracking-wider shadow-sm">
-														{bldgName} 3D Model
-													</span>
-												</div>
-											</div>
-										</Popup>
-									)}
-								</Marker>
-							</React.Fragment>
-						)
-					})}
+            <div style={{ marginBottom: theme.spacing.md }}>
+                <label
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: theme.spacing.sm,
+                        fontSize: "14px",
+                    }}
+                >
+                    <input
+                        type="checkbox"
+                        checked={value?.is_active !== false}
+                        onChange={(e) =>
+                            onChange({ ...value, is_active: e.target.checked })
+                        }
+                    />
+                    Active
+                </label>
+            </div>
 
-					{}
-					{value?.latitude && value?.longitude && (
-						<>
-							<Marker position={[value.latitude, value.longitude]} />
-							<Circle
-								center={[value.latitude, value.longitude]}
-								radius={parseFloat(value.radius_meters) || 0}
-								pathOptions={{
-									color: theme.colors.primary,
-									fillColor: theme.colors.primary,
-									fillOpacity: 0.2
-								}}
-							/>
-						</>
-					)}
-				</MapContainer>
-			</div>
+            <div
+                style={{
+                    marginBottom: theme.spacing.md,
+                    height: "400px",
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: theme.radius.sm,
+                    overflow: "hidden",
+                }}
+            >
+                <MapContainer
+                    center={[center.lat, center.lng]}
+                    zoom={17}
+                    style={{ height: "100%", width: "100%" }}
+                    maxBounds={WMSU_BOUNDS}
+                    maxBoundsViscosity={1.0}
+                    minZoom={16}
+                    maxZoom={19}
+                >
+                    <TileLayer
+                        url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                        attribution="&copy; Google Maps"
+                        maxNativeZoom={18}
+                        maxZoom={20}
+                    />
+                    <MapClickHandler onMapClick={handleMapClick} />
+                    <MapUpdater center={center} />
 
-			<div
-				style={{
-					padding: theme.spacing.sm,
-					backgroundColor: '#e3f2fd',
-					borderRadius: theme.radius.sm,
-					fontSize: '12px',
-					marginBottom: theme.spacing.md
-				}}
-			>
-				Click on the map to set geofence center. The circle shows the geofence coverage
-				area.
-			</div>
+                    {}
+                    {existingBuildings.map((b) => {
+                        if (currentBuildingId && b.id === currentBuildingId)
+                            return null;
+                        if (!b.lat && !b.latitude) return null;
+                        const lat = parseFloat(b.lat || b.latitude);
+                        const lng = parseFloat(b.lng || b.longitude);
+                        const radius =
+                            b.geofences && b.geofences.length > 0
+                                ? parseFloat(b.geofences[0].radius_meters)
+                                : 20;
 
-			{errors?.center && (
-				<div
-					style={{
-						color: theme.colors.error,
-						fontSize: '12px',
-						marginBottom: theme.spacing.md
-					}}
-				>
-					{errors.center}
-				</div>
-			)}
-		</div>
-	)
-}
+                        const bldgName = b.name || "Building";
 
-export default GeofenceEditor
+                        return (
+                            <React.Fragment key={b.id}>
+                                <Circle
+                                    center={[lat, lng]}
+                                    radius={radius}
+                                    pathOptions={{
+                                        color: "#ef4444",
+                                        fillColor: "#ef4444",
+                                        fillOpacity: 0.15,
+                                        dashArray: "5, 5",
+                                    }}
+                                />
+                                <Marker position={[lat, lng]}>
+                                    <Tooltip
+                                        direction="top"
+                                        permanent
+                                        className="text-[10px] font-bold text-red-600 shadow-sm border-0 bg-white/80"
+                                    >
+                                        {bldgName}
+                                    </Tooltip>
+                                    {b.model_url && (
+                                        <Popup
+                                            offset={[0, -10]}
+                                            className="overflow-hidden rounded-lg"
+                                        >
+                                            <div
+                                                style={{
+                                                    width: "220px",
+                                                    height: "220px",
+                                                    background: "#f8fafc",
+                                                    margin: "-14px",
+                                                    position: "relative",
+                                                }}
+                                            >
+                                                <model-viewer
+                                                    src={b.model_url}
+                                                    auto-rotate
+                                                    rotation-per-second="45deg"
+                                                    camera-controls
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        backgroundColor:
+                                                            "transparent",
+                                                    }}
+                                                ></model-viewer>
+                                                <div className="absolute bottom-2 left-0 w-full text-center pointer-events-none">
+                                                    <span className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-red-600 uppercase tracking-wider shadow-sm">
+                                                        {bldgName} 3D Model
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </Popup>
+                                    )}
+                                </Marker>
+                            </React.Fragment>
+                        );
+                    })}
+
+                    {}
+                    {value?.latitude && value?.longitude && (
+                        <>
+                            <Marker
+                                position={[value.latitude, value.longitude]}
+                            />
+                            <Circle
+                                center={[value.latitude, value.longitude]}
+                                radius={parseFloat(value.radius_meters) || 0}
+                                pathOptions={{
+                                    color: theme.colors.primary,
+                                    fillColor: theme.colors.primary,
+                                    fillOpacity: 0.2,
+                                }}
+                            />
+                        </>
+                    )}
+                </MapContainer>
+            </div>
+
+            <div
+                style={{
+                    padding: theme.spacing.sm,
+                    backgroundColor: "#e3f2fd",
+                    borderRadius: theme.radius.sm,
+                    fontSize: "12px",
+                    marginBottom: theme.spacing.md,
+                }}
+            >
+                Click on the map to set geofence center. The circle shows the
+                geofence coverage area.
+            </div>
+
+            {errors?.center && (
+                <div
+                    style={{
+                        color: theme.colors.error,
+                        fontSize: "12px",
+                        marginBottom: theme.spacing.md,
+                    }}
+                >
+                    {errors.center}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default GeofenceEditor;

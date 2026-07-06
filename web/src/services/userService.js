@@ -1,16 +1,16 @@
-import api from './api'
+import api from "./api";
 
 export const userService = {
-	getUsers: async () => {
-		const response = await api.get('/api/auth/users/')
-		return response.data.data
-	},
-	getLeaderboard: async () => {
-		const response = await api.get('/api/auth/leaderboard/')
-		return response.data.data
-	},
-	createProfessional: async (data) => {
-		const response = await api.post('/api/auth/users/professional/', data)
-		return response.data
-	}
-}
+    getUsers: async () => {
+        const response = await api.get("/api/auth/users/");
+        return response.data.data;
+    },
+    getLeaderboard: async () => {
+        const response = await api.get("/api/auth/leaderboard/");
+        return response.data.data;
+    },
+    createProfessional: async (data) => {
+        const response = await api.post("/api/auth/users/professional/", data);
+        return response.data;
+    },
+};

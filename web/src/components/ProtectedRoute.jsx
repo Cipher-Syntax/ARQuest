@@ -1,31 +1,34 @@
-import React from 'react'
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 const ProtectedRoute = ({ children, requireAdmin = true }) => {
-	const { user, loading } = useAuth()
+    const { user, loading } = useAuth();
 
-	if (loading) {
-		return <div style={{ padding: '24px', textAlign: 'center' }}>Loading...</div>
-	}
+    if (loading) {
+        return (
+            <div style={{ padding: "24px", textAlign: "center" }}>
+                Loading...
+            </div>
+        );
+    }
 
-	if (!user) {
-		return <Navigate to="/login" replace />
-	}
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
 
-	
-	const role = user?.user?.role || user?.role
+    const role = user?.user?.role || user?.role;
 
-	if (requireAdmin && role !== 'admin') {
-		return (
-			<div style={{ padding: '24px', textAlign: 'center' }}>
-				<h2>Access Denied</h2>
-				<p>You do not have permission to access this page.</p>
-			</div>
-		)
-	}
+    if (requireAdmin && role !== "admin") {
+        return (
+            <div style={{ padding: "24px", textAlign: "center" }}>
+                <h2>Access Denied</h2>
+                <p>You do not have permission to access this page.</p>
+            </div>
+        );
+    }
 
-	return children
-}
+    return children;
+};
 
-export default ProtectedRoute
+export default ProtectedRoute;
