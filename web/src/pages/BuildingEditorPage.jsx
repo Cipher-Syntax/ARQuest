@@ -334,7 +334,7 @@ const BuildingEditorPage = () => {
 					style={{
 						padding: theme.spacing.sm,
 						backgroundColor: theme.colors.surface,
-						border: `1px solid ${theme.colors.border}`,
+						border: '1px solid crimson',
 						borderRadius: theme.radius.sm,
 						cursor: 'pointer',
 						display: 'flex',

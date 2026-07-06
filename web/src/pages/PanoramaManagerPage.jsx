@@ -241,8 +241,8 @@ const PanoramaManagerPage = () => {
 				<button
 					onClick={() => navigate('/panoramas')}
 					style={{
-						padding: theme.spacing.sm,
-						border: `1px solid ${theme.colors.border}`,
+						padding: '8px 12px',
+						border: '1px solid crimson',
 						borderRadius: theme.radius.sm,
 						display: 'flex',
 						alignItems: 'center',
