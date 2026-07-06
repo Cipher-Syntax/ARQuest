@@ -167,10 +167,10 @@ export default function Dashboard() {
 						</div>
 					</div>
 
-					<div className="h-[320px] mt-8 -mb-4">
+					<div className="h-[320px] mt-8">
 						<ResponsiveContainer width="100%" height="100%">
 							{chartType === 'bar' ? (
-								<BarChart data={stats.gps_unlocks?.[timeframe] || []} margin={{ top: 10, right: 10, left: 0, bottom: -10 }}>
+								<BarChart data={stats.gps_unlocks?.[timeframe] || []} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
 									<XAxis 
 										dataKey="label" 
 										axisLine={false} 
@@ -191,7 +191,7 @@ export default function Dashboard() {
 									/>
 								</BarChart>
 							) : (
-								<AreaChart data={stats.gps_unlocks?.[timeframe] || []} margin={{ top: 10, right: 10, left: 0, bottom: -10 }}>
+								<AreaChart data={stats.gps_unlocks?.[timeframe] || []} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
 									<defs>
 										<linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
 											<stop offset="5%" stopColor="#8A1538" stopOpacity={0.3}/>
