@@ -94,3 +94,10 @@
     opacity: 1;
     transform: none;
 }
+
+/* Global Button Styles */
+button, 
+[role="button"] {
+    cursor: pointer;
+}
+
