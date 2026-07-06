@@ -1,6 +1,16 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { router } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, RefreshControl, Easing } from "react-native";
+import { router } from "expo-router";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ScrollView,
+    ActivityIndicator,
+    Animated,
+    RefreshControl,
+    Easing,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../theme/tokens";
@@ -40,12 +50,12 @@ export default function ExploreScreen() {
 
     const loadData = async () => {
         try {
-            const res = await api.get('/api/buildings/');
+            const res = await api.get("/api/buildings/");
             if (res.data.success) {
                 setBuildingsList(res.data.data);
                 setTotalBuildings(res.data.data.length);
             }
-            const questRes = await api.get('/api/gamification/quests/active/');
+            const questRes = await api.get("/api/gamification/quests/active/");
             if (questRes.data.success) {
                 setActiveQuests(questRes.data.data);
             }
@@ -65,29 +75,40 @@ export default function ExploreScreen() {
         loadData();
     }, []);
 
-    const progressPercentage = totalBuildings > 0 ? (unlockedBuildings.length / totalBuildings) * 100 : 0;
+    const progressPercentage =
+        totalBuildings > 0
+            ? (unlockedBuildings.length / totalBuildings) * 100
+            : 0;
 
     const getDistance = (lat1, lon1, lat2, lon2) => {
         const R = 6371e3;
-        const lat1Radians = lat1 * Math.PI/180;
-        const lat2Radians = lat2 * Math.PI/180;
-        const deltaLatRadians = (lat2-lat1) * Math.PI/180;
-        const deltaLonRadians = (lon2-lon1) * Math.PI/180;
+        const lat1Radians = (lat1 * Math.PI) / 180;
+        const lat2Radians = (lat2 * Math.PI) / 180;
+        const deltaLatRadians = ((lat2 - lat1) * Math.PI) / 180;
+        const deltaLonRadians = ((lon2 - lon1) * Math.PI) / 180;
 
-        const a = Math.sin(deltaLatRadians/2) * Math.sin(deltaLatRadians/2) +
-                Math.cos(lat1Radians) * Math.cos(lat2Radians) *
-                Math.sin(deltaLonRadians/2) * Math.sin(deltaLonRadians/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const a =
+            Math.sin(deltaLatRadians / 2) * Math.sin(deltaLatRadians / 2) +
+            Math.cos(lat1Radians) *
+                Math.cos(lat2Radians) *
+                Math.sin(deltaLonRadians / 2) *
+                Math.sin(deltaLonRadians / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return Math.floor(R * c);
     };
 
     const nearbyBuildings = useMemo(() => {
         if (!location || buildingsList.length === 0) return [];
-        
+
         return buildingsList
-            .map(b => ({
+            .map((b) => ({
                 ...b,
-                distance: getDistance(location.latitude, location.longitude, b.latitude, b.longitude)
+                distance: getDistance(
+                    location.latitude,
+                    location.longitude,
+                    b.latitude,
+                    b.longitude,
+                ),
             }))
             .sort((a, b) => a.distance - b.distance)
             .slice(0, 5);
@@ -103,18 +124,39 @@ export default function ExploreScreen() {
             Animated.loop(
                 Animated.stagger(600, [
                     Animated.sequence([
-                        Animated.timing(pulseAnim1, { toValue: 1.5, duration: 1800, useNativeDriver: true }),
-                        Animated.timing(pulseAnim1, { toValue: 1, duration: 0, useNativeDriver: true })
+                        Animated.timing(pulseAnim1, {
+                            toValue: 1.5,
+                            duration: 1800,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(pulseAnim1, {
+                            toValue: 1,
+                            duration: 0,
+                            useNativeDriver: true,
+                        }),
                     ]),
                     Animated.sequence([
-                        Animated.timing(pulseAnim2, { toValue: 1.5, duration: 1800, useNativeDriver: true }),
-                        Animated.timing(pulseAnim2, { toValue: 1, duration: 0, useNativeDriver: true })
-                    ])
-                ])
+                        Animated.timing(pulseAnim2, {
+                            toValue: 1.5,
+                            duration: 1800,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(pulseAnim2, {
+                            toValue: 1,
+                            duration: 0,
+                            useNativeDriver: true,
+                        }),
+                    ]),
+                ]),
             ).start();
 
             Animated.loop(
-                Animated.timing(spinAnim, { toValue: 1, duration: 4000, easing: Easing.linear, useNativeDriver: true })
+                Animated.timing(spinAnim, {
+                    toValue: 1,
+                    duration: 4000,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                }),
             ).start();
         } else {
             pulseAnim1.setValue(1);
@@ -128,7 +170,7 @@ export default function ExploreScreen() {
 
     const spinInterpolate = spinAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: ['0deg', '360deg']
+        outputRange: ["0deg", "360deg"],
     });
 
     useEffect(() => {
@@ -139,309 +181,587 @@ export default function ExploreScreen() {
 
     const validateLocation = async () => {
         if (!location) return;
-        
+
         setIsValidating(true);
         try {
             const result = await geofencingService.validateLocation(
                 location.latitude,
                 location.longitude,
-                location.accuracy || 10
+                location.accuracy || 10,
             );
             setValidationResult(result);
 
-            if (result.status === 'inside' && result.building) {
+            if (result.status === "inside" && result.building) {
                 const buildingId = result.building.id;
                 if (result.building.is_active === false) {
                     // Building is closed
                 } else if (lastUnlockAttempt !== buildingId) {
                     try {
-                        const unlockResult = await attemptUnlock(location.latitude, location.longitude, location.accuracy || 10);
+                        const unlockResult = await attemptUnlock(
+                            location.latitude,
+                            location.longitude,
+                            location.accuracy || 10,
+                        );
                         setLastUnlockAttempt(buildingId);
-                        
-                        SoundManager.play('building_unlock');
+
+                        SoundManager.play("building_unlock");
                         if (checkToken) await checkToken(); // Refresh global EXP immediately!
 
                         const badges = unlockResult?.newly_earned_badges || [];
                         if (badges.length > 0) {
                             setTimeout(() => {
-                                SoundManager.play('badge_earned');
+                                SoundManager.play("badge_earned");
                             }, 1500);
 
                             setEarnedBadges(badges);
                             badgeAnim.setValue(0);
                             Animated.sequence([
-                                Animated.spring(badgeAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+                                Animated.spring(badgeAnim, {
+                                    toValue: 1,
+                                    tension: 60,
+                                    friction: 8,
+                                    useNativeDriver: true,
+                                }),
                             ]).start(() => {
                                 setTimeout(() => {
-                                    Animated.timing(badgeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setEarnedBadges([]));
+                                    Animated.timing(badgeAnim, {
+                                        toValue: 0,
+                                        duration: 300,
+                                        useNativeDriver: true,
+                                    }).start(() => setEarnedBadges([]));
                                 }, 3500);
                             });
                         }
                     } catch (err) {
-                        console.log('Unlock attempt:', err);
+                        console.log("Unlock attempt:", err);
                     }
                 }
             }
         } catch (err) {
-            console.error('Validation error:', err);
+            console.error("Validation error:", err);
         } finally {
             setIsValidating(false);
         }
     };
 
     const handleStartTracking = async () => {
-        if (permissionStatus !== 'granted') {
+        if (permissionStatus !== "granted") {
             await requestPermission();
         }
         startTracking();
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
-        {/* Subtle Background Gradient */}
-        <LinearGradient
-            colors={['#FFFFFF', '#F2F4F7']}
-            style={StyleSheet.absoluteFillObject}
-        />
-        <ScrollView 
-            style={styles.container} 
-            contentContainerStyle={styles.contentContainer} 
-            showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
-        >
-            
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.title}>AR Explorer</Text>
-                <Text style={styles.subtitle}>Start scanning to find nearby buildings</Text>
-            </View>
+        <View style={{ flex: 1, backgroundColor: "#F8F9FA" }}>
+            {/* Subtle Background Gradient */}
+            <LinearGradient
+                colors={["#FFFFFF", "#F2F4F7"]}
+                style={StyleSheet.absoluteFillObject}
+            />
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.contentContainer}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[theme.colors.primary]}
+                        tintColor={theme.colors.primary}
+                    />
+                }
+            >
+                {/* Header */}
+                <View style={styles.header}>
+                    <Text style={styles.title}>AR Explorer</Text>
+                    <Text style={styles.subtitle}>
+                        Start scanning to find nearby buildings
+                    </Text>
+                </View>
 
-            {/* Premium Radar Section */}
-            <View style={styles.radarContainer}>
-                {/* Sonar Rings */}
-                <Animated.View style={[
-                    styles.radarRing, 
-                    isTracking && styles.radarRingActive,
-                    { transform: [{ scale: pulseAnim1 }], opacity: pulseAnim1.interpolate({ inputRange: [1, 1.5], outputRange: [isTracking ? 0.8 : 0, 0] }) }
-                ]} />
-                <Animated.View style={[
-                    styles.radarRing, 
-                    isTracking && styles.radarRingActive,
-                    { transform: [{ scale: pulseAnim2 }], opacity: pulseAnim2.interpolate({ inputRange: [1, 1.5], outputRange: [isTracking ? 0.6 : 0, 0] }) }
-                ]} />
-                
-                {/* Rotating Dashed Ring */}
-                {isTracking && (
-                    <Animated.View style={[
-                        styles.radarDashedRing,
-                        { transform: [{ rotate: spinInterpolate }] }
-                    ]} />
-                )}
-                
-                <TouchableOpacity 
-                    style={styles.radarButtonWrapper} 
-                    onPress={isTracking ? stopTracking : handleStartTracking}
-                    activeOpacity={0.85}
-                >
-                    <LinearGradient
-                        colors={isTracking ? ['#850F22', '#B21830'] : ['#B21830', '#E53935']}
-                        style={styles.radarButton}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                {/* Premium Radar Section */}
+                <View style={styles.radarContainer}>
+                    {/* Sonar Rings */}
+                    <Animated.View
+                        style={[
+                            styles.radarRing,
+                            isTracking && styles.radarRingActive,
+                            {
+                                transform: [{ scale: pulseAnim1 }],
+                                opacity: pulseAnim1.interpolate({
+                                    inputRange: [1, 1.5],
+                                    outputRange: [isTracking ? 0.8 : 0, 0],
+                                }),
+                            },
+                        ]}
+                    />
+                    <Animated.View
+                        style={[
+                            styles.radarRing,
+                            isTracking && styles.radarRingActive,
+                            {
+                                transform: [{ scale: pulseAnim2 }],
+                                opacity: pulseAnim2.interpolate({
+                                    inputRange: [1, 1.5],
+                                    outputRange: [isTracking ? 0.6 : 0, 0],
+                                }),
+                            },
+                        ]}
+                    />
+
+                    {/* Rotating Dashed Ring */}
+                    {isTracking && (
+                        <Animated.View
+                            style={[
+                                styles.radarDashedRing,
+                                { transform: [{ rotate: spinInterpolate }] },
+                            ]}
+                        />
+                    )}
+
+                    <TouchableOpacity
+                        style={styles.radarButtonWrapper}
+                        onPress={
+                            isTracking ? stopTracking : handleStartTracking
+                        }
+                        activeOpacity={0.85}
                     >
-                        <Ionicons name={isTracking ? "stop" : "search"} size={48} color={theme.colors.white} />
-                        <Text style={styles.radarButtonText}>
-                            {isTracking ? "STOP SCAN" : "START SCAN"}
+                        <LinearGradient
+                            colors={
+                                isTracking
+                                    ? ["#850F22", "#B21830"]
+                                    : ["#B21830", "#E53935"]
+                            }
+                            style={styles.radarButton}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <Ionicons
+                                name={isTracking ? "stop" : "search"}
+                                size={48}
+                                color={theme.colors.white}
+                            />
+                            <Text style={styles.radarButtonText}>
+                                {isTracking ? "STOP SCAN" : "START SCAN"}
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Error States */}
+                {permissionStatus === "denied" && (
+                    <View style={styles.alertBox}>
+                        <Ionicons
+                            name="warning"
+                            size={28}
+                            color={theme.colors.error}
+                        />
+                        <Text style={styles.alertText}>
+                            Location access denied. Please enable in settings.
                         </Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
-
-            {/* Error States */}
-            {permissionStatus === 'denied' && (
-                <View style={styles.alertBox}>
-                    <Ionicons name="warning" size={28} color={theme.colors.error} />
-                    <Text style={styles.alertText}>Location access denied. Please enable in settings.</Text>
-                </View>
-            )}
-            {error && (
-                <View style={styles.alertBox}>
-                    <Ionicons name="alert-circle" size={28} color={theme.colors.error} />
-                    <Text style={styles.alertText}>{error}</Text>
-                </View>
-            )}
-
-            {/* Active Scanning Status HUD */}
-            {isTracking && (
-                <View style={styles.card}>
-                    <View style={styles.cardHeaderRow}>
-                        <Ionicons name="location" size={22} color={theme.colors.primary} />
-                        <Text style={styles.cardTitle}>YOUR LOCATION</Text>
-                        {isValidating && <ActivityIndicator size="small" color={theme.colors.primary} style={{marginLeft: 'auto'}}/>}
                     </View>
-                    
-                    {location ? (
-                        <View style={styles.telemetryGrid}>
-                            <View style={styles.telemetryPill}>
-                                <Text style={styles.telemetryLabel}>Latitude</Text>
-                                <Text style={styles.telemetryValue}>{location.latitude.toFixed(5)}</Text>
-                            </View>
-                            <View style={styles.telemetryPill}>
-                                <Text style={styles.telemetryLabel}>Longitude</Text>
-                                <Text style={styles.telemetryValue}>{location.longitude.toFixed(5)}</Text>
-                            </View>
-                            <View style={styles.telemetryPill}>
-                                <Text style={styles.telemetryLabel}>Accuracy</Text>
-                                <Text style={styles.telemetryValue}>± {location.accuracy?.toFixed(0)}m</Text>
-                            </View>
-                        </View>
-                    ) : (
-                        <View style={styles.loadingBox}>
-                            <ActivityIndicator size="small" color={theme.colors.primary} />
-                            <Text style={styles.loadingText}>Finding your location...</Text>
-                        </View>
-                    )}
-
-                    <View style={styles.divider} />
-
-                    <View style={styles.cardHeaderRow}>
-                        <Ionicons name="business" size={22} color={theme.colors.primary} />
-                        <Text style={styles.cardTitle}>TARGET BUILDING</Text>
+                )}
+                {error && (
+                    <View style={styles.alertBox}>
+                        <Ionicons
+                            name="alert-circle"
+                            size={28}
+                            color={theme.colors.error}
+                        />
+                        <Text style={styles.alertText}>{error}</Text>
                     </View>
+                )}
 
-                    {validationResult?.building ? (
-                        <View style={[styles.targetBox, validationResult.status === 'inside' ? (validationResult.building.is_active === false ? styles.targetLocked : styles.targetUnlocked) : styles.targetSearching]}>
-                            <View style={styles.targetIcon}>
-                                <Ionicons 
-                                    name={validationResult.status === 'inside' ? (validationResult.building.is_active === false ? "warning" : "star") : "walk"} 
-                                    size={32} 
-                                    color={validationResult.status === 'inside' && validationResult.building.is_active !== false ? theme.colors.white : theme.colors.primary} 
+                {/* Active Scanning Status HUD */}
+                {isTracking && (
+                    <View style={styles.card}>
+                        <View style={styles.cardHeaderRow}>
+                            <Ionicons
+                                name="location"
+                                size={22}
+                                color={theme.colors.primary}
+                            />
+                            <Text style={styles.cardTitle}>YOUR LOCATION</Text>
+                            {isValidating && (
+                                <ActivityIndicator
+                                    size="small"
+                                    color={theme.colors.primary}
+                                    style={{ marginLeft: "auto" }}
                                 />
-                            </View>
-                            <View style={styles.targetInfo}>
-                                <Text style={[styles.targetName, validationResult.status === 'inside' && validationResult.building.is_active !== false && styles.textWhite]}>
-                                    {validationResult.building.name}
-                                </Text>
-                                <Text style={[styles.targetDistance, validationResult.status === 'inside' && validationResult.building.is_active !== false && styles.textWhite, validationResult.building.is_active === false && {color: theme.colors.error}]}>
-                                    {validationResult.status === 'inside' 
-                                        ? (validationResult.building.is_active === false ? 'Building is Closed' : 'AR Content Unlocked!') 
-                                        : `Distance: ${validationResult.distance_meters} meters away`}
-                                </Text>
-                            </View>
+                            )}
                         </View>
-                    ) : (
-                        <View style={styles.noTargetBox}>
-                            <Ionicons name="search" size={24} color={theme.colors.textMuted} style={{marginRight: 10}} />
-                            <Text style={styles.noTargetText}>Searching for nearby buildings...</Text>
-                        </View>
-                    )}
-                </View>
-            )}
 
-            {/* Nearby Buildings List */}
-            {nearbyBuildings.length > 0 && (
-                <View style={styles.card}>
-                    <View style={styles.cardHeaderRow}>
-                        <Ionicons name="map" size={22} color={theme.colors.primary} />
-                        <Text style={styles.cardTitle}>NEARBY BUILDINGS</Text>
-                    </View>
-                    
-                    {nearbyBuildings.map((building, index) => {
-                        const unlockedRecord = unlockedBuildings.find(ub => ub.id === building.id);
-                        const hasVisited = unlockedRecord ? (role === 'professional' ? unlockedRecord.visited : true) : false;
-                        return (
-                            <View key={building.id} style={[styles.nearbyRow, index < nearbyBuildings.length - 1 && styles.nearbyDivider]}>
-                                <View style={[styles.nearbyIconWrapper, hasVisited && styles.nearbyIconWrapperActive]}>
-                                    <Ionicons 
-                                        name={hasVisited ? "checkmark" : "lock-closed"} 
-                                        size={18} 
-                                        color={hasVisited ? theme.colors.white : theme.colors.primary} 
+                        {location ? (
+                            <View style={styles.telemetryGrid}>
+                                <View style={styles.telemetryPill}>
+                                    <Text style={styles.telemetryLabel}>
+                                        Latitude
+                                    </Text>
+                                    <Text style={styles.telemetryValue}>
+                                        {location.latitude.toFixed(5)}
+                                    </Text>
+                                </View>
+                                <View style={styles.telemetryPill}>
+                                    <Text style={styles.telemetryLabel}>
+                                        Longitude
+                                    </Text>
+                                    <Text style={styles.telemetryValue}>
+                                        {location.longitude.toFixed(5)}
+                                    </Text>
+                                </View>
+                                <View style={styles.telemetryPill}>
+                                    <Text style={styles.telemetryLabel}>
+                                        Accuracy
+                                    </Text>
+                                    <Text style={styles.telemetryValue}>
+                                        ± {location.accuracy?.toFixed(0)}m
+                                    </Text>
+                                </View>
+                            </View>
+                        ) : (
+                            <View style={styles.loadingBox}>
+                                <ActivityIndicator
+                                    size="small"
+                                    color={theme.colors.primary}
+                                />
+                                <Text style={styles.loadingText}>
+                                    Finding your location...
+                                </Text>
+                            </View>
+                        )}
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.cardHeaderRow}>
+                            <Ionicons
+                                name="business"
+                                size={22}
+                                color={theme.colors.primary}
+                            />
+                            <Text style={styles.cardTitle}>
+                                TARGET BUILDING
+                            </Text>
+                        </View>
+
+                        {validationResult?.building ? (
+                            <View
+                                style={[
+                                    styles.targetBox,
+                                    validationResult.status === "inside"
+                                        ? validationResult.building
+                                              .is_active === false
+                                            ? styles.targetLocked
+                                            : styles.targetUnlocked
+                                        : styles.targetSearching,
+                                ]}
+                            >
+                                <View style={styles.targetIcon}>
+                                    <Ionicons
+                                        name={
+                                            validationResult.status === "inside"
+                                                ? validationResult.building
+                                                      .is_active === false
+                                                    ? "warning"
+                                                    : "star"
+                                                : "walk"
+                                        }
+                                        size={32}
+                                        color={
+                                            validationResult.status ===
+                                                "inside" &&
+                                            validationResult.building
+                                                .is_active !== false
+                                                ? theme.colors.white
+                                                : theme.colors.primary
+                                        }
                                     />
                                 </View>
-                                <View style={styles.nearbyInfo}>
-                                    <Text style={styles.nearbyName} numberOfLines={1}>{building.name}</Text>
-                                    <View style={styles.nearbyDistBadge}>
-                                        <Text style={styles.nearbyDistance}>{building.distance} meters</Text>
-                                    </View>
+                                <View style={styles.targetInfo}>
+                                    <Text
+                                        style={[
+                                            styles.targetName,
+                                            validationResult.status ===
+                                                "inside" &&
+                                                validationResult.building
+                                                    .is_active !== false &&
+                                                styles.textWhite,
+                                        ]}
+                                    >
+                                        {validationResult.building.name}
+                                    </Text>
+                                    <Text
+                                        style={[
+                                            styles.targetDistance,
+                                            validationResult.status ===
+                                                "inside" &&
+                                                validationResult.building
+                                                    .is_active !== false &&
+                                                styles.textWhite,
+                                            validationResult.building
+                                                .is_active === false && {
+                                                color: theme.colors.error,
+                                            },
+                                        ]}
+                                    >
+                                        {validationResult.status === "inside"
+                                            ? validationResult.building
+                                                  .is_active === false
+                                                ? "Building is Closed"
+                                                : "AR Content Unlocked!"
+                                            : `Distance: ${validationResult.distance_meters} meters away`}
+                                    </Text>
                                 </View>
-                                <TouchableOpacity 
-                                    style={styles.navigateBtn}
-                                    onPress={() => router.push('/buildings')}
-                                >
-                                    <Ionicons name="navigate" size={16} color={theme.colors.white} />
-                                    <Text style={styles.navigateText}>View Map</Text>
-                                </TouchableOpacity>
                             </View>
-                        );
-                    })}
-                </View>
-            )}
-
-            {/* Gamified Widgets */}
-            {role === 'student' && (
-                <>
-                    {/* Progress Tracker */}
-                    <View style={styles.card}>
-                        <View style={styles.cardHeaderRow}>
-                            <Ionicons name="bar-chart" size={22} color={theme.colors.primary} />
-                            <Text style={styles.cardTitle}>YOUR PROGRESS</Text>
-                        </View>
-                        <View style={styles.progressBarContainer}>
-                            <LinearGradient 
-                                colors={['#B21830', '#E53935']} 
-                                style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} 
-                                start={{x:0, y:0}} end={{x:1, y:0}}
-                            />
-                        </View>
-                        <Text style={styles.progressText}>
-                            {unlockedBuildings.length} of {totalBuildings || 15} Buildings Unlocked
-                        </Text>
-                    </View>
-
-                    {/* Daily Quest */}
-                    <View style={styles.card}>
-                        <View style={styles.cardHeaderRow}>
-                            <Ionicons name="star" size={22} color={theme.colors.primary} />
-                            <Text style={styles.cardTitle}>TODAY'S MISSION</Text>
-                        </View>
-                        
-                        {activeQuests.length > 0 ? (
-                            activeQuests.map((quest) => {
-                                if (quest.is_completed) return null;
-                                return (
-                                    <View key={quest.id} style={{ marginBottom: theme.spacing.sm }}>
-                                        <View style={styles.questBriefBox}>
-                                            <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 16, marginBottom: 4 }}>{quest.title}</Text>
-                                            <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 13, marginBottom: 8 }}>Target: {quest.target_building_name}</Text>
-                                            <Text style={styles.questHint}>Hint: "{quest.hint}"</Text>
-                                        </View>
-                                        <View style={styles.compassContainer}>
-                                            <Ionicons name="gift" size={20} color={theme.colors.primary} />
-                                            <Text style={styles.compassText}>Reward: {quest.reward_points} EXP</Text>
-                                        </View>
-                                    </View>
-                                );
-                            })
                         ) : (
-                            <Text style={styles.emptyLogText}>You've finished all missions for today! Great job.</Text>
+                            <View style={styles.noTargetBox}>
+                                <Ionicons
+                                    name="search"
+                                    size={24}
+                                    color={theme.colors.textMuted}
+                                    style={{ marginRight: 10 }}
+                                />
+                                <Text style={styles.noTargetText}>
+                                    Searching for nearby buildings...
+                                </Text>
+                            </View>
                         )}
                     </View>
-                </>
-            )}
+                )}
 
-        </ScrollView>
+                {/* Nearby Buildings List */}
+                {nearbyBuildings.length > 0 && (
+                    <View style={styles.card}>
+                        <View style={styles.cardHeaderRow}>
+                            <Ionicons
+                                name="map"
+                                size={22}
+                                color={theme.colors.primary}
+                            />
+                            <Text style={styles.cardTitle}>
+                                NEARBY BUILDINGS
+                            </Text>
+                        </View>
+
+                        {nearbyBuildings.map((building, index) => {
+                            const unlockedRecord = unlockedBuildings.find(
+                                (ub) => ub.id === building.id,
+                            );
+                            const hasVisited = unlockedRecord
+                                ? role === "professional"
+                                    ? unlockedRecord.visited
+                                    : true
+                                : false;
+                            return (
+                                <View
+                                    key={building.id}
+                                    style={[
+                                        styles.nearbyRow,
+                                        index < nearbyBuildings.length - 1 &&
+                                            styles.nearbyDivider,
+                                    ]}
+                                >
+                                    <View
+                                        style={[
+                                            styles.nearbyIconWrapper,
+                                            hasVisited &&
+                                                styles.nearbyIconWrapperActive,
+                                        ]}
+                                    >
+                                        <Ionicons
+                                            name={
+                                                hasVisited
+                                                    ? "checkmark"
+                                                    : "lock-closed"
+                                            }
+                                            size={18}
+                                            color={
+                                                hasVisited
+                                                    ? theme.colors.white
+                                                    : theme.colors.primary
+                                            }
+                                        />
+                                    </View>
+                                    <View style={styles.nearbyInfo}>
+                                        <Text
+                                            style={styles.nearbyName}
+                                            numberOfLines={1}
+                                        >
+                                            {building.name}
+                                        </Text>
+                                        <View style={styles.nearbyDistBadge}>
+                                            <Text style={styles.nearbyDistance}>
+                                                {building.distance} meters
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.navigateBtn}
+                                        onPress={() =>
+                                            router.push("/buildings")
+                                        }
+                                    >
+                                        <Ionicons
+                                            name="navigate"
+                                            size={16}
+                                            color={theme.colors.white}
+                                        />
+                                        <Text style={styles.navigateText}>
+                                            View Map
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            );
+                        })}
+                    </View>
+                )}
+
+                {/* Gamified Widgets */}
+                {role === "student" && (
+                    <>
+                        {/* Progress Tracker */}
+                        <View style={styles.card}>
+                            <View style={styles.cardHeaderRow}>
+                                <Ionicons
+                                    name="bar-chart"
+                                    size={22}
+                                    color={theme.colors.primary}
+                                />
+                                <Text style={styles.cardTitle}>
+                                    YOUR PROGRESS
+                                </Text>
+                            </View>
+                            <View style={styles.progressBarContainer}>
+                                <LinearGradient
+                                    colors={["#B21830", "#E53935"]}
+                                    style={[
+                                        styles.progressBarFill,
+                                        { width: `${progressPercentage}%` },
+                                    ]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                />
+                            </View>
+                            <Text style={styles.progressText}>
+                                {unlockedBuildings.length} of{" "}
+                                {totalBuildings || 15} Buildings Unlocked
+                            </Text>
+                        </View>
+
+                        {/* Daily Quest */}
+                        <View style={styles.card}>
+                            <View style={styles.cardHeaderRow}>
+                                <Ionicons
+                                    name="star"
+                                    size={22}
+                                    color={theme.colors.primary}
+                                />
+                                <Text style={styles.cardTitle}>
+                                    TODAY'S MISSION
+                                </Text>
+                            </View>
+
+                            {activeQuests.length > 0 ? (
+                                activeQuests.map((quest) => {
+                                    if (quest.is_completed) return null;
+                                    return (
+                                        <View
+                                            key={quest.id}
+                                            style={{
+                                                marginBottom: theme.spacing.sm,
+                                            }}
+                                        >
+                                            <View style={styles.questBriefBox}>
+                                                <Text
+                                                    style={{
+                                                        fontFamily:
+                                                            fonts.heading.bold,
+                                                        color: theme.colors
+                                                            .textPrimary,
+                                                        fontSize: 16,
+                                                        marginBottom: 4,
+                                                    }}
+                                                >
+                                                    {quest.title}
+                                                </Text>
+                                                <Text
+                                                    style={{
+                                                        fontFamily:
+                                                            fonts.body.regular,
+                                                        color: theme.colors
+                                                            .textSecondary,
+                                                        fontSize: 13,
+                                                        marginBottom: 8,
+                                                    }}
+                                                >
+                                                    Target:{" "}
+                                                    {quest.target_building_name}
+                                                </Text>
+                                                <Text style={styles.questHint}>
+                                                    Hint: "{quest.hint}"
+                                                </Text>
+                                            </View>
+                                            <View
+                                                style={styles.compassContainer}
+                                            >
+                                                <Ionicons
+                                                    name="gift"
+                                                    size={20}
+                                                    color={theme.colors.primary}
+                                                />
+                                                <Text
+                                                    style={styles.compassText}
+                                                >
+                                                    Reward:{" "}
+                                                    {quest.reward_points} EXP
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    );
+                                })
+                            ) : (
+                                <Text style={styles.emptyLogText}>
+                                    You've finished all missions for today!
+                                    Great job.
+                                </Text>
+                            )}
+                        </View>
+                    </>
+                )}
+            </ScrollView>
 
             {/* Newly Earned Badges Toast */}
-            {role === 'student' && earnedBadges.length > 0 && (
-                <Animated.View style={[styles.badgeToast, {
-                    opacity: badgeAnim,
-                    transform: [{ translateY: badgeAnim.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }]
-                }]}>
-                    <LinearGradient colors={['rgba(30,30,30,0.98)', 'rgba(15,15,15,0.98)']} style={StyleSheet.absoluteFillObject} borderRadius={16} />
-                    <Text style={styles.badgeToastEmoji}>{earnedBadges[0].icon}</Text>
+            {role === "student" && earnedBadges.length > 0 && (
+                <Animated.View
+                    style={[
+                        styles.badgeToast,
+                        {
+                            opacity: badgeAnim,
+                            transform: [
+                                {
+                                    translateY: badgeAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [-50, 0],
+                                    }),
+                                },
+                            ],
+                        },
+                    ]}
+                >
+                    <LinearGradient
+                        colors={["rgba(30,30,30,0.98)", "rgba(15,15,15,0.98)"]}
+                        style={StyleSheet.absoluteFillObject}
+                        borderRadius={16}
+                    />
+                    <Text style={styles.badgeToastEmoji}>
+                        {earnedBadges[0].icon}
+                    </Text>
                     <View style={{ flex: 1, zIndex: 2 }}>
-                        <Text style={styles.badgeToastLabel}>ACHIEVEMENT UNLOCKED</Text>
-                        <Text style={styles.badgeToastName}>{earnedBadges[0].name}</Text>
+                        <Text style={styles.badgeToastLabel}>
+                            ACHIEVEMENT UNLOCKED
+                        </Text>
+                        <Text style={styles.badgeToastName}>
+                            {earnedBadges[0].name}
+                        </Text>
                     </View>
                 </Animated.View>
             )}
@@ -458,17 +778,17 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     header: {
-        alignItems: 'center',
+        alignItems: "center",
         marginTop: theme.spacing.xl,
         marginBottom: theme.spacing.xl,
     },
     title: {
         fontFamily: fonts.heading.bold,
         fontSize: 34,
-        fontWeight: '900',
+        fontWeight: "900",
         color: theme.colors.primary,
         letterSpacing: 1,
-        textTransform: 'uppercase',
+        textTransform: "uppercase",
     },
     subtitle: {
         fontFamily: fonts.body.regular,
@@ -477,32 +797,32 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
     radarContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: "center",
+        justifyContent: "center",
         height: 250,
         marginBottom: theme.spacing.xl,
     },
     radarRing: {
-        position: 'absolute',
+        position: "absolute",
         width: 170,
         height: 170,
         borderRadius: 85,
         borderWidth: 1,
-        borderColor: 'rgba(178, 24, 48, 0.2)',
-        backgroundColor: 'rgba(178, 24, 48, 0.02)',
+        borderColor: "rgba(178, 24, 48, 0.2)",
+        backgroundColor: "rgba(178, 24, 48, 0.02)",
     },
     radarRingActive: {
-        borderColor: 'rgba(178, 24, 48, 0.6)',
-        backgroundColor: 'rgba(178, 24, 48, 0.08)',
+        borderColor: "rgba(178, 24, 48, 0.6)",
+        backgroundColor: "rgba(178, 24, 48, 0.08)",
     },
     radarDashedRing: {
-        position: 'absolute',
+        position: "absolute",
         width: 210,
         height: 210,
         borderRadius: 105,
         borderWidth: 2,
-        borderColor: 'rgba(178, 24, 48, 0.4)',
-        borderStyle: 'dashed',
+        borderColor: "rgba(178, 24, 48, 0.4)",
+        borderStyle: "dashed",
     },
     radarButtonWrapper: {
         width: 140,
@@ -512,10 +832,10 @@ const styles = StyleSheet.create({
     radarButton: {
         flex: 1,
         borderRadius: 70,
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: "center",
+        justifyContent: "center",
         borderWidth: 3,
-        borderColor: 'rgba(255,255,255,0.4)',
+        borderColor: "rgba(255,255,255,0.4)",
     },
     radarButtonText: {
         fontFamily: fonts.heading.bold,
@@ -525,13 +845,13 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     alertBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF0F0',
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFF0F0",
         padding: theme.spacing.lg,
         borderRadius: theme.radius.lg,
         borderWidth: 1,
-        borderColor: '#FFCACA',
+        borderColor: "#FFCACA",
         marginBottom: theme.spacing.lg,
     },
     alertText: {
@@ -548,12 +868,12 @@ const styles = StyleSheet.create({
         padding: theme.spacing.lg,
         marginBottom: theme.spacing.lg,
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.06)',
-        overflow: 'hidden',
+        borderColor: "rgba(0,0,0,0.06)",
+        overflow: "hidden",
     },
     cardHeaderRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         marginBottom: theme.spacing.lg,
     },
     cardTitle: {
@@ -564,19 +884,19 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     telemetryGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        justifyContent: "space-between",
         gap: 12,
     },
     telemetryPill: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: "#F9FAFB",
         paddingVertical: 14,
         paddingHorizontal: 8,
         borderRadius: theme.radius.lg,
-        alignItems: 'center',
+        alignItems: "center",
         borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderColor: "#F3F4F6",
     },
     telemetryLabel: {
         fontFamily: fonts.body.medium,
@@ -590,9 +910,9 @@ const styles = StyleSheet.create({
         color: theme.colors.primary,
     },
     loadingBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
         padding: theme.spacing.lg,
     },
     loadingText: {
@@ -603,35 +923,35 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: "#F3F4F6",
         marginVertical: theme.spacing.xl,
     },
     targetBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         padding: 16,
         borderRadius: theme.radius.lg,
         borderWidth: 1.5,
     },
     targetSearching: {
-        backgroundColor: '#F9FAFB',
-        borderColor: '#E5E7EB',
+        backgroundColor: "#F9FAFB",
+        borderColor: "#E5E7EB",
     },
     targetLocked: {
-        backgroundColor: '#FFF0F0',
-        borderColor: '#FECACA',
+        backgroundColor: "#FFF0F0",
+        borderColor: "#FECACA",
     },
     targetUnlocked: {
-        backgroundColor: '#10B981', // Clean success green
-        borderColor: '#059669',
+        backgroundColor: "#10B981", // Clean success green
+        borderColor: "#059669",
     },
     targetIcon: {
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: "rgba(255,255,255,0.9)",
+        alignItems: "center",
+        justifyContent: "center",
         marginRight: 16,
     },
     targetInfo: {
@@ -652,15 +972,15 @@ const styles = StyleSheet.create({
         color: theme.colors.white,
     },
     noTargetBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
         padding: 20,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: "#F9FAFB",
         borderRadius: theme.radius.lg,
         borderWidth: 1.5,
-        borderColor: '#E5E7EB',
-        borderStyle: 'dashed',
+        borderColor: "#E5E7EB",
+        borderStyle: "dashed",
     },
     noTargetText: {
         fontFamily: fonts.body.medium,
@@ -668,21 +988,21 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     nearbyRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         paddingVertical: 12,
     },
     nearbyDivider: {
         borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+        borderBottomColor: "#F3F4F6",
     },
     nearbyIconWrapper: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: '#F3F4F6',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: "#F3F4F6",
+        justifyContent: "center",
+        alignItems: "center",
         marginRight: 12,
     },
     nearbyIconWrapperActive: {
@@ -698,8 +1018,8 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     nearbyDistBadge: {
-        alignSelf: 'flex-start',
-        backgroundColor: 'rgba(178, 24, 48, 0.08)',
+        alignSelf: "flex-start",
+        backgroundColor: "rgba(178, 24, 48, 0.08)",
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
@@ -710,8 +1030,8 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
     navigateBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: theme.colors.primary,
         paddingHorizontal: 16,
         paddingVertical: 10,
@@ -726,39 +1046,39 @@ const styles = StyleSheet.create({
     },
     progressBarContainer: {
         height: 12,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: "#F3F4F6",
         borderRadius: 6,
-        overflow: 'hidden',
+        overflow: "hidden",
         marginBottom: 12,
     },
     progressBarFill: {
-        height: '100%',
+        height: "100%",
         borderRadius: 6,
     },
     progressText: {
         fontFamily: fonts.body.medium,
         fontSize: 14,
         color: theme.colors.textSecondary,
-        textAlign: 'right',
+        textAlign: "right",
     },
     questBriefBox: {
         backgroundColor: theme.colors.white,
         padding: 16,
         borderRadius: theme.radius.md,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderColor: "#F3F4F6",
         marginBottom: 12,
     },
     questHint: {
         fontFamily: fonts.body.regular,
         fontSize: 16,
         color: theme.colors.textPrimary,
-        fontStyle: 'italic',
+        fontStyle: "italic",
         lineHeight: 24,
     },
     compassContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
     },
     compassText: {
         fontFamily: fonts.heading.bold,
@@ -772,15 +1092,15 @@ const styles = StyleSheet.create({
         color: theme.colors.textSecondary,
     },
     badgeToast: {
-        position: 'absolute',
+        position: "absolute",
         top: 60,
         left: 16,
         right: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         padding: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255, 215, 0, 0.5)',
+        borderColor: "rgba(255, 215, 0, 0.5)",
         gap: 16,
         zIndex: 999,
     },
@@ -790,14 +1110,14 @@ const styles = StyleSheet.create({
     },
     badgeToastLabel: {
         fontFamily: fonts.heading.bold,
-        color: '#FFD700',
+        color: "#FFD700",
         fontSize: 11,
         letterSpacing: 2,
         marginBottom: 6,
     },
     badgeToastName: {
         fontFamily: fonts.heading.bold,
-        color: '#fff',
+        color: "#fff",
         fontSize: 18,
         letterSpacing: 0.5,
     },

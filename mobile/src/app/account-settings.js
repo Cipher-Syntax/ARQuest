@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
     View,
     Text,
@@ -9,16 +9,24 @@ import {
     Modal,
     FlatList,
     ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, User as UserIcon, Mail, Shield, Camera, Key, Trash2 } from 'lucide-react-native';
-import { router } from 'expo-router';
-import { useAuth } from '../hooks/useAuth';
-import { api } from '../services/api';
-import theme from '../theme/tokens';
-import { fonts } from '../constants/typography';
-import { AVATARS } from '../constants/Avatars';
-import { customAlert as Alert } from '../components/CustomAlert';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+    ArrowLeft,
+    User as UserIcon,
+    Mail,
+    Shield,
+    Camera,
+    Key,
+    Trash2,
+} from "lucide-react-native";
+import { router } from "expo-router";
+import { useAuth } from "../hooks/useAuth";
+import { api } from "../services/api";
+import theme from "../theme/tokens";
+import { fonts } from "../constants/typography";
+import { AVATARS } from "../constants/Avatars";
+import { customAlert as Alert } from "../components/CustomAlert";
 
 export default function AccountSettingsScreen() {
     const { user, checkToken } = useAuth();
@@ -34,15 +42,20 @@ export default function AccountSettingsScreen() {
 
         setIsSaving(true);
         try {
-            const res = await api.patch('/api/auth/me/', { avatar_id: selectedAvatarId });
+            const res = await api.patch("/api/auth/me/", {
+                avatar_id: selectedAvatarId,
+            });
             if (res.data.success) {
                 await checkToken(); // Refresh user state globally
-                Alert('Success', 'Your avatar has been updated successfully.');
+                Alert("Success", "Your avatar has been updated successfully.");
                 setAvatarModalVisible(false);
             }
         } catch (error) {
-            console.error('Failed to update avatar:', error);
-            Alert('Error', 'Could not update your avatar. Please try again later.');
+            console.error("Failed to update avatar:", error);
+            Alert(
+                "Error",
+                "Could not update your avatar. Please try again later.",
+            );
         } finally {
             setIsSaving(false);
         }
@@ -62,18 +75,40 @@ export default function AccountSettingsScreen() {
 
     const ActionRow = ({ icon: Icon, title, destructive, onPress }) => (
         <TouchableOpacity style={styles.actionRow} onPress={onPress}>
-            <View style={[styles.infoIconWrapper, destructive && { backgroundColor: 'rgba(211, 47, 47, 0.1)' }]}>
-                <Icon size={20} color={destructive ? theme.colors.error : theme.colors.primary} />
+            <View
+                style={[
+                    styles.infoIconWrapper,
+                    destructive && {
+                        backgroundColor: "rgba(211, 47, 47, 0.1)",
+                    },
+                ]}
+            >
+                <Icon
+                    size={20}
+                    color={
+                        destructive ? theme.colors.error : theme.colors.primary
+                    }
+                />
             </View>
-            <Text style={[styles.actionTitle, destructive && { color: theme.colors.error }]}>{title}</Text>
+            <Text
+                style={[
+                    styles.actionTitle,
+                    destructive && { color: theme.colors.error },
+                ]}
+            >
+                {title}
+            </Text>
         </TouchableOpacity>
     );
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={["top"]}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.backButton}
+                >
                     <ArrowLeft color={theme.colors.textPrimary} size={24} />
                 </TouchableOpacity>
                 <Text style={styles.title}>ACCOUNT SETTINGS</Text>
@@ -84,50 +119,80 @@ export default function AccountSettingsScreen() {
                 {/* Avatar Section */}
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarContainer}>
-                        {user?.avatar_id && AVATARS.find(a => a.id === user?.avatar_id)?.source ? (
-                            <Image 
-                                source={AVATARS.find(a => a.id === user.avatar_id).source} 
-                                style={styles.avatarImage} 
+                        {user?.avatar_id &&
+                        AVATARS.find((a) => a.id === user?.avatar_id)
+                            ?.source ? (
+                            <Image
+                                source={
+                                    AVATARS.find((a) => a.id === user.avatar_id)
+                                        .source
+                                }
+                                style={styles.avatarImage}
                             />
                         ) : (
                             <View style={styles.avatarPlaceholder}>
                                 <Text style={styles.avatarPlaceholderText}>
-                                    {user?.username?.charAt(0).toUpperCase() || "?"}
+                                    {user?.username?.charAt(0).toUpperCase() ||
+                                        "?"}
                                 </Text>
                             </View>
                         )}
-                        <TouchableOpacity 
-                            style={styles.editAvatarBadge} 
+                        <TouchableOpacity
+                            style={styles.editAvatarBadge}
                             onPress={() => setAvatarModalVisible(true)}
                         >
                             <Camera size={18} color="#FFFFFF" />
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.usernameText}>@{user?.username}</Text>
-                    <Text style={styles.roleText}>{user?.role?.toUpperCase()}</Text>
+                    <Text style={styles.roleText}>
+                        {user?.role?.toUpperCase()}
+                    </Text>
                 </View>
 
                 {/* Profile Information */}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>PROFILE INFORMATION</Text>
-                    <InfoRow icon={UserIcon} label="Username" value={user?.username || 'N/A'} />
-                    <InfoRow icon={Mail} label="Email Address" value={user?.email || 'No email provided'} />
-                    <InfoRow icon={Shield} label="Account Role" value={user?.role?.toUpperCase() || 'STUDENT'} />
+                    <InfoRow
+                        icon={UserIcon}
+                        label="Username"
+                        value={user?.username || "N/A"}
+                    />
+                    <InfoRow
+                        icon={Mail}
+                        label="Email Address"
+                        value={user?.email || "No email provided"}
+                    />
+                    <InfoRow
+                        icon={Shield}
+                        label="Account Role"
+                        value={user?.role?.toUpperCase() || "STUDENT"}
+                    />
                 </View>
 
                 {/* Security & Danger Zone */}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>SECURITY</Text>
-                    <ActionRow 
-                        icon={Key} 
-                        title="Change Password" 
-                        onPress={() => Alert('Coming Soon', 'Password reset will be available in a future update.')} 
+                    <ActionRow
+                        icon={Key}
+                        title="Change Password"
+                        onPress={() =>
+                            Alert(
+                                "Coming Soon",
+                                "Password reset will be available in a future update.",
+                            )
+                        }
                     />
-                    <ActionRow 
-                        icon={Trash2} 
-                        title="Delete Account" 
-                        destructive 
-                        onPress={() => Alert('Warning', 'Account deletion is permanent. Please contact the administrator to delete your account.')} 
+                    <ActionRow
+                        icon={Trash2}
+                        title="Delete Account"
+                        destructive
+                        onPress={() =>
+                            Alert(
+                                "Warning",
+                                "Account deletion is permanent. Please contact the administrator to delete your account.",
+                            )
+                        }
                     />
                 </View>
 
@@ -137,26 +202,42 @@ export default function AccountSettingsScreen() {
             </ScrollView>
 
             {/* Avatar Selection Modal */}
-            <Modal visible={avatarModalVisible} transparent animationType="slide" onRequestClose={() => setAvatarModalVisible(false)}>
+            <Modal
+                visible={avatarModalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setAvatarModalVisible(false)}
+            >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Choose Avatar</Text>
-                        
+
                         <FlatList
                             data={AVATARS}
                             numColumns={3}
                             keyExtractor={(item) => item.id}
                             contentContainerStyle={styles.avatarGrid}
                             renderItem={({ item }) => (
-                                <TouchableOpacity 
-                                    style={[styles.avatarOption, selectedAvatarId === item.id && styles.avatarOptionSelected]}
+                                <TouchableOpacity
+                                    style={[
+                                        styles.avatarOption,
+                                        selectedAvatarId === item.id &&
+                                            styles.avatarOptionSelected,
+                                    ]}
                                     onPress={() => setSelectedAvatarId(item.id)}
                                     activeOpacity={0.7}
                                 >
-                                    <Image source={item.source} style={styles.avatarOptionImage} />
+                                    <Image
+                                        source={item.source}
+                                        style={styles.avatarOptionImage}
+                                    />
                                     {selectedAvatarId === item.id && (
-                                        <View style={styles.avatarOptionOverlay}>
-                                            <Text style={styles.avatarCheck}>✓</Text>
+                                        <View
+                                            style={styles.avatarOptionOverlay}
+                                        >
+                                            <Text style={styles.avatarCheck}>
+                                                ✓
+                                            </Text>
                                         </View>
                                     )}
                                 </TouchableOpacity>
@@ -164,11 +245,30 @@ export default function AccountSettingsScreen() {
                         />
 
                         <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setAvatarModalVisible(false)} disabled={isSaving}>
-                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => setAvatarModalVisible(false)}
+                                disabled={isSaving}
+                            >
+                                <Text style={styles.modalCancelText}>
+                                    Cancel
+                                </Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.modalSaveBtn} onPress={handleSaveAvatar} disabled={isSaving}>
-                                {isSaving ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.modalSaveText}>Save Avatar</Text>}
+                            <TouchableOpacity
+                                style={styles.modalSaveBtn}
+                                onPress={handleSaveAvatar}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? (
+                                    <ActivityIndicator
+                                        size="small"
+                                        color="#FFF"
+                                    />
+                                ) : (
+                                    <Text style={styles.modalSaveText}>
+                                        Save Avatar
+                                    </Text>
+                                )}
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -184,9 +284,9 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.bgSecondary,
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         paddingVertical: 15,
         paddingHorizontal: 20,
         backgroundColor: theme.colors.surface,
@@ -209,11 +309,11 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     avatarSection: {
-        alignItems: 'center',
+        alignItems: "center",
         marginVertical: 24,
     },
     avatarContainer: {
-        position: 'relative',
+        position: "relative",
         marginBottom: 12,
     },
     avatarImage: {
@@ -228,28 +328,28 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 50,
         backgroundColor: theme.colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
     },
     avatarPlaceholderText: {
         fontSize: 40,
         fontFamily: fonts.heading.bold,
-        color: '#FFFFFF',
+        color: "#FFFFFF",
     },
     editAvatarBadge: {
-        position: 'absolute',
+        position: "absolute",
         bottom: 0,
         right: 0,
         backgroundColor: theme.colors.primary,
         width: 36,
         height: 36,
         borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
         borderWidth: 3,
         borderColor: theme.colors.surface,
         elevation: 4,
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -282,8 +382,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.surfaceSoft,
@@ -292,9 +392,9 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(178, 24, 48, 0.05)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: "rgba(178, 24, 48, 0.05)",
+        justifyContent: "center",
+        alignItems: "center",
         marginRight: 16,
     },
     infoTextWrapper: {
@@ -312,8 +412,8 @@ const styles = StyleSheet.create({
         color: theme.colors.textPrimary,
     },
     actionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.surfaceSoft,
@@ -324,7 +424,7 @@ const styles = StyleSheet.create({
         color: theme.colors.textPrimary,
     },
     footer: {
-        alignItems: 'center',
+        alignItems: "center",
         marginTop: 20,
     },
     footerText: {
@@ -335,8 +435,8 @@ const styles = StyleSheet.create({
     // Modal Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'flex-end',
+        backgroundColor: "rgba(0,0,0,0.6)",
+        justifyContent: "flex-end",
     },
     modalContent: {
         backgroundColor: theme.colors.surface,
@@ -349,19 +449,19 @@ const styles = StyleSheet.create({
         fontFamily: fonts.heading.bold,
         fontSize: 18,
         color: theme.colors.textPrimary,
-        textAlign: 'center',
+        textAlign: "center",
         marginBottom: 20,
     },
     avatarGrid: {
-        alignItems: 'center',
+        alignItems: "center",
         paddingBottom: 20,
     },
     avatarOption: {
         margin: 10,
         borderRadius: 40,
         borderWidth: 3,
-        borderColor: 'transparent',
-        position: 'relative',
+        borderColor: "transparent",
+        position: "relative",
     },
     avatarOptionSelected: {
         borderColor: theme.colors.primary,
@@ -372,23 +472,23 @@ const styles = StyleSheet.create({
         borderRadius: 40,
     },
     avatarOptionOverlay: {
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(178, 24, 48, 0.4)',
+        backgroundColor: "rgba(178, 24, 48, 0.4)",
         borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
     },
     avatarCheck: {
-        color: '#FFF',
+        color: "#FFF",
         fontSize: 32,
-        fontWeight: 'bold',
+        fontWeight: "bold",
     },
     modalActions: {
-        flexDirection: 'row',
+        flexDirection: "row",
         gap: 12,
         marginTop: 10,
     },
@@ -397,7 +497,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: theme.radius.md,
         backgroundColor: theme.colors.surfaceSoft,
-        alignItems: 'center',
+        alignItems: "center",
     },
     modalCancelText: {
         fontFamily: fonts.heading.bold,
@@ -409,11 +509,11 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: theme.radius.md,
         backgroundColor: theme.colors.primary,
-        alignItems: 'center',
+        alignItems: "center",
     },
     modalSaveText: {
         fontFamily: fonts.heading.bold,
-        color: '#FFFFFF',
+        color: "#FFFFFF",
         fontSize: 14,
     },
 });

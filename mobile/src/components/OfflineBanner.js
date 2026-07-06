@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
-import { WifiOff } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import theme from '../theme/tokens';
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
+import NetInfo from "@react-native-community/netinfo";
+import { WifiOff } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import theme from "../theme/tokens";
 
 export default function OfflineBanner() {
     const [isConnected, setIsConnected] = useState(true);
@@ -11,7 +11,7 @@ export default function OfflineBanner() {
     const insets = useSafeAreaInsets();
 
     useEffect(() => {
-        const unsubscribe = NetInfo.addEventListener(state => {
+        const unsubscribe = NetInfo.addEventListener((state) => {
             setIsConnected(state.isConnected ?? true);
         });
         return () => unsubscribe();
@@ -41,7 +41,13 @@ export default function OfflineBanner() {
     if (isConnected && animation._value === 0) return null;
 
     return (
-        <Animated.View style={[styles.container, { transform: [{ translateY }] }, { paddingTop: Math.max(insets.top, 20) }]}>
+        <Animated.View
+            style={[
+                styles.container,
+                { transform: [{ translateY }] },
+                { paddingTop: Math.max(insets.top, 20) },
+            ]}
+        >
             <View style={styles.content}>
                 <WifiOff size={16} color="#FFFFFF" />
                 <Text style={styles.text}>NO INTERNET CONNECTION</Text>
@@ -52,29 +58,29 @@ export default function OfflineBanner() {
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         right: 0,
-        backgroundColor: theme.colors.error || '#B21830',
+        backgroundColor: theme.colors.error || "#B21830",
         zIndex: 9999,
         paddingBottom: 10,
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 5,
     },
     content: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
         gap: 8,
     },
     text: {
-        color: '#FFFFFF',
+        color: "#FFFFFF",
         fontSize: 12,
-        fontWeight: 'bold',
+        fontWeight: "bold",
         letterSpacing: 1.5,
     },
 });

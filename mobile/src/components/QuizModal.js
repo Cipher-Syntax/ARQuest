@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import theme from '../theme/tokens';
-import { fonts } from '../constants/typography';
-import api from '../services/api';
-import SoundManager from '../utils/SoundManager';
+import React, { useState, useEffect } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    Modal,
+    TouchableOpacity,
+    ActivityIndicator,
+    Animated,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import theme from "../theme/tokens";
+import { fonts } from "../constants/typography";
+import api from "../services/api";
+import SoundManager from "../utils/SoundManager";
 
 export default function QuizModal({ visible, building, onClose }) {
     const [questions, setQuestions] = useState([]);
@@ -14,7 +22,7 @@ export default function QuizModal({ visible, building, onClose }) {
     const [isCorrect, setIsCorrect] = useState(null);
     const [correctOption, setCorrectOption] = useState(null);
     const [expEarned, setExpEarned] = useState(0);
-    
+
     // Animation for exp popup
     const [fadeAnim] = useState(new Animated.Value(0));
 
@@ -44,7 +52,7 @@ export default function QuizModal({ visible, building, onClose }) {
                 setQuestions(res.data.data);
             }
         } catch (error) {
-            console.error('Failed to load quiz:', error);
+            console.error("Failed to load quiz:", error);
         } finally {
             setLoading(false);
         }
@@ -55,39 +63,47 @@ export default function QuizModal({ visible, building, onClose }) {
 
         setSelectedAnswer(option);
         const question = questions[currentQuestionIndex];
-        
+
         try {
-            const res = await api.post('/api/buildings/quiz/answer/', {
+            const res = await api.post("/api/buildings/quiz/answer/", {
                 question_id: question.id,
-                selected_option: option
+                selected_option: option,
             });
-            
+
             if (res.data.success) {
                 const correct = res.data.data.is_correct;
                 setIsCorrect(correct);
                 setCorrectOption(res.data.data.correct_option);
                 setExpEarned(res.data.data.exp_awarded);
-                
+
                 if (correct) {
-                    SoundManager.play('trivia_correct');
+                    SoundManager.play("trivia_correct");
                     // Show EXP animation
                     Animated.sequence([
-                        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+                        Animated.timing(fadeAnim, {
+                            toValue: 1,
+                            duration: 300,
+                            useNativeDriver: true,
+                        }),
                         Animated.delay(1000),
-                        Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true })
+                        Animated.timing(fadeAnim, {
+                            toValue: 0,
+                            duration: 300,
+                            useNativeDriver: true,
+                        }),
                     ]).start();
                 } else {
-                    SoundManager.play('trivia_wrong');
+                    SoundManager.play("trivia_wrong");
                 }
             }
         } catch (error) {
-            console.error('Answer submission failed', error);
+            console.error("Answer submission failed", error);
         }
     };
 
     const handleNext = () => {
         if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
+            setCurrentQuestionIndex((prev) => prev + 1);
             setSelectedAnswer(null);
             setIsCorrect(null);
             setCorrectOption(null);
@@ -105,82 +121,147 @@ export default function QuizModal({ visible, building, onClose }) {
             visible={visible}
             onRequestClose={onClose}
         >
-            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+            <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={onClose}
+            >
                 <TouchableOpacity activeOpacity={1} style={styles.bottomSheet}>
                     <View style={styles.sheetHandle} />
-                    
+
                     <View style={styles.header}>
-                        <Ionicons name="school" size={24} color={theme.colors.arHighlight} />
+                        <Ionicons
+                            name="school"
+                            size={24}
+                            color={theme.colors.arHighlight}
+                        />
                         <Text style={styles.title}>TRIVIA QUIZ</Text>
                     </View>
 
                     {loading ? (
                         <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color={theme.colors.arHighlight} />
-                            <Text style={styles.loadingText}>Fetching Questions...</Text>
+                            <ActivityIndicator
+                                size="large"
+                                color={theme.colors.arHighlight}
+                            />
+                            <Text style={styles.loadingText}>
+                                Fetching Questions...
+                            </Text>
                         </View>
                     ) : questions.length === 0 ? (
                         <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>You have already completed all available trivia for {building?.name}, or none is available yet!</Text>
-                            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                            <Text style={styles.emptyText}>
+                                You have already completed all available trivia
+                                for {building?.name}, or none is available yet!
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.closeBtn}
+                                onPress={onClose}
+                            >
                                 <Text style={styles.closeBtnText}>CLOSE</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
                         <View style={styles.quizContent}>
                             <View style={styles.progressRow}>
-                                <Text style={styles.progressText}>Question {currentQuestionIndex + 1} of {questions.length}</Text>
+                                <Text style={styles.progressText}>
+                                    Question {currentQuestionIndex + 1} of{" "}
+                                    {questions.length}
+                                </Text>
                             </View>
-                            
-                            <Text style={styles.questionText}>{questions[currentQuestionIndex].question}</Text>
-                            
+
+                            <Text style={styles.questionText}>
+                                {questions[currentQuestionIndex].question}
+                            </Text>
+
                             <View style={styles.optionsContainer}>
-                                {['A', 'B', 'C', 'D'].map(opt => {
-                                    const optionText = questions[currentQuestionIndex][`option_${opt.toLowerCase()}`];
-                                    
+                                {["A", "B", "C", "D"].map((opt) => {
+                                    const optionText =
+                                        questions[currentQuestionIndex][
+                                            `option_${opt.toLowerCase()}`
+                                        ];
+
                                     let optionStyle = styles.optionBtn;
                                     let optionTextStyle = styles.optionText;
                                     let iconName = "ellipse-outline";
                                     let iconColor = theme.colors.textMuted;
-                                    
+
                                     if (selectedAnswer !== null) {
                                         if (opt === correctOption) {
-                                            optionStyle = [styles.optionBtn, styles.optionCorrect];
-                                            optionTextStyle = [styles.optionText, styles.textWhite];
+                                            optionStyle = [
+                                                styles.optionBtn,
+                                                styles.optionCorrect,
+                                            ];
+                                            optionTextStyle = [
+                                                styles.optionText,
+                                                styles.textWhite,
+                                            ];
                                             iconName = "checkmark-circle";
                                             iconColor = theme.colors.white;
-                                        } else if (opt === selectedAnswer && !isCorrect) {
-                                            optionStyle = [styles.optionBtn, styles.optionWrong];
-                                            optionTextStyle = [styles.optionText, styles.textWhite];
+                                        } else if (
+                                            opt === selectedAnswer &&
+                                            !isCorrect
+                                        ) {
+                                            optionStyle = [
+                                                styles.optionBtn,
+                                                styles.optionWrong,
+                                            ];
+                                            optionTextStyle = [
+                                                styles.optionText,
+                                                styles.textWhite,
+                                            ];
                                             iconName = "close-circle";
                                             iconColor = theme.colors.white;
                                         }
                                     }
-                                    
+
                                     return (
-                                        <TouchableOpacity 
-                                            key={opt} 
-                                            style={optionStyle} 
+                                        <TouchableOpacity
+                                            key={opt}
+                                            style={optionStyle}
                                             onPress={() => handleAnswer(opt)}
                                             disabled={selectedAnswer !== null}
                                         >
-                                            <Ionicons name={iconName} size={20} color={iconColor} />
-                                            <Text style={optionTextStyle}>{optionText}</Text>
+                                            <Ionicons
+                                                name={iconName}
+                                                size={20}
+                                                color={iconColor}
+                                            />
+                                            <Text style={optionTextStyle}>
+                                                {optionText}
+                                            </Text>
                                         </TouchableOpacity>
                                     );
                                 })}
                             </View>
-                            
-                            <Animated.View style={[styles.rewardPopup, { opacity: fadeAnim }]}>
-                                <Text style={styles.rewardText}>+{expEarned} EXP!</Text>
+
+                            <Animated.View
+                                style={[
+                                    styles.rewardPopup,
+                                    { opacity: fadeAnim },
+                                ]}
+                            >
+                                <Text style={styles.rewardText}>
+                                    +{expEarned} EXP!
+                                </Text>
                             </Animated.View>
 
                             {selectedAnswer !== null && (
-                                <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
+                                <TouchableOpacity
+                                    style={styles.nextBtn}
+                                    onPress={handleNext}
+                                >
                                     <Text style={styles.nextBtnText}>
-                                        {currentQuestionIndex < questions.length - 1 ? 'NEXT QUESTION' : 'FINISH QUIZ'}
+                                        {currentQuestionIndex <
+                                        questions.length - 1
+                                            ? "NEXT QUESTION"
+                                            : "FINISH QUIZ"}
                                     </Text>
-                                    <Ionicons name="arrow-forward" size={18} color={theme.colors.surface} />
+                                    <Ionicons
+                                        name="arrow-forward"
+                                        size={18}
+                                        color={theme.colors.surface}
+                                    />
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -194,8 +275,8 @@ export default function QuizModal({ visible, building, onClose }) {
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        justifyContent: 'flex-end',
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        justifyContent: "flex-end",
     },
     bottomSheet: {
         backgroundColor: theme.colors.surfaceSoft,
@@ -203,20 +284,20 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 24,
         padding: theme.spacing.lg,
         paddingBottom: theme.spacing.xl * 2,
-        maxHeight: '80%',
+        maxHeight: "80%",
     },
     sheetHandle: {
         width: 40,
         height: 4,
         backgroundColor: theme.colors.border,
         borderRadius: 2,
-        alignSelf: 'center',
+        alignSelf: "center",
         marginBottom: theme.spacing.lg,
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
         marginBottom: theme.spacing.lg,
         gap: theme.spacing.sm,
     },
@@ -228,7 +309,7 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         padding: 40,
-        alignItems: 'center',
+        alignItems: "center",
     },
     loadingText: {
         marginTop: 12,
@@ -237,11 +318,11 @@ const styles = StyleSheet.create({
     },
     emptyContainer: {
         padding: 20,
-        alignItems: 'center',
+        alignItems: "center",
     },
     emptyText: {
         color: theme.colors.textMuted,
-        textAlign: 'center',
+        textAlign: "center",
         marginBottom: 20,
     },
     closeBtn: {
@@ -279,8 +360,8 @@ const styles = StyleSheet.create({
         gap: theme.spacing.md,
     },
     optionBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: theme.colors.surface,
         padding: 16,
         borderRadius: 12,
@@ -306,29 +387,29 @@ const styles = StyleSheet.create({
         color: theme.colors.white,
     },
     rewardPopup: {
-        position: 'absolute',
-        top: '40%',
-        alignSelf: 'center',
-        backgroundColor: 'rgba(16, 185, 129, 0.95)',
+        position: "absolute",
+        top: "40%",
+        alignSelf: "center",
+        backgroundColor: "rgba(16, 185, 129, 0.95)",
         paddingVertical: 12,
         paddingHorizontal: 24,
         borderRadius: 30,
         elevation: 10,
-        shadowColor: '#10b981',
+        shadowColor: "#10b981",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
         zIndex: 100,
     },
     rewardText: {
-        color: '#fff',
+        color: "#fff",
         fontSize: 20,
         fontFamily: fonts.heading.bold,
     },
     nextBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
         backgroundColor: theme.colors.textPrimary,
         paddingVertical: 14,
         borderRadius: 12,

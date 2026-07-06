@@ -1,292 +1,409 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <style>
-        body { margin: 0; overflow: hidden; background: #000; }
-        #canvas { width: 100%; height: 100%; display: block; }
-        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-family: system-ui; font-size: 18px; }
-        #hotspots { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 90%; z-index: 10; }
-        .hotspot-btn { background: rgba(138, 21, 56, 0.9); color: #fff; border: 2px solid #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; }
-        #floating-labels { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
-        .floating-label {
-            position: absolute;
-            transform: translate(-50%, -100%);
-            background: rgba(0, 0, 0, 0.65);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-family: system-ui;
-            font-size: 14px;
-            font-weight: bold;
-            white-space: nowrap;
-            border: 1px solid rgba(255,255,255,0.4);
-            margin-top: -35px; /* Float above the red mark */
-            transition: opacity 0.2s;
-        }
-    </style>
-</head>
-<body>
-    <div id="loading">Initializing...</div>
-    <canvas id="canvas"></canvas>
-    <div id="floating-labels"></div>
-    <div id="hotspots"></div>
-    
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
-        }
-    }
-    </script>
-    <script type="module">
-        import * as THREE from 'three';
-        
-        let scene, camera, renderer, sphere, texture;
-        let lon = 0, lat = 0, isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
-        let currentHotspots = [];
-        let hotspotMeshes = [];
-        let fov = 75;
-        let maxFov = 75;
-        let maxLat = 0;
-        
-        function init(imageUrl, hotspots) {
-            currentHotspots = hotspots || [];
-            
-            if (sphere) {
-                scene.remove(sphere);
-                sphere.geometry.dispose();
-                sphere.material.dispose();
-                if (texture) texture.dispose();
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #000;
             }
-            
-            hotspotMeshes.forEach(mesh => {
-                scene.remove(mesh);
-                mesh.geometry.dispose();
-                mesh.material.dispose();
-            });
-            hotspotMeshes = [];
-            document.getElementById('floating-labels').innerHTML = '';
-            
-            if (!scene) {
-                scene = new THREE.Scene();
-                camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.set(0, 0, 0.1);
-                renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                setupControls();
-                window.addEventListener('resize', () => {
-                    camera.aspect = window.innerWidth / window.innerHeight;
-                    camera.updateProjectionMatrix();
+            #canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+            #loading {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #fff;
+                font-family: system-ui;
+                font-size: 18px;
+            }
+            #hotspots {
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+                max-width: 90%;
+                z-index: 10;
+            }
+            .hotspot-btn {
+                background: rgba(138, 21, 56, 0.9);
+                color: #fff;
+                border: 2px solid #fff;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            #floating-labels {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 5;
+            }
+            .floating-label {
+                position: absolute;
+                transform: translate(-50%, -100%);
+                background: rgba(0, 0, 0, 0.65);
+                color: white;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-family: system-ui;
+                font-size: 14px;
+                font-weight: bold;
+                white-space: nowrap;
+                border: 1px solid rgba(255, 255, 255, 0.4);
+                margin-top: -35px; /* Float above the red mark */
+                transition: opacity 0.2s;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="loading">Initializing...</div>
+        <canvas id="canvas"></canvas>
+        <div id="floating-labels"></div>
+        <div id="hotspots"></div>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+                }
+            }
+        </script>
+        <script type="module">
+            import * as THREE from "three";
+
+            let scene, camera, renderer, sphere, texture;
+            let lon = 0,
+                lat = 0,
+                isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            let currentHotspots = [];
+            let hotspotMeshes = [];
+            let fov = 75;
+            let maxFov = 75;
+            let maxLat = 0;
+
+            function init(imageUrl, hotspots) {
+                currentHotspots = hotspots || [];
+
+                if (sphere) {
+                    scene.remove(sphere);
+                    sphere.geometry.dispose();
+                    sphere.material.dispose();
+                    if (texture) texture.dispose();
+                }
+
+                hotspotMeshes.forEach((mesh) => {
+                    scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                });
+                hotspotMeshes = [];
+                document.getElementById("floating-labels").innerHTML = "";
+
+                if (!scene) {
+                    scene = new THREE.Scene();
+                    camera = new THREE.PerspectiveCamera(
+                        fov,
+                        window.innerWidth / window.innerHeight,
+                        0.1,
+                        1000,
+                    );
+                    camera.position.set(0, 0, 0.1);
+                    renderer = new THREE.WebGLRenderer({
+                        canvas: document.getElementById("canvas"),
+                        antialias: true,
+                    });
                     renderer.setSize(window.innerWidth, window.innerHeight);
+                    setupControls();
+                    window.addEventListener("resize", () => {
+                        camera.aspect = window.innerWidth / window.innerHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(window.innerWidth, window.innerHeight);
+                    });
+                }
+
+                document.getElementById("loading").style.display = "block";
+
+                const loader = new THREE.TextureLoader();
+                loader.setCrossOrigin("anonymous");
+                loader.load(
+                    imageUrl,
+                    (loadedTexture) => {
+                        texture = loadedTexture;
+                        // Better quality filtering
+                        texture.minFilter = THREE.LinearMipmapLinearFilter;
+                        texture.magFilter = THREE.LinearFilter;
+
+                        // Dynamically calculate cylinder height to perfectly match image aspect ratio
+                        const imgWidth = texture.image.width || 4000;
+                        const imgHeight = texture.image.height || 1000;
+                        const radius = 500;
+                        const circumference = 2 * Math.PI * radius;
+                        const cylinderHeight =
+                            (imgHeight / imgWidth) * circumference;
+
+                        const geometry = new THREE.CylinderGeometry(
+                            radius,
+                            radius,
+                            cylinderHeight,
+                            60,
+                            1,
+                            true,
+                        );
+                        geometry.scale(-1, 1, 1);
+
+                        const material = new THREE.MeshBasicMaterial({
+                            map: texture,
+                        });
+                        sphere = new THREE.Mesh(geometry, material);
+                        scene.add(sphere);
+
+                        // Calculate Max FOV to prevent seeing above/below the cylinder
+                        maxFov =
+                            2 *
+                            Math.atan(cylinderHeight / 2 / radius) *
+                            (180 / Math.PI);
+                        fov = Math.min(75, maxFov); // start at 75 or maxFov
+                        camera.fov = fov;
+                        camera.updateProjectionMatrix();
+
+                        maxLat = Math.max(0, (maxFov - fov) / 2);
+                        lat = 0;
+
+                        document.getElementById("loading").style.display =
+                            "none";
+                        create3DHotspots();
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({ type: "loaded" }),
+                        );
+                        if (!renderer.info.render.frame) animate();
+                    },
+                    undefined,
+                    (error) => {
+                        document.getElementById("loading").textContent =
+                            "Failed to load";
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({
+                                type: "error",
+                                message: "Load failed",
+                            }),
+                        );
+                    },
+                );
+            }
+
+            function setupControls() {
+                const canvas = document.getElementById("canvas");
+                let initialPinchDistance = 0;
+
+                canvas.addEventListener("touchstart", (e) => {
+                    if (e.touches.length === 2) {
+                        const dx = e.touches[0].clientX - e.touches[1].clientX;
+                        const dy = e.touches[0].clientY - e.touches[1].clientY;
+                        initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+                    } else if (e.touches.length === 1) {
+                        isDragging = true;
+                        previousMousePosition = {
+                            x: e.touches[0].clientX,
+                            y: e.touches[0].clientY,
+                        };
+                    }
+                });
+
+                canvas.addEventListener("touchmove", (e) => {
+                    if (e.touches.length === 2) {
+                        const dx = e.touches[0].clientX - e.touches[1].clientX;
+                        const dy = e.touches[0].clientY - e.touches[1].clientY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const delta = distance - initialPinchDistance;
+                        fov -= delta * 0.1;
+                        fov = Math.max(30, Math.min(maxFov, fov));
+                        camera.fov = fov;
+                        camera.updateProjectionMatrix();
+                        initialPinchDistance = distance;
+
+                        // Update maxLat based on new fov
+                        maxLat = Math.max(0, (maxFov - fov) / 2);
+                        lat = Math.max(-maxLat, Math.min(maxLat, lat));
+                    } else if (isDragging && e.touches.length === 1) {
+                        const deltaX =
+                            e.touches[0].clientX - previousMousePosition.x;
+                        const deltaY =
+                            e.touches[0].clientY - previousMousePosition.y;
+                        lon -= deltaX * 0.1;
+                        lat += deltaY * 0.1;
+                        lat = Math.max(-maxLat, Math.min(maxLat, lat));
+                        previousMousePosition = {
+                            x: e.touches[0].clientX,
+                            y: e.touches[0].clientY,
+                        };
+                    }
+                });
+
+                canvas.addEventListener("touchend", () => {
+                    isDragging = false;
+                });
+
+                canvas.addEventListener("click", (e) => {
+                    const raycaster = new THREE.Raycaster();
+                    const mouse = new THREE.Vector2(
+                        (e.clientX / window.innerWidth) * 2 - 1,
+                        -(e.clientY / window.innerHeight) * 2 + 1,
+                    );
+                    raycaster.setFromCamera(mouse, camera);
+                    const intersects =
+                        raycaster.intersectObjects(hotspotMeshes);
+                    if (intersects.length > 0) {
+                        const hotspot = intersects[0].object.userData.hotspot;
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({
+                                type: "hotspot_clicked",
+                                target_scene_id: hotspot.target_scene_id,
+                            }),
+                        );
+                    }
                 });
             }
-            
-            document.getElementById('loading').style.display = 'block';
-            
-            const loader = new THREE.TextureLoader();
-            loader.setCrossOrigin('anonymous');
-            loader.load(imageUrl, (loadedTexture) => {
-                texture = loadedTexture;
-                // Better quality filtering
-                texture.minFilter = THREE.LinearMipmapLinearFilter;
-                texture.magFilter = THREE.LinearFilter;
-                
-                // Dynamically calculate cylinder height to perfectly match image aspect ratio
-                const imgWidth = texture.image.width || 4000;
-                const imgHeight = texture.image.height || 1000;
-                const radius = 500;
-                const circumference = 2 * Math.PI * radius;
-                const cylinderHeight = (imgHeight / imgWidth) * circumference;
-                
-                const geometry = new THREE.CylinderGeometry(radius, radius, cylinderHeight, 60, 1, true);
-                geometry.scale(-1, 1, 1);
-                
-                const material = new THREE.MeshBasicMaterial({ map: texture });
-                sphere = new THREE.Mesh(geometry, material);
-                scene.add(sphere);
-                
-                // Calculate Max FOV to prevent seeing above/below the cylinder
-                maxFov = 2 * Math.atan((cylinderHeight / 2) / radius) * (180 / Math.PI);
-                fov = Math.min(75, maxFov); // start at 75 or maxFov
-                camera.fov = fov;
-                camera.updateProjectionMatrix();
-                
-                maxLat = Math.max(0, (maxFov - fov) / 2);
-                lat = 0;
-                
-                document.getElementById('loading').style.display = 'none';
-                create3DHotspots();
-                window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'loaded' }));
-                if (!renderer.info.render.frame) animate();
-            }, undefined, (error) => {
-                document.getElementById('loading').textContent = 'Failed to load';
-                window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'error', message: 'Load failed' }));
-            });
-        }
-        
-        function setupControls() {
-            const canvas = document.getElementById('canvas');
-            let initialPinchDistance = 0;
-            
-            canvas.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    const dx = e.touches[0].clientX - e.touches[1].clientX;
-                    const dy = e.touches[0].clientY - e.touches[1].clientY;
-                    initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
-                } else if (e.touches.length === 1) {
-                    isDragging = true;
-                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                }
-            });
-            
-            canvas.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2) {
-                    const dx = e.touches[0].clientX - e.touches[1].clientX;
-                    const dy = e.touches[0].clientY - e.touches[1].clientY;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const delta = distance - initialPinchDistance;
-                    fov -= delta * 0.1;
-                    fov = Math.max(30, Math.min(maxFov, fov));
-                    camera.fov = fov;
-                    camera.updateProjectionMatrix();
-                    initialPinchDistance = distance;
-                    
-                    // Update maxLat based on new fov
-                    maxLat = Math.max(0, (maxFov - fov) / 2);
-                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
-                } else if (isDragging && e.touches.length === 1) {
-                    const deltaX = e.touches[0].clientX - previousMousePosition.x;
-                    const deltaY = e.touches[0].clientY - previousMousePosition.y;
-                    lon -= deltaX * 0.1;
-                    lat += deltaY * 0.1;
-                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
-                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                }
-            });
-            
-            canvas.addEventListener('touchend', () => { isDragging = false; });
-            
-            canvas.addEventListener('click', (e) => {
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2(
-                    (e.clientX / window.innerWidth) * 2 - 1,
-                    -(e.clientY / window.innerHeight) * 2 + 1
-                );
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObjects(hotspotMeshes);
-                if (intersects.length > 0) {
-                    const hotspot = intersects[0].object.userData.hotspot;
-                    window.ReactNativeWebView?.postMessage(JSON.stringify({
-                        type: 'hotspot_clicked',
-                        target_scene_id: hotspot.target_scene_id
-                    }));
-                }
-            });
-        }
-        
-        function create3DHotspots() {
-            currentHotspots.forEach(hotspot => {
-                const phi = THREE.MathUtils.degToRad(90 - hotspot.pitch);
-                const theta = THREE.MathUtils.degToRad(hotspot.yaw - 90); // Offset by 90 to match Web
-                
-                const distance = 300;
-                const x = distance * Math.sin(phi) * Math.cos(theta);
-                const y = distance * Math.cos(phi);
-                const z = distance * Math.sin(phi) * Math.sin(theta);
-                
-                const geometry = new THREE.CircleGeometry(20, 32);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: 0x8A1538, 
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    opacity: 0.9
+
+            function create3DHotspots() {
+                currentHotspots.forEach((hotspot) => {
+                    const phi = THREE.MathUtils.degToRad(90 - hotspot.pitch);
+                    const theta = THREE.MathUtils.degToRad(hotspot.yaw - 90); // Offset by 90 to match Web
+
+                    const distance = 300;
+                    const x = distance * Math.sin(phi) * Math.cos(theta);
+                    const y = distance * Math.cos(phi);
+                    const z = distance * Math.sin(phi) * Math.sin(theta);
+
+                    const geometry = new THREE.CircleGeometry(20, 32);
+                    const material = new THREE.MeshBasicMaterial({
+                        color: 0x8a1538,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.9,
+                    });
+                    const hotspotMesh = new THREE.Mesh(geometry, material);
+                    hotspotMesh.position.set(x, y, z);
+                    hotspotMesh.lookAt(0, 0, 0);
+                    hotspotMesh.userData.hotspot = hotspot;
+                    hotspotMesh.userData.labelId =
+                        "label-" + hotspotMeshes.length;
+
+                    scene.add(hotspotMesh);
+                    hotspotMeshes.push(hotspotMesh);
+
+                    // Create Floating Label
+                    const labelContainer =
+                        document.getElementById("floating-labels");
+                    const labelDiv = document.createElement("div");
+                    labelDiv.className = "floating-label";
+                    labelDiv.id = hotspotMesh.userData.labelId;
+                    labelDiv.textContent =
+                        hotspot.label ||
+                        hotspot.target_scene_title ||
+                        "Next Scene";
+                    labelContainer.appendChild(labelDiv);
                 });
-                const hotspotMesh = new THREE.Mesh(geometry, material);
-                hotspotMesh.position.set(x, y, z);
-                hotspotMesh.lookAt(0, 0, 0);
-                hotspotMesh.userData.hotspot = hotspot;
-                hotspotMesh.userData.labelId = 'label-' + hotspotMeshes.length;
-                
-                scene.add(hotspotMesh);
-                hotspotMeshes.push(hotspotMesh);
-                
-                // Create Floating Label
-                const labelContainer = document.getElementById('floating-labels');
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'floating-label';
-                labelDiv.id = hotspotMesh.userData.labelId;
-                labelDiv.textContent = hotspot.label || hotspot.target_scene_title || 'Next Scene';
-                labelContainer.appendChild(labelDiv);
-            });
-        }
-        
-        function renderHotspots() {
-            const container = document.getElementById('hotspots');
-            container.innerHTML = '';
-            currentHotspots.forEach(hotspot => {
-                const btn = document.createElement('button');
-                btn.className = 'hotspot-btn';
-                btn.textContent = hotspot.label;
-                btn.onclick = () => {
-                    window.ReactNativeWebView?.postMessage(JSON.stringify({
-                        type: 'hotspot_clicked',
-                        target_scene_id: hotspot.target_scene_id
-                    }));
-                };
-                container.appendChild(btn);
-            });
-        }
-        
-        function animate() {
-            requestAnimationFrame(animate);
-            const phi = THREE.MathUtils.degToRad(90 - lat);
-            const theta = THREE.MathUtils.degToRad(lon - 90); // Offset by 90 to match Web
-            camera.lookAt(
-                500 * Math.sin(phi) * Math.cos(theta),
-                500 * Math.cos(phi),
-                500 * Math.sin(phi) * Math.sin(theta)
-            );
-            
-            // Pulse animation and update floating labels
-            const time = Date.now() * 0.004;
-            hotspotMeshes.forEach((mesh, index) => {
-                // Pulse effect
-                const scale = 1 + 0.2 * Math.sin(time + index);
-                mesh.scale.set(scale, scale, 1);
-                
-                // 3D to 2D projection
-                const pos = mesh.position.clone();
-                pos.project(camera);
-                
-                const label = document.getElementById(mesh.userData.labelId);
-                if (label) {
-                    if (pos.z > 1 || pos.x < -1.1 || pos.x > 1.1 || pos.y < -1.1 || pos.y > 1.1) {
-                        label.style.opacity = '0'; // Hide smoothly if behind camera or far off screen
-                    } else {
-                        label.style.opacity = '1';
-                        const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                        const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
-                        label.style.left = x + 'px';
-                        label.style.top = y + 'px';
+            }
+
+            function renderHotspots() {
+                const container = document.getElementById("hotspots");
+                container.innerHTML = "";
+                currentHotspots.forEach((hotspot) => {
+                    const btn = document.createElement("button");
+                    btn.className = "hotspot-btn";
+                    btn.textContent = hotspot.label;
+                    btn.onclick = () => {
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({
+                                type: "hotspot_clicked",
+                                target_scene_id: hotspot.target_scene_id,
+                            }),
+                        );
+                    };
+                    container.appendChild(btn);
+                });
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const phi = THREE.MathUtils.degToRad(90 - lat);
+                const theta = THREE.MathUtils.degToRad(lon - 90); // Offset by 90 to match Web
+                camera.lookAt(
+                    500 * Math.sin(phi) * Math.cos(theta),
+                    500 * Math.cos(phi),
+                    500 * Math.sin(phi) * Math.sin(theta),
+                );
+
+                // Pulse animation and update floating labels
+                const time = Date.now() * 0.004;
+                hotspotMeshes.forEach((mesh, index) => {
+                    // Pulse effect
+                    const scale = 1 + 0.2 * Math.sin(time + index);
+                    mesh.scale.set(scale, scale, 1);
+
+                    // 3D to 2D projection
+                    const pos = mesh.position.clone();
+                    pos.project(camera);
+
+                    const label = document.getElementById(
+                        mesh.userData.labelId,
+                    );
+                    if (label) {
+                        if (
+                            pos.z > 1 ||
+                            pos.x < -1.1 ||
+                            pos.x > 1.1 ||
+                            pos.y < -1.1 ||
+                            pos.y > 1.1
+                        ) {
+                            label.style.opacity = "0"; // Hide smoothly if behind camera or far off screen
+                        } else {
+                            label.style.opacity = "1";
+                            const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                            const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
+                            label.style.left = x + "px";
+                            label.style.top = y + "px";
+                        }
                     }
-                }
+                });
+
+                renderer.render(scene, camera);
+            }
+
+            window.addEventListener("message", (event) => {
+                const data =
+                    typeof event.data === "string"
+                        ? JSON.parse(event.data)
+                        : event.data;
+                if (data.type === "init") init(data.imageUrl, data.hotspots);
             });
-            
-            renderer.render(scene, camera);
-        }
-        
-        window.addEventListener('message', (event) => {
-            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            if (data.type === 'init') init(data.imageUrl, data.hotspots);
-        });
-        
-        document.addEventListener('message', (event) => {
-            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            if (data.type === 'init') init(data.imageUrl, data.hotspots);
-        });
-    </script>
-</body>
+
+            document.addEventListener("message", (event) => {
+                const data =
+                    typeof event.data === "string"
+                        ? JSON.parse(event.data)
+                        : event.data;
+                if (data.type === "init") init(data.imageUrl, data.hotspots);
+            });
+        </script>
+    </body>
 </html>

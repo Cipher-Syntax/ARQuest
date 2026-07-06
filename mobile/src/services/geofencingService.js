@@ -1,23 +1,25 @@
-import { api } from './api';
+import { api } from "./api";
 
 export const geofencingService = {
     async fetchGeofences() {
-        const response = await api.get('/api/buildings/');
-        return response.data.data.map(building => ({
+        const response = await api.get("/api/buildings/");
+        return response.data.data.map((building) => ({
             id: building.id,
             name: building.name,
             latitude: building.latitude,
             longitude: building.longitude,
-            geofence: building.geofence ? {
-                radius: building.geofence.radius_meters,
-                latitude: building.geofence.latitude,
-                longitude: building.geofence.longitude,
-            } : null,
+            geofence: building.geofence
+                ? {
+                      radius: building.geofence.radius_meters,
+                      latitude: building.geofence.latitude,
+                      longitude: building.geofence.longitude,
+                  }
+                : null,
         }));
     },
 
     async validateLocation(latitude, longitude, accuracy) {
-        const response = await api.post('/api/geofencing/validate/', {
+        const response = await api.post("/api/geofencing/validate/", {
             latitude,
             longitude,
             accuracy_meters: accuracy,
@@ -34,7 +36,10 @@ export const geofencingService = {
 
         const a =
             Math.sin(deltaLatRadians / 2) * Math.sin(deltaLatRadians / 2) +
-            Math.cos(lat1Radians) * Math.cos(lat2Radians) * Math.sin(deltaLonRadians / 2) * Math.sin(deltaLonRadians / 2);
+            Math.cos(lat1Radians) *
+                Math.cos(lat2Radians) *
+                Math.sin(deltaLonRadians / 2) *
+                Math.sin(deltaLonRadians / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return R * c;

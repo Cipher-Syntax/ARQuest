@@ -7,7 +7,7 @@ import {
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import theme from "../../theme/tokens";
@@ -48,13 +48,26 @@ export default function RegisterScreen() {
         const usernameError = validateString(formData.username, 3);
         const emailError = validateEmail(formData.email);
         const passwordError = validateString(formData.password, 6);
-        const passwordConfirmError = validateString(formData.password_confirm, 6);
+        const passwordConfirmError = validateString(
+            formData.password_confirm,
+            6,
+        );
         let matchError = null;
-        if (!passwordError && !passwordConfirmError && formData.password !== formData.password_confirm) {
+        if (
+            !passwordError &&
+            !passwordConfirmError &&
+            formData.password !== formData.password_confirm
+        ) {
             matchError = "Passwords do not match.";
         }
 
-        if (usernameError || emailError || passwordError || passwordConfirmError || matchError) {
+        if (
+            usernameError ||
+            emailError ||
+            passwordError ||
+            passwordConfirmError ||
+            matchError
+        ) {
             setFieldErrors({
                 username: usernameError,
                 email: emailError,
@@ -112,20 +125,38 @@ export default function RegisterScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Username</Text>
                         <TextInput
-                            style={[styles.input, fieldErrors.username && { borderColor: 'red' }]}
+                            style={[
+                                styles.input,
+                                fieldErrors.username && { borderColor: "red" },
+                            ]}
                             placeholder="Username"
                             placeholderTextColor={theme.colors.textMuted}
                             value={formData.username}
-                            onChangeText={(text) => handleChange("username", text)}
+                            onChangeText={(text) =>
+                                handleChange("username", text)
+                            }
                             autoCapitalize="none"
                         />
-                        {fieldErrors.username && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.username}</Text>}
+                        {fieldErrors.username && (
+                            <Text
+                                style={{
+                                    color: "red",
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                }}
+                            >
+                                {fieldErrors.username}
+                            </Text>
+                        )}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Email</Text>
                         <TextInput
-                            style={[styles.input, fieldErrors.email && { borderColor: 'red' }]}
+                            style={[
+                                styles.input,
+                                fieldErrors.email && { borderColor: "red" },
+                            ]}
                             placeholder="Email"
                             placeholderTextColor={theme.colors.textMuted}
                             value={formData.email}
@@ -133,41 +164,72 @@ export default function RegisterScreen() {
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
-                        {fieldErrors.email && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.email}</Text>}
+                        {fieldErrors.email && (
+                            <Text
+                                style={{
+                                    color: "red",
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                }}
+                            >
+                                {fieldErrors.email}
+                            </Text>
+                        )}
                     </View>
 
                     <View style={styles.row}>
-                        <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                        <View
+                            style={[
+                                styles.inputGroup,
+                                { flex: 1, marginRight: 8 },
+                            ]}
+                        >
                             <Text style={styles.inputLabel}>First Name</Text>
                             <TextInput
                                 style={styles.input}
                                 placeholder="Optional"
                                 placeholderTextColor={theme.colors.textMuted}
                                 value={formData.first_name}
-                                onChangeText={(text) => handleChange("first_name", text)}
+                                onChangeText={(text) =>
+                                    handleChange("first_name", text)
+                                }
                             />
                         </View>
-                        <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                        <View
+                            style={[
+                                styles.inputGroup,
+                                { flex: 1, marginLeft: 8 },
+                            ]}
+                        >
                             <Text style={styles.inputLabel}>Last Name</Text>
                             <TextInput
                                 style={styles.input}
                                 placeholder="Optional"
                                 placeholderTextColor={theme.colors.textMuted}
                                 value={formData.last_name}
-                                onChangeText={(text) => handleChange("last_name", text)}
+                                onChangeText={(text) =>
+                                    handleChange("last_name", text)
+                                }
                             />
                         </View>
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Password</Text>
-                        <View style={[styles.passwordContainer, fieldErrors.password && { borderColor: 'red' }]}>
+                        <View
+                            style={[
+                                styles.passwordContainer,
+                                fieldErrors.password && { borderColor: "red" },
+                            ]}
+                        >
                             <TextInput
                                 style={styles.passwordInput}
                                 placeholder="Password"
                                 placeholderTextColor={theme.colors.textMuted}
                                 value={formData.password}
-                                onChangeText={(text) => handleChange("password", text)}
+                                onChangeText={(text) =>
+                                    handleChange("password", text)
+                                }
                                 secureTextEntry={!showPassword}
                             />
                             <TouchableOpacity
@@ -175,38 +237,81 @@ export default function RegisterScreen() {
                                 onPress={() => setShowPassword(!showPassword)}
                             >
                                 {showPassword ? (
-                                    <EyeOff color={theme.colors.primary} size={20} />
+                                    <EyeOff
+                                        color={theme.colors.primary}
+                                        size={20}
+                                    />
                                 ) : (
-                                    <Eye color={theme.colors.textMuted} size={20} />
+                                    <Eye
+                                        color={theme.colors.textMuted}
+                                        size={20}
+                                    />
                                 )}
                             </TouchableOpacity>
                         </View>
-                        {fieldErrors.password && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.password}</Text>}
+                        {fieldErrors.password && (
+                            <Text
+                                style={{
+                                    color: "red",
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                }}
+                            >
+                                {fieldErrors.password}
+                            </Text>
+                        )}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Confirm Password</Text>
-                        <View style={[styles.passwordContainer, fieldErrors.password_confirm && { borderColor: 'red' }]}>
+                        <View
+                            style={[
+                                styles.passwordContainer,
+                                fieldErrors.password_confirm && {
+                                    borderColor: "red",
+                                },
+                            ]}
+                        >
                             <TextInput
                                 style={styles.passwordInput}
                                 placeholder="Confirm Password"
                                 placeholderTextColor={theme.colors.textMuted}
                                 value={formData.password_confirm}
-                                onChangeText={(text) => handleChange("password_confirm", text)}
+                                onChangeText={(text) =>
+                                    handleChange("password_confirm", text)
+                                }
                                 secureTextEntry={!showConfirmPassword}
                             />
                             <TouchableOpacity
                                 style={styles.eyeIcon}
-                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                                onPress={() =>
+                                    setShowConfirmPassword(!showConfirmPassword)
+                                }
                             >
                                 {showConfirmPassword ? (
-                                    <EyeOff color={theme.colors.primary} size={20} />
+                                    <EyeOff
+                                        color={theme.colors.primary}
+                                        size={20}
+                                    />
                                 ) : (
-                                    <Eye color={theme.colors.textMuted} size={20} />
+                                    <Eye
+                                        color={theme.colors.textMuted}
+                                        size={20}
+                                    />
                                 )}
                             </TouchableOpacity>
                         </View>
-                        {fieldErrors.password_confirm && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.password_confirm}</Text>}
+                        {fieldErrors.password_confirm && (
+                            <Text
+                                style={{
+                                    color: "red",
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                }}
+                            >
+                                {fieldErrors.password_confirm}
+                            </Text>
+                        )}
                     </View>
 
                     <ARButton
@@ -219,9 +324,7 @@ export default function RegisterScreen() {
 
                     <Link href="/(auth)/login" asChild>
                         <TouchableOpacity style={styles.link}>
-                            <Text style={styles.linkText}>
-                                Return to Login
-                            </Text>
+                            <Text style={styles.linkText}>Return to Login</Text>
                         </TouchableOpacity>
                     </Link>
                 </ARGlassCard>
@@ -233,10 +336,9 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        
     },
     glowOrbTop: {
-        position: 'absolute',
+        position: "absolute",
         top: -100,
         left: -100,
         width: 300,
@@ -246,7 +348,7 @@ const styles = StyleSheet.create({
         opacity: 0.3,
     },
     glowOrbBottom: {
-        position: 'absolute',
+        position: "absolute",
         bottom: -150,
         right: -100,
         width: 400,
@@ -286,8 +388,8 @@ const styles = StyleSheet.create({
         paddingTop: theme.spacing.xl,
     },
     row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        justifyContent: "space-between",
     },
     inputGroup: {
         marginBottom: theme.spacing.md,
@@ -372,4 +474,3 @@ const styles = StyleSheet.create({
         opacity: 0.8,
     },
 });
-

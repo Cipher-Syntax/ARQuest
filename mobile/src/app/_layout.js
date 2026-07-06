@@ -4,30 +4,30 @@ import OfflineBanner from "../components/OfflineBanner";
 import CustomAlert, { alertRef } from "../components/CustomAlert";
 import { StatusBar } from "expo-status-bar";
 import theme from "../theme/tokens";
-import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
     const [fontsLoaded, error] = useFonts({
-        Exo2_400Regular: require('../../assets/fonts/Exo_2/Exo2-VariableFont_wght.ttf'),
-        Exo2_500Medium: require('../../assets/fonts/Exo_2/Exo2-VariableFont_wght.ttf'),
-        Exo2_600SemiBold: require('../../assets/fonts/Exo_2/Exo2-VariableFont_wght.ttf'),
-        Inter_400Regular: require('../../assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
-        Inter_500Medium: require('../../assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
-        Rajdhani_500Medium: require('../../assets/fonts/Rajdhani/Rajdhani-Medium.ttf'),
-        Rajdhani_600SemiBold: require('../../assets/fonts/Rajdhani/Rajdhani-SemiBold.ttf'),
+        Exo2_400Regular: require("../../assets/fonts/Exo_2/Exo2-VariableFont_wght.ttf"),
+        Exo2_500Medium: require("../../assets/fonts/Exo_2/Exo2-VariableFont_wght.ttf"),
+        Exo2_600SemiBold: require("../../assets/fonts/Exo_2/Exo2-VariableFont_wght.ttf"),
+        Inter_400Regular: require("../../assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf"),
+        Inter_500Medium: require("../../assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf"),
+        Rajdhani_500Medium: require("../../assets/fonts/Rajdhani/Rajdhani-Medium.ttf"),
+        Rajdhani_600SemiBold: require("../../assets/fonts/Rajdhani/Rajdhani-SemiBold.ttf"),
     });
 
     useEffect(() => {
         if (fontsLoaded || error) {
             SplashScreen.hideAsync();
         }
-        
+
         // Initialize SoundManager
-        import('../utils/SoundManager').then(module => {
+        import("../utils/SoundManager").then((module) => {
             module.default.init();
         });
     }, [fontsLoaded, error]);
@@ -41,10 +41,12 @@ export default function RootLayout() {
             <StatusBar style="dark" />
             <OfflineBanner />
             <CustomAlert ref={alertRef} />
-            <Stack screenOptions={{ 
-                headerShown: false,
-                contentStyle: { backgroundColor: theme.colors.bgPrimary }
-            }}>
+            <Stack
+                screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: theme.colors.bgPrimary },
+                }}
+            >
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             </Stack>

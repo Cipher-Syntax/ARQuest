@@ -1,5 +1,5 @@
-import * as FileSystem from 'expo-file-system/legacy';
-import api from './api';
+import * as FileSystem from "expo-file-system/legacy";
+import api from "./api";
 
 const CACHE_DIR = `${FileSystem.cacheDirectory}arquest_assets/`;
 
@@ -36,16 +36,22 @@ export const assetService = {
         await assetService.evictIfCacheFull(); // Ensure we don't balloon storage
 
         const localUri = assetService.getLocalPath(assetId, version);
-        
+
         // Cleanup old versions
         try {
             const dirContent = await FileSystem.readDirectoryAsync(CACHE_DIR);
-            const oldFiles = dirContent.filter(f => f.startsWith(`asset_${assetId}_`) && !f.includes(`_v${version}`));
+            const oldFiles = dirContent.filter(
+                (f) =>
+                    f.startsWith(`asset_${assetId}_`) &&
+                    !f.includes(`_v${version}`),
+            );
             for (const oldFile of oldFiles) {
-                await FileSystem.deleteAsync(`${CACHE_DIR}${oldFile}`, { idempotent: true });
+                await FileSystem.deleteAsync(`${CACHE_DIR}${oldFile}`, {
+                    idempotent: true,
+                });
             }
         } catch (e) {
-            console.warn('Failed to cleanup old assets:', e);
+            console.warn("Failed to cleanup old assets:", e);
         }
 
         const downloadResumable = FileSystem.createDownloadResumable(
@@ -53,11 +59,16 @@ export const assetService = {
             localUri,
             {},
             (downloadProgress) => {
-                if (onProgress && downloadProgress.totalBytesExpectedToWrite > 0) {
-                    const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+                if (
+                    onProgress &&
+                    downloadProgress.totalBytesExpectedToWrite > 0
+                ) {
+                    const progress =
+                        downloadProgress.totalBytesWritten /
+                        downloadProgress.totalBytesExpectedToWrite;
                     onProgress(progress);
                 }
-            }
+            },
         );
 
         const result = await downloadResumable.downloadAsync();
@@ -78,27 +89,32 @@ export const assetService = {
             const dirContent = await FileSystem.readDirectoryAsync(CACHE_DIR);
             let totalSize = 0;
             for (const file of dirContent) {
-                const info = await FileSystem.getInfoAsync(`${CACHE_DIR}${file}`);
+                const info = await FileSystem.getInfoAsync(
+                    `${CACHE_DIR}${file}`,
+                );
                 if (info.exists && !info.isDirectory) {
                     totalSize += info.size;
                 }
             }
             return totalSize;
         } catch (e) {
-            console.error('Failed to get cache size', e);
+            console.error("Failed to get cache size", e);
             return 0;
         }
     },
 
-    evictIfCacheFull: async (maxSizeBytes = 200 * 1024 * 1024) => { // 200MB limit
+    evictIfCacheFull: async (maxSizeBytes = 200 * 1024 * 1024) => {
+        // 200MB limit
         try {
             const size = await assetService.getCacheSize();
             if (size > maxSizeBytes) {
-                console.log(`Cache size (${(size / 1024 / 1024).toFixed(2)}MB) exceeds limit. Clearing cache...`);
+                console.log(
+                    `Cache size (${(size / 1024 / 1024).toFixed(2)}MB) exceeds limit. Clearing cache...`,
+                );
                 await assetService.clearCache();
             }
         } catch (e) {
-            console.warn('Failed to run cache eviction', e);
+            console.warn("Failed to run cache eviction", e);
         }
-    }
+    },
 };

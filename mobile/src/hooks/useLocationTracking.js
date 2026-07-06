@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import * as Location from 'expo-location';
+import { useState, useEffect, useRef } from "react";
+import * as Location from "expo-location";
 
 export const useLocationTracking = () => {
     const [location, setLocation] = useState(null);
     const [error, setError] = useState(null);
-    const [permissionStatus, setPermissionStatus] = useState('undetermined');
+    const [permissionStatus, setPermissionStatus] = useState("undetermined");
     const [isTracking, setIsTracking] = useState(false);
     const watchSubscription = useRef(null);
 
@@ -26,9 +26,10 @@ export const useLocationTracking = () => {
 
     const requestPermission = async () => {
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
+            const { status } =
+                await Location.requestForegroundPermissionsAsync();
             setPermissionStatus(status);
-            return status === 'granted';
+            return status === "granted";
         } catch (err) {
             setError(err.message);
             return false;
@@ -36,10 +37,10 @@ export const useLocationTracking = () => {
     };
 
     const startTracking = async () => {
-        if (permissionStatus !== 'granted') {
+        if (permissionStatus !== "granted") {
             const granted = await requestPermission();
             if (!granted) {
-                setError('Location permission denied');
+                setError("Location permission denied");
                 return;
             }
         }
@@ -58,12 +59,16 @@ export const useLocationTracking = () => {
                     const accuracy = newLocation.coords.accuracy;
                     const isWeak = accuracy > 40;
                     const isMocked = newLocation.mocked === true;
-                    
+
                     if (isMocked) {
-                        setError('Fake GPS detected! Please disable mock locations to play.');
+                        setError(
+                            "Fake GPS detected! Please disable mock locations to play.",
+                        );
                         return; // Prevent spoofing
                     } else if (isWeak) {
-                        setError('Weak GPS Signal. Please step outside or use QR code fallback.');
+                        setError(
+                            "Weak GPS Signal. Please step outside or use QR code fallback.",
+                        );
                     } else {
                         setError(null);
                     }
@@ -75,7 +80,7 @@ export const useLocationTracking = () => {
                         timestamp: newLocation.timestamp,
                         isWeakSignal: isWeak,
                     });
-                }
+                },
             );
         } catch (err) {
             setError(err.message);

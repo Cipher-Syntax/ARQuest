@@ -1,11 +1,11 @@
 export const roleAccess = {
     roles: {
-        ADMIN: 'admin',
-        STUDENT: 'student',
-        PROFESSIONAL: 'professional',
-        VISITOR: 'visitor'
+        ADMIN: "admin",
+        STUDENT: "student",
+        PROFESSIONAL: "professional",
+        VISITOR: "visitor",
     },
-    
+
     permissions: {
         admin: {
             canAccessAdmin: true,
@@ -13,7 +13,7 @@ export const roleAccess = {
             canViewPanorama: true,
             canUseAR: true,
             requiresUnlock: false,
-            canMutateData: true
+            canMutateData: true,
         },
         student: {
             canAccessAdmin: false,
@@ -21,7 +21,7 @@ export const roleAccess = {
             canViewPanorama: true,
             canUseAR: true,
             requiresUnlock: true,
-            canMutateData: false
+            canMutateData: false,
         },
         professional: {
             canAccessAdmin: false,
@@ -29,7 +29,7 @@ export const roleAccess = {
             canViewPanorama: true,
             canUseAR: true,
             requiresUnlock: false,
-            canMutateData: false
+            canMutateData: false,
         },
         visitor: {
             canAccessAdmin: false,
@@ -37,11 +37,11 @@ export const roleAccess = {
             canViewPanorama: false,
             canUseAR: false,
             requiresUnlock: true,
-            canMutateData: false
-        }
+            canMutateData: false,
+        },
     },
 
     getRolePermissions: (role) => {
         return roleAccess.permissions[role] || roleAccess.permissions.visitor;
-    }
+    },
 };

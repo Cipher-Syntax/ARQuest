@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, TouchableOpacity, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CheckCircle2, MapPin } from 'lucide-react-native';
-import { router } from 'expo-router';
-import { api } from '../services/api';
-import theme from '../theme/tokens';
-import { useAuth } from '../hooks/useAuth';
-import { fonts } from '../constants/typography';
+import React, { useState, useEffect } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    ActivityIndicator,
+    Image,
+    TouchableOpacity,
+    RefreshControl,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ArrowLeft, CheckCircle2, MapPin } from "lucide-react-native";
+import { router } from "expo-router";
+import { api } from "../services/api";
+import theme from "../theme/tokens";
+import { useAuth } from "../hooks/useAuth";
+import { fonts } from "../constants/typography";
 
 export default function PassportScreen() {
     const { user } = useAuth();
@@ -18,23 +27,23 @@ export default function PassportScreen() {
     const fetchData = async () => {
         try {
             const [buildingsRes, unlockedRes] = await Promise.all([
-                api.get('/api/buildings/'),
-                api.get('/api/buildings/unlocked/')
+                api.get("/api/buildings/"),
+                api.get("/api/buildings/unlocked/"),
             ]);
-            
+
             if (buildingsRes.data.success) {
                 setBuildings(buildingsRes.data.data);
             }
             if (unlockedRes.data.success) {
                 const unlocked = new Set(
                     unlockedRes.data.data
-                        .filter(b => b.visited !== false)
-                        .map(b => b.id)
+                        .filter((b) => b.visited !== false)
+                        .map((b) => b.id),
                 );
                 setUnlockedIds(unlocked);
             }
         } catch (error) {
-            console.error('Failed to fetch passport data:', error);
+            console.error("Failed to fetch passport data:", error);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -50,77 +59,161 @@ export default function PassportScreen() {
         fetchData();
     };
 
-    const unlockedCount = buildings.filter(b => unlockedIds.has(b.id)).length;
+    const unlockedCount = buildings.filter((b) => unlockedIds.has(b.id)).length;
     const totalCount = buildings.length;
     const progress = totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0;
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={["top"]}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.backButton}
+                >
                     <ArrowLeft size={24} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{user?.role === 'professional' ? 'Visited Buildings' : 'Building Discoveries'}</Text>
+                <Text style={styles.headerTitle}>
+                    {user?.role === "professional"
+                        ? "Visited Buildings"
+                        : "Building Discoveries"}
+                </Text>
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView 
-                contentContainerStyle={styles.scrollContent} 
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={theme.colors.primary}
+                    />
+                }
             >
                 {/* Progress Card */}
                 <View style={styles.progressCard}>
                     <View style={styles.progressHeader}>
-                        <Text style={styles.progressTitle}>{user?.role === 'professional' ? 'EVALUATION PROGRESS' : 'EXPLORATION PROGRESS'}</Text>
-                        <Text style={styles.progressCount}>{unlockedCount} / {totalCount}</Text>
+                        <Text style={styles.progressTitle}>
+                            {user?.role === "professional"
+                                ? "EVALUATION PROGRESS"
+                                : "EXPLORATION PROGRESS"}
+                        </Text>
+                        <Text style={styles.progressCount}>
+                            {unlockedCount} / {totalCount}
+                        </Text>
                     </View>
                     <View style={styles.progressBarContainer}>
-                        <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+                        <View
+                            style={[
+                                styles.progressBarFill,
+                                { width: `${progress}%` },
+                            ]}
+                        />
                     </View>
                     <Text style={styles.progressSubtext}>
-                        {unlockedCount === totalCount && totalCount > 0 
-                            ? (user?.role === 'professional' ? "All active buildings have been visited!" : "All campus locations discovered!") 
-                            : (user?.role === 'professional' ? "Visit more buildings to complete your evaluation." : "Explore the campus to collect more stamps.")}
+                        {unlockedCount === totalCount && totalCount > 0
+                            ? user?.role === "professional"
+                                ? "All active buildings have been visited!"
+                                : "All campus locations discovered!"
+                            : user?.role === "professional"
+                              ? "Visit more buildings to complete your evaluation."
+                              : "Explore the campus to collect more stamps."}
                     </Text>
                 </View>
 
                 {loading ? (
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                        <ActivityIndicator
+                            size="large"
+                            color={theme.colors.primary}
+                        />
                     </View>
                 ) : (
                     <View style={styles.grid}>
                         {buildings.map((building) => {
                             const isUnlocked = unlockedIds.has(building.id);
                             return (
-                                <View key={building.id} style={[styles.stampCard, isUnlocked ? styles.stampCardUnlocked : styles.stampCardLocked]}>
+                                <View
+                                    key={building.id}
+                                    style={[
+                                        styles.stampCard,
+                                        isUnlocked
+                                            ? styles.stampCardUnlocked
+                                            : styles.stampCardLocked,
+                                    ]}
+                                >
                                     <View style={styles.imageContainer}>
                                         {building.image_url ? (
-                                            <Image 
-                                                source={{ uri: building.image_url }} 
-                                                style={[styles.buildingImage, !isUnlocked && styles.buildingImageLocked]} 
+                                            <Image
+                                                source={{
+                                                    uri: building.image_url,
+                                                }}
+                                                style={[
+                                                    styles.buildingImage,
+                                                    !isUnlocked &&
+                                                        styles.buildingImageLocked,
+                                                ]}
                                                 resizeMode="cover"
                                             />
                                         ) : (
-                                            <View style={[styles.placeholderImage, !isUnlocked && { opacity: 0.5 }]}>
-                                                {!isUnlocked && <MapPin size={32} color={theme.colors.textMuted} />}
+                                            <View
+                                                style={[
+                                                    styles.placeholderImage,
+                                                    !isUnlocked && {
+                                                        opacity: 0.5,
+                                                    },
+                                                ]}
+                                            >
+                                                {!isUnlocked && (
+                                                    <MapPin
+                                                        size={32}
+                                                        color={
+                                                            theme.colors
+                                                                .textMuted
+                                                        }
+                                                    />
+                                                )}
                                             </View>
                                         )}
                                         {/* Stamp Overlay */}
                                         {isUnlocked && (
                                             <View style={styles.stampOverlay}>
-                                                <CheckCircle2 size={50} color={theme.colors.arHighlight} strokeWidth={3} style={styles.stampIcon} />
+                                                <CheckCircle2
+                                                    size={50}
+                                                    color={
+                                                        theme.colors.arHighlight
+                                                    }
+                                                    strokeWidth={3}
+                                                    style={styles.stampIcon}
+                                                />
                                             </View>
                                         )}
                                     </View>
                                     <View style={styles.cardFooter}>
-                                        <Text style={[styles.buildingName, !isUnlocked && { color: theme.colors.textMuted }]} numberOfLines={2}>
+                                        <Text
+                                            style={[
+                                                styles.buildingName,
+                                                !isUnlocked && {
+                                                    color: theme.colors
+                                                        .textMuted,
+                                                },
+                                            ]}
+                                            numberOfLines={2}
+                                        >
                                             {building.name}
                                         </Text>
-                                        <Text style={[styles.buildingCode, !isUnlocked && { color: theme.colors.textMuted }]}>
-                                            {building.code || 'BLDG'}
+                                        <Text
+                                            style={[
+                                                styles.buildingCode,
+                                                !isUnlocked && {
+                                                    color: theme.colors
+                                                        .textMuted,
+                                                },
+                                            ]}
+                                        >
+                                            {building.code || "BLDG"}
                                         </Text>
                                     </View>
                                 </View>
@@ -139,9 +232,9 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.bgPrimary,
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         paddingHorizontal: 20,
         paddingVertical: 15,
         backgroundColor: theme.colors.surface,
@@ -171,9 +264,9 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     progressHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
         marginBottom: 12,
     },
     progressTitle: {
@@ -191,37 +284,37 @@ const styles = StyleSheet.create({
         height: 12,
         backgroundColor: theme.colors.surface,
         borderRadius: 6,
-        overflow: 'hidden',
+        overflow: "hidden",
         borderWidth: 1,
         borderColor: theme.colors.border,
         marginBottom: 12,
     },
     progressBarFill: {
-        height: '100%',
+        height: "100%",
         backgroundColor: theme.colors.primary,
     },
     progressSubtext: {
         fontFamily: fonts.body.regular,
         color: theme.colors.textMuted,
         fontSize: 12,
-        textAlign: 'center',
+        textAlign: "center",
     },
     loadingContainer: {
         padding: 40,
-        alignItems: 'center',
+        alignItems: "center",
     },
     grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "space-between",
         gap: 16,
     },
     stampCard: {
-        width: '47%',
+        width: "47%",
         backgroundColor: theme.colors.surface,
         borderRadius: theme.radius.md,
         borderWidth: 1,
-        overflow: 'hidden',
+        overflow: "hidden",
         marginBottom: 8,
     },
     stampCardUnlocked: {
@@ -232,36 +325,36 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     imageContainer: {
-        width: '100%',
+        width: "100%",
         aspectRatio: 1,
         backgroundColor: theme.colors.surfaceSoft,
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
     },
     buildingImage: {
-        width: '100%',
-        height: '100%',
+        width: "100%",
+        height: "100%",
     },
     buildingImageLocked: {
-        tintColor: 'gray',
+        tintColor: "gray",
         opacity: 0.4,
     },
     placeholderImage: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: "100%",
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "center",
         backgroundColor: theme.colors.bgSecondary,
     },
     stampOverlay: {
         ...StyleSheet.absoluteFillObject,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.2)',
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.2)",
     },
     stampIcon: {
-        transform: [{ rotate: '-15deg' }],
+        transform: [{ rotate: "-15deg" }],
         shadowColor: theme.colors.arHighlight,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,

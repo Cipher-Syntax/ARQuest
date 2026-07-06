@@ -7,8 +7,9 @@ import {
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
-    Image } from "react-native";
-import { customAlert as Alert } from '../../components/CustomAlert';
+    Image,
+} from "react-native";
+import { customAlert as Alert } from "../../components/CustomAlert";
 import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
 import { Link, useRouter } from "expo-router";
@@ -30,11 +31,11 @@ export default function LoginScreen() {
     const handleLogin = async () => {
         const usernameError = validateString(username, 1);
         const passwordError = validateString(password, 1);
-        
+
         if (usernameError || passwordError) {
             setFieldErrors({
                 username: usernameError,
-                password: passwordError
+                password: passwordError,
             });
             return;
         }
@@ -48,20 +49,28 @@ export default function LoginScreen() {
 
             // Streak notification is now handled globally in AuthContext
 
-            if (loggedInUser && !loggedInUser.avatar_id && username !== "visitor") {
+            if (
+                loggedInUser &&
+                !loggedInUser.avatar_id &&
+                username !== "visitor"
+            ) {
                 router.replace("/(auth)/avatar-selection");
             } else {
                 router.replace("/(tabs)");
             }
         } catch (err) {
             console.log("Login error:", err);
-            let serverMessage = err?.data?.error || err?.data?.message || err?.data?.detail;
-            
+            let serverMessage =
+                err?.data?.error || err?.data?.message || err?.data?.detail;
+
             // If the server error is an object (e.g., {"code": "...", "message": "..."}), extract the message
-            if (typeof serverMessage === 'object' && serverMessage !== null) {
-                serverMessage = serverMessage.message || serverMessage.detail || JSON.stringify(serverMessage);
+            if (typeof serverMessage === "object" && serverMessage !== null) {
+                serverMessage =
+                    serverMessage.message ||
+                    serverMessage.detail ||
+                    JSON.stringify(serverMessage);
             }
-            
+
             setError(serverMessage || "Access denied. Invalid credentials.");
         }
     };
@@ -83,7 +92,9 @@ export default function LoginScreen() {
 
                 <View style={styles.header}>
                     <Text style={styles.title}>ARQuest</Text>
-                    <Text style={styles.subtitle}>Campus Exploration System</Text>
+                    <Text style={styles.subtitle}>
+                        Campus Exploration System
+                    </Text>
                 </View>
 
                 <ARGlassCard style={styles.card}>
@@ -92,22 +103,44 @@ export default function LoginScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Username</Text>
                         <TextInput
-                            style={[styles.input, fieldErrors.username && { borderColor: 'red' }]}
+                            style={[
+                                styles.input,
+                                fieldErrors.username && { borderColor: "red" },
+                            ]}
                             placeholder="Username"
                             placeholderTextColor={theme.colors.textMuted}
                             value={username}
                             onChangeText={(text) => {
                                 setUsername(text);
-                                if (fieldErrors.username) setFieldErrors(prev => ({ ...prev, username: null }));
+                                if (fieldErrors.username)
+                                    setFieldErrors((prev) => ({
+                                        ...prev,
+                                        username: null,
+                                    }));
                             }}
                             autoCapitalize="none"
                         />
-                        {fieldErrors.username && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.username}</Text>}
+                        {fieldErrors.username && (
+                            <Text
+                                style={{
+                                    color: "red",
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                }}
+                            >
+                                {fieldErrors.username}
+                            </Text>
+                        )}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Password</Text>
-                        <View style={[styles.passwordContainer, fieldErrors.password && { borderColor: 'red' }]}>
+                        <View
+                            style={[
+                                styles.passwordContainer,
+                                fieldErrors.password && { borderColor: "red" },
+                            ]}
+                        >
                             <TextInput
                                 style={styles.passwordInput}
                                 placeholder="••••••••"
@@ -115,7 +148,11 @@ export default function LoginScreen() {
                                 value={password}
                                 onChangeText={(text) => {
                                     setPassword(text);
-                                    if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: null }));
+                                    if (fieldErrors.password)
+                                        setFieldErrors((prev) => ({
+                                            ...prev,
+                                            password: null,
+                                        }));
                                 }}
                                 secureTextEntry={!showPassword}
                             />
@@ -124,13 +161,29 @@ export default function LoginScreen() {
                                 onPress={() => setShowPassword(!showPassword)}
                             >
                                 {showPassword ? (
-                                    <EyeOff color={theme.colors.primary} size={20} />
+                                    <EyeOff
+                                        color={theme.colors.primary}
+                                        size={20}
+                                    />
                                 ) : (
-                                    <Eye color={theme.colors.textMuted} size={20} />
+                                    <Eye
+                                        color={theme.colors.textMuted}
+                                        size={20}
+                                    />
                                 )}
                             </TouchableOpacity>
                         </View>
-                        {fieldErrors.password && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.password}</Text>}
+                        {fieldErrors.password && (
+                            <Text
+                                style={{
+                                    color: "red",
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                }}
+                            >
+                                {fieldErrors.password}
+                            </Text>
+                        )}
                     </View>
 
                     <ARButton
@@ -149,7 +202,7 @@ export default function LoginScreen() {
                         </TouchableOpacity>
                     </Link>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.visitorButton}
                         onPress={async () => {
                             try {
@@ -162,7 +215,9 @@ export default function LoginScreen() {
                         }}
                         disabled={isLoading}
                     >
-                        <Text style={styles.visitorText}>Continue as Visitor (Guest Access)</Text>
+                        <Text style={styles.visitorText}>
+                            Continue as Visitor (Guest Access)
+                        </Text>
                     </TouchableOpacity>
                 </ARGlassCard>
             </View>
@@ -173,9 +228,9 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        },
+    },
     glowOrbTop: {
-        position: 'absolute',
+        position: "absolute",
         top: -100,
         left: -100,
         width: 300,
@@ -185,19 +240,21 @@ const styles = StyleSheet.create({
         opacity: 0.3, // Make more vibrant
     },
     glowOrbBottom: {
-        position: 'absolute',
+        position: "absolute",
         bottom: -150,
         right: -100,
         width: 400,
         height: 400,
         borderRadius: 200,
         backgroundcolor: "#FFFFFF", // Also Red
-        opacity: 0.3 },
+        opacity: 0.3,
+    },
     content: {
         flex: 1,
         justifyContent: "center",
         padding: theme.spacing.lg,
-        zIndex: 1 },
+        zIndex: 1,
+    },
     logoBox: {
         width: 100,
         height: 100,
@@ -209,16 +266,19 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: theme.spacing.lg },
+        marginBottom: theme.spacing.lg,
+    },
     logoText: {
         color: "rgba(255,255,255,0.6)",
         fontSize: theme.typography.sm,
         fontWeight: "bold",
         textTransform: "uppercase",
-        textAlign: "center" },
+        textAlign: "center",
+    },
     header: {
         alignItems: "center",
-        marginBottom: theme.spacing.xl },
+        marginBottom: theme.spacing.xl,
+    },
     title: {
         fontFamily: fonts.heading.bold,
         color: "#FFFFFF",
@@ -226,24 +286,29 @@ const styles = StyleSheet.create({
         fontWeight: "900",
         letterSpacing: 2,
         textTransform: "uppercase",
-        marginBottom: 4 },
+        marginBottom: 4,
+    },
     subtitle: {
         color: "#DDDDDD",
         fontSize: theme.typography.sm,
         fontWeight: "600",
         letterSpacing: 3,
-        textTransform: "uppercase" },
+        textTransform: "uppercase",
+    },
     card: {
-        paddingTop: theme.spacing.xl },
+        paddingTop: theme.spacing.xl,
+    },
     inputGroup: {
-        marginBottom: theme.spacing.lg },
+        marginBottom: theme.spacing.lg,
+    },
     inputLabel: {
         color: "rgba(255,255,255,0.6)",
         fontSize: 10,
         fontWeight: "bold",
         textTransform: "uppercase",
         letterSpacing: 1,
-        marginBottom: 8 },
+        marginBottom: 8,
+    },
     input: {
         fontFamily: fonts.body.regular,
         backgroundColor: "rgba(255,255,255,0.05)",
@@ -252,24 +317,29 @@ const styles = StyleSheet.create({
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        fontSize: theme.typography.md },
+        fontSize: theme.typography.md,
+    },
     passwordContainer: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "rgba(255,255,255,0.05)",
         borderRadius: theme.radius.md,
         borderWidth: 1,
-        borderColor: theme.colors.border },
+        borderColor: theme.colors.border,
+    },
     passwordInput: {
         fontFamily: fonts.body.regular,
         flex: 1,
         color: "#FFFFFF",
         padding: theme.spacing.md,
-        fontSize: theme.typography.md },
+        fontSize: theme.typography.md,
+    },
     eyeIcon: {
-        padding: theme.spacing.md },
+        padding: theme.spacing.md,
+    },
     loginButton: {
-        marginTop: theme.spacing.sm },
+        marginTop: theme.spacing.sm,
+    },
     error: {
         color: theme.colors.error,
         marginBottom: theme.spacing.md,
@@ -278,24 +348,26 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         backgroundColor: "rgba(239, 68, 68, 0.1)",
         padding: 10,
-        borderRadius: theme.radius.sm },
+        borderRadius: theme.radius.sm,
+    },
     registerLink: {
         marginTop: theme.spacing.lg,
-        alignItems: "center" },
+        alignItems: "center",
+    },
     registerText: {
         color: "#FFFFFF",
         fontSize: theme.typography.sm,
         fontWeight: "600",
-        opacity: 0.8 },
+        opacity: 0.8,
+    },
     visitorButton: {
         marginTop: theme.spacing.md,
-        alignItems: "center" },
+        alignItems: "center",
+    },
     visitorText: {
         color: "rgba(255,255,255,0.6)",
         fontSize: theme.typography.sm,
         fontWeight: "500",
-        textDecorationLine: "underline" } });
-
-
-
-
+        textDecorationLine: "underline",
+    },
+});

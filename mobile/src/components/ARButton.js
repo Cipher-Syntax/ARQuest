@@ -1,32 +1,48 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import theme from '../theme/tokens';
-import { fonts } from '../constants/typography';
+import React from "react";
+import {
+    TouchableOpacity,
+    Text,
+    StyleSheet,
+    ActivityIndicator,
+} from "react-native";
+import theme from "../theme/tokens";
+import { fonts } from "../constants/typography";
 
-export default function ARButton({ title, onPress, disabled, isLoading, variant = 'primary', style }) {
-    const isAccent = variant === 'accent';
-    const isOutline = variant === 'outline';
-    
+export default function ARButton({
+    title,
+    onPress,
+    disabled,
+    isLoading,
+    variant = "primary",
+    style,
+}) {
+    const isAccent = variant === "accent";
+    const isOutline = variant === "outline";
+
     return (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={[
-                styles.button, 
+                styles.button,
                 isAccent && styles.buttonAccent,
                 isOutline && styles.buttonOutline,
                 disabled && styles.buttonDisabled,
-                style
-            ]} 
+                style,
+            ]}
             onPress={onPress}
             disabled={disabled || isLoading}
         >
             {isLoading ? (
-                <ActivityIndicator color={isOutline ? theme.colors.primary : "#451A03"} />
+                <ActivityIndicator
+                    color={isOutline ? theme.colors.primary : "#451A03"}
+                />
             ) : (
-                <Text style={[
-                    styles.text, 
-                    isAccent && styles.textAccent,
-                    isOutline && styles.textOutline
-                ]}>
+                <Text
+                    style={[
+                        styles.text,
+                        isAccent && styles.textAccent,
+                        isOutline && styles.textOutline,
+                    ]}
+                >
                     {title}
                 </Text>
             )}
@@ -69,5 +85,5 @@ const styles = StyleSheet.create({
     textOutline: {
         color: theme.colors.textSecondary,
         textTransform: "none",
-    }
+    },
 });

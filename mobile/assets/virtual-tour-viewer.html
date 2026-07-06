@@ -1,554 +1,823 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
-	<style>
-		body { margin: 0; overflow: hidden; background: #000000; }
-		#canvas { width: 100%; height: 100%; display: block; }
-		#loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00E5FF; font-weight: bold; font-family: system-ui; letter-spacing: 2px; }
-		#joystick-zone { position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(0, 229, 255, 0.3); pointer-events: none; }
-		#instructions { position: absolute; bottom: 20px; right: 20px; text-align: right; color: rgba(255,255,255,0.7); font-family: system-ui; font-size: 12px; pointer-events: none; }
-		#ghost-btn { position: absolute; top: 80px; right: 20px; background: rgba(0, 229, 255, 0.2); color: #00E5FF; border: 1px solid #00E5FF; padding: 8px 12px; border-radius: 8px; font-family: system-ui; font-weight: bold; z-index: 100; }
-		#camera-zone { position: absolute; top: 0; right: 0; width: 50%; height: 100%; z-index: 10; }
-		#crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: rgba(255,255,255,0.8); border-radius: 50%; transform: translate(-50%, -50%); z-index: 50; pointer-events: none; }
-		#info-panel {
-			position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-			background: rgba(0, 0, 0, 0.85); border: 2px solid #00E5FF;
-			color: white; padding: 20px; border-radius: 12px;
-			width: 300px; text-align: center; font-family: system-ui;
-			z-index: 200; display: none;
-		}
-		#info-panel h2 { margin-top: 0; color: #00E5FF; }
-		#info-close {
-			margin-top: 15px; padding: 10px 20px; background: #00E5FF;
-			color: black; font-weight: bold; border: none; border-radius: 6px; width: 100%;
-		}
-
-		/* ── Gyroscope mode indicator pill ─────────────────────── */
-		#gyro-indicator {
-			position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-			background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.6);
-			color: #2ECC71; font-family: system-ui; font-size: 11px; font-weight: bold;
-			letter-spacing: 2px; padding: 5px 14px; border-radius: 20px;
-			z-index: 200; display: none; pointer-events: none; white-space: nowrap;
-		}
-
-		/* ── Gyroscope permission banner (iOS 13+ needs user gesture) ── */
-		#gyro-permission-banner {
-			position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-			background: rgba(0,0,0,0.92); border: 2px solid #2ECC71;
-			color: white; padding: 24px 20px; border-radius: 14px;
-			width: 280px; text-align: center; font-family: system-ui;
-			z-index: 500; display: none;
-		}
-		#gyro-permission-banner h3 { margin: 0 0 10px; color: #2ECC71; font-size: 15px; letter-spacing: 1px; }
-		#gyro-permission-banner p { margin: 0 0 16px; color: rgba(255,255,255,0.75); font-size: 13px; line-height: 1.5; }
-		#gyro-allow-btn {
-			width: 100%; padding: 12px; background: #2ECC71;
-			color: black; font-weight: bold; border: none; border-radius: 8px; font-size: 14px;
-			cursor: pointer;
-		}
-	</style>
-	<!-- Include nipplejs for Joystick -->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
-</head>
-<body>
-	<div id="loading">INITIALIZING...</div>
-	<div id="instructions">Drag right side to look<br>Use joystick to move</div>
-	<div id="joystick-zone"></div>
-	<div id="camera-zone"></div>
-	<button id="ghost-btn" onclick="toggleGhostMode()">PHYSICS: ON</button>
-	<div id="crosshair"></div>
-
-	<!-- Gyroscope mode indicator -->
-	<div id="gyro-indicator">⬡ GYROSCOPE ACTIVE</div>
-
-	<!-- Gyroscope permission banner (iOS 13+ DeviceOrientationEvent.requestPermission) -->
-	<div id="gyro-permission-banner">
-		<h3>GYROSCOPE ACCESS</h3>
-		<p>This mode uses your phone's built-in gyroscope to look around. Please allow sensor access.</p>
-		<button id="gyro-allow-btn" onclick="requestGyroPermission()">ALLOW GYROSCOPE</button>
-	</div>
-
-	<div id="info-panel">
-		<h2 id="info-title">Title</h2>
-		<p id="info-desc">Description</p>
-		<button id="info-close" onclick="closeInfoPanel()">CLOSE</button>
-	</div>
-
-	<canvas id="canvas"></canvas>
-
-	<script type="importmap">
-	{
-		"imports": {
-			"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-			"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-		}
-	}
-	</script>
-	<script type="module">
-		import * as THREE from 'three';
-		import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-		let scene, camera, renderer, controls, model;
-		let moveForward = 0;
-		let moveRight = 0;
-		let joystickManager;
-		let ghostMode = false;
-		const MOVE_SPEED = 0.05;
-		const COLLISION_DISTANCE = 0.3;
-		const raycaster = new THREE.Raycaster();
-		const centerRaycaster = new THREE.Raycaster();
-		const downVector = new THREE.Vector3(0, -1, 0);
-		let worldBounds;
-
-		let hotspots = [];
-		const tapRaycaster = new THREE.Raycaster();
-		const mouse = new THREE.Vector2();
-
-		// ── Gyroscope state (Native Bridge — expo-sensors → postMessage) ──
-		// Android WebView does NOT fire deviceorientation events.
-		// Instead, React Native reads DeviceMotion natively and posts
-		// gyro_data messages to us at 60fps. We apply the standard
-		// Three.js DeviceOrientationControls math to those values.
-		let controlMode = 'joystick'; // 'joystick' | 'gyroscope'
-		let gyroEnabled = false;
-
-		// Three.js DeviceOrientationControls constants
-		// q1: -90° around X — flips "looking at floor" → "looking forward"
-		const _zee = new THREE.Vector3(0, 0, 1);
-		const _eu  = new THREE.Euler();
-		const _q0  = new THREE.Quaternion();
-		const _q1  = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
-
-		const _latestDeviceQuat  = new THREE.Quaternion();
-		const _targetCamQuat     = new THREE.Quaternion();
-		let   _yawOffsetQuat     = null;
-		let   _gyroDataReceived  = false; // guard — don't apply until first packet
-
-
-		// Called every time a gyro_data message arrives from React Native
-		// orientAngleDeg is sent by RN (reliable) — 0=portrait, 90=landscape-right, 270=landscape-left
-		function onGyroData(alphaDeg, betaDeg, gammaDeg, orientAngleDeg) {
-			if (!gyroEnabled) return;
-
-			const alpha  = THREE.MathUtils.degToRad(alphaDeg);
-			const beta   = THREE.MathUtils.degToRad(betaDeg);
-			const gamma  = THREE.MathUtils.degToRad(gammaDeg);
-			// Use orient from React Native — window.screen.orientation.angle is always 0 in Android WebViews
-			const orient = THREE.MathUtils.degToRad(orientAngleDeg || 90);
-
-			// Standard Three.js DeviceOrientationControls algorithm
-			// Ref: https://github.com/mrdoob/three.js/blob/dev/examples/jsm/controls/DeviceOrientationControls.js
-			_eu.set(beta, alpha, -gamma, 'YXZ');
-			_latestDeviceQuat.setFromEuler(_eu);
-			_latestDeviceQuat.multiply(_q1);                                      // correct "looking at floor"
-			_latestDeviceQuat.multiply(_q0.setFromAxisAngle(_zee, -orient));      // correct for landscape
-
-			// Calibrate YAW only on first reading so the camera starts looking where the joystick left off
-			// (We don't calibrate pitch/roll so the horizon stays level regardless of start orientation)
-			if (!_yawOffsetQuat && camera) {
-				const vCam = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-				const vDev = new THREE.Vector3(0, 0, -1).applyQuaternion(_latestDeviceQuat);
-				vCam.y = 0;
-				if (vCam.lengthSq() > 0.001) vCam.normalize(); else vCam.set(0, 0, -1);
-				vDev.y = 0;
-				if (vDev.lengthSq() > 0.001) vDev.normalize(); else vDev.set(0, 0, -1);
-				
-				const angle = Math.atan2(vCam.x, vCam.z) - Math.atan2(vDev.x, vDev.z);
-				_yawOffsetQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
-			}
-
-			_gyroDataReceived = true;
-		}
-
-		function startGyroscope() {
-			gyroEnabled = true;
-			document.getElementById('gyro-indicator').style.display = 'block';
-			document.getElementById('camera-zone').style.pointerEvents = 'none';
-			document.getElementById('instructions').textContent = 'Tilt & rotate phone to look \u00b7 Joystick to move';
-			if (controls) controls.enabled = false;
-			// Reset calibration so it grabs a fresh heading if toggled off and on
-			_yawOffsetQuat = null;
-			_gyroDataReceived = false;
-		}
-
-		function applyGyroToCamera() {
-			if (!gyroEnabled || !camera || !_yawOffsetQuat || !_gyroDataReceived) return;
-
-			// Apply the yaw offset to the absolute device orientation
-			_targetCamQuat.multiplyQuaternions(_yawOffsetQuat, _latestDeviceQuat);
-
-			// Smooth interpolation
-			camera.quaternion.slerp(_targetCamQuat, 0.25);
-
-			// Sync OrbitControls target so joystick movement direction stays correct
-			if (model) {
-				const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-				controls.target.copy(camera.position).addScaledVector(dir, 0.5);
-			}
-		}
-
-		// ── Panel helpers ──────────────────────────────────────────────
-		window.closeInfoPanel = () => {
-			document.getElementById('info-panel').style.display = 'none';
-		};
-
-		window.toggleGhostMode = () => {
-			ghostMode = !ghostMode;
-			document.getElementById('ghost-btn').textContent = ghostMode ? 'PHYSICS: OFF (GHOST)' : 'PHYSICS: ON';
-			document.getElementById('ghost-btn').style.background = ghostMode ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 229, 255, 0.2)';
-			document.getElementById('ghost-btn').style.color = ghostMode ? '#FF4444' : '#00E5FF';
-			document.getElementById('ghost-btn').style.borderColor = ghostMode ? '#FF4444' : '#00E5FF';
-		};
-
-		// Allow tapping anywhere on the canvas / camera-zone to interact with hotspots/doors
-		document.addEventListener('pointerup', (e) => {
-			if (e.target.id === 'canvas' || e.target.id === 'camera-zone') {
-				mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-				mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-				tapRaycaster.setFromCamera(mouse, camera);
-				const intersects = tapRaycaster.intersectObjects(hotspots, true);
-
-				if (intersects.length > 0) {
-					let hit = intersects[0].object;
-					// If hit the core sphere, get the parent marker
-					if (!hit.userData.title && hit.parent && hit.parent.userData.title) {
-						hit = hit.parent;
-					}
-					if (hit.userData.title) {
-						document.getElementById('info-title').textContent = hit.userData.title;
-						document.getElementById('info-desc').textContent = hit.userData.desc;
-						document.getElementById('info-panel').style.display = 'block';
-					}
-				}
-			}
-		});
-
-		// ── Scene Initialization ───────────────────────────────────────
-		function init(modelUrl, mode) {
-			controlMode = mode || 'joystick';
-
-			scene = new THREE.Scene();
-			scene.background = new THREE.Color(0x87ceeb); // Sky color
-
-			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-			renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
-			renderer.setSize(window.innerWidth, window.innerHeight);
-			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-			const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-			scene.add(ambientLight);
-
-			const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-			directionalLight.position.set(5, 10, 7.5);
-			scene.add(directionalLight);
-
-			// First-person look controls bound ONLY to the right half of the screen
-			controls = new OrbitControls(camera, document.getElementById('camera-zone'));
-			controls.enableDamping = true;
-			controls.dampingFactor = 0.05;
-			controls.enableZoom = false;
-			controls.enablePan = false;
-
-			initJoystick();
-			loadModel(modelUrl);
-			animate();
-
-			// Activate the selected control mode AFTER scene is initialised
-			// Data arrives via postMessage from React Native (expo-sensors) —
-			// no browser permission prompt needed at all.
-			if (controlMode === 'gyroscope') {
-				startGyroscope();
-			}
-
-			window.addEventListener('resize', onWindowResize);
-		}
-
-		// ── Joystick ───────────────────────────────────────────────────
-		function initJoystick() {
-			const zone = document.getElementById('joystick-zone');
-			zone.style.pointerEvents = 'auto';
-
-			joystickManager = nipplejs.create({
-				zone: zone,
-				mode: 'static',
-				position: { left: '50%', top: '50%' },
-				color: '#00E5FF',
-				size: 100
-			});
-
-			joystickManager.on('move', (evt, data) => {
-				const angle = data.angle.radian;
-				const force = Math.min(data.force, 1);
-				// Nipplejs angles: 0=right, PI/2=up
-				moveForward = Math.sin(angle) * force * MOVE_SPEED;
-				moveRight   = Math.cos(angle) * force * MOVE_SPEED;
-			});
-
-			joystickManager.on('end', () => {
-				moveForward = 0;
-				moveRight   = 0;
-			});
-		}
-
-		// ── Model Loading ──────────────────────────────────────────────
-		function loadModel(url) {
-			console.log('Starting to load interior model from:', url);
-			const loader = new GLTFLoader();
-			loader.load(
-				url,
-				(gltf) => {
-					console.log('Model loaded successfully');
-					model = gltf.scene;
-					scene.add(model);
-
-					// Calculate bounding box to place camera
-					const box = new THREE.Box3().setFromObject(model);
-					const center = box.getCenter(new THREE.Vector3());
-					const size   = box.getSize(new THREE.Vector3());
-
-					worldBounds = box.clone();
-					worldBounds.min.y -= 10;
-					worldBounds.max.y += 10;
-
-					// Spawn near the edge INSIDE the model's bounds at eye height
-					const startX = center.x;
-					const startY = box.min.y + 1.6;
-					const startZ = box.max.z - 2.0;
-
-					camera.position.set(startX, startY, startZ);
-					controls.target.set(startX, startY, startZ - 0.01);
-					controls.update();
-
-					// ── Create Interactive Hotspots ──────────────────────
-					const createHotspot = (x, y, z, title, desc, color) => {
-						const geometry = new THREE.SphereGeometry(0.2, 16, 16);
-						const material = new THREE.MeshBasicMaterial({
-							color: color,
-							wireframe: true,
-							depthTest: false,
-							transparent: true,
-							opacity: 0.8
-						});
-						const sphere = new THREE.Mesh(geometry, material);
-						sphere.position.set(x, y, z);
-						sphere.renderOrder = 999;
-						sphere.userData = { title, desc };
-
-						const coreGeom = new THREE.SphereGeometry(0.1, 16, 16);
-						const coreMat  = new THREE.MeshBasicMaterial({
-							color: 0xffffff,
-							depthTest: false,
-							transparent: true,
-							opacity: 0.9
-						});
-						const core = new THREE.Mesh(coreGeom, coreMat);
-						core.renderOrder = 1000;
-						sphere.add(core);
-
-						scene.add(sphere);
-						hotspots.push(sphere);
-					};
-
-					// Load Dynamic Hotspots from the Database
-					if (window.buildingHotspots && window.buildingHotspots.length > 0) {
-						window.buildingHotspots.forEach(h => {
-							createHotspot(h.x, h.y, h.z, h.title, h.desc || '', 0x00E5FF);
-						});
-					}
-
-					document.getElementById('loading').style.display = 'none';
-					window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'loaded' }));
-				},
-				(progress) => {
-					if (progress.total > 0) {
-						const percent = Math.round((progress.loaded / progress.total) * 100);
-						const mb = (progress.loaded / 1048576).toFixed(1);
-						document.getElementById('loading').textContent = `LOADING ${percent}% (${mb}MB)`;
-						window.ReactNativeWebView?.postMessage(JSON.stringify({
-							type: 'progress',
-							percent: percent
-						}));
-					}
-				},
-				(error) => {
-					console.error('Model loading error:', error);
-					document.getElementById('loading').textContent = 'LOAD ERROR';
-					window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'error', message: error.message || 'Unknown error' }));
-				}
-			);
-		}
-
-		// ── Animation Loop ─────────────────────────────────────────────
-		const velocity  = new THREE.Vector3();
-		const direction = new THREE.Vector3();
-
-		function animate() {
-			requestAnimationFrame(animate);
-
-			if (model) {
-				// Apply gyroscope camera rotation FIRST (before movement processing)
-				if (controlMode === 'gyroscope') {
-					applyGyroToCamera();
-				}
-
-				// In joystick mode: save the look-target offset so movement doesn't break the angle
-				const targetOffset = (controlMode !== 'gyroscope')
-					? controls.target.clone().sub(camera.position)
-					: null;
-
-				// Animate hotspot markers
-				const time = Date.now() * 0.003;
-				hotspots.forEach(h => {
-					h.rotation.y += 0.02;
-					h.rotation.x += 0.01;
-					h.position.y += Math.sin(time + h.position.x) * 0.002;
-				});
-
-				// Downward Raycast for Floor Height (Stairs / Gravity)
-				const origin = camera.position.clone();
-				origin.y += 1.0; // Cast from slightly above eye level to detect stairs
-				raycaster.set(origin, downVector);
-				const floorHits = raycaster.intersectObject(model, true);
-
-				if (floorHits.length > 0) {
-					const floorY = floorHits[0].point.y;
-					if (Math.abs(camera.position.y - (floorY + 1.6)) < 2.0) {
-						camera.position.y += (floorY + 1.6 - camera.position.y) * 0.1;
-					}
-				}
-
-				// Movement (joystick input — works in both modes)
-				if (moveForward !== 0 || moveRight !== 0) {
-					const forwardVector = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-					forwardVector.y = 0;
-					forwardVector.normalize();
-
-					const rightVector = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-					rightVector.y = 0;
-					rightVector.normalize();
-
-					let transX = (forwardVector.x * moveForward) + (rightVector.x * moveRight);
-					let transZ = (forwardVector.z * moveForward) + (rightVector.z * moveRight);
-
-					// Horizontal wall collision raycasts
-					const moveVector = new THREE.Vector3(transX, 0, transZ);
-					if (moveVector.lengthSq() > 0) {
-						const moveDir = moveVector.clone().normalize();
-
-						const isSolid = (hit) => {
-							let obj = hit.object;
-							while (obj) {
-								if (obj.userData.isOpen) return false;
-								obj = obj.parent;
-							}
-							return true;
-						};
-
-						// Eye-level check
-						raycaster.set(camera.position, moveDir);
-						const eyeHits = raycaster.intersectObject(model, true).filter(isSolid);
-
-						// Knee-level check
-						const kneeOrigin = camera.position.clone();
-						kneeOrigin.y -= 1.1;
-						raycaster.set(kneeOrigin, moveDir);
-						const kneeHits = raycaster.intersectObject(model, true).filter(isSolid);
-
-						const eyeDist  = eyeHits.length  > 0 ? eyeHits[0].distance  : Infinity;
-						const kneeDist = kneeHits.length > 0 ? kneeHits[0].distance : Infinity;
-
-						if (!ghostMode && Math.min(eyeDist, kneeDist) < COLLISION_DISTANCE) {
-							transX = 0;
-							transZ = 0;
-						}
-					}
-
-					camera.position.x += transX;
-					camera.position.z += transZ;
-
-					if (worldBounds) {
-						camera.position.clamp(worldBounds.min, worldBounds.max);
-					}
-				}
-
-				// In joystick mode: reapply look angle after position move
-				if (controlMode !== 'gyroscope' && targetOffset) {
-					controls.target.copy(camera.position).add(targetOffset);
-				}
-			}
-
-			// Only call OrbitControls.update() in joystick mode —
-			// in gyro mode it would overwrite the quaternion we just set
-			if (controlMode !== 'gyroscope') {
-				controls.update();
-			}
-			renderer.render(scene, camera);
-		}
-
-		function onWindowResize() {
-			camera.aspect = window.innerWidth / window.innerHeight;
-			camera.updateProjectionMatrix();
-			renderer.setSize(window.innerWidth, window.innerHeight);
-		}
-
-		// ── Dispose / Cleanup ──────────────────────────────────────────
-		function dispose() {
-			window.removeEventListener('resize', onWindowResize);
-			// Gyro data came from RN postMessage — no DOM listener to remove
-			gyroEnabled = false;
-			if (model) {
-				scene.remove(model);
-				model.traverse((child) => {
-					if (child.geometry) child.geometry.dispose();
-					if (child.material) {
-						if (Array.isArray(child.material)) {
-							child.material.forEach(m => m.dispose());
-						} else {
-							child.material.dispose();
-						}
-					}
-				});
-			}
-			renderer.dispose();
-			controls.dispose();
-		}
-
-		// ── Message Handlers (window + document for Android WebView) ──
-		function handleIncomingMessage(data) {
-			if (data.type === 'init') {
-				window.buildingHotspots = data.hotspots || [];
-				init(data.modelUrl, data.controlMode || 'joystick');
-			} else if (data.type === 'gyro_data') {
-				// Native sensor data bridged from React Native expo-sensors DeviceMotion
-				onGyroData(data.alpha, data.beta, data.gamma, data.orientAngle);
-			} else if (data.type === 'dispose') {
-				dispose();
-			}
-		}
-
-		window.addEventListener('message', (event) => {
-			try {
-				const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-				handleIncomingMessage(data);
-			} catch (e) {
-				console.error('Message parse error:', e);
-			}
-		});
-
-		document.addEventListener('message', (event) => {
-			try {
-				const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-				handleIncomingMessage(data);
-			} catch (e) {
-				console.error('Message parse error:', e);
-			}
-		});
-	</script>
-</body>
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape"
+        />
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #000000;
+            }
+            #canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+            #loading {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #00e5ff;
+                font-weight: bold;
+                font-family: system-ui;
+                letter-spacing: 2px;
+            }
+            #joystick-zone {
+                position: absolute;
+                bottom: 20px;
+                left: 20px;
+                width: 120px;
+                height: 120px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                border: 2px solid rgba(0, 229, 255, 0.3);
+                pointer-events: none;
+            }
+            #instructions {
+                position: absolute;
+                bottom: 20px;
+                right: 20px;
+                text-align: right;
+                color: rgba(255, 255, 255, 0.7);
+                font-family: system-ui;
+                font-size: 12px;
+                pointer-events: none;
+            }
+            #ghost-btn {
+                position: absolute;
+                top: 80px;
+                right: 20px;
+                background: rgba(0, 229, 255, 0.2);
+                color: #00e5ff;
+                border: 1px solid #00e5ff;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-family: system-ui;
+                font-weight: bold;
+                z-index: 100;
+            }
+            #camera-zone {
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 50%;
+                height: 100%;
+                z-index: 10;
+            }
+            #crosshair {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 6px;
+                height: 6px;
+                background: rgba(255, 255, 255, 0.8);
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 50;
+                pointer-events: none;
+            }
+            #info-panel {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.85);
+                border: 2px solid #00e5ff;
+                color: white;
+                padding: 20px;
+                border-radius: 12px;
+                width: 300px;
+                text-align: center;
+                font-family: system-ui;
+                z-index: 200;
+                display: none;
+            }
+            #info-panel h2 {
+                margin-top: 0;
+                color: #00e5ff;
+            }
+            #info-close {
+                margin-top: 15px;
+                padding: 10px 20px;
+                background: #00e5ff;
+                color: black;
+                font-weight: bold;
+                border: none;
+                border-radius: 6px;
+                width: 100%;
+            }
+
+            /* ── Gyroscope mode indicator pill ─────────────────────── */
+            #gyro-indicator {
+                position: absolute;
+                top: 16px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(46, 204, 113, 0.15);
+                border: 1px solid rgba(46, 204, 113, 0.6);
+                color: #2ecc71;
+                font-family: system-ui;
+                font-size: 11px;
+                font-weight: bold;
+                letter-spacing: 2px;
+                padding: 5px 14px;
+                border-radius: 20px;
+                z-index: 200;
+                display: none;
+                pointer-events: none;
+                white-space: nowrap;
+            }
+
+            /* ── Gyroscope permission banner (iOS 13+ needs user gesture) ── */
+            #gyro-permission-banner {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.92);
+                border: 2px solid #2ecc71;
+                color: white;
+                padding: 24px 20px;
+                border-radius: 14px;
+                width: 280px;
+                text-align: center;
+                font-family: system-ui;
+                z-index: 500;
+                display: none;
+            }
+            #gyro-permission-banner h3 {
+                margin: 0 0 10px;
+                color: #2ecc71;
+                font-size: 15px;
+                letter-spacing: 1px;
+            }
+            #gyro-permission-banner p {
+                margin: 0 0 16px;
+                color: rgba(255, 255, 255, 0.75);
+                font-size: 13px;
+                line-height: 1.5;
+            }
+            #gyro-allow-btn {
+                width: 100%;
+                padding: 12px;
+                background: #2ecc71;
+                color: black;
+                font-weight: bold;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                cursor: pointer;
+            }
+        </style>
+        <!-- Include nipplejs for Joystick -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
+    </head>
+    <body>
+        <div id="loading">INITIALIZING...</div>
+        <div id="instructions">
+            Drag right side to look<br />Use joystick to move
+        </div>
+        <div id="joystick-zone"></div>
+        <div id="camera-zone"></div>
+        <button id="ghost-btn" onclick="toggleGhostMode()">PHYSICS: ON</button>
+        <div id="crosshair"></div>
+
+        <!-- Gyroscope mode indicator -->
+        <div id="gyro-indicator">⬡ GYROSCOPE ACTIVE</div>
+
+        <!-- Gyroscope permission banner (iOS 13+ DeviceOrientationEvent.requestPermission) -->
+        <div id="gyro-permission-banner">
+            <h3>GYROSCOPE ACCESS</h3>
+            <p>
+                This mode uses your phone's built-in gyroscope to look around.
+                Please allow sensor access.
+            </p>
+            <button id="gyro-allow-btn" onclick="requestGyroPermission()">
+                ALLOW GYROSCOPE
+            </button>
+        </div>
+
+        <div id="info-panel">
+            <h2 id="info-title">Title</h2>
+            <p id="info-desc">Description</p>
+            <button id="info-close" onclick="closeInfoPanel()">CLOSE</button>
+        </div>
+
+        <canvas id="canvas"></canvas>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+                }
+            }
+        </script>
+        <script type="module">
+            import * as THREE from "three";
+            import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+            import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+            let scene, camera, renderer, controls, model;
+            let moveForward = 0;
+            let moveRight = 0;
+            let joystickManager;
+            let ghostMode = false;
+            const MOVE_SPEED = 0.05;
+            const COLLISION_DISTANCE = 0.3;
+            const raycaster = new THREE.Raycaster();
+            const centerRaycaster = new THREE.Raycaster();
+            const downVector = new THREE.Vector3(0, -1, 0);
+            let worldBounds;
+
+            let hotspots = [];
+            const tapRaycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+
+            // ── Gyroscope state (Native Bridge — expo-sensors → postMessage) ──
+            // Android WebView does NOT fire deviceorientation events.
+            // Instead, React Native reads DeviceMotion natively and posts
+            // gyro_data messages to us at 60fps. We apply the standard
+            // Three.js DeviceOrientationControls math to those values.
+            let controlMode = "joystick"; // 'joystick' | 'gyroscope'
+            let gyroEnabled = false;
+
+            // Three.js DeviceOrientationControls constants
+            // q1: -90° around X — flips "looking at floor" → "looking forward"
+            const _zee = new THREE.Vector3(0, 0, 1);
+            const _eu = new THREE.Euler();
+            const _q0 = new THREE.Quaternion();
+            const _q1 = new THREE.Quaternion(
+                -Math.sqrt(0.5),
+                0,
+                0,
+                Math.sqrt(0.5),
+            );
+
+            const _latestDeviceQuat = new THREE.Quaternion();
+            const _targetCamQuat = new THREE.Quaternion();
+            let _yawOffsetQuat = null;
+            let _gyroDataReceived = false; // guard — don't apply until first packet
+
+            // Called every time a gyro_data message arrives from React Native
+            // orientAngleDeg is sent by RN (reliable) — 0=portrait, 90=landscape-right, 270=landscape-left
+            function onGyroData(alphaDeg, betaDeg, gammaDeg, orientAngleDeg) {
+                if (!gyroEnabled) return;
+
+                const alpha = THREE.MathUtils.degToRad(alphaDeg);
+                const beta = THREE.MathUtils.degToRad(betaDeg);
+                const gamma = THREE.MathUtils.degToRad(gammaDeg);
+                // Use orient from React Native — window.screen.orientation.angle is always 0 in Android WebViews
+                const orient = THREE.MathUtils.degToRad(orientAngleDeg || 90);
+
+                // Standard Three.js DeviceOrientationControls algorithm
+                // Ref: https://github.com/mrdoob/three.js/blob/dev/examples/jsm/controls/DeviceOrientationControls.js
+                _eu.set(beta, alpha, -gamma, "YXZ");
+                _latestDeviceQuat.setFromEuler(_eu);
+                _latestDeviceQuat.multiply(_q1); // correct "looking at floor"
+                _latestDeviceQuat.multiply(_q0.setFromAxisAngle(_zee, -orient)); // correct for landscape
+
+                // Calibrate YAW only on first reading so the camera starts looking where the joystick left off
+                // (We don't calibrate pitch/roll so the horizon stays level regardless of start orientation)
+                if (!_yawOffsetQuat && camera) {
+                    const vCam = new THREE.Vector3(0, 0, -1).applyQuaternion(
+                        camera.quaternion,
+                    );
+                    const vDev = new THREE.Vector3(0, 0, -1).applyQuaternion(
+                        _latestDeviceQuat,
+                    );
+                    vCam.y = 0;
+                    if (vCam.lengthSq() > 0.001) vCam.normalize();
+                    else vCam.set(0, 0, -1);
+                    vDev.y = 0;
+                    if (vDev.lengthSq() > 0.001) vDev.normalize();
+                    else vDev.set(0, 0, -1);
+
+                    const angle =
+                        Math.atan2(vCam.x, vCam.z) - Math.atan2(vDev.x, vDev.z);
+                    _yawOffsetQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0),
+                        angle,
+                    );
+                }
+
+                _gyroDataReceived = true;
+            }
+
+            function startGyroscope() {
+                gyroEnabled = true;
+                document.getElementById("gyro-indicator").style.display =
+                    "block";
+                document.getElementById("camera-zone").style.pointerEvents =
+                    "none";
+                document.getElementById("instructions").textContent =
+                    "Tilt & rotate phone to look \u00b7 Joystick to move";
+                if (controls) controls.enabled = false;
+                // Reset calibration so it grabs a fresh heading if toggled off and on
+                _yawOffsetQuat = null;
+                _gyroDataReceived = false;
+            }
+
+            function applyGyroToCamera() {
+                if (
+                    !gyroEnabled ||
+                    !camera ||
+                    !_yawOffsetQuat ||
+                    !_gyroDataReceived
+                )
+                    return;
+
+                // Apply the yaw offset to the absolute device orientation
+                _targetCamQuat.multiplyQuaternions(
+                    _yawOffsetQuat,
+                    _latestDeviceQuat,
+                );
+
+                // Smooth interpolation
+                camera.quaternion.slerp(_targetCamQuat, 0.25);
+
+                // Sync OrbitControls target so joystick movement direction stays correct
+                if (model) {
+                    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(
+                        camera.quaternion,
+                    );
+                    controls.target
+                        .copy(camera.position)
+                        .addScaledVector(dir, 0.5);
+                }
+            }
+
+            // ── Panel helpers ──────────────────────────────────────────────
+            window.closeInfoPanel = () => {
+                document.getElementById("info-panel").style.display = "none";
+            };
+
+            window.toggleGhostMode = () => {
+                ghostMode = !ghostMode;
+                document.getElementById("ghost-btn").textContent = ghostMode
+                    ? "PHYSICS: OFF (GHOST)"
+                    : "PHYSICS: ON";
+                document.getElementById("ghost-btn").style.background =
+                    ghostMode
+                        ? "rgba(255, 0, 0, 0.2)"
+                        : "rgba(0, 229, 255, 0.2)";
+                document.getElementById("ghost-btn").style.color = ghostMode
+                    ? "#FF4444"
+                    : "#00E5FF";
+                document.getElementById("ghost-btn").style.borderColor =
+                    ghostMode ? "#FF4444" : "#00E5FF";
+            };
+
+            // Allow tapping anywhere on the canvas / camera-zone to interact with hotspots/doors
+            document.addEventListener("pointerup", (e) => {
+                if (e.target.id === "canvas" || e.target.id === "camera-zone") {
+                    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                    tapRaycaster.setFromCamera(mouse, camera);
+                    const intersects = tapRaycaster.intersectObjects(
+                        hotspots,
+                        true,
+                    );
+
+                    if (intersects.length > 0) {
+                        let hit = intersects[0].object;
+                        // If hit the core sphere, get the parent marker
+                        if (
+                            !hit.userData.title &&
+                            hit.parent &&
+                            hit.parent.userData.title
+                        ) {
+                            hit = hit.parent;
+                        }
+                        if (hit.userData.title) {
+                            document.getElementById("info-title").textContent =
+                                hit.userData.title;
+                            document.getElementById("info-desc").textContent =
+                                hit.userData.desc;
+                            document.getElementById(
+                                "info-panel",
+                            ).style.display = "block";
+                        }
+                    }
+                }
+            });
+
+            // ── Scene Initialization ───────────────────────────────────────
+            function init(modelUrl, mode) {
+                controlMode = mode || "joystick";
+
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x87ceeb); // Sky color
+
+                camera = new THREE.PerspectiveCamera(
+                    75,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    1000,
+                );
+
+                renderer = new THREE.WebGLRenderer({
+                    canvas: document.getElementById("canvas"),
+                    antialias: true,
+                });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(
+                    0xffffff,
+                    0.5,
+                );
+                directionalLight.position.set(5, 10, 7.5);
+                scene.add(directionalLight);
+
+                // First-person look controls bound ONLY to the right half of the screen
+                controls = new OrbitControls(
+                    camera,
+                    document.getElementById("camera-zone"),
+                );
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.enableZoom = false;
+                controls.enablePan = false;
+
+                initJoystick();
+                loadModel(modelUrl);
+                animate();
+
+                // Activate the selected control mode AFTER scene is initialised
+                // Data arrives via postMessage from React Native (expo-sensors) —
+                // no browser permission prompt needed at all.
+                if (controlMode === "gyroscope") {
+                    startGyroscope();
+                }
+
+                window.addEventListener("resize", onWindowResize);
+            }
+
+            // ── Joystick ───────────────────────────────────────────────────
+            function initJoystick() {
+                const zone = document.getElementById("joystick-zone");
+                zone.style.pointerEvents = "auto";
+
+                joystickManager = nipplejs.create({
+                    zone: zone,
+                    mode: "static",
+                    position: { left: "50%", top: "50%" },
+                    color: "#00E5FF",
+                    size: 100,
+                });
+
+                joystickManager.on("move", (evt, data) => {
+                    const angle = data.angle.radian;
+                    const force = Math.min(data.force, 1);
+                    // Nipplejs angles: 0=right, PI/2=up
+                    moveForward = Math.sin(angle) * force * MOVE_SPEED;
+                    moveRight = Math.cos(angle) * force * MOVE_SPEED;
+                });
+
+                joystickManager.on("end", () => {
+                    moveForward = 0;
+                    moveRight = 0;
+                });
+            }
+
+            // ── Model Loading ──────────────────────────────────────────────
+            function loadModel(url) {
+                console.log("Starting to load interior model from:", url);
+                const loader = new GLTFLoader();
+                loader.load(
+                    url,
+                    (gltf) => {
+                        console.log("Model loaded successfully");
+                        model = gltf.scene;
+                        scene.add(model);
+
+                        // Calculate bounding box to place camera
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        const size = box.getSize(new THREE.Vector3());
+
+                        worldBounds = box.clone();
+                        worldBounds.min.y -= 10;
+                        worldBounds.max.y += 10;
+
+                        // Spawn near the edge INSIDE the model's bounds at eye height
+                        const startX = center.x;
+                        const startY = box.min.y + 1.6;
+                        const startZ = box.max.z - 2.0;
+
+                        camera.position.set(startX, startY, startZ);
+                        controls.target.set(startX, startY, startZ - 0.01);
+                        controls.update();
+
+                        // ── Create Interactive Hotspots ──────────────────────
+                        const createHotspot = (x, y, z, title, desc, color) => {
+                            const geometry = new THREE.SphereGeometry(
+                                0.2,
+                                16,
+                                16,
+                            );
+                            const material = new THREE.MeshBasicMaterial({
+                                color: color,
+                                wireframe: true,
+                                depthTest: false,
+                                transparent: true,
+                                opacity: 0.8,
+                            });
+                            const sphere = new THREE.Mesh(geometry, material);
+                            sphere.position.set(x, y, z);
+                            sphere.renderOrder = 999;
+                            sphere.userData = { title, desc };
+
+                            const coreGeom = new THREE.SphereGeometry(
+                                0.1,
+                                16,
+                                16,
+                            );
+                            const coreMat = new THREE.MeshBasicMaterial({
+                                color: 0xffffff,
+                                depthTest: false,
+                                transparent: true,
+                                opacity: 0.9,
+                            });
+                            const core = new THREE.Mesh(coreGeom, coreMat);
+                            core.renderOrder = 1000;
+                            sphere.add(core);
+
+                            scene.add(sphere);
+                            hotspots.push(sphere);
+                        };
+
+                        // Load Dynamic Hotspots from the Database
+                        if (
+                            window.buildingHotspots &&
+                            window.buildingHotspots.length > 0
+                        ) {
+                            window.buildingHotspots.forEach((h) => {
+                                createHotspot(
+                                    h.x,
+                                    h.y,
+                                    h.z,
+                                    h.title,
+                                    h.desc || "",
+                                    0x00e5ff,
+                                );
+                            });
+                        }
+
+                        document.getElementById("loading").style.display =
+                            "none";
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({ type: "loaded" }),
+                        );
+                    },
+                    (progress) => {
+                        if (progress.total > 0) {
+                            const percent = Math.round(
+                                (progress.loaded / progress.total) * 100,
+                            );
+                            const mb = (progress.loaded / 1048576).toFixed(1);
+                            document.getElementById("loading").textContent =
+                                `LOADING ${percent}% (${mb}MB)`;
+                            window.ReactNativeWebView?.postMessage(
+                                JSON.stringify({
+                                    type: "progress",
+                                    percent: percent,
+                                }),
+                            );
+                        }
+                    },
+                    (error) => {
+                        console.error("Model loading error:", error);
+                        document.getElementById("loading").textContent =
+                            "LOAD ERROR";
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({
+                                type: "error",
+                                message: error.message || "Unknown error",
+                            }),
+                        );
+                    },
+                );
+            }
+
+            // ── Animation Loop ─────────────────────────────────────────────
+            const velocity = new THREE.Vector3();
+            const direction = new THREE.Vector3();
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                if (model) {
+                    // Apply gyroscope camera rotation FIRST (before movement processing)
+                    if (controlMode === "gyroscope") {
+                        applyGyroToCamera();
+                    }
+
+                    // In joystick mode: save the look-target offset so movement doesn't break the angle
+                    const targetOffset =
+                        controlMode !== "gyroscope"
+                            ? controls.target.clone().sub(camera.position)
+                            : null;
+
+                    // Animate hotspot markers
+                    const time = Date.now() * 0.003;
+                    hotspots.forEach((h) => {
+                        h.rotation.y += 0.02;
+                        h.rotation.x += 0.01;
+                        h.position.y += Math.sin(time + h.position.x) * 0.002;
+                    });
+
+                    // Downward Raycast for Floor Height (Stairs / Gravity)
+                    const origin = camera.position.clone();
+                    origin.y += 1.0; // Cast from slightly above eye level to detect stairs
+                    raycaster.set(origin, downVector);
+                    const floorHits = raycaster.intersectObject(model, true);
+
+                    if (floorHits.length > 0) {
+                        const floorY = floorHits[0].point.y;
+                        if (
+                            Math.abs(camera.position.y - (floorY + 1.6)) < 2.0
+                        ) {
+                            camera.position.y +=
+                                (floorY + 1.6 - camera.position.y) * 0.1;
+                        }
+                    }
+
+                    // Movement (joystick input — works in both modes)
+                    if (moveForward !== 0 || moveRight !== 0) {
+                        const forwardVector = new THREE.Vector3(
+                            0,
+                            0,
+                            -1,
+                        ).applyQuaternion(camera.quaternion);
+                        forwardVector.y = 0;
+                        forwardVector.normalize();
+
+                        const rightVector = new THREE.Vector3(
+                            1,
+                            0,
+                            0,
+                        ).applyQuaternion(camera.quaternion);
+                        rightVector.y = 0;
+                        rightVector.normalize();
+
+                        let transX =
+                            forwardVector.x * moveForward +
+                            rightVector.x * moveRight;
+                        let transZ =
+                            forwardVector.z * moveForward +
+                            rightVector.z * moveRight;
+
+                        // Horizontal wall collision raycasts
+                        const moveVector = new THREE.Vector3(transX, 0, transZ);
+                        if (moveVector.lengthSq() > 0) {
+                            const moveDir = moveVector.clone().normalize();
+
+                            const isSolid = (hit) => {
+                                let obj = hit.object;
+                                while (obj) {
+                                    if (obj.userData.isOpen) return false;
+                                    obj = obj.parent;
+                                }
+                                return true;
+                            };
+
+                            // Eye-level check
+                            raycaster.set(camera.position, moveDir);
+                            const eyeHits = raycaster
+                                .intersectObject(model, true)
+                                .filter(isSolid);
+
+                            // Knee-level check
+                            const kneeOrigin = camera.position.clone();
+                            kneeOrigin.y -= 1.1;
+                            raycaster.set(kneeOrigin, moveDir);
+                            const kneeHits = raycaster
+                                .intersectObject(model, true)
+                                .filter(isSolid);
+
+                            const eyeDist =
+                                eyeHits.length > 0
+                                    ? eyeHits[0].distance
+                                    : Infinity;
+                            const kneeDist =
+                                kneeHits.length > 0
+                                    ? kneeHits[0].distance
+                                    : Infinity;
+
+                            if (
+                                !ghostMode &&
+                                Math.min(eyeDist, kneeDist) < COLLISION_DISTANCE
+                            ) {
+                                transX = 0;
+                                transZ = 0;
+                            }
+                        }
+
+                        camera.position.x += transX;
+                        camera.position.z += transZ;
+
+                        if (worldBounds) {
+                            camera.position.clamp(
+                                worldBounds.min,
+                                worldBounds.max,
+                            );
+                        }
+                    }
+
+                    // In joystick mode: reapply look angle after position move
+                    if (controlMode !== "gyroscope" && targetOffset) {
+                        controls.target.copy(camera.position).add(targetOffset);
+                    }
+                }
+
+                // Only call OrbitControls.update() in joystick mode —
+                // in gyro mode it would overwrite the quaternion we just set
+                if (controlMode !== "gyroscope") {
+                    controls.update();
+                }
+                renderer.render(scene, camera);
+            }
+
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            // ── Dispose / Cleanup ──────────────────────────────────────────
+            function dispose() {
+                window.removeEventListener("resize", onWindowResize);
+                // Gyro data came from RN postMessage — no DOM listener to remove
+                gyroEnabled = false;
+                if (model) {
+                    scene.remove(model);
+                    model.traverse((child) => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach((m) => m.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    });
+                }
+                renderer.dispose();
+                controls.dispose();
+            }
+
+            // ── Message Handlers (window + document for Android WebView) ──
+            function handleIncomingMessage(data) {
+                if (data.type === "init") {
+                    window.buildingHotspots = data.hotspots || [];
+                    init(data.modelUrl, data.controlMode || "joystick");
+                } else if (data.type === "gyro_data") {
+                    // Native sensor data bridged from React Native expo-sensors DeviceMotion
+                    onGyroData(
+                        data.alpha,
+                        data.beta,
+                        data.gamma,
+                        data.orientAngle,
+                    );
+                } else if (data.type === "dispose") {
+                    dispose();
+                }
+            }
+
+            window.addEventListener("message", (event) => {
+                try {
+                    const data =
+                        typeof event.data === "string"
+                            ? JSON.parse(event.data)
+                            : event.data;
+                    handleIncomingMessage(data);
+                } catch (e) {
+                    console.error("Message parse error:", e);
+                }
+            });
+
+            document.addEventListener("message", (event) => {
+                try {
+                    const data =
+                        typeof event.data === "string"
+                            ? JSON.parse(event.data)
+                            : event.data;
+                    handleIncomingMessage(data);
+                } catch (e) {
+                    console.error("Message parse error:", e);
+                }
+            });
+        </script>
+    </body>
 </html>

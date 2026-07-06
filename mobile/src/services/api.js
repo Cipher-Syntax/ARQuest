@@ -74,14 +74,22 @@ api.interceptors.response.use(
         // The request was made but no response was received
         else if (error.request) {
             const method = originalRequest.method?.toUpperCase();
-            const url = originalRequest.url || '';
-            
+            const url = originalRequest.url || "";
+
             // Auto-queue offline gamification actions
-            if (method === 'POST' && (url.includes('/gamification/quests/') || url.includes('/buildings/unlock/'))) {
-                const { offlineQueueService } = require('./offlineQueueService');
-                const data = originalRequest.data ? JSON.parse(originalRequest.data) : null;
+            if (
+                method === "POST" &&
+                (url.includes("/gamification/quests/") ||
+                    url.includes("/buildings/unlock/"))
+            ) {
+                const {
+                    offlineQueueService,
+                } = require("./offlineQueueService");
+                const data = originalRequest.data
+                    ? JSON.parse(originalRequest.data)
+                    : null;
                 await offlineQueueService.enqueueRequest(url, method, data);
-                
+
                 // Fake success so the UI doesn't crash or block the user
                 return {
                     data: {
@@ -89,9 +97,9 @@ api.interceptors.response.use(
                         data: {
                             message: "Queued offline",
                             newly_earned_badges: [],
-                            rank_info: null
-                        }
-                    }
+                            rank_info: null,
+                        },
+                    },
                 };
             }
 

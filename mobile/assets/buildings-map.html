@@ -1,271 +1,349 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        body { margin: 0; padding: 0; background: #ffffff; overflow: hidden; }
-        #map { width: 100vw; height: 100vh; background: #f5f5f5; }
-        
-        #three-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none; /* Crucial so we can interact with the map */
-            z-index: 1000; /* Above Leaflet markers */
-        }
-        
-        .glow-marker {
-            background-color: #B21830;
-            border-radius: 50%;
-            box-shadow: 0 0 20px 8px rgba(178, 24, 48, 0.7);
-            border: 2px solid white;
-        }
-
-        .glowing-route {
-            filter: drop-shadow(0 0 8px rgba(178, 24, 48, 0.8));
-        }
-
-        .custom-dept-marker {
-            background: transparent;
-            border: none;
-        }
-        
-        .locked-marker {
-            background-color: #555;
-            border-radius: 50%;
-            border: 2px solid #888;
-        }
-        
-        .user-marker {
-            background-color: #4285F4;
-            border-radius: 50%;
-            border: 2px solid #ffffff;
-            box-shadow: 0 0 15px 5px rgba(66, 133, 244, 0.4);
-        }
-
-        .building-label {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #B21830;
-            color: #B21830;
-            font-weight: bold;
-            font-size: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-    </style>
-</head>
-<body>
-    <div id="map"></div>
-    <canvas id="three-canvas"></canvas>
-
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
-    
-    <script type="module">
-        import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-        // --- THREE.JS SETUP ---
-        let canvas = document.getElementById('three-canvas');
-        let renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setScissorTest(true);
-
-        let scenesData = [];
-        const gltfLoader = new GLTFLoader();
-
-        function addThreeSceneForMarker(element, modelUrl) {
-            let scene = new THREE.Scene();
-            
-            let camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
-            camera.position.z = 5;
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            directionalLight.position.set(5, 10, 7.5);
-            scene.add(directionalLight);
-
-            let sceneData = { scene: scene, camera: camera, element: element, model: null };
-            scenesData.push(sceneData);
-
-            gltfLoader.load(modelUrl, (gltf) => {
-                let model = gltf.scene;
-                scene.add(model);
-                
-                // Center and scale model perfectly
-                const box = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-                model.position.sub(center);
-                
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const fov = camera.fov * (Math.PI / 180);
-                let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
-                camera.position.set(cameraZ * 0.5, cameraZ * 0.3, cameraZ);
-                camera.lookAt(0, 0, 0);
-
-                sceneData.model = model;
-                sceneData.initialCameraDistance = Math.sqrt((cameraZ * 0.5)**2 + cameraZ**2);
-                sceneData.initialCameraY = cameraZ * 0.3;
-            });
-        }
-
-        function animateThree() {
-            requestAnimationFrame(animateThree);
-
-            if (renderer.domElement.width !== window.innerWidth || renderer.domElement.height !== window.innerHeight) {
-                renderer.setSize(window.innerWidth, window.innerHeight);
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background: #ffffff;
+                overflow: hidden;
+            }
+            #map {
+                width: 100vw;
+                height: 100vh;
+                background: #f5f5f5;
             }
 
-            renderer.setClearColor(0x000000, 0);
-            renderer.clear();
-
-            scenesData.forEach(function(sceneData) {
-                let element = sceneData.element;
-                if (!element || !element.isConnected) return; // Marker removed from DOM
-
-                let rect = element.getBoundingClientRect();
-
-                // Check if marker is visible on screen
-                if (rect.bottom < 0 || rect.top > renderer.domElement.clientHeight ||
-                    rect.right < 0 || rect.left > renderer.domElement.clientWidth) {
-                    return; 
-                }
-
-                let width = rect.right - rect.left;
-                let height = rect.bottom - rect.top;
-                let left = rect.left;
-                let bottom = renderer.domElement.clientHeight - rect.bottom;
-
-                renderer.setViewport(left, bottom, width, height);
-                renderer.setScissor(left, bottom, width, height);
-
-                // Orbit camera smoothly around the 3D model (turntable effect)
-                if (sceneData.model && sceneData.initialCameraDistance > 0) {
-                    const time = -Date.now() * 0.0005; // Negative time reverses the orbit direction
-                    sceneData.camera.position.x = Math.sin(time) * sceneData.initialCameraDistance;
-                    sceneData.camera.position.z = Math.cos(time) * sceneData.initialCameraDistance;
-                    sceneData.camera.position.y = sceneData.initialCameraY;
-                    sceneData.camera.lookAt(0, 0, 0);
-                }
-
-                renderer.render(sceneData.scene, sceneData.camera);
-            });
-        }
-        animateThree();
-
-
-        // --- LEAFLET MAP SETUP ---
-        const wmsuBounds = [
-            [6.9155, 122.0575], // NW
-            [6.9155, 122.0640], // NE
-            [6.9095, 122.0640], // SE
-            [6.9095, 122.0575]  // SW
-        ];
-
-        const WMSU_CENTER = [6.9122, 122.0605];
-        const map = L.map('map', {
-            zoomControl: false,
-            attributionControl: false,
-            maxBounds: wmsuBounds,
-            maxBoundsViscosity: 1.0,
-            minZoom: 15
-        }).setView(WMSU_CENTER, 16);
-
-        // Standard Google Maps layer for the White and Crimson theme
-        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            maxNativeZoom: 18
-        }).addTo(map);
-
-        let fogLayer = null;
-        let markersGroup = L.layerGroup().addTo(map);
-        let userMarker = null;
-        let routingLine = null;
-        let targetBuildingId = null;
-        let sourceBuildingId = null;
-
-        function getCirclePoints(center, radiusMeters, points = 32) {
-            const earthRadius = 6371000;
-            const lat = center[0] * Math.PI / 180;
-            const lng = center[1] * Math.PI / 180;
-            const d = radiusMeters / earthRadius;
-            
-            const coords = [];
-            for (let i = 0; i <= points; i++) {
-                const bearing = (i * 360 / points) * Math.PI / 180;
-                const newLat = Math.asin(Math.sin(lat)*Math.cos(d) + Math.cos(lat)*Math.sin(d)*Math.cos(bearing));
-                const newLng = lng + Math.atan2(Math.sin(bearing)*Math.sin(d)*Math.cos(lat), Math.cos(d)-Math.sin(lat)*Math.sin(newLat));
-                coords.push([newLat * 180 / Math.PI, newLng * 180 / Math.PI]);
+            #three-canvas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                pointer-events: none; /* Crucial so we can interact with the map */
+                z-index: 1000; /* Above Leaflet markers */
             }
-            return coords;
-        }
 
-        window.updateMap = function(data) {
-            window.lastMapData = data;
-            const { buildings, unlockedIds, userLocation } = data;
-            
-            // Clear old three.js scenes
-            scenesData = [];
+            .glow-marker {
+                background-color: #b21830;
+                border-radius: 50%;
+                box-shadow: 0 0 20px 8px rgba(178, 24, 48, 0.7);
+                border: 2px solid white;
+            }
 
-            if (fogLayer) map.removeLayer(fogLayer);
-            
-            const outerBounds = [
-                [90, -180], [90, 180], [-90, 180], [-90, -180]
+            .glowing-route {
+                filter: drop-shadow(0 0 8px rgba(178, 24, 48, 0.8));
+            }
+
+            .custom-dept-marker {
+                background: transparent;
+                border: none;
+            }
+
+            .locked-marker {
+                background-color: #555;
+                border-radius: 50%;
+                border: 2px solid #888;
+            }
+
+            .user-marker {
+                background-color: #4285f4;
+                border-radius: 50%;
+                border: 2px solid #ffffff;
+                box-shadow: 0 0 15px 5px rgba(66, 133, 244, 0.4);
+            }
+
+            .building-label {
+                background: rgba(255, 255, 255, 0.9);
+                border: 1px solid #b21830;
+                color: #b21830;
+                font-weight: bold;
+                font-size: 10px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <canvas id="three-canvas"></canvas>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+                }
+            }
+        </script>
+
+        <script type="module">
+            import * as THREE from "three";
+            import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+            // --- THREE.JS SETUP ---
+            let canvas = document.getElementById("three-canvas");
+            let renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                alpha: true,
+                antialias: true,
+            });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setScissorTest(true);
+
+            let scenesData = [];
+            const gltfLoader = new GLTFLoader();
+
+            function addThreeSceneForMarker(element, modelUrl) {
+                let scene = new THREE.Scene();
+
+                let camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+                camera.position.z = 5;
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(
+                    0xffffff,
+                    1.0,
+                );
+                directionalLight.position.set(5, 10, 7.5);
+                scene.add(directionalLight);
+
+                let sceneData = {
+                    scene: scene,
+                    camera: camera,
+                    element: element,
+                    model: null,
+                };
+                scenesData.push(sceneData);
+
+                gltfLoader.load(modelUrl, (gltf) => {
+                    let model = gltf.scene;
+                    scene.add(model);
+
+                    // Center and scale model perfectly
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    model.position.sub(center);
+
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = camera.fov * (Math.PI / 180);
+                    let cameraZ =
+                        Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+                    camera.position.set(cameraZ * 0.5, cameraZ * 0.3, cameraZ);
+                    camera.lookAt(0, 0, 0);
+
+                    sceneData.model = model;
+                    sceneData.initialCameraDistance = Math.sqrt(
+                        (cameraZ * 0.5) ** 2 + cameraZ ** 2,
+                    );
+                    sceneData.initialCameraY = cameraZ * 0.3;
+                });
+            }
+
+            function animateThree() {
+                requestAnimationFrame(animateThree);
+
+                if (
+                    renderer.domElement.width !== window.innerWidth ||
+                    renderer.domElement.height !== window.innerHeight
+                ) {
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }
+
+                renderer.setClearColor(0x000000, 0);
+                renderer.clear();
+
+                scenesData.forEach(function (sceneData) {
+                    let element = sceneData.element;
+                    if (!element || !element.isConnected) return; // Marker removed from DOM
+
+                    let rect = element.getBoundingClientRect();
+
+                    // Check if marker is visible on screen
+                    if (
+                        rect.bottom < 0 ||
+                        rect.top > renderer.domElement.clientHeight ||
+                        rect.right < 0 ||
+                        rect.left > renderer.domElement.clientWidth
+                    ) {
+                        return;
+                    }
+
+                    let width = rect.right - rect.left;
+                    let height = rect.bottom - rect.top;
+                    let left = rect.left;
+                    let bottom = renderer.domElement.clientHeight - rect.bottom;
+
+                    renderer.setViewport(left, bottom, width, height);
+                    renderer.setScissor(left, bottom, width, height);
+
+                    // Orbit camera smoothly around the 3D model (turntable effect)
+                    if (
+                        sceneData.model &&
+                        sceneData.initialCameraDistance > 0
+                    ) {
+                        const time = -Date.now() * 0.0005; // Negative time reverses the orbit direction
+                        sceneData.camera.position.x =
+                            Math.sin(time) * sceneData.initialCameraDistance;
+                        sceneData.camera.position.z =
+                            Math.cos(time) * sceneData.initialCameraDistance;
+                        sceneData.camera.position.y = sceneData.initialCameraY;
+                        sceneData.camera.lookAt(0, 0, 0);
+                    }
+
+                    renderer.render(sceneData.scene, sceneData.camera);
+                });
+            }
+            animateThree();
+
+            // --- LEAFLET MAP SETUP ---
+            const wmsuBounds = [
+                [6.9155, 122.0575], // NW
+                [6.9155, 122.064], // NE
+                [6.9095, 122.064], // SE
+                [6.9095, 122.0575], // SW
             ];
-            const polygonCoords = [outerBounds, wmsuBounds];
-            const boundsElements = [L.polygon(wmsuBounds)];
-            
-            if (userLocation) {
-                if (userMarker) map.removeLayer(userMarker);
-                const userIcon = L.divIcon({ className: 'user-marker', iconSize: [16, 16] });
-                userMarker = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon }).addTo(map);
-                boundsElements.push(userMarker);
-                
-                const isOutside = userLocation.latitude > 6.9155 || userLocation.latitude < 6.9095 || userLocation.longitude > 122.0640 || userLocation.longitude < 122.0575;
-                if (isOutside) {
-                    polygonCoords.push(getCirclePoints([userLocation.latitude, userLocation.longitude], 150));
+
+            const WMSU_CENTER = [6.9122, 122.0605];
+            const map = L.map("map", {
+                zoomControl: false,
+                attributionControl: false,
+                maxBounds: wmsuBounds,
+                maxBoundsViscosity: 1.0,
+                minZoom: 15,
+            }).setView(WMSU_CENTER, 16);
+
+            // Standard Google Maps layer for the White and Crimson theme
+            L.tileLayer("https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+                maxZoom: 20,
+                maxNativeZoom: 18,
+            }).addTo(map);
+
+            let fogLayer = null;
+            let markersGroup = L.layerGroup().addTo(map);
+            let userMarker = null;
+            let routingLine = null;
+            let targetBuildingId = null;
+            let sourceBuildingId = null;
+
+            function getCirclePoints(center, radiusMeters, points = 32) {
+                const earthRadius = 6371000;
+                const lat = (center[0] * Math.PI) / 180;
+                const lng = (center[1] * Math.PI) / 180;
+                const d = radiusMeters / earthRadius;
+
+                const coords = [];
+                for (let i = 0; i <= points; i++) {
+                    const bearing = (((i * 360) / points) * Math.PI) / 180;
+                    const newLat = Math.asin(
+                        Math.sin(lat) * Math.cos(d) +
+                            Math.cos(lat) * Math.sin(d) * Math.cos(bearing),
+                    );
+                    const newLng =
+                        lng +
+                        Math.atan2(
+                            Math.sin(bearing) * Math.sin(d) * Math.cos(lat),
+                            Math.cos(d) - Math.sin(lat) * Math.sin(newLat),
+                        );
+                    coords.push([
+                        (newLat * 180) / Math.PI,
+                        (newLng * 180) / Math.PI,
+                    ]);
                 }
+                return coords;
             }
 
-            markersGroup.clearLayers();
-            
-            buildings.forEach(b => {
-                const isUnlocked = unlockedIds.includes(b.id);
-                const lat = parseFloat(b.latitude);
-                const lng = parseFloat(b.longitude);
+            window.updateMap = function (data) {
+                window.lastMapData = data;
+                const { buildings, unlockedIds, userLocation } = data;
 
-                if (isUnlocked) {
-                    const isOutside = lat > 6.9155 || lat < 6.9095 || lng > 122.0640 || lng < 122.0575;
+                // Clear old three.js scenes
+                scenesData = [];
+
+                if (fogLayer) map.removeLayer(fogLayer);
+
+                const outerBounds = [
+                    [90, -180],
+                    [90, 180],
+                    [-90, 180],
+                    [-90, -180],
+                ];
+                const polygonCoords = [outerBounds, wmsuBounds];
+                const boundsElements = [L.polygon(wmsuBounds)];
+
+                if (userLocation) {
+                    if (userMarker) map.removeLayer(userMarker);
+                    const userIcon = L.divIcon({
+                        className: "user-marker",
+                        iconSize: [16, 16],
+                    });
+                    userMarker = L.marker(
+                        [userLocation.latitude, userLocation.longitude],
+                        { icon: userIcon },
+                    ).addTo(map);
+                    boundsElements.push(userMarker);
+
+                    const isOutside =
+                        userLocation.latitude > 6.9155 ||
+                        userLocation.latitude < 6.9095 ||
+                        userLocation.longitude > 122.064 ||
+                        userLocation.longitude < 122.0575;
                     if (isOutside) {
-                        polygonCoords.push(getCirclePoints([lat, lng], 150));
+                        polygonCoords.push(
+                            getCirclePoints(
+                                [userLocation.latitude, userLocation.longitude],
+                                150,
+                            ),
+                        );
                     }
                 }
 
-                const bgColor = isUnlocked ? '#FFFFFF' : 'rgba(255,255,255,0.8)';
-                const borderColor = isUnlocked ? '#B21830' : '#CCCCCC';
-                const iconColor = isUnlocked ? '#B21830' : '#888888';
-                
-                let htmlStr = '';
-                let hasModel = false;
+                markersGroup.clearLayers();
 
-                if (isUnlocked && b.model_active && b.model_url) {
-                    hasModel = true;
-                    // The marker consists of the dot, and a smaller transparent placeholder above it where the 3D model will render
-                    htmlStr = `
+                buildings.forEach((b) => {
+                    const isUnlocked = unlockedIds.includes(b.id);
+                    const lat = parseFloat(b.latitude);
+                    const lng = parseFloat(b.longitude);
+
+                    if (isUnlocked) {
+                        const isOutside =
+                            lat > 6.9155 ||
+                            lat < 6.9095 ||
+                            lng > 122.064 ||
+                            lng < 122.0575;
+                        if (isOutside) {
+                            polygonCoords.push(
+                                getCirclePoints([lat, lng], 150),
+                            );
+                        }
+                    }
+
+                    const bgColor = isUnlocked
+                        ? "#FFFFFF"
+                        : "rgba(255,255,255,0.8)";
+                    const borderColor = isUnlocked ? "#B21830" : "#CCCCCC";
+                    const iconColor = isUnlocked ? "#B21830" : "#888888";
+
+                    let htmlStr = "";
+                    let hasModel = false;
+
+                    if (isUnlocked && b.model_active && b.model_url) {
+                        hasModel = true;
+                        // The marker consists of the dot, and a smaller transparent placeholder above it where the 3D model will render
+                        htmlStr = `
                         <div style="position:relative; width:32px; height:32px;">
                             <div style="position:absolute; bottom:0; left:0; width:100%; height:100%; background-color: ${bgColor}; border: 2px solid ${borderColor}; padding: 4px; border-radius: 4px; display: flex; justify-content: center; align-items: center; box-sizing: border-box;">
                                 <div style="width: 12px; height: 12px; background-color: ${iconColor}; border-radius: 50%;"></div>
@@ -273,158 +351,201 @@
                             <div class="model-placeholder" style="position:absolute; bottom:16px; left:-14px; width:60px; height:60px;"></div>
                         </div>
                     `;
-                } else {
-                    htmlStr = `
+                    } else {
+                        htmlStr = `
                         <div style="background-color: ${bgColor}; border: 2px solid ${borderColor}; padding: 4px; border-radius: 4px; display: flex; justify-content: center; align-items: center; width: 32px; height: 32px; box-sizing: border-box;">
                             <div style="width: 12px; height: 12px; background-color: ${iconColor}; border-radius: 50%;"></div>
                         </div>
                     `;
-                }
-                
-                const icon = L.divIcon({ className: 'custom-dept-marker', html: htmlStr, iconSize: [32, 32], iconAnchor: [16, 16] });
-                const marker = L.marker([lat, lng], { icon }).addTo(markersGroup);
-                
-                // Once the marker is added to the map DOM, we attach the Three.js scene to its placeholder
-                if (hasModel) {
-                    // Leaflet creates DOM elements asynchronously sometimes, or right away. Let's wait a tick to ensure it's in DOM.
-                    setTimeout(() => {
-                        const iconElement = marker.getElement();
-                        if (iconElement) {
-                            const placeholder = iconElement.querySelector('.model-placeholder');
-                            if (placeholder) {
-                                addThreeSceneForMarker(placeholder, b.model_url);
-                            }
-                        }
-                    }, 50);
-                }
-
-                if (isUnlocked) {
-                    boundsElements.push(marker);
-                }
-
-                marker.bindTooltip(b.name, {
-                    permanent: true,
-                    direction: 'bottom',
-                    className: 'building-label',
-                    offset: [0, hasModel ? 25 : 10] // Adjust label drop dynamically
-                });
-
-                marker.on('click', () => {
-                    if (window.ReactNativeWebView) {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'building_click',
-                            buildingId: b.id,
-                            isUnlocked: isUnlocked,
-                            name: b.name
-                        }));
                     }
+
+                    const icon = L.divIcon({
+                        className: "custom-dept-marker",
+                        html: htmlStr,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16],
+                    });
+                    const marker = L.marker([lat, lng], { icon }).addTo(
+                        markersGroup,
+                    );
+
+                    // Once the marker is added to the map DOM, we attach the Three.js scene to its placeholder
+                    if (hasModel) {
+                        // Leaflet creates DOM elements asynchronously sometimes, or right away. Let's wait a tick to ensure it's in DOM.
+                        setTimeout(() => {
+                            const iconElement = marker.getElement();
+                            if (iconElement) {
+                                const placeholder =
+                                    iconElement.querySelector(
+                                        ".model-placeholder",
+                                    );
+                                if (placeholder) {
+                                    addThreeSceneForMarker(
+                                        placeholder,
+                                        b.model_url,
+                                    );
+                                }
+                            }
+                        }, 50);
+                    }
+
+                    if (isUnlocked) {
+                        boundsElements.push(marker);
+                    }
+
+                    marker.bindTooltip(b.name, {
+                        permanent: true,
+                        direction: "bottom",
+                        className: "building-label",
+                        offset: [0, hasModel ? 25 : 10], // Adjust label drop dynamically
+                    });
+
+                    marker.on("click", () => {
+                        if (window.ReactNativeWebView) {
+                            window.ReactNativeWebView.postMessage(
+                                JSON.stringify({
+                                    type: "building_click",
+                                    buildingId: b.id,
+                                    isUnlocked: isUnlocked,
+                                    name: b.name,
+                                }),
+                            );
+                        }
+                    });
                 });
-            });
 
-            let sourceLat = null;
-            let sourceLng = null;
+                let sourceLat = null;
+                let sourceLng = null;
 
-            if (sourceBuildingId) {
-                const sourceBuilding = buildings.find(b => b.id === sourceBuildingId);
-                if (sourceBuilding) {
-                    sourceLat = parseFloat(sourceBuilding.latitude);
-                    sourceLng = parseFloat(sourceBuilding.longitude);
+                if (sourceBuildingId) {
+                    const sourceBuilding = buildings.find(
+                        (b) => b.id === sourceBuildingId,
+                    );
+                    if (sourceBuilding) {
+                        sourceLat = parseFloat(sourceBuilding.latitude);
+                        sourceLng = parseFloat(sourceBuilding.longitude);
+                    }
+                } else if (userLocation) {
+                    sourceLat = userLocation.latitude;
+                    sourceLng = userLocation.longitude;
                 }
-            } else if (userLocation) {
-                sourceLat = userLocation.latitude;
-                sourceLng = userLocation.longitude;
-            }
 
-            if (targetBuildingId && sourceLat !== null && sourceLng !== null) {
-                const targetBuilding = buildings.find(b => b.id === targetBuildingId);
-                if (targetBuilding) {
-                    const targetLat = parseFloat(targetBuilding.latitude);
-                    const targetLng = parseFloat(targetBuilding.longitude);
+                if (
+                    targetBuildingId &&
+                    sourceLat !== null &&
+                    sourceLng !== null
+                ) {
+                    const targetBuilding = buildings.find(
+                        (b) => b.id === targetBuildingId,
+                    );
+                    if (targetBuilding) {
+                        const targetLat = parseFloat(targetBuilding.latitude);
+                        const targetLng = parseFloat(targetBuilding.longitude);
 
-                    // Fetch actual path from OpenStreetMap OSRM API
-                    fetch(`https://router.project-osrm.org/route/v1/foot/${sourceLng},${sourceLat};${targetLng},${targetLat}?geometries=geojson`)
-                        .then(res => res.json())
-                        .then(data => {
-                            let latLngs = [];
-                            if (data && data.routes && data.routes.length > 0) {
-                                latLngs = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-                            } else {
-                                latLngs = [[sourceLat, sourceLng], [targetLat, targetLng]];
-                            }
+                        // Fetch actual path from OpenStreetMap OSRM API
+                        fetch(
+                            `https://router.project-osrm.org/route/v1/foot/${sourceLng},${sourceLat};${targetLng},${targetLat}?geometries=geojson`,
+                        )
+                            .then((res) => res.json())
+                            .then((data) => {
+                                let latLngs = [];
+                                if (
+                                    data &&
+                                    data.routes &&
+                                    data.routes.length > 0
+                                ) {
+                                    latLngs =
+                                        data.routes[0].geometry.coordinates.map(
+                                            (coord) => [coord[1], coord[0]],
+                                        );
+                                } else {
+                                    latLngs = [
+                                        [sourceLat, sourceLng],
+                                        [targetLat, targetLng],
+                                    ];
+                                }
 
-                            if (routingLine) {
-                                routingLine.setLatLngs(latLngs);
-                            } else {
-                                routingLine = L.polyline(latLngs, {
-                                    color: '#B21830',
-                                    weight: 5,
-                                    dashArray: '10, 5',
-                                    className: 'glowing-route'
-                                }).addTo(map);
-                            }
-                        })
-                        .catch(err => {
-                            // Fallback to straight line if API fails
-                            const latLngs = [[sourceLat, sourceLng], [targetLat, targetLng]];
-                            if (routingLine) {
-                                routingLine.setLatLngs(latLngs);
-                            } else {
-                                routingLine = L.polyline(latLngs, {
-                                    color: '#B21830',
-                                    weight: 5,
-                                    dashArray: '10, 5',
-                                    className: 'glowing-route'
-                                }).addTo(map);
-                            }
-                        });
-                        
-                    // Add start and end points to bounds to ensure camera captures both while routing loads
-                    boundsElements.push(L.marker([sourceLat, sourceLng]));
-                    boundsElements.push(L.marker([targetLat, targetLng]));
-                }
-            } else {
-                if (routingLine) {
-                    map.removeLayer(routingLine);
-                    routingLine = null;
-                }
-            }
+                                if (routingLine) {
+                                    routingLine.setLatLngs(latLngs);
+                                } else {
+                                    routingLine = L.polyline(latLngs, {
+                                        color: "#B21830",
+                                        weight: 5,
+                                        dashArray: "10, 5",
+                                        className: "glowing-route",
+                                    }).addTo(map);
+                                }
+                            })
+                            .catch((err) => {
+                                // Fallback to straight line if API fails
+                                const latLngs = [
+                                    [sourceLat, sourceLng],
+                                    [targetLat, targetLng],
+                                ];
+                                if (routingLine) {
+                                    routingLine.setLatLngs(latLngs);
+                                } else {
+                                    routingLine = L.polyline(latLngs, {
+                                        color: "#B21830",
+                                        weight: 5,
+                                        dashArray: "10, 5",
+                                        className: "glowing-route",
+                                    }).addTo(map);
+                                }
+                            });
 
-            fogLayer = L.polygon(polygonCoords, {
-                color: 'transparent',
-                fillColor: '#ffffff',
-                fillOpacity: 0.85
-            }).addTo(map);
-
-            const group = new L.featureGroup(boundsElements);
-            map.fitBounds(group.getBounds(), { padding: [50, 50] });
-        }
-
-        // Handle React Native messages
-        const handleRNMessage = (event) => {
-            try {
-                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                if (data.type === 'init' || data.type === 'update') {
-                    window.updateMap(data);
-                } else if (data.type === 'draw_route') {
-                    targetBuildingId = data.buildingId;
-                    sourceBuildingId = data.sourceBuildingId || null;
-                    if (window.lastMapData) window.updateMap(window.lastMapData);
-                } else if (data.type === 'clear_route') {
-                    targetBuildingId = null;
-                    sourceBuildingId = null;
+                        // Add start and end points to bounds to ensure camera captures both while routing loads
+                        boundsElements.push(L.marker([sourceLat, sourceLng]));
+                        boundsElements.push(L.marker([targetLat, targetLng]));
+                    }
+                } else {
                     if (routingLine) {
                         map.removeLayer(routingLine);
                         routingLine = null;
                     }
-                    if (window.lastMapData) window.updateMap(window.lastMapData);
                 }
-            } catch (e) {
-                console.error("Parse error", e);
-            }
-        };
 
-        window.addEventListener('message', handleRNMessage);
-        document.addEventListener('message', handleRNMessage);
-    </script>
-</body>
+                fogLayer = L.polygon(polygonCoords, {
+                    color: "transparent",
+                    fillColor: "#ffffff",
+                    fillOpacity: 0.85,
+                }).addTo(map);
+
+                const group = new L.featureGroup(boundsElements);
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            };
+
+            // Handle React Native messages
+            const handleRNMessage = (event) => {
+                try {
+                    const data =
+                        typeof event.data === "string"
+                            ? JSON.parse(event.data)
+                            : event.data;
+                    if (data.type === "init" || data.type === "update") {
+                        window.updateMap(data);
+                    } else if (data.type === "draw_route") {
+                        targetBuildingId = data.buildingId;
+                        sourceBuildingId = data.sourceBuildingId || null;
+                        if (window.lastMapData)
+                            window.updateMap(window.lastMapData);
+                    } else if (data.type === "clear_route") {
+                        targetBuildingId = null;
+                        sourceBuildingId = null;
+                        if (routingLine) {
+                            map.removeLayer(routingLine);
+                            routingLine = null;
+                        }
+                        if (window.lastMapData)
+                            window.updateMap(window.lastMapData);
+                    }
+                } catch (e) {
+                    console.error("Parse error", e);
+                }
+            };
+
+            window.addEventListener("message", handleRNMessage);
+            document.addEventListener("message", handleRNMessage);
+        </script>
+    </body>
 </html>

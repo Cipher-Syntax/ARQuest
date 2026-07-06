@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
-import { api } from './api';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
+import { api } from "./api";
 
-const QUEUE_KEY = 'arquest_offline_queue';
+const QUEUE_KEY = "arquest_offline_queue";
 
 export const offlineQueueService = {
     async enqueueRequest(url, method, data) {
@@ -13,7 +13,7 @@ export const offlineQueueService = {
             await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
             console.log(`Queued ${method} request to ${url} for offline sync.`);
         } catch (e) {
-            console.error('Failed to enqueue request', e);
+            console.error("Failed to enqueue request", e);
         }
     },
 
@@ -31,14 +31,17 @@ export const offlineQueueService = {
 
             for (const req of queue) {
                 try {
-                    if (req.method === 'POST') {
+                    if (req.method === "POST") {
                         await api.post(req.url, req.data);
                     }
                     // Handle other methods if needed
                 } catch (e) {
                     // If it failed because of 4xx (like already completed), we drop it.
                     // If it's another network error, keep it in queue.
-                    if (e?.data?.detail === "Network error. Please check your connection.") {
+                    if (
+                        e?.data?.detail ===
+                        "Network error. Please check your connection."
+                    ) {
                         failedQueue.push(req);
                     }
                 }
@@ -46,7 +49,7 @@ export const offlineQueueService = {
 
             await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(failedQueue));
         } catch (e) {
-            console.error('Failed to process offline queue', e);
+            console.error("Failed to process offline queue", e);
         }
-    }
+    },
 };

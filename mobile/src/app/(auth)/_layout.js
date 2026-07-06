@@ -7,8 +7,8 @@ export default function AuthLayout() {
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
-            <ImageBackground 
-                source={require('../../../assets/images/wmsu_landing_page_background.jpg')} 
+            <ImageBackground
+                source={require("../../../assets/images/wmsu_landing_page_background.jpg")}
                 style={styles.backgroundImage}
                 resizeMode="cover"
                 blurRadius={10} // Heavy blur for form focus
@@ -17,7 +17,7 @@ export default function AuthLayout() {
                 <Stack
                     screenOptions={{
                         headerShown: false,
-                        contentStyle: { backgroundColor: 'transparent' }
+                        contentStyle: { backgroundColor: "transparent" },
                     }}
                 >
                     <Stack.Screen name="login" options={{ title: "Login" }} />
@@ -30,15 +30,15 @@ export default function AuthLayout() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: "#000",
     },
     backgroundImage: {
         flex: 1,
-        width: '100%',
-        height: '100%',
+        width: "100%",
+        height: "100%",
     },
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.65)', // Dark tint so inputs pop
-    }
+        backgroundColor: "rgba(0, 0, 0, 0.65)", // Dark tint so inputs pop
+    },
 });

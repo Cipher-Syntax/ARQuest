@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { } from "react-native"
-import { customAlert as Alert } from '../components/CustomAlert';
+import {} from "react-native";
+import { customAlert as Alert } from "../components/CustomAlert";
 import { api } from "../services/api";
 import { authService } from "../services/authService";
-import NetInfo from '@react-native-community/netinfo';
-import { offlineQueueService } from '../services/offlineQueueService';
+import NetInfo from "@react-native-community/netinfo";
+import { offlineQueueService } from "../services/offlineQueueService";
 
 const AuthContext = createContext(null);
 
@@ -14,14 +14,14 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         checkToken();
-        
+
         // Listen for network restoration to process offline queue
-        const unsubscribe = NetInfo.addEventListener(state => {
+        const unsubscribe = NetInfo.addEventListener((state) => {
             if (state.isConnected) {
                 offlineQueueService.processQueue();
             }
         });
-        
+
         return () => unsubscribe();
     }, []);
 
@@ -33,14 +33,16 @@ export const AuthProvider = ({ children }) => {
                 // The backend `success_response` wraps in { data: { user: {...} } }
                 const payload = response.data.data || response.data;
                 const restoredUser = payload.user;
-                setUser(prev => {
+                setUser((prev) => {
                     if (prev?.rank_info && restoredUser?.rank_info) {
-                        if (restoredUser.rank_info.level > prev.rank_info.level) {
+                        if (
+                            restoredUser.rank_info.level > prev.rank_info.level
+                        ) {
                             setTimeout(() => {
                                 Alert(
                                     `⭐ Level Up!`,
                                     `Congratulations! You've reached Level ${restoredUser.rank_info.level}: ${restoredUser.rank_info.title}.`,
-                                    [{ text: 'Awesome!', style: 'default' }]
+                                    [{ text: "Awesome!", style: "default" }],
                                 );
                             }, 1200);
                         }
@@ -57,26 +59,36 @@ export const AuthProvider = ({ children }) => {
                     streakBonusExp = checkinData.streak_bonus_exp || 0;
 
                     // Sync the updated streak_count back into local user state
-                    let newStreak = checkinData.streak_count !== undefined ? checkinData.streak_count : restoredUser.streak_count;
+                    let newStreak =
+                        checkinData.streak_count !== undefined
+                            ? checkinData.streak_count
+                            : restoredUser.streak_count;
                     if (checkinData.streak_count !== undefined) {
-                        setUser(prev => ({ ...prev, streak_count: checkinData.streak_count }));
+                        setUser((prev) => ({
+                            ...prev,
+                            streak_count: checkinData.streak_count,
+                        }));
                     }
 
                     // Show global toast for daily check-in and milestones
                     if (streakBonusExp > 0) {
                         // Small delay ensures the UI is ready before showing the alert
                         setTimeout(() => {
-                            if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
+                            if (
+                                streakBonusExp === 10 &&
+                                newStreak > 0 &&
+                                newStreak % 3 === 0
+                            ) {
                                 Alert(
                                     `🔥 ${newStreak}-Day Streak!`,
                                     `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
-                                    [{ text: 'Awesome!', style: 'default' }]
+                                    [{ text: "Awesome!", style: "default" }],
                                 );
                             } else {
                                 Alert(
                                     `✅ Daily Check-in`,
                                     `You earned +${streakBonusExp} EXP for logging in today. Keep your streak going!`,
-                                    [{ text: 'Okay', style: 'default' }]
+                                    [{ text: "Okay", style: "default" }],
                                 );
                             }
                         }, 500);
@@ -102,7 +114,8 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await api.post("/api/auth/login/", {
                 username,
-                password });
+                password,
+            });
 
             // Extract tokens from the response
             const payload = response.data.data || response.data;
@@ -148,5 +161,3 @@ export const useAuth = () => {
     }
     return context;
 };
-
-

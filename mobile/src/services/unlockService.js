@@ -1,8 +1,8 @@
-import { api } from './api';
+import { api } from "./api";
 
 export const unlockService = {
     async unlockBuilding(latitude, longitude, accuracy) {
-        const response = await api.post('/api/buildings/unlock/', {
+        const response = await api.post("/api/buildings/unlock/", {
             latitude,
             longitude,
             accuracy_meters: accuracy,
@@ -11,7 +11,7 @@ export const unlockService = {
     },
 
     async getUnlockedBuildings() {
-        const response = await api.get('/api/buildings/unlocked/');
+        const response = await api.get("/api/buildings/unlocked/");
         return response.data.data;
     },
 };

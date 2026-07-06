@@ -6,11 +6,10 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    
     KeyboardAvoidingView,
-    Platform
+    Platform,
 } from "react-native";
-import { customAlert as Alert } from '../../components/CustomAlert';
+import { customAlert as Alert } from "../../components/CustomAlert";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import theme from "../../theme/tokens";
 import { api } from "../../services/api";
@@ -31,9 +30,15 @@ export default function VerifyOtpScreen() {
     const [fieldErrors, setFieldErrors] = useState({});
 
     const handleVerify = async () => {
-        const otpError = validateString(otp, 6, "OTP must be exactly 6 digits.");
+        const otpError = validateString(
+            otp,
+            6,
+            "OTP must be exactly 6 digits.",
+        );
         if (otpError || otp.length !== 6) {
-            setFieldErrors({ otp: otpError || "OTP must be exactly 6 digits." });
+            setFieldErrors({
+                otp: otpError || "OTP must be exactly 6 digits.",
+            });
             return;
         }
 
@@ -50,7 +55,8 @@ export default function VerifyOtpScreen() {
                 [
                     {
                         text: "Proceed",
-                        onPress: () => router.replace("/(auth)/login") },
+                        onPress: () => router.replace("/(auth)/login"),
+                    },
                 ],
             );
         } catch (err) {
@@ -98,12 +104,17 @@ export default function VerifyOtpScreen() {
 
                 <ARGlassCard style={styles.card}>
                     {error ? <Text style={styles.error}>{error}</Text> : null}
-                    {message ? <Text style={styles.message}>{message}</Text> : null}
+                    {message ? (
+                        <Text style={styles.message}>{message}</Text>
+                    ) : null}
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Transmission Code</Text>
                         <TextInput
-                            style={[styles.input, fieldErrors.otp && { borderColor: 'red' }]}
+                            style={[
+                                styles.input,
+                                fieldErrors.otp && { borderColor: "red" },
+                            ]}
                             placeholder="000000"
                             placeholderTextColor={theme.colors.textMuted}
                             value={otp}
@@ -115,7 +126,18 @@ export default function VerifyOtpScreen() {
                             maxLength={6}
                             textAlign="center"
                         />
-                        {fieldErrors.otp && <Text style={{ color: 'red', fontSize: 12, marginTop: 4, textAlign: 'center' }}>{fieldErrors.otp}</Text>}
+                        {fieldErrors.otp && (
+                            <Text
+                                style={{
+                                    color: "red",
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                    textAlign: "center",
+                                }}
+                            >
+                                {fieldErrors.otp}
+                            </Text>
+                        )}
                     </View>
 
                     <ARButton
@@ -140,7 +162,9 @@ export default function VerifyOtpScreen() {
                         style={styles.link}
                         onPress={() => router.replace("/(auth)/login")}
                     >
-                        <Text style={styles.linkText}>Abort & Return to Login</Text>
+                        <Text style={styles.linkText}>
+                            Abort & Return to Login
+                        </Text>
                     </TouchableOpacity>
                 </ARGlassCard>
             </View>
@@ -151,32 +175,36 @@ export default function VerifyOtpScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        },
+    },
     glowOrbTop: {
-        position: 'absolute',
+        position: "absolute",
         top: -100,
         left: -100,
         width: 300,
         height: 300,
         borderRadius: 150,
         backgroundColor: theme.colors.primaryDark,
-        opacity: 0.5 },
+        opacity: 0.5,
+    },
     glowOrbBottom: {
-        position: 'absolute',
+        position: "absolute",
         bottom: -150,
         right: -100,
         width: 400,
         height: 400,
         borderRadius: 200,
-        backgroundColor: "#EAB30810" },
+        backgroundColor: "#EAB30810",
+    },
     content: {
         flex: 1,
         justifyContent: "center",
         padding: theme.spacing.lg,
-        zIndex: 1 },
+        zIndex: 1,
+    },
     header: {
         alignItems: "center",
-        marginBottom: theme.spacing.xl },
+        marginBottom: theme.spacing.xl,
+    },
     title: {
         color: "#FFFFFF",
         fontSize: 32,
@@ -187,16 +215,20 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 10,
         marginBottom: 4,
-        textAlign: 'center' },
+        textAlign: "center",
+    },
     subtitle: {
         color: theme.colors.accent,
         fontSize: theme.typography.sm,
         fontWeight: "600",
-        textAlign: "center" },
+        textAlign: "center",
+    },
     card: {
-        paddingTop: theme.spacing.xl },
+        paddingTop: theme.spacing.xl,
+    },
     inputGroup: {
-        marginBottom: theme.spacing.lg },
+        marginBottom: theme.spacing.lg,
+    },
     inputLabel: {
         color: "rgba(255,255,255,0.6)",
         fontSize: 10,
@@ -204,7 +236,8 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
         letterSpacing: 1,
         marginBottom: 8,
-        textAlign: 'center' },
+        textAlign: "center",
+    },
     input: {
         backgroundColor: "rgba(255,255,255,0.05)",
         color: "#FFFFFF",
@@ -214,11 +247,14 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
         fontSize: theme.typography.xl,
         textAlign: "center",
-        letterSpacing: 10 },
+        letterSpacing: 10,
+    },
     verifyButton: {
-        marginTop: theme.spacing.sm },
+        marginTop: theme.spacing.sm,
+    },
     resendButton: {
-        marginTop: theme.spacing.md },
+        marginTop: theme.spacing.md,
+    },
     error: {
         color: theme.colors.error,
         marginBottom: theme.spacing.md,
@@ -227,7 +263,8 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         backgroundColor: "rgba(239, 68, 68, 0.1)",
         padding: 10,
-        borderRadius: theme.radius.sm },
+        borderRadius: theme.radius.sm,
+    },
     message: {
         color: theme.colors.success,
         marginBottom: theme.spacing.md,
@@ -236,15 +273,15 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         backgroundColor: "rgba(16, 185, 129, 0.1)",
         padding: 10,
-        borderRadius: theme.radius.sm },
+        borderRadius: theme.radius.sm,
+    },
     link: {
         marginTop: theme.spacing.xl,
-        alignItems: "center" },
+        alignItems: "center",
+    },
     linkText: {
         color: "rgba(255,255,255,0.6)",
         fontSize: theme.typography.sm,
-        fontWeight: "500" } });
-
-
-
-
+        fontWeight: "500",
+    },
+});

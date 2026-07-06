@@ -1,47 +1,55 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import theme from '../theme/tokens';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import theme from "../theme/tokens";
 
-export const GeoStatusIndicator = ({ status, buildingName, permissionDenied }) => {
+export const GeoStatusIndicator = ({
+    status,
+    buildingName,
+    permissionDenied,
+}) => {
     const getStatusConfig = () => {
         if (permissionDenied) {
             return {
                 color: theme.colors.error,
-                text: 'Location Permission Denied',
-                icon: '⚠️',
+                text: "Location Permission Denied",
+                icon: "⚠️",
             };
         }
 
         switch (status) {
-            case 'inside':
+            case "inside":
                 return {
                     color: theme.colors.primary,
-                    text: buildingName ? `Inside ${buildingName}` : 'Inside Building',
-                    icon: '📍',
+                    text: buildingName
+                        ? `Inside ${buildingName}`
+                        : "Inside Building",
+                    icon: "📍",
                 };
-            case 'nearby':
+            case "nearby":
                 return {
                     color: theme.colors.accent,
-                    text: buildingName ? `Near ${buildingName}` : 'Near Building',
-                    icon: '📌',
+                    text: buildingName
+                        ? `Near ${buildingName}`
+                        : "Near Building",
+                    icon: "📌",
                 };
-            case 'weak_signal':
+            case "weak_signal":
                 return {
                     color: theme.colors.warning,
-                    text: 'Weak GPS Signal',
-                    icon: '📶',
+                    text: "Weak GPS Signal",
+                    icon: "📶",
                 };
-            case 'loading':
+            case "loading":
                 return {
                     color: theme.colors.textSecondary,
-                    text: 'Getting Location...',
-                    icon: '⏳',
+                    text: "Getting Location...",
+                    icon: "⏳",
                 };
             default:
                 return {
                     color: theme.colors.textSecondary,
-                    text: 'Outside Campus',
-                    icon: '🗺️',
+                    text: "Outside Campus",
+                    icon: "🗺️",
                 };
         }
     };
@@ -51,15 +59,17 @@ export const GeoStatusIndicator = ({ status, buildingName, permissionDenied }) =
     return (
         <View style={[styles.container, { borderLeftColor: config.color }]}>
             <Text style={styles.icon}>{config.icon}</Text>
-            <Text style={[styles.text, { color: config.color }]}>{config.text}</Text>
+            <Text style={[styles.text, { color: config.color }]}>
+                {config.text}
+            </Text>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         padding: theme.spacing.sm,
         backgroundColor: theme.colors.surface,
         borderLeftWidth: 4,
@@ -72,6 +82,6 @@ const styles = StyleSheet.create({
     },
     text: {
         fontSize: theme.typography.md,
-        fontWeight: '600',
+        fontWeight: "600",
     },
 });

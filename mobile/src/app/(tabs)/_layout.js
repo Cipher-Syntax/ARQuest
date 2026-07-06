@@ -1,12 +1,12 @@
 import { Tabs } from "expo-router";
 import { Home, Map, Scan, Building2, User, Trophy } from "lucide-react-native";
 import { View, TouchableOpacity, Text } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from "react-native-safe-area-context";
 import theme from "../../theme/tokens";
 import { useAuth } from "../../hooks/useAuth";
 import { Redirect } from "expo-router";
-import { registerForPushNotificationsAsync } from '../../utils/pushNotifications';
-import { useEffect } from 'react';
+import { registerForPushNotificationsAsync } from "../../utils/pushNotifications";
+import { useEffect } from "react";
 import OnboardingTutorial from "../../components/OnboardingTutorial";
 
 function CustomTabBar({ state, descriptors, navigation }) {
@@ -32,7 +32,8 @@ function CustomTabBar({ state, descriptors, navigation }) {
             >
                 {state.routes.map((route, index) => {
                     const { options } = descriptors[route.key];
-                    const label = options.tabBarLabel || options.title || route.name;
+                    const label =
+                        options.tabBarLabel || options.title || route.name;
                     const isFocused = state.index === index;
                     const isAR = route.name === "ar";
 
@@ -87,7 +88,9 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                             color: isFocused
                                                 ? theme.colors.primary // WMSU Red
                                                 : theme.colors.textMuted,
-                                            fontWeight: isFocused ? "600" : "400",
+                                            fontWeight: isFocused
+                                                ? "600"
+                                                : "400",
                                         }}
                                     >
                                         {label}
@@ -139,7 +142,9 @@ export default function TabLayout() {
                     options={{
                         title: "Home",
                         tabBarLabel: "Home",
-                        tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+                        tabBarIcon: ({ color }) => (
+                            <Home size={24} color={color} />
+                        ),
                         headerShown: false,
                     }}
                 />
@@ -170,7 +175,9 @@ export default function TabLayout() {
                     options={{
                         title: "Explore",
                         tabBarLabel: "Explore",
-                        tabBarIcon: ({ color }) => <Building2 size={24} color={color} />,
+                        tabBarIcon: ({ color }) => (
+                            <Building2 size={24} color={color} />
+                        ),
                         headerShown: false,
                     }}
                 />
@@ -179,7 +186,9 @@ export default function TabLayout() {
                     options={{
                         title: "Profile",
                         tabBarLabel: "Profile",
-                        tabBarIcon: ({ color }) => <User size={24} color={color} />,
+                        tabBarIcon: ({ color }) => (
+                            <User size={24} color={color} />
+                        ),
                         headerShown: false,
                     }}
                 />
