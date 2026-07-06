@@ -89,7 +89,7 @@ export default function LoginScreen() {
                 <View style={styles.logoBox}>
                     <Image 
                         source={require('../../../assets/images/logo.png')} 
-                        style={{ width: 120, height: 120, resizeMode: 'contain' }} 
+                        style={{ width: 180, height: 180, resizeMode: 'contain' }} 
                     />
                 </View>
 
@@ -259,16 +259,10 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     logoBox: {
-        width: 140,
-        height: 140,
-        borderRadius: 30,
-        backgroundColor: "rgba(255, 255, 255, 0.15)",
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.3)",
         alignItems: "center",
         justifyContent: "center",
         alignSelf: "center",
-        marginBottom: 24,
+        marginBottom: 10,
     },
     header: {
         alignItems: "center",
