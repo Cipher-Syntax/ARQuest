@@ -3,12 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { theme } from '../theme'
+import { validateForm, validateRequired } from '../utils/validation'
 
 const LoginPage = () => {
 	const [username, setUsername] = useState('')
 	const [password, setPassword] = useState('')
 	const [showPassword, setShowPassword] = useState(false)
 	const [error, setError] = useState('')
+	const [errors, setErrors] = useState({})
 	const [loading, setLoading] = useState(false)
 	const [isMaintenance, setIsMaintenance] = useState(false)
 	const { login, logout } = useAuth()
@@ -26,6 +28,15 @@ const LoginPage = () => {
 	const handleSubmit = async (e) => {
 		e.preventDefault()
 		setError('')
+		
+		const schema = {
+			username: (val) => validateRequired(val),
+			password: (val) => validateRequired(val)
+		}
+		const validationErrors = validateForm({ username, password }, schema)
+		setErrors(validationErrors)
+		if (Object.keys(validationErrors).length > 0) return;
+
 		setLoading(true)
 
 		try {
@@ -120,11 +131,15 @@ const LoginPage = () => {
 							<input
 								type="text"
 								value={username}
-								onChange={(e) => setUsername(e.target.value)}
+								onChange={(e) => {
+									setUsername(e.target.value)
+									if (errors.username) setErrors(prev => ({ ...prev, username: null }))
+								}}
 								required
 								placeholder="Enter your username"
-								className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all placeholder:text-gray-400"
+								className={`w-full px-4 py-3.5 bg-gray-50 border rounded-md text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 ${errors.username ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-brand/20 focus:border-brand/40'}`}
 							/>
+							{errors.username && <p className="text-xs text-red-500">{errors.username}</p>}
 						</div>
 
 						<div className="space-y-2">
@@ -135,10 +150,13 @@ const LoginPage = () => {
 								<input
 									type={showPassword ? 'text' : 'password'}
 									value={password}
-									onChange={(e) => setPassword(e.target.value)}
+									onChange={(e) => {
+										setPassword(e.target.value)
+										if (errors.password) setErrors(prev => ({ ...prev, password: null }))
+									}}
 									required
 									placeholder="Enter your password"
-									className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all placeholder:text-gray-400"
+									className={`w-full px-4 py-3.5 bg-gray-50 border rounded-md text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 ${errors.password ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-brand/20 focus:border-brand/40'}`}
 								/>
 								<button
 									type="button"
@@ -148,6 +166,7 @@ const LoginPage = () => {
 									{showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
 								</button>
 							</div>
+							{errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
 						</div>
 
 						{error && (

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Plus, Edit3, Trash2, Layers, X, MoreVertical } from 'lucide-react'
 import { Card, Badge, Button, ConfirmDeleteModal, Pagination } from '../components/ui'
 import { departmentService } from '../services/departmentService'
+import { validateForm, validateString } from '../utils/validation'
 
 function slugify(text) {
 	return text
@@ -21,7 +22,7 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
 	})
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState('')
-	const [fieldErrors, setFieldErrors] = useState({})
+	const [errors, setErrors] = useState({})
 	const nameRef = useRef(false)
 
 	useEffect(() => {
@@ -38,7 +39,7 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
 				setFormData({ name: '', code: '', description: '', color_hex: '#96C0CE', is_active: true })
 			}
 			setError('')
-			setFieldErrors({})
+			setErrors({})
 			nameRef.current = false
 		}
 	}, [isOpen, editingDepartment])
@@ -58,23 +59,38 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
 			return updated
 		})
 
-		if (fieldErrors[name]) {
-			setFieldErrors(prev => ({ ...prev, [name]: null }))
+		if (errors[name]) {
+			setErrors(prev => ({ ...prev, [name]: null }))
 		}
 	}
 
 	const handleCodeChange = (e) => {
 		nameRef.current = true
 		setFormData(prev => ({ ...prev, code: e.target.value }))
-		if (fieldErrors.code) {
-			setFieldErrors(prev => ({ ...prev, code: null }))
+		if (errors.code) {
+			setErrors(prev => ({ ...prev, code: null }))
 		}
 	}
 
 	const handleSubmit = async (e) => {
 		e.preventDefault()
 		setError('')
-		setFieldErrors({})
+		setErrors({})
+		
+		const schema = {
+			name: (val) => validateString(val, 1),
+			code: (val) => validateString(val, 1),
+			description: (val) => null,
+			color_hex: (val) => validateString(val, 4, 7),
+			is_active: (val) => null
+		}
+		
+		const validationErrors = validateForm(formData, schema)
+		if (Object.keys(validationErrors).length > 0) {
+			setErrors(validationErrors)
+			return
+		}
+
 		setIsLoading(true)
 
 		try {
@@ -97,7 +113,7 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
 		} catch (err) {
 			const apiErrors = err.response?.data?.details || {}
 			if (Object.keys(apiErrors).length > 0) {
-				setFieldErrors(apiErrors)
+				setErrors(apiErrors)
 			} else {
 				setError(err.response?.data?.message || 'Failed to save department.')
 			}
@@ -133,10 +149,10 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
 							required
 							value={formData.name}
 							onChange={handleChange}
-							className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm"
+							className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm ${errors.name ? 'border-red-500 focus:ring-red-200' : 'border-brand-border focus:ring-brand/20'}`}
 							placeholder="College of Computer Studies"
 						/>
-						{fieldErrors.name && <p className="text-xs text-red-500">{fieldErrors.name}</p>}
+						{errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
 					</div>
 
 					<div className="space-y-1">
@@ -147,10 +163,10 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
 							required
 							value={formData.code}
 							onChange={handleCodeChange}
-							className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm font-mono"
+							className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm font-mono ${errors.code ? 'border-red-500 focus:ring-red-200' : 'border-brand-border focus:ring-brand/20'}`}
 							placeholder="ccs"
 						/>
-						{fieldErrors.code && <p className="text-xs text-red-500">{Array.isArray(fieldErrors.code) ? fieldErrors.code.join(', ') : fieldErrors.code}</p>}
+						{errors.code && <p className="text-xs text-red-500">{Array.isArray(errors.code) ? errors.code.join(', ') : errors.code}</p>}
 						<p className="text-xs text-gray-400">Auto-generated from name. Letters, numbers, hyphens only.</p>
 					</div>
 
@@ -174,7 +190,7 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
 								name="color_hex"
 								value={formData.color_hex || '#96c0ce'}
 								onChange={handleChange}
-								className="w-10 h-10 p-1 border border-brand-border rounded-md shrink-0 cursor-pointer bg-white"
+								className={`w-10 h-10 p-1 border rounded-md shrink-0 cursor-pointer bg-white ${errors.color_hex ? 'border-red-500' : 'border-brand-border'}`}
 							/>
 							<input
 								type="text"
@@ -182,10 +198,11 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
 								value={formData.color_hex}
 								onChange={handleChange}
 								maxLength={7}
-								className="flex-1 px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm font-mono"
+								className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm font-mono ${errors.color_hex ? 'border-red-500 focus:ring-red-200' : 'border-brand-border focus:ring-brand/20'}`}
 								placeholder="#96C0CE"
 							/>
 						</div>
+						{errors.color_hex && <p className="text-xs text-red-500">{errors.color_hex}</p>}
 						<p className="text-xs text-gray-400">Hex color used for building pins on the map.</p>
 					</div>
 

@@ -5,17 +5,21 @@ import { X, MessageSquare, AlertCircle, Lightbulb } from 'lucide-react-native';
 import theme from '../theme/tokens';
 import { fonts } from '../constants/typography';
 import { api } from '../services/api';
+import { validateString } from '../utils/validation';
 
 export default function FeedbackModal({ visible, onClose }) {
     const [type, setType] = useState('bug');
     const [message, setMessage] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const handleSubmit = async () => {
-        if (!message.trim()) {
-            Alert("Error", "Please enter a message before submitting.");
+        const messageError = validateString(message, 1);
+        if (messageError) {
+            setErrors({ message: messageError });
             return;
         }
+        setErrors({});
 
         setSubmitting(true);
         try {
@@ -92,15 +96,19 @@ export default function FeedbackModal({ visible, onClose }) {
 
                         <Text style={styles.label}>Please describe your feedback:</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, errors.message && { borderColor: 'red' }]}
                             placeholder="Tell us what happened or what you'd like to see..."
                             placeholderTextColor={theme.colors.textMuted}
                             multiline
                             numberOfLines={6}
                             value={message}
-                            onChangeText={setMessage}
+                            onChangeText={(text) => {
+                                setMessage(text);
+                                if (errors.message) setErrors({});
+                            }}
                             textAlignVertical="top"
                         />
+                        {errors.message && <Text style={{ color: 'red', fontSize: 12, marginTop: -20, marginBottom: 20 }}>{errors.message}</Text>}
 
                         <TouchableOpacity 
                             style={[styles.submitButton, (!message.trim() || submitting) && styles.submitButtonDisabled]}

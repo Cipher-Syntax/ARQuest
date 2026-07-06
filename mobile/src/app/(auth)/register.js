@@ -16,6 +16,7 @@ import { Eye, EyeOff } from "lucide-react-native";
 import ARGlassCard from "../../components/ARGlassCard";
 import ARButton from "../../components/ARButton";
 import { fonts } from "../../constants/typography";
+import { validateString, validateEmail } from "../../utils/validation";
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -31,32 +32,39 @@ export default function RegisterScreen() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleChange = (name, value) => {
         setFormData((prev) => ({ ...prev, [name]: value }));
+        if (fieldErrors[name]) {
+            setFieldErrors((prev) => ({ ...prev, [name]: null }));
+        }
     };
 
     const handleRegister = async () => {
-        if (
-            !formData.username ||
-            !formData.email ||
-            !formData.password ||
-            !formData.password_confirm
-        ) {
-            setError(
-                "Username, email, password, and password confirmation are required.",
-            );
+        const usernameError = validateString(formData.username, 3);
+        const emailError = validateEmail(formData.email);
+        const passwordError = validateString(formData.password, 6);
+        const passwordConfirmError = validateString(formData.password_confirm, 6);
+        let matchError = null;
+        if (!passwordError && !passwordConfirmError && formData.password !== formData.password_confirm) {
+            matchError = "Passwords do not match.";
+        }
+
+        if (usernameError || emailError || passwordError || passwordConfirmError || matchError) {
+            setFieldErrors({
+                username: usernameError,
+                email: emailError,
+                password: passwordError,
+                password_confirm: passwordConfirmError || matchError,
+            });
             return;
         }
 
-        if (formData.password !== formData.password_confirm) {
-            setError("Passwords do not match.");
-            return;
-        }
-
+        setFieldErrors({});
         setError("");
         setIsLoading(true);
 
@@ -104,19 +112,20 @@ export default function RegisterScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Username</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, fieldErrors.username && { borderColor: 'red' }]}
                             placeholder="Username"
                             placeholderTextColor={theme.colors.textMuted}
                             value={formData.username}
                             onChangeText={(text) => handleChange("username", text)}
                             autoCapitalize="none"
                         />
+                        {fieldErrors.username && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.username}</Text>}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Email</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, fieldErrors.email && { borderColor: 'red' }]}
                             placeholder="Email"
                             placeholderTextColor={theme.colors.textMuted}
                             value={formData.email}
@@ -124,6 +133,7 @@ export default function RegisterScreen() {
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
+                        {fieldErrors.email && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.email}</Text>}
                     </View>
 
                     <View style={styles.row}>
@@ -151,7 +161,7 @@ export default function RegisterScreen() {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Password</Text>
-                        <View style={styles.passwordContainer}>
+                        <View style={[styles.passwordContainer, fieldErrors.password && { borderColor: 'red' }]}>
                             <TextInput
                                 style={styles.passwordInput}
                                 placeholder="Password"
@@ -171,11 +181,12 @@ export default function RegisterScreen() {
                                 )}
                             </TouchableOpacity>
                         </View>
+                        {fieldErrors.password && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.password}</Text>}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Confirm Password</Text>
-                        <View style={styles.passwordContainer}>
+                        <View style={[styles.passwordContainer, fieldErrors.password_confirm && { borderColor: 'red' }]}>
                             <TextInput
                                 style={styles.passwordInput}
                                 placeholder="Confirm Password"
@@ -195,6 +206,7 @@ export default function RegisterScreen() {
                                 )}
                             </TouchableOpacity>
                         </View>
+                        {fieldErrors.password_confirm && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.password_confirm}</Text>}
                     </View>
 
                     <ARButton

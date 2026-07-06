@@ -2,11 +2,13 @@ import { Save } from 'lucide-react'
 import { Card, Toggle, Button, Input } from '../components/ui'
 import { useState, useEffect } from 'react'
 import { settingsService } from '../services/settingsService'
+import { validateForm, validateString, validateNumber, validateEmail } from '../utils/validation'
 
 export default function Settings() {
 	const [isSaving, setIsSaving] = useState(false)
 	const [successMessage, setSuccessMessage] = useState('')
 	const [errorMessage, setErrorMessage] = useState('')
+	const [errors, setErrors] = useState({})
 	const [settings, setSettings] = useState({
 		app_name: 'ARQuest',
 		maintenance_mode: false,
@@ -34,9 +36,21 @@ export default function Settings() {
 
 	const handleChange = (key, value) => {
 		setSettings((prev) => ({ ...prev, [key]: value }))
+		if (errors[key]) {
+			setErrors((prev) => ({ ...prev, [key]: null }))
+		}
 	}
 
 	const handleSave = async () => {
+		const schema = {
+			app_name: (val) => validateString(val, 1),
+			contact_email: (val) => validateEmail(val),
+			default_quest_reward: (val) => validateNumber(val, 0)
+		}
+		const validationErrors = validateForm(settings, schema)
+		setErrors(validationErrors)
+		if (Object.keys(validationErrors).length > 0) return;
+
 		try {
 			setErrorMessage('')
 			setSuccessMessage('')
@@ -93,8 +107,9 @@ export default function Settings() {
 									type="text"
 									value={settings.app_name}
 									onChange={(e) => handleChange('app_name', e.target.value)}
-									className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+									className={`w-full border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 font-medium ${errors.app_name ? 'border-red-500 focus:ring-red-200' : 'border-brand-border focus:ring-brand/20'}`}
 								/>
+								{errors.app_name && <p className="text-xs text-red-500">{errors.app_name}</p>}
 							</div>
 							<div className="space-y-2">
 								<label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -104,8 +119,9 @@ export default function Settings() {
 									type="email"
 									value={settings.contact_email}
 									onChange={(e) => handleChange('contact_email', e.target.value)}
-									className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+									className={`w-full border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 font-medium ${errors.contact_email ? 'border-red-500 focus:ring-red-200' : 'border-brand-border focus:ring-brand/20'}`}
 								/>
+								{errors.contact_email && <p className="text-xs text-red-500">{errors.contact_email}</p>}
 							</div>
 							<div className="h-px bg-brand-border" />
 							<div className="flex items-start justify-between gap-4">
@@ -156,8 +172,9 @@ export default function Settings() {
 										const val = e.target.value
 										handleChange('default_quest_reward', val === '' ? '' : parseInt(val))
 									}}
-									className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium max-w-[150px]"
+									className={`w-full border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 font-medium max-w-[150px] ${errors.default_quest_reward ? 'border-red-500 focus:ring-red-200' : 'border-brand-border focus:ring-brand/20'}`}
 								/>
+								{errors.default_quest_reward && <p className="text-xs text-red-500">{errors.default_quest_reward}</p>}
 							</div>
 						</div>
 					</Card>

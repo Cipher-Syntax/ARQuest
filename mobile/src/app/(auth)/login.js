@@ -16,6 +16,7 @@ import { Eye, EyeOff } from "lucide-react-native";
 import ARGlassCard from "../../components/ARGlassCard";
 import ARButton from "../../components/ARButton";
 import { fonts } from "../../constants/typography";
+import { validateString } from "../../utils/validation";
 
 export default function LoginScreen() {
     const [username, setUsername] = useState("");
@@ -23,13 +24,21 @@ export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const { login, isLoading } = useAuth();
     const [error, setError] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
     const router = useRouter();
 
     const handleLogin = async () => {
-        if (!username || !password) {
-            setError("Identity credentials required.");
+        const usernameError = validateString(username, 1);
+        const passwordError = validateString(password, 1);
+        
+        if (usernameError || passwordError) {
+            setFieldErrors({
+                username: usernameError,
+                password: passwordError
+            });
             return;
         }
+        setFieldErrors({});
         setError("");
         try {
             const result = await login(username, password);
@@ -83,24 +92,31 @@ export default function LoginScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Username</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, fieldErrors.username && { borderColor: 'red' }]}
                             placeholder="Username"
                             placeholderTextColor={theme.colors.textMuted}
                             value={username}
-                            onChangeText={setUsername}
+                            onChangeText={(text) => {
+                                setUsername(text);
+                                if (fieldErrors.username) setFieldErrors(prev => ({ ...prev, username: null }));
+                            }}
                             autoCapitalize="none"
                         />
+                        {fieldErrors.username && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.username}</Text>}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Password</Text>
-                        <View style={styles.passwordContainer}>
+                        <View style={[styles.passwordContainer, fieldErrors.password && { borderColor: 'red' }]}>
                             <TextInput
                                 style={styles.passwordInput}
                                 placeholder="••••••••"
                                 placeholderTextColor={theme.colors.textMuted}
                                 value={password}
-                                onChangeText={setPassword}
+                                onChangeText={(text) => {
+                                    setPassword(text);
+                                    if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: null }));
+                                }}
                                 secureTextEntry={!showPassword}
                             />
                             <TouchableOpacity
@@ -114,6 +130,7 @@ export default function LoginScreen() {
                                 )}
                             </TouchableOpacity>
                         </View>
+                        {fieldErrors.password && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>{fieldErrors.password}</Text>}
                     </View>
 
                     <ARButton
