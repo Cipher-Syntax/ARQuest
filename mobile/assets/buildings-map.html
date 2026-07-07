@@ -115,13 +115,13 @@
         let targetBuildingId = null;
         let sourceBuildingId = null;
 
-        function initializeMap(token) {
+        function initializeMap(token, styleUrl) {
             if (map) return;
             mapboxgl.accessToken = token;
             
             map = new mapboxgl.Map({
                 container: 'map',
-                style: 'mapbox://styles/mapbox/streets-v12',
+                style: styleUrl || 'mapbox://styles/mapbox/streets-v12',
                 center: WMSU_CENTER,
                 zoom: 16,
                 minZoom: 15,
@@ -413,7 +413,7 @@
             window.lastMapData = data;
             
             if (!map && data.mapboxToken) {
-                initializeMap(data.mapboxToken);
+                initializeMap(data.mapboxToken, data.mapboxStyleUrl);
             } else if (mapInitialized) {
                 processUpdateMap(data);
             }

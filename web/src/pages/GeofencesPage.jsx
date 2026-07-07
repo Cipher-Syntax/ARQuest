@@ -474,7 +474,7 @@ export default function Geofences() {
                                 {...viewState}
                                 onMove={evt => setViewState(evt.viewState)}
                                 mapboxAccessToken={MAPBOX_TOKEN}
-                                mapStyle="mapbox://styles/mapbox/streets-v12"
+                                mapStyle={import.meta.env.VITE_MAPBOX_STYLE_URL || "mapbox://styles/mapbox/streets-v12"}
                                 maxBounds={WMSU_BOUNDS}
                                 minZoom={16}
                                 maxZoom={20}
