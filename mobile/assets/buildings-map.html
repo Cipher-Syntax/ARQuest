@@ -369,7 +369,7 @@
                     boundsCoords.push([sourceLng, sourceLat]);
                     boundsCoords.push([targetLng, targetLat]);
 
-                    fetch(`https://router.project-osrm.org/route/v1/foot/${sourceLng},${sourceLat};${targetLng},${targetLat}?geometries=geojson`)
+                    fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${sourceLng},${sourceLat};${targetLng},${targetLat}?geometries=geojson&access_token=${mapboxgl.accessToken}`)
                         .then(res => res.json())
                         .then(routeData => {
                             let geojson = { type: 'FeatureCollection', features: [] };
