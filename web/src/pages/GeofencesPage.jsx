@@ -21,7 +21,7 @@ import {
     Button,
     ConfirmDeleteModal,
 } from "../components/ui";
-import Map, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-gl";
+import Map, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-gl/mapbox";
 import circle from "@turf/circle";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@google/model-viewer";

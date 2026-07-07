@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import Map, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-gl";
+import Map, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-gl/mapbox";
 import circle from "@turf/circle";
 import { theme } from "../theme";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -103,12 +103,12 @@ const GeofenceEditor = ({
     return (
         <div>
             <style>
-                {\
+                {`
                 @keyframes pulse {
                     0%, 100% { opacity: 1; transform: scale(1); }
                     50% { opacity: .7; transform: scale(1.1); }
                 }
-                \}
+                `}
             </style>
             <div style={{ marginBottom: theme.spacing.md }}>
                 <label style={{ display: "block", marginBottom: theme.spacing.xs, fontSize: "14px", fontWeight: "500" }}>
@@ -121,7 +121,7 @@ const GeofenceEditor = ({
                     min="1"
                     style={{
                         width: "100%", padding: theme.spacing.sm,
-                        border: \1px solid \\,
+                        border: "1px solid #ddd",
                         borderRadius: theme.radius.sm, fontSize: "14px",
                     }}
                 />
@@ -137,7 +137,7 @@ const GeofenceEditor = ({
                 </label>
             </div>
 
-            <div style={{ marginBottom: theme.spacing.md, height: "400px", border: \1px solid \\, borderRadius: theme.radius.sm, overflow: "hidden" }}>
+            <div style={{ marginBottom: theme.spacing.md, height: "400px", border: "1px solid #ddd", borderRadius: theme.radius.sm, overflow: "hidden" }}>
                 <Map
                     {...viewState}
                     onMove={evt => setViewState(evt.viewState)}
@@ -241,7 +241,7 @@ const GeofenceEditor = ({
                             anchor="bottom"
                         >
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <div className={\	ext-[10px] font-bold \ shadow-sm border-0 bg-white/80 px-1 rounded mb-1 whitespace-nowrap\}>
+                                <div className={`text-[10px] font-bold shadow-sm border-0 bg-white/80 px-1 rounded mb-1 whitespace-nowrap ${buildingStatus === 'MAINTENANCE' ? 'text-orange-500' : 'text-brand'}`}>
                                     {buildingName || "Current Building"}
                                 </div>
                                 {buildingStatus === 'MAINTENANCE' ? <MaintenanceIcon /> : <DefaultIcon color={theme.colors.primary} />}
