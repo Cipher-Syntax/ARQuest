@@ -143,7 +143,7 @@ const GeofenceEditor = ({
                     onMove={evt => setViewState(evt.viewState)}
                     onClick={handleMapClick}
                     mapboxAccessToken={MAPBOX_TOKEN}
-                    mapStyle={import.meta.env.VITE_MAPBOX_STYLE_URL || "mapbox://styles/mapbox/streets-v12"}
+                    mapStyle="mapbox://styles/mapbox/streets-v12"
                     maxBounds={WMSU_BOUNDS}
                     minZoom={16}
                     maxZoom={20}

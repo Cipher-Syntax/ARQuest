@@ -81,7 +81,6 @@ export default function BuildingsScreen() {
                 buildings: allBuildings,
                 unlockedIds: unlockedIds, 
                 mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
-                mapboxStyleUrl: process.env.EXPO_PUBLIC_MAPBOX_STYLE_URL || 'mapbox://styles/mapbox/streets-v12',
                 userLocation: location,
             });
             webViewRef.current.postMessage(message);
