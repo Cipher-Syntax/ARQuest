@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, Fragment } from "react";
 import {
     Navigation,
     MapPin,
@@ -21,17 +21,9 @@ import {
     Button,
     ConfirmDeleteModal,
 } from "../components/ui";
-import {
-    MapContainer,
-    TileLayer,
-    Marker,
-    Circle,
-    Tooltip,
-    Popup,
-} from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import "../utils/leafletConfig";
+import Map, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-gl";
+import circle from "@turf/circle";
+import "mapbox-gl/dist/mapbox-gl.css";
 import "@google/model-viewer";
 import { buildingService } from "../services/buildingService";
 import {
@@ -41,20 +33,34 @@ import {
     validateNumber,
 } from "../utils/validation";
 
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
 const WMSU_BOUNDS = [
-    [6.9095, 122.0575],
-    [6.9155, 122.064],
+    [122.0575, 6.9095],
+    [122.064, 6.9155],
 ];
 
-const maintenanceIcon = new L.divIcon({
-    className: "custom-div-icon",
-    html: `<div class="animate-pulse bg-orange-500 w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-[0_0_15px_rgba(249,115,22,0.8)]">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-           </div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16]
-});
+const MaintenanceIcon = () => (
+    <div style={{
+        backgroundColor: "#f97316", width: "32px", height: "32px", borderRadius: "50%",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        border: "2px solid white", boxShadow: "0 0 15px rgba(249, 115, 22, 0.8)",
+        animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+    }}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    </div>
+);
+
+const DefaultIcon = ({ color = "#ef4444" }) => (
+    <div style={{
+        backgroundColor: color, width: "24px", height: "24px", borderRadius: "50%",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        border: "2px solid white", boxShadow: "0 0 10px rgba(0,0,0,0.3)"
+    }}>
+        <div style={{ width: "8px", height: "8px", backgroundColor: "white", borderRadius: "50%" }} />
+    </div>
+);
 
 const parseCoordinate = (coordStr) => {
     if (!coordStr) return 0;
@@ -82,6 +88,7 @@ export default function Geofences() {
     const [activeMenu, setActiveMenu] = useState(null);
     const [selectedBuilding, setSelectedBuilding] = useState("All Buildings");
     const [searchTerm, setSearchTerm] = useState("");
+    const [hoveredBuildingId, setHoveredBuildingId] = useState(null);
 
     const [newName, setNewName] = useState("");
     const [newFullBuilding, setNewFullBuilding] = useState("");
@@ -91,11 +98,29 @@ export default function Geofences() {
     const [selectedGeoId, setSelectedGeoId] = useState(null);
     const [errors, setErrors] = useState({});
 
+    const [viewState, setViewState] = useState({
+        longitude: WMSU_CENTER.lng,
+        latitude: WMSU_CENTER.lat,
+        zoom: 17,
+        pitch: 45,
+        bearing: 0
+    });
+
     const handleMarkerClick = (id) => {
         setSelectedGeoId(id);
         const element = document.getElementById(`geo-card-${id}`);
         if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        const geo = geofences.find((g) => g.id === id);
+        if (geo) {
+            setViewState(prev => ({
+                ...prev,
+                longitude: parseCoordinate(geo.lng),
+                latitude: parseCoordinate(geo.lat),
+                zoom: 18,
+                transitionDuration: 1000
+            }));
         }
     };
 
@@ -357,8 +382,33 @@ export default function Geofences() {
         return matchesSearch && matchesBuilding;
     });
 
+    const circlesData = useMemo(() => {
+        const features = [];
+        filteredGeofences.forEach(geo => {
+            const lat = parseCoordinate(geo.lat);
+            const lng = parseCoordinate(geo.lng);
+            const radius = parseRadius(geo.radius);
+            if (radius > 0) {
+                const c = circle([lng, lat], radius / 1000, { steps: 64, units: 'kilometers', properties: { active: geo.active, id: geo.id } });
+                features.push(c);
+            }
+        });
+        return {
+            type: 'FeatureCollection',
+            features: features
+        };
+    }, [filteredGeofences]);
+
     return (
         <div className="space-y-6">
+            <style>
+                {`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: .7; transform: scale(1.1); }
+                }
+                `}
+            </style>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">
@@ -412,7 +462,6 @@ export default function Geofences() {
 
             {view === "card" ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {}
                     <div className="flex flex-col h-[600px] bg-white rounded-lg border border-brand-border overflow-hidden lg:col-span-2">
                         <div className="p-4 border-b border-brand-border flex justify-between items-center z-10 relative bg-white">
                             <h3 className="font-bold text-gray-900">
@@ -421,114 +470,117 @@ export default function Geofences() {
                             <Badge variant="brand">Live View</Badge>
                         </div>
                         <div className="flex-1 relative z-0">
-                            <MapContainer
-                                center={[WMSU_CENTER.lat, WMSU_CENTER.lng]}
-                                zoom={17}
-                                style={{
-                                    height: "100%",
-                                    width: "100%",
-                                    zIndex: 0,
-                                }}
+                            <Map
+                                {...viewState}
+                                onMove={evt => setViewState(evt.viewState)}
+                                mapboxAccessToken={MAPBOX_TOKEN}
+                                mapStyle="mapbox://styles/mapbox/streets-v12"
                                 maxBounds={WMSU_BOUNDS}
-                                maxBoundsViscosity={1.0}
                                 minZoom={16}
-                                maxZoom={19}
+                                maxZoom={20}
                             >
-                                <TileLayer
-                                    url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-                                    attribution="&copy; Google Maps"
-                                    maxNativeZoom={18}
-                                    maxZoom={20}
+                                <NavigationControl position="top-right" />
+                                
+                                <Layer
+                                    id="3d-buildings"
+                                    source="composite"
+                                    source-layer="building"
+                                    filter={['==', 'extrude', 'true']}
+                                    type="fill-extrusion"
+                                    minzoom={15}
+                                    paint={{
+                                        'fill-extrusion-color': '#aaa',
+                                        'fill-extrusion-height': ['get', 'height'],
+                                        'fill-extrusion-base': ['get', 'min_height'],
+                                        'fill-extrusion-opacity': 0.6
+                                    }}
                                 />
+
+                                <Source id="geofences" type="geojson" data={circlesData}>
+                                    <Layer
+                                        id="geofences-fill"
+                                        type="fill"
+                                        paint={{
+                                            'fill-color': ['case', ['==', ['get', 'active'], true], '#10b981', '#6b7280'],
+                                            'fill-opacity': 0.2
+                                        }}
+                                    />
+                                    <Layer
+                                        id="geofences-line"
+                                        type="line"
+                                        paint={{
+                                            'line-color': ['case', ['==', ['get', 'active'], true], '#10b981', '#6b7280'],
+                                            'line-width': 2
+                                        }}
+                                    />
+                                </Source>
+
                                 {filteredGeofences.map((geo) => {
                                     const lat = parseCoordinate(geo.lat);
                                     const lng = parseCoordinate(geo.lng);
-                                    const radius = parseRadius(geo.radius);
+                                    const isHovered = hoveredBuildingId === geo.id;
+                                    const isSelected = selectedGeoId === geo.id;
+                                    const showPopup = (isHovered || isSelected) && geo.model_url;
+
                                     return (
-                                        <Circle
-                                            key={geo.id}
-                                            center={[lat, lng]}
-                                            radius={radius}
-                                            pathOptions={{
-                                                color: geo.active
-                                                    ? "#10b981"
-                                                    : "#6b7280",
-                                                fillColor: geo.active
-                                                    ? "#10b981"
-                                                    : "#6b7280",
-                                                fillOpacity: 0.2,
-                                            }}
-                                        >
+                                        <Fragment key={geo.id}>
                                             <Marker
-                                                position={[lat, lng]}
-                                                icon={geo.status === 'MAINTENANCE' ? maintenanceIcon : new L.Icon.Default()}
-                                                eventHandlers={{
-                                                    click: () =>
-                                                        handleMarkerClick(
-                                                            geo.id,
-                                                        ),
+                                                longitude={lng}
+                                                latitude={lat}
+                                                anchor="bottom"
+                                                onClick={(e) => {
+                                                    e.originalEvent.stopPropagation();
+                                                    handleMarkerClick(geo.id);
                                                 }}
                                             >
-                                                <Tooltip
-                                                    permanent
-                                                    direction="top"
-                                                    offset={[0, -10]}
-                                                    className="text-xs font-bold text-gray-900 shadow-sm border-0"
+                                                <div 
+                                                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
+                                                    onMouseEnter={() => setHoveredBuildingId(geo.id)}
+                                                    onMouseLeave={() => setHoveredBuildingId(null)}
                                                 >
-                                                    {geo.name}
-                                                </Tooltip>
-                                                {geo.model_url &&
-                                                    selectedGeoId ===
-                                                        geo.id && (
-                                                        <Popup
-                                                            offset={[0, -10]}
-                                                            className="overflow-hidden rounded-lg"
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    width: "220px",
-                                                                    height: "220px",
-                                                                    background:
-                                                                        "#f8fafc",
-                                                                    margin: "-14px",
-                                                                    position:
-                                                                        "relative",
-                                                                }}
-                                                            >
-                                                                <model-viewer
-                                                                    src={
-                                                                        geo.model_url
-                                                                    }
-                                                                    auto-rotate
-                                                                    rotation-per-second="45deg"
-                                                                    camera-controls
-                                                                    style={{
-                                                                        width: "100%",
-                                                                        height: "100%",
-                                                                        backgroundColor:
-                                                                            "transparent",
-                                                                    }}
-                                                                ></model-viewer>
-                                                                <div className="absolute bottom-2 left-0 w-full text-center pointer-events-none">
-                                                                    <span className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-brand uppercase tracking-wider shadow-sm">
-                                                                        {
-                                                                            geo.name
-                                                                        }{" "}
-                                                                        3D Model
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </Popup>
-                                                    )}
+                                                    <div className="text-[10px] font-bold text-gray-900 shadow-sm border-0 bg-white/80 px-1 rounded mb-1 whitespace-nowrap">
+                                                        {geo.name}
+                                                    </div>
+                                                    {geo.status === 'MAINTENANCE' ? <MaintenanceIcon /> : <DefaultIcon color={geo.active ? "#10b981" : "#6b7280"} />}
+                                                </div>
                                             </Marker>
-                                        </Circle>
+
+                                            {showPopup && (
+                                                <Popup
+                                                    longitude={lng}
+                                                    latitude={lat}
+                                                    anchor="top"
+                                                    onClose={() => {
+                                                        if (isSelected) setSelectedGeoId(null);
+                                                        setHoveredBuildingId(null);
+                                                    }}
+                                                    closeButton={true}
+                                                    closeOnClick={false}
+                                                    className="z-50"
+                                                >
+                                                    <div style={{ width: "220px", height: "220px", background: "#f8fafc", position: "relative" }}>
+                                                        <model-viewer
+                                                            src={geo.model_url}
+                                                            auto-rotate
+                                                            rotation-per-second="45deg"
+                                                            camera-controls
+                                                            style={{ width: "100%", height: "100%", backgroundColor: "transparent" }}
+                                                        ></model-viewer>
+                                                        <div className="absolute bottom-2 left-0 w-full text-center pointer-events-none">
+                                                            <span className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-brand uppercase tracking-wider shadow-sm">
+                                                                {geo.name} 3D Model
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </Popup>
+                                            )}
+                                        </Fragment>
                                     );
                                 })}
-                            </MapContainer>
+                            </Map>
                         </div>
                     </div>
 
-                    {}
                     <div className="flex flex-col gap-4 h-full lg:col-span-1">
                         {!selectedGeoId && (
                             <div className="flex flex-col items-center justify-center h-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-8 text-center">
@@ -696,7 +748,6 @@ export default function Geofences() {
                                             </div>
                                         </div>
 
-                                        {}
                                         <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-light/30 rounded-full blur-3xl pointer-events-none" />
                                     </Card>
                                 ))}
@@ -827,7 +878,6 @@ export default function Geofences() {
                 </Card>
             )}
 
-            {}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
                     <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">

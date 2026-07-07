@@ -1,590 +1,457 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-        />
-        <link
-            rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <style>
-            body {
-                margin: 0;
-                padding: 0;
-                background: #ffffff;
-                overflow: hidden;
-            }
-            #map {
-                width: 100vw;
-                height: 100vh;
-                background: #f5f5f5;
-            }
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #ffffff; overflow: hidden; }
+        #map { width: 100vw; height: 100vh; background: #f5f5f5; }
+        
+        .custom-dept-marker { background: transparent; border: none; }
+        .user-marker {
+            background-color: #4285f4; border-radius: 50%;
+            border: 2px solid #ffffff; box-shadow: 0 0 15px 5px rgba(66, 133, 244, 0.4);
+            width: 16px; height: 16px;
+        }
 
-            #three-canvas {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                pointer-events: none; /* Crucial so we can interact with the map */
-                z-index: 1000; /* Above Leaflet markers */
-            }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .5; transform: scale(1.1); }
+        }
 
-            .glow-marker {
-                background-color: #b21830;
-                border-radius: 50%;
-                box-shadow: 0 0 20px 8px rgba(178, 24, 48, 0.7);
-                border: 2px solid white;
-            }
+        .maintenance-icon {
+            background-color: #f97316; width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid white; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8);
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
 
-            .glowing-route {
-                filter: drop-shadow(0 0 8px rgba(178, 24, 48, 0.8));
-            }
+        .mapboxgl-popup-content {
+            padding: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .mapboxgl-popup-close-button {
+            z-index: 10;
+            font-size: 20px;
+            color: #555;
+            padding: 4px;
+        }
 
-            .custom-dept-marker {
-                background: transparent;
-                border: none;
-            }
+        .building-label {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid transparent;
+            color: #111827;
+            font-weight: 700;
+            font-size: 12px;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            text-align: center;
+            white-space: nowrap;
+        }
 
-            .locked-marker {
-                background-color: #555;
-                border-radius: 50%;
-                border: 2px solid #888;
-            }
+        .maintenance-label {
+            color: #f97316;
+        }
 
-            .user-marker {
-                background-color: #4285f4;
-                border-radius: 50%;
-                border: 2px solid #ffffff;
-                box-shadow: 0 0 15px 5px rgba(66, 133, 244, 0.4);
-            }
+        .model-viewer-container {
+            width: 200px;
+            height: 200px;
+            background: #f8fafc;
+            position: relative;
+        }
+        
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+        }
+        
+        .model-viewer-label {
+            position: absolute;
+            bottom: 8px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+        }
+        
+        .model-viewer-label span {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #B21830;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
 
-            .building-label {
-                background: rgba(255, 255, 255, 0.9);
-                border: 1px solid transparent;
-                color: #111827;
-                font-weight: 700;
-                font-size: 12px;
-                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-                padding: 4px 8px;
-                border-radius: 4px;
-            }
+    <script>
+        const WMSU_CENTER = [122.0605, 6.9122]; // Lng, Lat
+        const wmsuBounds = [
+            [122.0575, 6.9095], // SW
+            [122.064, 6.9155], // NE
+        ];
 
-            .maintenance-label {
-                color: #f97316;
-            }
+        let map = null;
+        let markers = [];
+        let userMarkerObj = null;
+        let mapInitialized = false;
+        
+        let targetBuildingId = null;
+        let sourceBuildingId = null;
 
-            @keyframes pulse {
-                0%, 100% {
-                    opacity: 1;
-                }
-                50% {
-                    opacity: .5;
-                }
-            }
-
-            .maintenance-icon {
-                background-color: #f97316;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border: 2px solid white;
-                box-shadow: 0 0 15px rgba(249, 115, 22, 0.8);
-                animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-            }
-        </style>
-    </head>
-    <body>
-        <div id="map"></div>
-        <canvas id="three-canvas"></canvas>
-
-        <script type="importmap">
-            {
-                "imports": {
-                    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-                }
-            }
-        </script>
-
-        <script type="module">
-            import * as THREE from "three";
-            import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-
-            // --- THREE.JS SETUP ---
-            let canvas = document.getElementById("three-canvas");
-            let renderer = new THREE.WebGLRenderer({
-                canvas: canvas,
-                alpha: true,
-                antialias: true,
-            });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setScissorTest(true);
-
-            let scenesData = [];
-            const gltfLoader = new GLTFLoader();
-
-            function addThreeSceneForMarker(element, modelUrl) {
-                let scene = new THREE.Scene();
-
-                let camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
-                camera.position.z = 5;
-
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-                scene.add(ambientLight);
-
-                const directionalLight = new THREE.DirectionalLight(
-                    0xffffff,
-                    1.0,
-                );
-                directionalLight.position.set(5, 10, 7.5);
-                scene.add(directionalLight);
-
-                let sceneData = {
-                    scene: scene,
-                    camera: camera,
-                    element: element,
-                    model: null,
-                };
-                scenesData.push(sceneData);
-
-                gltfLoader.load(modelUrl, (gltf) => {
-                    let model = gltf.scene;
-                    scene.add(model);
-
-                    // Center and scale model perfectly
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = box.getCenter(new THREE.Vector3());
-                    const size = box.getSize(new THREE.Vector3());
-                    model.position.sub(center);
-
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    const fov = camera.fov * (Math.PI / 180);
-                    let cameraZ =
-                        Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
-                    camera.position.set(cameraZ * 0.5, cameraZ * 0.3, cameraZ);
-                    camera.lookAt(0, 0, 0);
-
-                    sceneData.model = model;
-                    sceneData.initialCameraDistance = Math.sqrt(
-                        (cameraZ * 0.5) ** 2 + cameraZ ** 2,
-                    );
-                    sceneData.initialCameraY = cameraZ * 0.3;
-                });
-            }
-
-            function animateThree() {
-                requestAnimationFrame(animateThree);
-
-                if (
-                    renderer.domElement.width !== window.innerWidth ||
-                    renderer.domElement.height !== window.innerHeight
-                ) {
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                }
-
-                renderer.setClearColor(0x000000, 0);
-                renderer.clear();
-
-                scenesData.forEach(function (sceneData) {
-                    let element = sceneData.element;
-                    if (!element || !element.isConnected) return; // Marker removed from DOM
-
-                    let rect = element.getBoundingClientRect();
-
-                    // Check if marker is visible on screen
-                    if (
-                        rect.bottom < 0 ||
-                        rect.top > renderer.domElement.clientHeight ||
-                        rect.right < 0 ||
-                        rect.left > renderer.domElement.clientWidth
-                    ) {
-                        return;
-                    }
-
-                    let width = rect.right - rect.left;
-                    let height = rect.bottom - rect.top;
-                    let left = rect.left;
-                    let bottom = renderer.domElement.clientHeight - rect.bottom;
-
-                    renderer.setViewport(left, bottom, width, height);
-                    renderer.setScissor(left, bottom, width, height);
-
-                    // Orbit camera smoothly around the 3D model (turntable effect)
-                    if (
-                        sceneData.model &&
-                        sceneData.initialCameraDistance > 0
-                    ) {
-                        const time = -Date.now() * 0.0005; // Negative time reverses the orbit direction
-                        sceneData.camera.position.x =
-                            Math.sin(time) * sceneData.initialCameraDistance;
-                        sceneData.camera.position.z =
-                            Math.cos(time) * sceneData.initialCameraDistance;
-                        sceneData.camera.position.y = sceneData.initialCameraY;
-                        sceneData.camera.lookAt(0, 0, 0);
-                    }
-
-                    renderer.render(sceneData.scene, sceneData.camera);
-                });
-            }
-            animateThree();
-
-            // --- LEAFLET MAP SETUP ---
-            const wmsuBounds = [
-                [6.9155, 122.0575], // NW
-                [6.9155, 122.064], // NE
-                [6.9095, 122.064], // SE
-                [6.9095, 122.0575], // SW
-            ];
-
-            const WMSU_CENTER = [6.9122, 122.0605];
-            const map = L.map("map", {
-                zoomControl: false,
-                attributionControl: false,
-                maxBounds: wmsuBounds,
-                maxBoundsViscosity: 1.0,
+        function initializeMap(token) {
+            if (map) return;
+            mapboxgl.accessToken = token;
+            
+            map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: WMSU_CENTER,
+                zoom: 16,
                 minZoom: 15,
-            }).setView(WMSU_CENTER, 16);
+                maxBounds: wmsuBounds,
+                pitch: 45, // Add 3D pitch
+                bearing: 0
+            });
 
-            // Standard Google Maps layer for the White and Crimson theme
-            L.tileLayer("https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
-                maxZoom: 20,
-                maxNativeZoom: 18,
-            }).addTo(map);
+            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-            let fogLayer = null;
-            let markersGroup = L.layerGroup().addTo(map);
-            let userMarker = null;
-            let routingLine = null;
-            let targetBuildingId = null;
-            let sourceBuildingId = null;
-
-            function getCirclePoints(center, radiusMeters, points = 32) {
-                const earthRadius = 6371000;
-                const lat = (center[0] * Math.PI) / 180;
-                const lng = (center[1] * Math.PI) / 180;
-                const d = radiusMeters / earthRadius;
-
-                const coords = [];
-                for (let i = 0; i <= points; i++) {
-                    const bearing = (((i * 360) / points) * Math.PI) / 180;
-                    const newLat = Math.asin(
-                        Math.sin(lat) * Math.cos(d) +
-                            Math.cos(lat) * Math.sin(d) * Math.cos(bearing),
-                    );
-                    const newLng =
-                        lng +
-                        Math.atan2(
-                            Math.sin(bearing) * Math.sin(d) * Math.cos(lat),
-                            Math.cos(d) - Math.sin(lat) * Math.sin(newLat),
-                        );
-                    coords.push([
-                        (newLat * 180) / Math.PI,
-                        (newLng * 180) / Math.PI,
-                    ]);
-                }
-                return coords;
-            }
-
-            window.updateMap = function (data) {
-                window.lastMapData = data;
-                const { buildings, unlockedIds, userLocation } = data;
-
-                // Clear old three.js scenes
-                scenesData = [];
-
-                if (fogLayer) map.removeLayer(fogLayer);
-
-                const outerBounds = [
-                    [90, -180],
-                    [90, 180],
-                    [-90, 180],
-                    [-90, -180],
-                ];
-                const polygonCoords = [outerBounds, wmsuBounds];
-                const boundsElements = [L.polygon(wmsuBounds)];
-
-                if (userLocation) {
-                    if (userMarker) map.removeLayer(userMarker);
-                    const userIcon = L.divIcon({
-                        className: "user-marker",
-                        iconSize: [16, 16],
-                    });
-                    userMarker = L.marker(
-                        [userLocation.latitude, userLocation.longitude],
-                        { icon: userIcon },
-                    ).addTo(map);
-                    boundsElements.push(userMarker);
-
-                    const isOutside =
-                        userLocation.latitude > 6.9155 ||
-                        userLocation.latitude < 6.9095 ||
-                        userLocation.longitude > 122.064 ||
-                        userLocation.longitude < 122.0575;
-                    if (isOutside) {
-                        polygonCoords.push(
-                            getCirclePoints(
-                                [userLocation.latitude, userLocation.longitude],
-                                150,
-                            ),
-                        );
+            map.on('load', () => {
+                mapInitialized = true;
+                
+                // Add 3D building extrusions
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'composite',
+                    'source-layer': 'building',
+                    'filter': ['==', 'extrude', 'true'],
+                    'type': 'fill-extrusion',
+                    'minzoom': 15,
+                    'paint': {
+                        'fill-extrusion-color': '#aaa',
+                        'fill-extrusion-height': ['get', 'height'],
+                        'fill-extrusion-base': ['get', 'min_height'],
+                        'fill-extrusion-opacity': 0.6
                     }
-                }
-
-                markersGroup.clearLayers();
-
-                buildings.forEach((b) => {
-                    const isUnlocked = unlockedIds.includes(b.id);
-                    const lat = parseFloat(b.latitude);
-                    const lng = parseFloat(b.longitude);
-
-                    if (isUnlocked) {
-                        const isOutside =
-                            lat > 6.9155 ||
-                            lat < 6.9095 ||
-                            lng > 122.064 ||
-                            lng < 122.0575;
-                        if (isOutside) {
-                            polygonCoords.push(
-                                getCirclePoints([lat, lng], 150),
-                            );
-                        }
-                    }
-
-                    const bgColor = isUnlocked
-                        ? "#FFFFFF"
-                        : "rgba(255,255,255,0.8)";
-                    const borderColor = isUnlocked ? "#B21830" : "#CCCCCC";
-                    const iconColor = isUnlocked ? "#B21830" : "#888888";
-
-                    let htmlStr = "";
-                    let hasModel = false;
-
-                    if (b.status === 'MAINTENANCE') {
-                        htmlStr = `
-                        <div class="maintenance-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                        </div>
-                        `;
-                    } else if (isUnlocked && b.model_active && b.model_url) {
-                        hasModel = true;
-                        // The marker consists of the dot, and a smaller transparent placeholder above it where the 3D model will render
-                        htmlStr = `
-                        <div style="position:relative; width:32px; height:32px;">
-                            <div style="position:absolute; bottom:0; left:0; width:100%; height:100%; background-color: ${bgColor}; border: 2px solid ${borderColor}; padding: 4px; border-radius: 4px; display: flex; justify-content: center; align-items: center; box-sizing: border-box;">
-                                <div style="width: 12px; height: 12px; background-color: ${iconColor}; border-radius: 50%;"></div>
-                            </div>
-                            <div class="model-placeholder" style="position:absolute; bottom:16px; left:-14px; width:60px; height:60px;"></div>
-                        </div>
-                    `;
-                    } else {
-                        htmlStr = `
-                        <div style="background-color: ${bgColor}; border: 2px solid ${borderColor}; padding: 4px; border-radius: 4px; display: flex; justify-content: center; align-items: center; width: 32px; height: 32px; box-sizing: border-box;">
-                            <div style="width: 12px; height: 12px; background-color: ${iconColor}; border-radius: 50%;"></div>
-                        </div>
-                    `;
-                    }
-
-                    const icon = L.divIcon({
-                        className: "custom-dept-marker",
-                        html: htmlStr,
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 16],
-                    });
-                    const marker = L.marker([lat, lng], { icon }).addTo(
-                        markersGroup,
-                    );
-
-                    // Once the marker is added to the map DOM, we attach the Three.js scene to its placeholder
-                    if (hasModel) {
-                        // Leaflet creates DOM elements asynchronously sometimes, or right away. Let's wait a tick to ensure it's in DOM.
-                        setTimeout(() => {
-                            const iconElement = marker.getElement();
-                            if (iconElement) {
-                                const placeholder =
-                                    iconElement.querySelector(
-                                        ".model-placeholder",
-                                    );
-                                if (placeholder) {
-                                    addThreeSceneForMarker(
-                                        placeholder,
-                                        b.model_url,
-                                    );
-                                }
-                            }
-                        }, 50);
-                    }
-
-                    if (isUnlocked) {
-                        boundsElements.push(marker);
-                    }
-
-                    let labelClassName = "building-label";
-                    if (b.status === 'MAINTENANCE') {
-                        labelClassName += " maintenance-label";
-                    }
-
-                    marker.bindTooltip(b.name, {
-                        permanent: true,
-                        direction: "top",
-                        className: labelClassName,
-                        offset: [0, hasModel ? -40 : (b.status === 'MAINTENANCE' ? -15 : -15)], // Adjust label drop dynamically
-                    });
-
-                    marker.on("click", () => {
-                        if (window.ReactNativeWebView) {
-                            window.ReactNativeWebView.postMessage(
-                                JSON.stringify({
-                                    type: "building_click",
-                                    buildingId: b.id,
-                                    isUnlocked: isUnlocked,
-                                    name: b.name,
-                                }),
-                            );
-                        }
-                    });
                 });
 
-                let sourceLat = null;
-                let sourceLng = null;
-
-                if (sourceBuildingId) {
-                    const sourceBuilding = buildings.find(
-                        (b) => b.id === sourceBuildingId,
-                    );
-                    if (sourceBuilding) {
-                        sourceLat = parseFloat(sourceBuilding.latitude);
-                        sourceLng = parseFloat(sourceBuilding.longitude);
+                // Add source and layers for fog of war
+                map.addSource('fog', {
+                    type: 'geojson',
+                    data: getFogGeoJSON([], null)
+                });
+                
+                map.addLayer({
+                    id: 'fog-layer',
+                    type: 'fill',
+                    source: 'fog',
+                    paint: {
+                        'fill-color': '#ffffff',
+                        'fill-opacity': 0.85
                     }
-                } else if (userLocation) {
-                    sourceLat = userLocation.latitude;
-                    sourceLng = userLocation.longitude;
+                });
+
+                // Add source and layers for routing
+                map.addSource('route', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features: [] }
+                });
+
+                map.addLayer({
+                    id: 'route-line',
+                    type: 'line',
+                    source: 'route',
+                    layout: {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    paint: {
+                        'line-color': '#B21830',
+                        'line-width': 5,
+                        'line-dasharray': [2, 1]
+                    }
+                });
+
+                if (window.lastMapData) {
+                    processUpdateMap(window.lastMapData);
+                }
+            });
+        }
+
+        function getFogGeoJSON(unlockedCoords, userCoords) {
+            const worldPolygon = turf.polygon([[
+                [-180, -90],
+                [180, -90],
+                [180, 90],
+                [-180, 90],
+                [-180, -90]
+            ]]);
+
+            const campusPolygon = turf.polygon([[
+                [122.0575, 6.9095], // SW
+                [122.064, 6.9095], // SE
+                [122.064, 6.9155], // NE
+                [122.0575, 6.9155], // NW
+                [122.0575, 6.9095], // SW
+            ]]);
+
+            let mask = turf.difference(worldPolygon, campusPolygon);
+
+            if (userCoords) {
+                const isOutside = userCoords[1] > 6.9155 || userCoords[1] < 6.9095 || userCoords[0] > 122.064 || userCoords[0] < 122.0575;
+                if (isOutside) {
+                    const userCircle = turf.circle(userCoords, 150, {steps: 64, units: 'meters'});
+                    mask = turf.difference(mask, userCircle);
+                }
+            }
+            
+            unlockedCoords.forEach(coords => {
+                const isOutside = coords[1] > 6.9155 || coords[1] < 6.9095 || coords[0] > 122.064 || coords[0] < 122.0575;
+                if (isOutside) {
+                    const buildingCircle = turf.circle(coords, 150, {steps: 64, units: 'meters'});
+                    if (mask) mask = turf.difference(mask, buildingCircle);
+                }
+            });
+
+            return mask || turf.featureCollection([]);
+        }
+
+        function processUpdateMap(data) {
+            if (!mapInitialized) return;
+            
+            const { buildings, unlockedIds, userLocation } = data;
+            
+            // Clear existing markers
+            markers.forEach(m => m.remove());
+            markers = [];
+
+            let unlockedCoords = [];
+            let userCoords = null;
+            let boundsCoords = [];
+
+            if (userLocation) {
+                userCoords = [userLocation.longitude, userLocation.latitude];
+                
+                if (userMarkerObj) userMarkerObj.remove();
+                
+                const el = document.createElement('div');
+                el.className = 'user-marker';
+                
+                userMarkerObj = new mapboxgl.Marker({ element: el })
+                    .setLngLat(userCoords)
+                    .addTo(map);
+                
+                boundsCoords.push(userCoords);
+            }
+
+            buildings.forEach(b => {
+                const isUnlocked = unlockedIds.includes(b.id);
+                const lng = parseFloat(b.longitude);
+                const lat = parseFloat(b.latitude);
+                const coords = [lng, lat];
+                
+                if (isUnlocked) {
+                    unlockedCoords.push(coords);
+                    boundsCoords.push(coords);
                 }
 
-                if (
-                    targetBuildingId &&
-                    sourceLat !== null &&
-                    sourceLng !== null
-                ) {
-                    const targetBuilding = buildings.find(
-                        (b) => b.id === targetBuildingId,
-                    );
-                    if (targetBuilding) {
-                        const targetLat = parseFloat(targetBuilding.latitude);
-                        const targetLng = parseFloat(targetBuilding.longitude);
+                const bgColor = isUnlocked ? "#FFFFFF" : "rgba(255,255,255,0.8)";
+                const borderColor = isUnlocked ? "#B21830" : "#CCCCCC";
+                const iconColor = isUnlocked ? "#B21830" : "#888888";
 
-                        // Fetch actual path from OpenStreetMap OSRM API
-                        fetch(
-                            `https://router.project-osrm.org/route/v1/foot/${sourceLng},${sourceLat};${targetLng},${targetLat}?geometries=geojson`,
-                        )
-                            .then((res) => res.json())
-                            .then((data) => {
-                                let latLngs = [];
-                                if (
-                                    data &&
-                                    data.routes &&
-                                    data.routes.length > 0
-                                ) {
-                                    latLngs =
-                                        data.routes[0].geometry.coordinates.map(
-                                            (coord) => [coord[1], coord[0]],
-                                        );
-                                } else {
-                                    latLngs = [
-                                        [sourceLat, sourceLng],
-                                        [targetLat, targetLng],
-                                    ];
-                                }
+                const el = document.createElement('div');
+                el.style.display = 'flex';
+                el.style.flexDirection = 'column';
+                el.style.alignItems = 'center';
+                el.style.cursor = 'pointer';
 
-                                if (routingLine) {
-                                    routingLine.setLatLngs(latLngs);
-                                } else {
-                                    routingLine = L.polyline(latLngs, {
-                                        color: "#B21830",
-                                        weight: 5,
-                                        dashArray: "10, 5",
-                                        className: "glowing-route",
-                                    }).addTo(map);
-                                }
-                            })
-                            .catch((err) => {
-                                // Fallback to straight line if API fails
-                                const latLngs = [
-                                    [sourceLat, sourceLng],
-                                    [targetLat, targetLng],
-                                ];
-                                if (routingLine) {
-                                    routingLine.setLatLngs(latLngs);
-                                } else {
-                                    routingLine = L.polyline(latLngs, {
-                                        color: "#B21830",
-                                        weight: 5,
-                                        dashArray: "10, 5",
-                                        className: "glowing-route",
-                                    }).addTo(map);
-                                }
-                            });
-
-                        // Add start and end points to bounds to ensure camera captures both while routing loads
-                        boundsElements.push(L.marker([sourceLat, sourceLng]));
-                        boundsElements.push(L.marker([targetLat, targetLng]));
-                    }
+                let labelClassName = "building-label";
+                if (b.status === 'MAINTENANCE') {
+                    labelClassName += " maintenance-label";
+                }
+                
+                const labelStr = `<div class="${labelClassName}">${b.name}</div>`;
+                
+                let iconHtml = '';
+                if (b.status === 'MAINTENANCE') {
+                    iconHtml = `
+                    <div class="maintenance-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    </div>`;
                 } else {
-                    if (routingLine) {
-                        map.removeLayer(routingLine);
-                        routingLine = null;
-                    }
+                    iconHtml = `
+                    <div style="background-color: ${bgColor}; border: 2px solid ${borderColor}; padding: 4px; border-radius: 4px; display: flex; justify-content: center; align-items: center; width: 32px; height: 32px; box-sizing: border-box;">
+                        <div style="width: 12px; height: 12px; background-color: ${iconColor}; border-radius: 50%;"></div>
+                    </div>`;
                 }
 
-                fogLayer = L.polygon(polygonCoords, {
-                    color: "transparent",
-                    fillColor: "#ffffff",
-                    fillOpacity: 0.85,
-                }).addTo(map);
+                el.innerHTML = labelStr + iconHtml;
 
-                const group = new L.featureGroup(boundsElements);
-                map.fitBounds(group.getBounds(), { padding: [50, 50] });
-            };
-
-            // Handle React Native messages
-            const handleRNMessage = (event) => {
-                try {
-                    const data =
-                        typeof event.data === "string"
-                            ? JSON.parse(event.data)
-                            : event.data;
-                    if (data.type === "init" || data.type === "update") {
-                        window.updateMap(data);
-                    } else if (data.type === "draw_route") {
-                        targetBuildingId = data.buildingId;
-                        sourceBuildingId = data.sourceBuildingId || null;
-                        if (window.lastMapData)
-                            window.updateMap(window.lastMapData);
-                    } else if (data.type === "clear_route") {
-                        targetBuildingId = null;
-                        sourceBuildingId = null;
-                        if (routingLine) {
-                            map.removeLayer(routingLine);
-                            routingLine = null;
-                        }
-                        if (window.lastMapData)
-                            window.updateMap(window.lastMapData);
-                    }
-                } catch (e) {
-                    console.error("Parse error", e);
+                const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+                    .setLngLat(coords)
+                    .addTo(map);
+                
+                if (isUnlocked && b.model_active && b.model_url) {
+                    const popup = new mapboxgl.Popup({ offset: [0, -40], closeButton: true, closeOnClick: false })
+                        .setHTML(`
+                            <div class="model-viewer-container">
+                                <model-viewer
+                                    src="${b.model_url}"
+                                    auto-rotate
+                                    rotation-per-second="45deg"
+                                    camera-controls
+                                ></model-viewer>
+                                <div class="model-viewer-label">
+                                    <span>${b.name} 3D Model</span>
+                                </div>
+                            </div>
+                        `);
+                    
+                    marker.setPopup(popup);
                 }
-            };
 
-            window.addEventListener("message", handleRNMessage);
-            document.addEventListener("message", handleRNMessage);
-        </script>
-    </body>
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation(); // prevent map click
+                    if (window.ReactNativeWebView) {
+                        window.ReactNativeWebView.postMessage(
+                            JSON.stringify({
+                                type: "building_click",
+                                buildingId: b.id,
+                                isUnlocked: isUnlocked,
+                                name: b.name,
+                            })
+                        );
+                    }
+                    if (marker.getPopup()) {
+                        marker.togglePopup();
+                    }
+                });
+
+                markers.push(marker);
+            });
+
+            // Update fog
+            map.getSource('fog').setData(getFogGeoJSON(unlockedCoords, userCoords));
+
+            // Routing
+            let sourceLat = null;
+            let sourceLng = null;
+
+            if (sourceBuildingId) {
+                const sourceBuilding = buildings.find(b => b.id === sourceBuildingId);
+                if (sourceBuilding) {
+                    sourceLat = parseFloat(sourceBuilding.latitude);
+                    sourceLng = parseFloat(sourceBuilding.longitude);
+                }
+            } else if (userLocation) {
+                sourceLat = userLocation.latitude;
+                sourceLng = userLocation.longitude;
+            }
+
+            if (targetBuildingId && sourceLat !== null && sourceLng !== null) {
+                const targetBuilding = buildings.find(b => b.id === targetBuildingId);
+                if (targetBuilding) {
+                    const targetLat = parseFloat(targetBuilding.latitude);
+                    const targetLng = parseFloat(targetBuilding.longitude);
+
+                    boundsCoords.push([sourceLng, sourceLat]);
+                    boundsCoords.push([targetLng, targetLat]);
+
+                    fetch(`https://router.project-osrm.org/route/v1/foot/${sourceLng},${sourceLat};${targetLng},${targetLat}?geometries=geojson`)
+                        .then(res => res.json())
+                        .then(routeData => {
+                            let geojson = { type: 'FeatureCollection', features: [] };
+                            if (routeData && routeData.routes && routeData.routes.length > 0) {
+                                geojson.features.push({
+                                    type: 'Feature',
+                                    geometry: routeData.routes[0].geometry
+                                });
+                            } else {
+                                geojson.features.push({
+                                    type: 'Feature',
+                                    geometry: {
+                                        type: 'LineString',
+                                        coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
+                                    }
+                                });
+                            }
+                            map.getSource('route').setData(geojson);
+                        })
+                        .catch(err => {
+                            map.getSource('route').setData({
+                                type: 'FeatureCollection',
+                                features: [{
+                                    type: 'Feature',
+                                    geometry: {
+                                        type: 'LineString',
+                                        coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
+                                    }
+                                }]
+                            });
+                        });
+                }
+            } else {
+                map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
+            }
+
+            if (boundsCoords.length > 0) {
+                const bounds = new mapboxgl.LngLatBounds(boundsCoords[0], boundsCoords[0]);
+                for (const coord of boundsCoords) {
+                    bounds.extend(coord);
+                }
+                map.fitBounds(bounds, { padding: 50, maxZoom: 18 });
+            }
+        }
+
+        window.updateMap = function (data) {
+            window.lastMapData = data;
+            
+            if (!map && data.mapboxToken) {
+                initializeMap(data.mapboxToken);
+            } else if (mapInitialized) {
+                processUpdateMap(data);
+            }
+        };
+
+        const handleRNMessage = (event) => {
+            try {
+                const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+                if (data.type === "init" || data.type === "update") {
+                    window.updateMap(data);
+                } else if (data.type === "draw_route") {
+                    targetBuildingId = data.buildingId;
+                    sourceBuildingId = data.sourceBuildingId || null;
+                    if (window.lastMapData) window.updateMap(window.lastMapData);
+                } else if (data.type === "clear_route") {
+                    targetBuildingId = null;
+                    sourceBuildingId = null;
+                    if (mapInitialized) {
+                        map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
+                    }
+                }
+            } catch (e) {
+                console.error("Parse error", e);
+            }
+        };
+
+        window.addEventListener("message", handleRNMessage);
+        document.addEventListener("message", handleRNMessage);
+    </script>
+</body>
 </html>

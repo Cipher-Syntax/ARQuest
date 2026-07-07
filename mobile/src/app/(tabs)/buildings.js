@@ -79,7 +79,7 @@ export default function BuildingsScreen() {
             const message = JSON.stringify({
                 type: "update",
                 buildings: allBuildings,
-                unlockedIds: unlockedIds,
+                unlockedIds: unlockedIds, mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
                 userLocation: location,
             });
             webViewRef.current.postMessage(message);
