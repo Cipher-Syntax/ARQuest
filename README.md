@@ -35,7 +35,7 @@ It supports four distinct user roles: **Admin**, **Students**, **Professionals (
 ### 📍 GPS Geofencing & Campus Navigation (Google Maps)
 - Detects user location in real-time to trigger automated building unlocks.
 - Defines campus zones per building using precise latitude/longitude radiuses.
-- Powered by the **Google Maps API** for robust point-to-point visual routing and highly accurate map tiles.
+- Powered by the **Mapbox API** for robust point-to-point visual routing and highly accurate map tiles.
 
 ### 🎮 Gamification & Quest System
 - **Daily Login Streaks:** Rewards consistent daily engagement with bonus exploration points.
@@ -126,7 +126,7 @@ It supports four distinct user roles: **Admin**, **Students**, **Professionals (
 ### 🖥️ Admin Web Dashboard
 - **Framework:** React 19, Vite, React Router DOM
 - **HTTP Client:** Axios (with interceptors)
-- **Mapping/UI:** Leaflet (for geofence configuration), TailwindCSS / Vanilla CSS
+- **Mapping/UI:** Mapbox GL JS (for geofence configuration and mobile map), TailwindCSS / Vanilla CSS
 
 ### 🎨 3D Modeling & Visualization
 - **Creation:** SketchUp, Blender

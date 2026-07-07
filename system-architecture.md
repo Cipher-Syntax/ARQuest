@@ -89,7 +89,7 @@ graph TD
 
     subgraph TAB_SCREENS ["Tab Screens  (app/(tabs)/)"]
         SCR_HOME["Home\nQuest Dashboard"]
-        SCR_EXPLORE["Explore Map\nLeaflet (WebView)"]
+        SCR_EXPLORE["Explore Map\nMapbox (WebView)"]
         SCR_AR["AR View\nCamera + 3D overlay"]
         SCR_BLDG["Buildings List\nunlocked buildings"]
         SCR_PROF["Profile\nstats + settings"]
@@ -287,7 +287,7 @@ graph TD
         PG_BLDG["BuildingsPage.jsx\nTable + status filter\n(DRAFT · HIDDEN · VISIBLE)"]
         PG_EDIT["BuildingEditorPage.jsx\nFull CRUD + 3D model upload\nDual department selectors\nPublish status control"]
         PG_DEPT["DepartmentsPage.jsx\nCollege CRUD\nMap pin color picker"]
-        PG_GEO["GeofencesPage.jsx\nLeaflet map\nClick-to-place center marker\nRadius circle overlay"]
+        PG_GEO["GeofencesPage.jsx\nMapbox map\nClick-to-place center marker\nRadius circle overlay"]
         PG_PANO["PanoramasPage.jsx\nBuilding list view"]
         PG_PANO_M["PanoramaManagerPage.jsx\n3-column layout:\nScenes · Preview · Hotspots\nyaw / pitch coordinate inputs"]
         PG_MEDIA["MediaPage.jsx\n3D model + asset file upload\nCloudinary integration"]
@@ -506,7 +506,7 @@ The dashboard authenticates with the same JWT tokens as the mobile app but store
 
 The navigation is a persistent left sidebar covering all functional areas: Buildings, Departments, Geofences, Panoramas, Media, Quests, Trivia, Professional Accounts, User Management, Leaderboard, Archive, and Settings. Each section maps to a specific part of the backend API.
 
-The geofence editor is the most complex component. It embeds a Leaflet map restricted to the WMSU campus bounding box. Clicking the map places the geofence center marker and the radius circle updates live as the radius input changes. This gives immediate visual feedback on coverage area before saving, which reduces the chance of geofences being set too large or too small.
+The geofence editor is the most complex component. It embeds a Mapbox map restricted to the WMSU campus bounding box. Clicking the map places the geofence center marker and the radius circle updates live as the radius input changes. This gives immediate visual feedback on coverage area before saving, which reduces the chance of geofences being set too large or too small.
 
 The Panorama Manager uses a three-column layout with the scene list on the left, scene image preview in the center, and hotspot management on the right. Hotspot positioning uses yaw and pitch angles in degrees, matching the spherical coordinate values Three.js uses to place hotspot markers in the panorama viewer.
 

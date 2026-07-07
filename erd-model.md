@@ -1,6 +1,6 @@
 # ARQuest — Conceptual ERD Model (Chen's Notation)
 
-> Last updated: 2026-06-22
+> Last updated: 2026-07-07
 
 This document illustrates the database schema using classic **Chen's Entity-Relationship notation**, where:
 - **Rectangles** represent Entities (Tables)
@@ -75,7 +75,7 @@ flowchart TD
 
 This domain handles the core physical mapping and access control features.
 - **DEPARTMENT**: Groups buildings by academic unit and dictates map pin colors.
-- **BUILDING**: The central entity supporting soft-delete. Contains 3D model metadata, statuses (`DRAFT`, `HIDDEN`, `VISIBLE`), and QR secrets for unlock fallbacks.
+- **BUILDING**: The central entity supporting soft-delete. Contains 3D model metadata, statuses (`DRAFT`, `HIDDEN`, `VISIBLE`, `MAINTENANCE`), and QR secrets for unlock fallbacks.
 - **GEOFENCE**: Defines GPS boundaries (center coordinates and radius) for buildings, evaluated via Haversine calculations.
 - **BUILDING_UNLOCK**: Tracks when a user gains access to a building (via geofence, QR scan, or admin grant).
 - **BUILDING_ASSET**: Manages versioned file metadata for media assets (3D models, panoramas) tied to buildings, using checksums for cache invalidation.
@@ -163,12 +163,16 @@ flowchart TD
 
 ---
 
-## 3. Gamification Domain (Quests & Trivia)
+## 3. Gamification Domain (Quests, Trivia, Quizzes & Badges)
 
 This domain tracks user engagement and gamification tied to buildings.
 - **QUEST**: A task directing a student to visit a building. Completion grants `reward_points` that add to the user's total `exploration_points`.
 - **USER_QUEST_PROGRESS**: A join table recording whether and when a specific user has completed a quest.
 - **TRIVIA_FACT**: Factual content tied to a building shown in AR upon quest completion. Soft-deletes when the parent building is archived.
+- **QUIZ_QUESTION**: Quiz content tied to a building to reward users with extra points.
+- **USER_QUIZ_PROGRESS**: A join table recording whether and when a specific user answered a quiz question.
+- **BADGE**: Achievement badges that users can earn.
+- **USER_BADGE**: Records indicating a user has earned a specific badge.
 
 ```mermaid
 flowchart TD
@@ -180,23 +184,34 @@ flowchart TD
     QUEST["QUEST"]
     PROG["USER_QUEST_PROGRESS"]
     TRIVIA["TRIVIA_FACT"]
+    QUIZ["QUIZ_QUESTION"]
+    Q_PROG["USER_QUIZ_PROGRESS"]
+    BADGE["BADGE"]
+    B_PROG["USER_BADGE"]
 
     %% Relationships
     target{"is target of"}
     hosts{"has trivia"}
+    hosts_quiz{"has quiz"}
     makes{"makes progress"}
     tracks{"tracks quest"}
+    makes_q{"answers"}
+    tracks_q{"tracks quiz"}
+    earns{"earns"}
+    tracks_b{"tracks badge"}
 
     %% Attributes - Quest
     q_id(["id (PK)"])
     q_title(["title"])
     q_hint(["hint"])
     q_pts(["reward_points"])
+    q_exp(["expires_at"])
 
     QUEST --- q_id
     QUEST --- q_title
     QUEST --- q_hint
     QUEST --- q_pts
+    QUEST --- q_exp
 
     %% Attributes - Progress
     p_id(["id (PK)"])
@@ -219,8 +234,13 @@ flowchart TD
     %% Structure
     BLDG --- target --- QUEST
     BLDG --- hosts --- TRIVIA
+    BLDG --- hosts_quiz --- QUIZ
     USER --- makes --- PROG
     PROG --- tracks --- QUEST
+    USER --- makes_q --- Q_PROG
+    Q_PROG --- tracks_q --- QUIZ
+    USER --- earns --- B_PROG
+    B_PROG --- tracks_b --- BADGE
 ```
 
 ---

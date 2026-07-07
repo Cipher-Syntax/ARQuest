@@ -276,7 +276,7 @@ sequenceDiagram
     API->>DB: Update model_file, model_version, model_active
     API-->>Web: Updated building
 
-    Admin->>Web: Set geofence on Leaflet map
+    Admin->>Web: Set geofence on Mapbox map
     Web->>API: POST /api/buildings/{id}/geofence/\n{latitude, lng, radius_meters}
     API->>DB: Create Geofence record
     API-->>Web: Geofence created
@@ -447,7 +447,7 @@ This flow covers the full lifecycle of a building record managed through the web
 
 When the metadata is ready, the administrator uploads a 3D model file via multipart form. The backend saves the file to `media/models/` and updates the building record with the path, version, and size. The `model_active` flag controls whether the mobile app shows the "View 3D Model" button.
 
-The geofence is set through an interactive Leaflet map. The administrator clicks to place the center marker and adjusts the radius input. The map is restricted to WMSU campus bounds to prevent placement outside the campus.
+The geofence is set through an interactive Mapbox map. The administrator clicks to place the center marker and adjusts the radius input. The map is restricted to WMSU campus bounds to prevent placement outside the campus.
 
 Once coordinates, slug, and content are complete, the administrator sets status to `VISIBLE`. The backend validates that all required fields are present. The building then appears in the mobile app's building list and geofence validation pool immediately, with no app update or cache invalidation needed.
 

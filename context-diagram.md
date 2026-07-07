@@ -59,4 +59,4 @@ The Context Diagram provides a high-level view of the ARQuest system boundaries.
 
 **Media Storage**: The system stores heavy media assets like `.glb` 3D models and equirectangular panorama images. While currently managed by Django, it represents an externalized storage dependency that could be backed by a cloud provider like S3.
 
-**Google Maps API**: Replaces default mapping services to provide highly accurate map tiles, styling, and robust point-to-point visual routing on the campus explore map.
+**Mapbox API**: Replaces default mapping services to provide highly accurate map tiles, styling, and robust point-to-point visual routing on the campus explore map.
