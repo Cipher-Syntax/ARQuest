@@ -294,6 +294,17 @@
                     <div class="maintenance-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                     </div>`;
+                } else if (isUnlocked && b.model_active && b.model_url) {
+                    iconHtml = `
+                    <div style="width: 150px; height: 150px; position: relative;">
+                        <model-viewer
+                            src="${b.model_url}"
+                            auto-rotate
+                            rotation-per-second="45deg"
+                            interaction-prompt="none"
+                            style="width: 100%; height: 100%; background-color: transparent; pointer-events: none;"
+                        ></model-viewer>
+                    </div>`;
                 } else {
                     iconHtml = `
                     <div style="background-color: ${bgColor}; border: 2px solid ${borderColor}; padding: 4px; border-radius: 4px; display: flex; justify-content: center; align-items: center; width: 32px; height: 32px; box-sizing: border-box;">
@@ -306,25 +317,6 @@
                 const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
                     .setLngLat(coords)
                     .addTo(map);
-                
-                if (isUnlocked && b.model_active && b.model_url) {
-                    const popup = new mapboxgl.Popup({ offset: [0, -40], closeButton: true, closeOnClick: false })
-                        .setHTML(`
-                            <div class="model-viewer-container">
-                                <model-viewer
-                                    src="${b.model_url}"
-                                    auto-rotate
-                                    rotation-per-second="45deg"
-                                    camera-controls
-                                ></model-viewer>
-                                <div class="model-viewer-label">
-                                    <span>${b.name} 3D Model</span>
-                                </div>
-                            </div>
-                        `);
-                    
-                    marker.setPopup(popup);
-                }
 
                 el.addEventListener('click', (e) => {
                     e.stopPropagation(); // prevent map click
@@ -337,9 +329,6 @@
                                 name: b.name,
                             })
                         );
-                    }
-                    if (marker.getPopup()) {
-                        marker.togglePopup();
                     }
                 });
 
