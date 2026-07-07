@@ -135,21 +135,27 @@
             map.on('load', () => {
                 mapInitialized = true;
                 
-                // Add 3D building extrusions
-                map.addLayer({
-                    'id': '3d-buildings',
-                    'source': 'composite',
-                    'source-layer': 'building',
-                    'filter': ['==', 'extrude', 'true'],
-                    'type': 'fill-extrusion',
-                    'minzoom': 15,
-                    'paint': {
-                        'fill-extrusion-color': '#aaa',
-                        'fill-extrusion-height': ['get', 'height'],
-                        'fill-extrusion-base': ['get', 'min_height'],
-                        'fill-extrusion-opacity': 0.6
+                // Add 3D building extrusions if the style supports it
+                try {
+                    if (map.getSource('composite')) {
+                        map.addLayer({
+                            'id': '3d-buildings',
+                            'source': 'composite',
+                            'source-layer': 'building',
+                            'filter': ['==', 'extrude', 'true'],
+                            'type': 'fill-extrusion',
+                            'minzoom': 15,
+                            'paint': {
+                                'fill-extrusion-color': '#aaa',
+                                'fill-extrusion-height': ['get', 'height'],
+                                'fill-extrusion-base': ['get', 'min_height'],
+                                'fill-extrusion-opacity': 0.6
+                            }
+                        });
                     }
-                });
+                } catch (e) {
+                    console.log('Skipping 3D buildings layer (not supported by this map style)');
+                }
 
                 // Add source and layers for fog of war
                 map.addSource('fog', {
