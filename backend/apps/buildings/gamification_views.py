@@ -85,8 +85,6 @@ class ActiveQuestsView(views.APIView):
 		now = timezone.now()
 
 		available_quests = list(Quest.objects.filter(is_active=True).filter(
-			Q(target_role='all') | Q(target_role=user.role)
-		).filter(
 			expires_at__isnull=True
 		).exclude(id__in=completed_quest_ids))
 
@@ -124,8 +122,6 @@ class ChallengesView(views.APIView):
 		challenges = Quest.objects.filter(
 			is_active=True,
 			expires_at__gt=now
-		).filter(
-			Q(target_role='all') | Q(target_role=user.role)
 		)
 
 		serializer = QuestSerializer(challenges, many=True, context={'request': request})

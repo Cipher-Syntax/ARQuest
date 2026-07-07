@@ -39,7 +39,6 @@ export default function CmsPage() {
     const [editingItem, setEditingItem] = useState(null);
     const [formTitle, setFormTitle] = useState("");
     const [formHint, setFormHint] = useState("");
-    const [formTargetRole, setFormTargetRole] = useState("all");
     const [formReward, setFormReward] = useState(50);
     const [formFact, setFormFact] = useState("");
     const [formExpiresAt, setFormExpiresAt] = useState("");
@@ -104,7 +103,6 @@ export default function CmsPage() {
                 title: formTitle,
                 hint: formHint,
                 target_building: selectedBuilding.id,
-                target_role: formTargetRole,
                 reward_points: formReward,
                 expires_at: formExpiresAt || null,
                 is_active: true,
@@ -237,7 +235,7 @@ export default function CmsPage() {
         setEditingItem(null);
         setFormTitle("");
         setFormHint("");
-        setFormTargetRole("all");
+        setFormHint("");
         setFormFact("");
         setFormExpiresAt("");
         setFormQuestion("");
@@ -551,38 +549,7 @@ export default function CmsPage() {
                                                     )}
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="block text-sm font-semibold mb-1 text-gray-700">
-                                                            Target Role
-                                                        </label>
-                                                        <select
-                                                            value={
-                                                                formTargetRole
-                                                            }
-                                                            onChange={(e) =>
-                                                                setFormTargetRole(
-                                                                    e.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            className="w-full p-2.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none"
-                                                        >
-                                                            <option value="all">
-                                                                All Users
-                                                            </option>
-                                                            <option value="student">
-                                                                Students Only
-                                                            </option>
-                                                            <option value="visitor">
-                                                                Guests/Visitors
-                                                                Only
-                                                            </option>
-                                                            <option value="professional">
-                                                                Professionals
-                                                                Only
-                                                            </option>
-                                                        </select>
-                                                    </div>
+
                                                     <div>
                                                         <label className="block text-sm font-semibold mb-1 text-gray-700">
                                                             Reward Points
@@ -980,15 +947,7 @@ export default function CmsPage() {
                                                                                 }{" "}
                                                                                 pts
                                                                             </span>
-                                                                            {quest.target_role &&
-                                                                                quest.target_role !==
-                                                                                    "all" && (
-                                                                                    <span className="inline-block text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider border border-gray-200">
-                                                                                        {
-                                                                                            quest.target_role
-                                                                                        }
-                                                                                    </span>
-                                                                                )}
+
                                                                             {isExpired && (
                                                                                 <span className="inline-block text-[10px] font-bold text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-sm uppercase tracking-wider border border-gray-300">
                                                                                     Expired
@@ -1013,10 +972,6 @@ export default function CmsPage() {
                                                                             );
                                                                             setFormHint(
                                                                                 quest.hint,
-                                                                            );
-                                                                            setFormTargetRole(
-                                                                                quest.target_role ||
-                                                                                    "all",
                                                                             );
                                                                             setFormReward(
                                                                                 quest.reward_points,

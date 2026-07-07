@@ -208,16 +208,9 @@ class BuildingAsset(models.Model):
 
 
 class Quest(SoftDeleteModel):
-    ROLE_CHOICES = [
-        ('all', 'All Users'),
-        ('student', 'Students Only'),
-        ('visitor', 'Guests/Visitors Only'),
-        ('professional', 'Professionals Only'),
-    ]
     title = models.CharField(max_length=255)
     hint = models.TextField()
     target_building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='quests')
-    target_role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='all')
     reward_points = models.IntegerField(default=50)
     is_active = models.BooleanField(default=True)
     expires_at = models.DateTimeField(null=True, blank=True, help_text="If set, the quest will expire at this time (used for Timed Challenges)")

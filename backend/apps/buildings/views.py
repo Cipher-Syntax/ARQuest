@@ -419,11 +419,7 @@ def quest_list_create(request):
                 from apps.authentication.models import UserDevice
                 from apps.core.notifications import send_push_notifications
                 
-                # Filter tokens based on target_role
-                if quest.target_role == 'all':
-                    tokens = UserDevice.objects.values_list('push_token', flat=True)
-                else:
-                    tokens = UserDevice.objects.filter(user__role=quest.target_role).values_list('push_token', flat=True)
+                tokens = UserDevice.objects.values_list('push_token', flat=True)
                 
                 if tokens:
                     messages = [{
