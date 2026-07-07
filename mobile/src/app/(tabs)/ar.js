@@ -310,7 +310,7 @@ export default function ARScreen() {
     const isModelVisible = !!(
         nearbyBuildingFull &&
         unlockedBuildings.some((b) => b.id === nearbyBuildingFull.id) &&
-        nearbyBuildingFull.model_url
+        nearbyBuildingFull.image_url
     );
 
     const handleBarCodeScanned = async ({ type, data }) => {
@@ -547,7 +547,83 @@ export default function ARScreen() {
 
                 {/* 2. Middle Layer removed (Model moved into targetCard) */}
 
-                {/* 3. Gamified HUD Overlays */}
+                {/* --- Top Left Controls (Exit, QR, Active Missions) --- */}
+                {!capturing && (
+                    <View style={styles.topLeftControls}>
+                        <TouchableOpacity style={styles.exitButton} onPress={() => router.back()}>
+                            <X size={24} color={theme.colors.primary} />
+                        </TouchableOpacity>
+
+                        
+                        
+                        {/* Active Missions Pill */}
+                        {activeQuests && activeQuests.length > 0 && !triviaModalVisible && (
+                            <TouchableOpacity style={styles.missionsPill}>
+                                <Ionicons name="list" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                                <Text style={styles.missionsPillText}>
+                                    {activeQuests.filter(q => !q.is_completed).length} MISSIONS
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+
+                {/* --- Top Oval Header (Solid White Curve) --- */}
+                {nearbyBuilding && (
+                    <View style={styles.topOvalContainer}>
+                        <View style={styles.topOvalShape} />
+                        <View style={styles.topOvalContent}>
+                            {/* Left Side: 2D Building Image */}
+                            {isModelVisible && (
+                                <View style={styles.targetCardLeft}>
+                                    <Image
+                                        source={{ uri: nearbyBuildingFull?.image_url }}
+                                        style={styles.modelMiniature}
+                                        resizeMode="cover"
+                                        onLoadEnd={() => setModelReady(true)}
+                                    />
+                                </View>
+                            )}
+
+                            {/* Right Side: Info & Claim */}
+                            <View style={styles.targetCardRight}>
+                                <Text style={styles.targetLabel}>TARGET ACQUIRED</Text>
+                                <Text style={[styles.buildingLabel, { color: theme.colors.primary }]}>{nearbyBuilding.name}</Text>
+                                
+                                {geofenceStatus?.status === 'inside' ? (
+                                    <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
+                                        ✓ You have arrived!
+                                    </Text>
+                                ) : (
+                                    <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
+                                        📍 {Math.round(geofenceStatus?.distance || 0)} meters away
+                                    </Text>
+                                )}
+
+                                {/* Gamified Claim Button */}
+                                {!capturing && !triviaModalVisible && (
+                                    user?.role === 'student' ? (
+                                        matchingQuest && geofenceStatus?.status === 'inside' && (
+                                            <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
+                                                <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                                                <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
+                                            </TouchableOpacity>
+                                        )
+                                    ) : (
+                                        geofenceStatus?.status === 'inside' && nearbyBuildingFull && (
+                                            <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
+                                                <Ionicons name="information-circle" size={16} color="#FFFFFF" />
+                                                <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
+                                            </TouchableOpacity>
+                                        )
+                                    )
+                                )}
+                            </View>
+                        </View>
+                    </View>
+                )}
+
+                {/* 3. Reticle and Gamified HUD Overlays */}
                 {!isScanningQr ? (
                     <View style={styles.reticleContainer} pointerEvents="none">
                         <View style={styles.reticleTopLeft} />
@@ -565,199 +641,11 @@ export default function ARScreen() {
                         />
                     </View>
                 ) : (
-                    <View
-                        style={[
-                            styles.reticleContainer,
-                            {
-                                borderColor: theme.colors.success,
-                                borderWidth: 2,
-                                backgroundColor: "rgba(16, 185, 129, 0.1)",
-                                borderRadius: theme.radius.md,
-                            },
-                        ]}
-                        pointerEvents="none"
-                    >
-                        <Text
-                            style={{
-                                color: theme.colors.success,
-                                textAlign: "center",
-                                marginTop: 85,
-                                fontWeight: "bold",
-                            }}
-                        >
-                            Scanning QR...
-                        </Text>
+                    <View style={styles.scanningReticle} pointerEvents="none">
+                        <Animated.View style={[styles.scannerLine, { opacity: pulseAnim }]} />
+                        <Text style={styles.scanningText}>[ SCANNING QR ]</Text>
                     </View>
                 )}
-
-                <View style={styles.topOverlay}>
-                    {/* Active Missions Reminder */}
-                    {activeQuests &&
-                        activeQuests.length > 0 &&
-                        !capturing &&
-                        !triviaModalVisible && (
-                            <View style={styles.missionsOverlayCard}>
-                                <View
-                                    style={{
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        marginBottom: 4,
-                                    }}
-                                >
-                                    <Ionicons
-                                        name="list"
-                                        size={14}
-                                        color={theme.colors.primary}
-                                        style={{ marginRight: 4 }}
-                                    />
-                                    <Text style={styles.missionsOverlayTitle}>
-                                        ACTIVE MISSIONS
-                                    </Text>
-                                </View>
-                                {activeQuests
-                                    .filter((q) => !q.is_completed)
-                                    .slice(0, 2)
-                                    .map((q) => (
-                                        <Text
-                                            key={q.id}
-                                            style={styles.missionsOverlayText}
-                                            numberOfLines={1}
-                                        >
-                                            • {q.title}
-                                        </Text>
-                                    ))}
-                            </View>
-                        )}
-
-                    {nearbyBuilding && (
-                        <>
-                            {/* Target Identification */}
-                            <View
-                                style={[
-                                    styles.targetCard,
-                                    {
-                                        marginTop:
-                                            activeQuests?.length > 0 &&
-                                            !capturing
-                                                ? 8
-                                                : 0,
-                                    },
-                                ]}
-                            >
-                                <Text style={styles.targetLabel}>
-                                    Nearby Building
-                                </Text>
-                                <Text style={styles.buildingLabel}>
-                                    {nearbyBuilding.name}
-                                </Text>
-
-                                {geofenceStatus?.status === "inside" ? (
-                                    <Text
-                                        style={[
-                                            styles.buildingStatus,
-                                            { color: theme.colors.success },
-                                        ]}
-                                    >
-                                        ✓ You have arrived!
-                                    </Text>
-                                ) : (
-                                    <Text style={styles.buildingStatus}>
-                                        📍{" "}
-                                        {Math.round(
-                                            geofenceStatus?.distance || 0,
-                                        )}{" "}
-                                        meters away
-                                    </Text>
-                                )}
-
-                                {/* 3D Model Miniature Projection */}
-                                {isModelVisible && (
-                                    <AR3DModelOverlay
-                                        modelUrl={nearbyBuildingFull.model_url}
-                                        buildingName={nearbyBuildingFull.name}
-                                        capturing={capturing}
-                                        onSnapshotReady={() =>
-                                            setModelReady(true)
-                                        }
-                                        style={{
-                                            position: "relative",
-                                            top: -10,
-                                            left: 0,
-                                            width: 100,
-                                            height: 100,
-                                            marginLeft: 0,
-                                            alignSelf: "center",
-                                            marginTop: 0,
-                                            marginBottom: -10,
-                                        }}
-                                    />
-                                )}
-                            </View>
-
-                            {/* Gamified Claim Button (Uses existing Quest API) */}
-                            {user?.role === "student"
-                                ? matchingQuest &&
-                                  geofenceStatus?.status === "inside" &&
-                                  !triviaModalVisible &&
-                                  !capturing && (
-                                      <TouchableOpacity
-                                          style={styles.claimQuestBtn}
-                                          onPress={handleClaimQuest}
-                                      >
-                                          <Ionicons
-                                              name="sparkles"
-                                              size={24}
-                                              color="#FFFFFF"
-                                          />
-                                          <View style={{ marginLeft: 8 }}>
-                                              <Text
-                                                  style={
-                                                      styles.claimQuestBtnText
-                                                  }
-                                              >
-                                                  Reveal Discovery
-                                              </Text>
-                                              <Text
-                                                  style={styles.claimPointsText}
-                                              >
-                                                  +{matchingQuest.reward_points}{" "}
-                                                  EXP
-                                              </Text>
-                                          </View>
-                                      </TouchableOpacity>
-                                  )
-                                : geofenceStatus?.status === "inside" &&
-                                  nearbyBuildingFull &&
-                                  !triviaModalVisible &&
-                                  !capturing && (
-                                      <TouchableOpacity
-                                          style={styles.claimQuestBtn}
-                                          onPress={handleViewTriviaOnly}
-                                      >
-                                          <Ionicons
-                                              name="information-circle"
-                                              size={24}
-                                              color="#FFFFFF"
-                                          />
-                                          <View style={{ marginLeft: 8 }}>
-                                              <Text
-                                                  style={
-                                                      styles.claimQuestBtnText
-                                                  }
-                                              >
-                                                  View Information
-                                              </Text>
-                                              <Text
-                                                  style={styles.claimPointsText}
-                                              >
-                                                  {nearbyBuildingFull.name}
-                                              </Text>
-                                          </View>
-                                      </TouchableOpacity>
-                                  )}
-                        </>
-                    )}
-                </View>
 
                 {/* 4. Top Layer: Absolute Frame */}
                 <BrandedSelfieFrame
@@ -832,44 +720,27 @@ export default function ARScreen() {
                     </Animated.View>
                 )}
 
-            {/* --- CONTROLS: Hidden during capture so they don't get snapshotted --- */}
+            {/* --- Bottom Camera Controls --- */}
             {!capturing && (
-                <View style={styles.controls}>
-                    <TouchableOpacity
-                        style={styles.exitButton}
-                        onPress={() => router.back()}
-                    >
-                        <X size={24} color={theme.colors.primary} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.captureButton}
-                        onPress={handleCaptureSelfie}
-                    >
-                        <View style={styles.captureButtonInner}>
-                            <CameraIcon
-                                size={24}
-                                color={theme.colors.primary}
-                            />
-                        </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.exitButton,
-                            isScanningQr && {
-                                backgroundColor: theme.colors.success,
-                            },
-                        ]}
+                <View style={styles.bottomControls}>
+                    <TouchableOpacity 
+                        style={[styles.qrBigButton, isScanningQr && styles.qrBigButtonActive]} 
                         onPress={() => setIsScanningQr(!isScanningQr)}
                     >
-                        <QrCode
-                            size={24}
-                            color={isScanningQr ? "#fff" : theme.colors.primary}
-                        />
+                        <QrCode size={20} color={isScanningQr ? "#fff" : theme.colors.primary} />
+                        <Text style={[styles.qrBigButtonText, isScanningQr && { color: "#fff" }]}>
+                            {isScanningQr ? "SCANNING QR..." : "SCAN QR CODE"}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.captureButton} onPress={handleCaptureSelfie}>
+                        <View style={styles.captureButtonInner}>
+                            <CameraIcon size={28} color={theme.colors.primary} />
+                        </View>
                     </TouchableOpacity>
                 </View>
             )}
+
             {/* --- BADGE EARNED TOAST --- */}
             {user?.role === "student" && newlyEarnedBadges.length > 0 && (
                 <Animated.View
@@ -985,70 +856,217 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.md,
         fontWeight: "600",
     },
-    topOverlay: {
-        position: "absolute",
-        top: 50,
-        left: 20,
-        right: 20,
-        zIndex: 10,
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    qrButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 6,
+        backgroundColor: "rgba(255,255,255,0.9)",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(255,255,255,0.9)",
+        justifyContent: "center",
+        alignItems: "center",
     },
-    missionsOverlayCard: {
+    missionsPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(20, 20, 20, 0.75)",
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.2)",
+    },
+    missionsPillText: {
+        fontFamily: fonts.heading.bold,
+        color: "#fff",
+        fontSize: 11,
+        letterSpacing: 1,
+    },
+    
+    
+    
+    
+    
+    
+    
+    
+    claimQuestBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.colors.primary,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        marginTop: 12,
+    },
+    claimQuestBtnText: {
+        fontFamily: fonts.heading.bold,
+        color: "#FFFFFF",
+        fontSize: 12,
+        letterSpacing: 1,
+        marginLeft: 6,
+    },
+    
+    qrBigButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
         backgroundColor: "rgba(255, 255, 255, 0.95)",
-        padding: 12,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.3)",
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 30,
+        marginBottom: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    missionsOverlayTitle: {
+    qrBigButtonActive: {
+        backgroundColor: theme.colors.success,
+    },
+    qrBigButtonText: {
         fontFamily: fonts.heading.bold,
         color: theme.colors.primary,
-        fontSize: 10,
-        letterSpacing: 1,
+        fontSize: 14,
+        letterSpacing: 0.5,
+        marginLeft: 8,
     },
-    missionsOverlayText: {
-        fontFamily: fonts.body.regular,
-        color: theme.colors.textPrimary,
-        fontSize: 12,
-        marginBottom: 2,
-    },
-    targetCard: {
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.5)",
-        borderRadius: theme.radius.lg,
-        padding: 16,
-    },
-    targetLabel: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
-        fontSize: 12,
-        letterSpacing: 1,
-        marginBottom: 4,
-    },
-    buildingLabel: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.textPrimary,
-        fontSize: 22,
-        letterSpacing: 1.5,
-        textTransform: "uppercase",
-    },
-    buildingStatus: {
-        fontFamily: fonts.body.bold,
-        color: theme.colors.accent,
-        fontSize: 12,
-        marginTop: 4,
-        letterSpacing: 1,
-    },
-    controls: {
+    bottomControls: {
         position: "absolute",
         bottom: 40,
         left: 0,
         right: 0,
-        flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: theme.spacing.xl,
         zIndex: 20,
+    },
+    scanningReticle: {
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        width: 240,
+        height: 240,
+        marginLeft: -120,
+        marginTop: -120,
+        borderWidth: 2,
+        borderColor: "rgba(16, 185, 129, 0.6)",
+        borderRadius: 6,
+        backgroundColor: "rgba(16, 185, 129, 0.1)",
+        zIndex: 5,
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+    },
+    scannerLine: {
+        position: "absolute",
+        width: "100%",
+        height: 2,
+        backgroundColor: theme.colors.success,
+        shadowColor: theme.colors.success,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: 8,
+    },
+    scanningText: {
+        color: theme.colors.success,
+        fontFamily: fonts.heading.bold,
+        fontSize: 12,
+        letterSpacing: 2,
+        marginTop: 80,
+    },
+    
+    topLeftControls: {
+        position: "absolute",
+        top: 50,
+        left: 20,
+        zIndex: 20,
+        flexDirection: "column",
+        gap: 12,
+        alignItems: "flex-start",
+    },
+    topOvalContainer: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 15,
+        alignItems: "center",
+        paddingTop: 50,
+        paddingBottom: 30,
+        overflow: "hidden",
+    },
+    topOvalShape: {
+        position: "absolute",
+        top: -400,
+        left: "-50%",
+        width: "200%",
+        height: 600,
+        borderRadius: 300,
+        backgroundColor: "#FFFFFF",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    topOvalContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        width: "90%",
+        paddingRight: 20,
+        paddingLeft: 70, // Leaves space for the left controls
+    },
+    targetCardLeft: {
+        width: 80,
+        height: 80,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12,
+        overflow: "hidden",
+        borderRadius: 6,
+        backgroundColor: theme.colors.surface,
+    },
+    modelMiniature: {
+        width: "100%",
+        height: "100%",
+    },
+    targetCardRight: {
+        flex: 1,
+    },
+    targetLabel: {
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.textSecondary,
+        fontSize: 10,
+        letterSpacing: 1.5,
+        marginBottom: 2,
+    },
+    buildingLabel: {
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.primary,
+        fontSize: 16,
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+    },
+    buildingStatus: {
+        fontFamily: fonts.body.bold,
+        color: theme.colors.textSecondary,
+        fontSize: 12,
+        marginTop: 2,
+        letterSpacing: 0.5,
     },
     exitButton: {
         width: 48,
@@ -1091,29 +1109,9 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         fontFamily: "monospace",
     },
-    claimQuestBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme.colors.primary,
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: theme.radius.lg,
-        marginTop: 16,
-    },
-    claimQuestBtnText: {
-        fontFamily: fonts.heading.bold,
-        color: "#FFFFFF",
-        fontSize: 14,
-        letterSpacing: 1,
-    },
-    claimPointsText: {
-        fontFamily: fonts.body.bold,
-        color: "rgba(255,255,255,0.8)",
-        fontSize: 11,
-        marginTop: 2,
-        letterSpacing: 1,
-    },
+    
+    
+    
     reticleContainer: {
         position: "absolute",
         top: "50%",
@@ -1252,7 +1250,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "rgba(20, 20, 20, 0.95)",
-        borderRadius: 16,
+        borderRadius: 6,
         padding: 14,
         borderWidth: 1,
         borderColor: "#FFD700",
@@ -1287,7 +1285,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "rgba(30, 20, 60, 0.96)",
-        borderRadius: 16,
+        borderRadius: 6,
         padding: 14,
         borderWidth: 1,
         borderColor: "#B25DFF",
