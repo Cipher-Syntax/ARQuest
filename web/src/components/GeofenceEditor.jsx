@@ -13,6 +13,24 @@ import { theme } from "../theme";
 import "leaflet/dist/leaflet.css";
 import "../utils/leafletConfig";
 import "@google/model-viewer";
+import L from "leaflet";
+
+const maintenanceIcon = new L.DivIcon({
+    html: `
+        <div style="background-color: #f97316; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <style>
+            @keyframes pulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: .7; transform: scale(1.1); }
+            }
+        </style>
+    `,
+    className: "",
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+});
 
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
 const WMSU_BOUNDS = [
@@ -57,6 +75,8 @@ const GeofenceEditor = ({
     errors,
     existingBuildings = [],
     currentBuildingId = null,
+    buildingName = "",
+    buildingStatus = "DRAFT",
 }) => {
     const center = {
         lat: value?.latitude || WMSU_CENTER.lat,
@@ -183,7 +203,10 @@ const GeofenceEditor = ({
                                         dashArray: "5, 5",
                                     }}
                                 />
-                                <Marker position={[lat, lng]}>
+                                <Marker 
+                                    position={[lat, lng]}
+                                    icon={b.status === 'MAINTENANCE' ? maintenanceIcon : new L.Icon.Default()}
+                                >
                                     <Tooltip
                                         direction="top"
                                         permanent
@@ -235,7 +258,16 @@ const GeofenceEditor = ({
                         <>
                             <Marker
                                 position={[value.latitude, value.longitude]}
-                            />
+                                icon={buildingStatus === 'MAINTENANCE' ? maintenanceIcon : new L.Icon.Default()}
+                            >
+                                <Tooltip
+                                    direction="top"
+                                    permanent
+                                    className={`text-[10px] font-bold ${buildingStatus === 'MAINTENANCE' ? 'text-[#f97316]' : 'text-[#10b981]'} shadow-sm border-0 bg-white/80`}
+                                >
+                                    {buildingName || "Current Building"}
+                                </Tooltip>
+                            </Marker>
                             <Circle
                                 center={[value.latitude, value.longitude]}
                                 radius={parseFloat(value.radius_meters) || 0}

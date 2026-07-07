@@ -342,6 +342,9 @@ export default function BuildingsPage() {
                                                         "VISIBLE"
                                                             ? "brand"
                                                             : b.status_display ===
+                                                              "MAINTENANCE"
+                                                            ? "warning"
+                                                            : b.status_display ===
                                                                 "HIDDEN"
                                                               ? "red"
                                                               : "gray"
@@ -350,6 +353,9 @@ export default function BuildingsPage() {
                                                     {b.status_display ===
                                                     "VISIBLE"
                                                         ? "Visible"
+                                                        : b.status_display ===
+                                                          "MAINTENANCE"
+                                                        ? "Maintenance"
                                                         : b.status_display ===
                                                             "HIDDEN"
                                                           ? "Hidden"

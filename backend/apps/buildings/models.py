@@ -60,6 +60,7 @@ class Building(SoftDeleteModel):
         ('DRAFT', 'Draft'),
         ('HIDDEN', 'Published (Hidden)'),
         ('VISIBLE', 'Published (Visible)'),
+        ('MAINTENANCE', 'Under Construction / Maintenance'),
     ]
 
     departments = models.ManyToManyField(Department, related_name='buildings', blank=True)
@@ -70,7 +71,7 @@ class Building(SoftDeleteModel):
     description = models.TextField(blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT', help_text='Drafts can be saved without coordinates/slugs.')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', help_text='Drafts can be saved without coordinates/slugs.')
     is_active = models.BooleanField(default=True, help_text='If false, shows building as closed/inactive')
     model_file = models.FileField(upload_to='models/', blank=True, null=True)
     model_version = models.CharField(max_length=50, blank=True)
@@ -94,7 +95,7 @@ class Building(SoftDeleteModel):
         return self.name
     
     def clean(self):
-        if self.status in ['HIDDEN', 'VISIBLE']:
+        if self.status in ['HIDDEN', 'VISIBLE', 'MAINTENANCE']:
             errors = {}
             if self.latitude is None:
                 errors['latitude'] = 'Latitude is required to publish.'

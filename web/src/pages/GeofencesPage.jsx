@@ -29,6 +29,7 @@ import {
     Tooltip,
     Popup,
 } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "../utils/leafletConfig";
 import "@google/model-viewer";
@@ -45,6 +46,15 @@ const WMSU_BOUNDS = [
     [6.9095, 122.0575],
     [6.9155, 122.064],
 ];
+
+const maintenanceIcon = new L.divIcon({
+    className: "custom-div-icon",
+    html: `<div class="animate-pulse bg-orange-500 w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-[0_0_15px_rgba(249,115,22,0.8)]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+           </div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+});
 
 const parseCoordinate = (coordStr) => {
     if (!coordStr) return 0;
@@ -133,6 +143,7 @@ export default function Geofences() {
                                 ? `${geoData.radius_meters}m`
                                 : "20m",
                         active: b.is_active !== undefined ? b.is_active : false,
+                        status: b.status,
                         model_url: b.model_url,
                     };
                 }),
@@ -450,6 +461,7 @@ export default function Geofences() {
                                         >
                                             <Marker
                                                 position={[lat, lng]}
+                                                icon={geo.status === 'MAINTENANCE' ? maintenanceIcon : new L.Icon.Default()}
                                                 eventHandlers={{
                                                     click: () =>
                                                         handleMarkerClick(

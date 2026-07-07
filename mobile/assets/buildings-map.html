@@ -65,11 +65,39 @@
 
             .building-label {
                 background: rgba(255, 255, 255, 0.9);
-                border: 1px solid #b21830;
-                color: #b21830;
-                font-weight: bold;
-                font-size: 10px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                border: 1px solid transparent;
+                color: #111827;
+                font-weight: 700;
+                font-size: 12px;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                padding: 4px 8px;
+                border-radius: 4px;
+            }
+
+            .maintenance-label {
+                color: #f97316;
+            }
+
+            @keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: .5;
+                }
+            }
+
+            .maintenance-icon {
+                background-color: #f97316;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid white;
+                box-shadow: 0 0 15px rgba(249, 115, 22, 0.8);
+                animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
             }
         </style>
     </head>
@@ -340,7 +368,13 @@
                     let htmlStr = "";
                     let hasModel = false;
 
-                    if (isUnlocked && b.model_active && b.model_url) {
+                    if (b.status === 'MAINTENANCE') {
+                        htmlStr = `
+                        <div class="maintenance-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        </div>
+                        `;
+                    } else if (isUnlocked && b.model_active && b.model_url) {
                         hasModel = true;
                         // The marker consists of the dot, and a smaller transparent placeholder above it where the 3D model will render
                         htmlStr = `
@@ -393,11 +427,16 @@
                         boundsElements.push(marker);
                     }
 
+                    let labelClassName = "building-label";
+                    if (b.status === 'MAINTENANCE') {
+                        labelClassName += " maintenance-label";
+                    }
+
                     marker.bindTooltip(b.name, {
                         permanent: true,
-                        direction: "bottom",
-                        className: "building-label",
-                        offset: [0, hasModel ? 25 : 10], // Adjust label drop dynamically
+                        direction: "top",
+                        className: labelClassName,
+                        offset: [0, hasModel ? -40 : (b.status === 'MAINTENANCE' ? -15 : -15)], // Adjust label drop dynamically
                     });
 
                     marker.on("click", () => {

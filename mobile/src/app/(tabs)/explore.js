@@ -195,6 +195,12 @@ export default function ExploreScreen() {
                 const buildingId = result.building.id;
                 if (result.building.is_active === false) {
                     // Building is closed
+                } else if (result.building.status === "MAINTENANCE") {
+                    // Building is under maintenance, do not unlock
+                    if (lastUnlockAttempt !== buildingId) {
+                        setLastUnlockAttempt(buildingId);
+                        // Optionally play a failure sound or show a small alert
+                    }
                 } else if (lastUnlockAttempt !== buildingId) {
                     try {
                         const unlockResult = await attemptUnlock(

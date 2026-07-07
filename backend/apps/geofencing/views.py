@@ -17,7 +17,7 @@ class ValidateLocationView(APIView):
         user_lon = serializer.validated_data['longitude']
         accuracy = serializer.validated_data['accuracy_meters']
 
-        visible_buildings = Building.objects.filter(status='VISIBLE').prefetch_related('geofences')
+        visible_buildings = Building.objects.filter(status__in=['VISIBLE', 'MAINTENANCE']).prefetch_related('geofences')
         
         matched_building = None
         min_distance = float('inf')
@@ -45,6 +45,7 @@ class ValidateLocationView(APIView):
                         'id': building.id,
                         'name': building.name,
                         'slug': building.slug,
+                        'status': building.status,
                         'is_active': building.is_active,
                     }
                 elif distance <= radius + 20:

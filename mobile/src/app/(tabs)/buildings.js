@@ -90,10 +90,11 @@ export default function BuildingsScreen() {
         try {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === "building_click") {
-                if (data.isUnlocked || role === "visitor") {
-                    const building = allBuildings.find(
-                        (b) => b.id === data.buildingId,
-                    );
+                const building = allBuildings.find(
+                    (b) => b.id === data.buildingId,
+                );
+                
+                if (data.isUnlocked || role === "visitor" || (building && building.status === "MAINTENANCE")) {
                     const unlockedData =
                         unlockedBuildings.find(
                             (b) => b.id === data.buildingId,
@@ -567,6 +568,17 @@ export default function BuildingsScreen() {
                                         />
                                         <Text style={styles.restrictedText}>
                                             Building Closed / Under Renovation
+                                        </Text>
+                                    </View>
+                                ) : selectedBuilding.status === 'MAINTENANCE' ? (
+                                    <View style={[styles.restrictedContainer, { borderColor: '#f97316', backgroundColor: '#fff7ed' }]}>
+                                        <ShieldAlert
+                                            color="#f97316"
+                                            size={20}
+                                            style={{ marginBottom: 4 }}
+                                        />
+                                        <Text style={[styles.restrictedText, { color: '#c2410c' }]}>
+                                            Under Maintenance / Construction
                                         </Text>
                                     </View>
                                 ) : canAccessBuildingFeatures(true) ? (

@@ -80,7 +80,7 @@ def building_list_create(request):
         if getattr(request.user, 'is_admin_role', False):
             buildings = Building.objects.all()
         else:
-            buildings = Building.objects.filter(status='VISIBLE')
+            buildings = Building.objects.filter(status__in=['VISIBLE', 'MAINTENANCE'])
         serializer = BuildingSerializer(buildings, many=True, context={'request': request})
         return success_response(serializer.data)
     
@@ -104,7 +104,7 @@ def building_detail(request, id):
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
-        if building.status != 'VISIBLE' and not getattr(request.user, 'is_admin_role', False):
+        if building.status not in ['VISIBLE', 'MAINTENANCE'] and not getattr(request.user, 'is_admin_role', False):
             return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         serializer = BuildingSerializer(building, context={'request': request})
         return success_response(serializer.data)
@@ -184,7 +184,7 @@ def unlock_building(request):
     user_lon = serializer.validated_data['longitude']
     accuracy = serializer.validated_data['accuracy_meters']
 
-    active_buildings = Building.objects.filter(is_active=True, status='VISIBLE').prefetch_related('geofences')
+    active_buildings = Building.objects.filter(is_active=True, status__in=['VISIBLE', 'MAINTENANCE']).prefetch_related('geofences')
     
     for building in active_buildings:
         geofence = building.geofences.filter(is_active=True).first()
@@ -199,6 +199,9 @@ def unlock_building(request):
         radius = float(geofence.radius_meters)
         
         if distance <= radius:
+            if building.status == 'MAINTENANCE':
+                return error_response('maintenance', 'This building is currently under maintenance and cannot be unlocked.', status_code=status.HTTP_400_BAD_REQUEST)
+
             # Server-side Time-Distance Speed Validation
             last_unlock = BuildingUnlock.objects.filter(user=request.user).exclude(building=building).order_by('-last_validated_at').first()
             if last_unlock:
@@ -247,7 +250,9 @@ def unlock_building_qr(request):
         return error_response('invalid_input', 'QR code secret is required', status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
-        building = Building.objects.get(qr_code_secret=qr_secret, is_active=True, status='VISIBLE')
+        building = Building.objects.get(qr_code_secret=qr_secret, is_active=True, status__in=['VISIBLE', 'MAINTENANCE'])
+        if building.status == 'MAINTENANCE':
+            return error_response('maintenance', 'This building is currently under maintenance and cannot be unlocked.', status_code=status.HTTP_400_BAD_REQUEST)
     except Building.DoesNotExist:
         return error_response('invalid_qr', 'Invalid or inactive QR code', status_code=status.HTTP_404_NOT_FOUND)
 
@@ -297,7 +302,7 @@ def unlocked_buildings(request):
     user = request.user
     
     if user.is_professional_role:
-        buildings = Building.objects.filter(status='VISIBLE')
+        buildings = Building.objects.filter(status__in=['VISIBLE', 'MAINTENANCE'])
         unlocks_map = {u.building_id: u for u in BuildingUnlock.objects.filter(user=user)}
         
         buildings_data = []
@@ -318,7 +323,7 @@ def unlocked_buildings(request):
         
         return success_response(buildings_data)
     
-    unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__status='VISIBLE')
+    unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__status__in=['VISIBLE', 'MAINTENANCE'])
     buildings_data = []
     for unlock in unlocks:
         serializer = UnlockedBuildingSerializer(unlock.building, context={'request': request})
@@ -340,7 +345,7 @@ def building_assets(request, id):
     except Building.DoesNotExist:
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
-    if building.status != 'VISIBLE' and not getattr(request.user, 'is_admin_role', False):
+    if building.status not in ['VISIBLE', 'MAINTENANCE'] and not getattr(request.user, 'is_admin_role', False):
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.user.is_visitor_role:
@@ -365,7 +370,7 @@ def asset_metadata(request, id):
         return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
 
     building = asset.building
-    if building.status != 'VISIBLE' and not getattr(request.user, 'is_admin_role', False):
+    if building.status not in ['VISIBLE', 'MAINTENANCE'] and not getattr(request.user, 'is_admin_role', False):
          return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
          
     if request.user.is_visitor_role:
@@ -498,7 +503,7 @@ def trivia_detail(request, id):
 @permission_classes([IsAuthenticated])
 def building_quiz(request, id):
     try:
-        building = Building.objects.get(id=id, is_active=True, status='VISIBLE')
+        building = Building.objects.get(id=id, is_active=True, status__in=['VISIBLE', 'MAINTENANCE'])
     except Building.DoesNotExist:
         return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     

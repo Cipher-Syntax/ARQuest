@@ -18,7 +18,7 @@ def check_and_award_badges(user):
 
 	unlock_count = BuildingUnlock.objects.filter(user=user).count()
 	quest_count = UserQuestProgress.objects.filter(user=user, is_completed=True).count()
-	total_buildings = Building.objects.filter(is_active=True, status='VISIBLE').count()
+	total_buildings = Building.objects.filter(is_active=True, status__in=['VISIBLE', 'MAINTENANCE']).count()
 
 	trigger_results = {
 		'first_unlock': unlock_count >= 1,

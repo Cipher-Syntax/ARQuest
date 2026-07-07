@@ -594,6 +594,9 @@ const BuildingEditorPage = () => {
                                     <option value="VISIBLE">
                                         Published (Visible)
                                     </option>
+                                    <option value="MAINTENANCE">
+                                        Under Construction / Maintenance
+                                    </option>
                                 </select>
                             </div>
 
@@ -976,6 +979,8 @@ const BuildingEditorPage = () => {
                             errors={geofenceErrors}
                             existingBuildings={existingBuildings}
                             currentBuildingId={id !== "new" ? id : null}
+                            buildingName={building.name}
+                            buildingStatus={building.status}
                         />
                     </div>
                 </div>
