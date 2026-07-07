@@ -141,6 +141,7 @@ export default function HomeScreen() {
                 type: "update",
                 buildings: buildings.slice(0, 5), // Just a few for preview
                 unlockedIds: buildings.map((b) => b.id), // Pretend all unlocked for preview map
+                mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
                 userLocation: location,
             });
             webViewRef.current.postMessage(message);
@@ -684,7 +685,7 @@ export default function HomeScreen() {
                                     />
                                 </View>
                                 <Text style={styles.actionText}>
-                                    Nearby Map
+                                    Campus Map
                                 </Text>
                             </TouchableOpacity>
 
@@ -728,7 +729,7 @@ export default function HomeScreen() {
 
                     {/* --- Campus Radar Preview --- */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Nearby Map</Text>
+                        <Text style={styles.sectionTitle}>Campus Map</Text>
                         <View style={styles.mapPreviewContainer}>
                             <View style={styles.mapPreviewWrapper}>
                                 <WebView
