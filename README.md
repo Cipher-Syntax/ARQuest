@@ -12,7 +12,7 @@
 ![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Three.js](https://img.shields.io/badge/ThreeJs-black?style=for-the-badge&logo=three.js&logoColor=white)
-![Google Maps](https://img.shields.io/badge/Google_Maps-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
+![Mapbox](https://img.shields.io/badge/Mapbox-000000?style=for-the-badge&logo=mapbox&logoColor=white)
 
 </div>
 
@@ -32,7 +32,7 @@ It supports four distinct user roles: **Admin**, **Students**, **Professionals (
 
 ## ✨ Core Features
 
-### 📍 GPS Geofencing & Campus Navigation (Google Maps)
+### 📍 GPS Geofencing & Campus Navigation (Mapbox)
 - Detects user location in real-time to trigger automated building unlocks.
 - Defines campus zones per building using precise latitude/longitude radiuses.
 - Powered by the **Mapbox API** for robust point-to-point visual routing and highly accurate map tiles.
@@ -114,7 +114,7 @@ It supports four distinct user roles: **Admin**, **Students**, **Professionals (
 
 ### 📱 Mobile Application
 - **Framework:** React Native (Expo Managed Workflow)
-- **Mapping:** Google Maps API & Expo Location (GPS/Geofencing)
+- **Mapping:** Mapbox API & Expo Location (GPS/Geofencing)
 - **Camera/Media:** Expo Camera API, react-native-view-shot, Expo Media Library
 - **3D/Rendering:** WebView, Three.js (for GLB rendering and panoramic spheres)
 
