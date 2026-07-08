@@ -148,8 +148,8 @@ function SidebarContent({
                                                 {label}
                                             </span>
                                         )}
-                                        {isActive && !isCollapsed && (
-                                            <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                        {isActive && (
+                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-white rounded-r-md shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
                                         )}
                                     </>
                                 )}
