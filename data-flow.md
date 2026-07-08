@@ -351,11 +351,40 @@ sequenceDiagram
 
 ---
 
+## 12. Admin: History, Logs & Notifications
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant Web as Admin Dashboard
+    participant API as Django API
+    participant DB as PostgreSQL
+
+    Admin->>Web: Open History & Logs Page
+    Web->>API: GET /api/notifications/?page=1&page_size=5
+    API->>DB: Fetch latest Notifications (limit 5)
+    API-->>Web: Paginated notifications
+    
+    Web->>Admin: Show badges grouped by types\n(System, Professional, Building, Feedback)
+    
+    Admin->>Web: Filter by Type / Sort by Date
+    Web->>API: GET /api/notifications/?type=FEEDBACK&ordering=-created_at
+    API->>DB: Query filtered and sorted data
+    API-->>Web: Updated list
+
+    Admin->>Web: Mark notification as read
+    Web->>API: PATCH /api/notifications/{id}/read/
+    API->>DB: Set is_read = True
+    API-->>Web: 200 OK
+```
+
+---
+
 ## Documentation
 
 ### Overview
 
-The data flow diagrams in this document trace the complete lifecycle of every major user action and system event in ARQuest. Each sequence diagram covers a specific interaction: user registration, GPS geofence detection, building unlock, 3D visualization, 360 degree walkthrough, AR camera, and admin content management. These flows are useful for understanding how the layers connect, debugging API integration issues, and validating that role-based access control is enforced at the right points.
+The data flow diagrams in this document trace the complete lifecycle of every major user action and system event in ARQuest. Each sequence diagram covers a specific interaction: user registration, GPS geofence detection, building unlock, 3D visualization, 360 degree walkthrough, AR camera, admin content management, and notification processing. These flows are useful for understanding how the layers connect, debugging API integration issues, and validating that role-based access control is enforced at the right points.
 
 All flows follow one rule: the Django backend is always the authoritative decision-maker. The mobile app and admin dashboard submit requests and display results. They never determine access rights, validate geofence boundaries, or calculate gamification rewards on their own.
 
@@ -468,3 +497,11 @@ Feature flags like `enable_gps`, `enable_qr`, `enable_trivia`, and `enable_accre
 The soft delete flow protects against accidental permanent data loss when an administrator removes a building. Instead of a SQL DELETE, the backend sets `deleted_at` to the current timestamp on the building and cascades this to related quests and trivia facts. The `SoftDeleteManager` hides these records from all standard queries. They are absent from the mobile building list, excluded from geofence validation, and not returned by any API endpoint, but they remain in the database and can be recovered.
 
 The Archive Manager page in the admin dashboard lists all soft-deleted buildings. An administrator can restore a building, which clears the `deleted_at` timestamp on the building and its cascaded records. The administrator can also hard delete, which permanently removes the record and all its database relationships. The two-step process means permanent deletion is always a deliberate choice, always a deliberate, conscious action rather than an accidental outcome.
+
+---
+
+### Flow 12 - Admin: History, Logs & Notifications
+
+The history and logs page provides a centralized tracking mechanism for the system. As events occur (e.g. professional accounts added, feedback submitted, or maintenance toggled), the system automatically generates notifications.
+
+When an administrator visits the History & Logs page, the Web Dashboard issues paginated requests to `/api/notifications/` with a limit of 5 items per page. The interface allows the administrator to sort by date or filter notifications by categories (`System`, `Professional`, `Building`, `Feedback`), visually indicated by distinct color badges. The administrator can acknowledge logs by marking them as read via a PATCH request, ensuring continuous awareness of system operations.

@@ -357,6 +357,28 @@ flowchart TD
 
 ---
 
+## Flow 12 - Admin: History & Logs
+
+How an admin reviews system notifications and feedback logs.
+
+```mermaid
+flowchart TD
+    SIDEBAR["Admin Sidebar\nClick History & Logs"]
+
+    SIDEBAR --> HISTORY_PAGE["History & Logs Page\nList of all system notifications"]
+
+    HISTORY_PAGE --> FILTER["Filter by Category\n(System, Professional, Building, Feedback)"]
+    HISTORY_PAGE --> SORT["Sort by Date\n(Newest/Oldest)"]
+    
+    FILTER --> VIEW_NOTIF["View Paginated List\n(5 items per page)"]
+    SORT --> VIEW_NOTIF
+    
+    VIEW_NOTIF --> ACTION_READ["Click 'Mark as Read'"]
+    ACTION_READ --> UPDATED["Notification dim\nStatus updated in DB"]
+```
+
+---
+
 ## Role Access Summary
 
 | Feature | Student | Professional | Visitor | Admin |
@@ -381,6 +403,7 @@ flowchart TD
 | Manage professionals | No | No | No | Yes |
 | Archive / restore | No | No | No | Yes |
 | System settings | No | No | No | Yes |
+| History & Logs | No | No | No | Yes |
 
 ---
 
@@ -477,3 +500,11 @@ The CMS / Settings page gives the admin direct control over which features are a
 The most important toggle is `maintenance_mode`. Turning it on blocks all non-admin API requests and the mobile app shows a maintenance banner. This is used when the team needs to run a database migration or server update without disrupting users with error messages.
 
 Individual feature flags let the admin disable subsystems without touching code. GPS tracking, QR scanning, AR selfie capture, trivia modals, professional accreditation features, and the leaderboard can all be turned off independently. The `default_quest_reward` field sets the default points value that auto-fills when a new quest is created in the dashboard.
+
+---
+
+### Flow 12 - Admin: History & Logs
+
+The History & Logs page gives the admin oversight into what is happening within the system. The admin navigates to the page and can see a paginated list of notifications, grouped by badges like System, Professional, Building, and Feedback.
+
+The admin can sort these notifications by date and filter them to find specific events. The admin can also mark unread notifications as read, providing a continuous workflow for acknowledging system activity.

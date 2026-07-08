@@ -27,7 +27,7 @@ graph TD
     %% Interactions
     Student -- "Explores campus, unlocks buildings, completes quests, views 3D/AR content" --> ARQuest
     Prof -- "Accesses Magic Window VR virtual tours for accreditation" --> ARQuest
-    Admin -- "Manages content, buildings, geofences, quests, and system settings" --> ARQuest
+    Admin -- "Manages content, buildings, geofences, quests, settings, and views history/notifications" --> ARQuest
 
     ARQuest -- "Sends OTP verification emails" --> EmailSvc
     ARQuest -- "Requests location data for geofence validation" --> GPSSvc
@@ -49,7 +49,7 @@ The Context Diagram provides a high-level view of the ARQuest system boundaries.
 
 **Professional / Accreditor**: Specialized users who use the mobile application for remote building inspection. They are granted access to Magic Window VR virtual tours without needing to physically unlock buildings via geofencing.
 
-**Administrator**: Staff members who manage the platform through the React-based Web Dashboard. They are responsible for adding new buildings, uploading 3D models, defining geofences on the map, creating quests and trivia, and toggling system-wide feature flags.
+**Administrator**: Staff members who manage the platform through the React-based Web Dashboard. They are responsible for adding new buildings, uploading 3D models, defining geofences on the map, creating quests and trivia, toggling system-wide feature flags, and viewing system notifications, history, and logs.
 
 ### External Systems
 

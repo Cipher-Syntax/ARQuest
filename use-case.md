@@ -37,9 +37,10 @@ flowchart TB
             UC11(["Manage Quests & Trivia"])
             UC12(["Manage Users & Professionals"])
             UC13(["Toggle System Feature Flags"])
+            UC15(["View History, Logs & Notifications"])
             
             %% Force vertical list to prevent horizontal spread
-            UC8 ~~~ UC9 ~~~ UC10 ~~~ UC11 ~~~ UC12 ~~~ UC13
+            UC8 ~~~ UC9 ~~~ UC10 ~~~ UC11 ~~~ UC12 ~~~ UC13 ~~~ UC15
         end
     end
 
@@ -64,6 +65,7 @@ flowchart TB
     Admin --- UC11
     Admin --- UC12
     Admin --- UC13
+    Admin --- UC15
 ```
 
 ---
@@ -100,3 +102,4 @@ The Administrator manages the entire platform through the secure web dashboard.
 - **Manage Quests & Trivia**: Admins author the gamification content, setting quest targets, hints, reward values, and educational trivia facts.
 - **Manage Users & Professionals**: Admins view the user base, manage roles, and manually provision accounts for Professional users.
 - **Toggle System Feature Flags**: Admins can instantly enable or disable system-wide features (like GPS requirements, QR scanning, or Maintenance Mode) without requiring a mobile app update.
+- **View History, Logs & Notifications**: Admins can view system, professional, building, and feedback notifications, managing read statuses and staying updated on system events.

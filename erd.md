@@ -210,11 +210,32 @@ erDiagram
         int         default_quest_reward
     }
 
+    FEEDBACK {
+        int         id          PK
+        int         user_id     FK "nullable"
+        string      type        "bug | feature | other"
+        text        message
+        string      status      "open | in_progress | resolved"
+        datetime    created_at
+    }
+
+    NOTIFICATION {
+        uuid        id          PK
+        int         recipient_id FK "nullable"
+        string      title
+        text        message
+        string      type        "SYSTEM | PROFESSIONAL | BUILDING | FEEDBACK"
+        boolean     is_read
+        datetime    created_at
+    }
+
     USER                ||--o{ EMAIL_OTP              : "verifies email via"
     USER                ||--o{ BUILDING_UNLOCK        : "unlocks"
     USER                ||--o{ USER_QUEST_PROGRESS    : "tracks progress via"
     USER                ||--o{ USER_QUIZ_PROGRESS     : "answers"
     USER                ||--o{ USER_BADGE             : "earns"
+    USER                ||--o{ FEEDBACK               : "submits"
+    USER                ||--o{ NOTIFICATION           : "receives"
 
     DEPARTMENT          ||--o{ BUILDING               : "is primary_department of"
     DEPARTMENT          }o--o{ BUILDING               : "is associated with M2M"
@@ -363,6 +384,16 @@ Singleton model (`pk` always `1`). Global feature flags and system config consum
 
 ---
 
+### `FEEDBACK` — `api` app
+Stores user-submitted feedback, bug reports, and feature requests. Can be submitted anonymously (nullable user).
+
+---
+
+### `NOTIFICATION` — `api` app
+System notifications sent to users regarding various events (e.g., feedback updates, building status changes). Uses UUID as primary key.
+
+---
+
 ## Constraints & Invariants
 
 | Constraint | Enforced in |
@@ -402,4 +433,4 @@ All other models use standard **hard delete**.
 | `buildings` | `Department`, `Building`, `Geofence`, `BuildingUnlock`, `BuildingAsset`, `Quest`, `UserQuestProgress`, `TriviaFact`, `QuizQuestion`, `UserQuizProgress`, `Badge`, `UserBadge` |
 | `panorama` | `PanoramaScene`, `PanoramaHotspot` |
 | `geofencing` | _(no models; logic is utility-only via Haversine utils)_ |
-| `api` | `SystemSetting` |
+| `api` | `SystemSetting`, `Feedback`, `Notification` |

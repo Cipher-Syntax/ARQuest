@@ -299,15 +299,26 @@ flowchart TD
 
 ## 5. API & System Setting Domain
 
-This domain provides global configuration for the system.
+This domain provides global configuration and system-wide tracking for the system.
 - **SYSTEM_SETTING**: A singleton model (`pk=1` always) storing global feature flags such as `maintenance_mode`, GPS and QR toggles, AR/trivia activation status, and default quest rewards. The mobile app reads this state on startup.
+- **FEEDBACK**: Stores user-submitted feedback, bug reports, and feature requests.
+- **NOTIFICATION**: System notifications sent to users regarding various events, read status, and categorization.
 
 ```mermaid
 flowchart TD
+    %% External Entity Ref
+    USER["USER"]
+
     %% Entities
     SYS["SYSTEM_SETTING"]
+    FDBK["FEEDBACK"]
+    NOTIF["NOTIFICATION"]
 
-    %% Attributes
+    %% Relationships
+    submits{"submits"}
+    receives{"receives"}
+
+    %% Attributes - System Setting
     s_id(["id (Always 1)"])
     s_app(["app_name"])
     s_maint(["maintenance_mode"])
@@ -329,4 +340,36 @@ flowchart TD
     SYS --- s_acc
     SYS --- s_lead
     SYS --- s_pts
+
+    %% Attributes - Feedback
+    f_id(["id (PK)"])
+    f_type(["type"])
+    f_msg(["message"])
+    f_stat(["status"])
+    f_cr(["created_at"])
+
+    FDBK --- f_id
+    FDBK --- f_type
+    FDBK --- f_msg
+    FDBK --- f_stat
+    FDBK --- f_cr
+
+    %% Attributes - Notification
+    n_id(["id (PK UUID)"])
+    n_title(["title"])
+    n_msg(["message"])
+    n_type(["type"])
+    n_read(["is_read"])
+    n_cr(["created_at"])
+
+    NOTIF --- n_id
+    NOTIF --- n_title
+    NOTIF --- n_msg
+    NOTIF --- n_type
+    NOTIF --- n_read
+    NOTIF --- n_cr
+
+    %% Structure
+    USER --- submits --- FDBK
+    USER --- receives --- NOTIF
 ```

@@ -44,6 +44,7 @@ graph LR
         W4["Quests · Trivia · Media"]
         W5["Professionals · Users\nLeaderboard"]
         W6["CMS · Settings\n(feature toggles)"]
+        W7["History & Logs\n(Notifications)"]
     end
 
     MOBILE -->|"REST API\n(JWT Bearer)"| BACKEND
@@ -206,6 +207,8 @@ graph TD
         EP_DASH["GET    dashboard/"]
         EP_PUB_SET["GET   settings/public/"]
         EP_SETTINGS["GET/PATCH  settings/"]
+        EP_NOTIF["GET/PATCH  notifications/"]
+        EP_FDBK["GET/POST/PATCH  feedbacks/"]
     end
 
     subgraph RBAC ["RBAC Permission Classes"]
@@ -280,6 +283,7 @@ graph TD
         NAV_LEAD["Leaderboard"]
         NAV_ARCH["Archive"]
         NAV_SET["CMS / Settings"]
+        NAV_HIST["History & Logs"]
     end
 
     subgraph PAGES ["Dashboard Pages"]
@@ -298,6 +302,7 @@ graph TD
         PG_LEAD["LeaderboardPage.jsx\nStudent rankings view"]
         PG_ARCH["ArchivePage.jsx\nSoft-deleted buildings\nRestore · Hard Delete actions"]
         PG_SET["SettingsPage.jsx\nCMS toggles:\nmaintenance_mode\nenable_gps · enable_qr\nenable_trivia · enable_accreditation\ndefault_quest_reward"]
+        PG_HIST["HistoryPage.jsx\nSystem notifications\nFeedback logs"]
     end
 
     subgraph API_CALLS ["API Surface Used"]
@@ -311,6 +316,7 @@ graph TD
         AC8["/api/buildings/archived/  ·  restore/  ·  hard-delete/"]
         AC9["/api/settings/"]
         AC10["/api/dashboard/"]
+        AC11["/api/notifications/  +  /api/feedbacks/"]
     end
 
     LOGIN_PG --> PROTECTED
@@ -331,6 +337,7 @@ graph TD
     PG_ARCH  --> AC8
     PG_SET   --> AC9
     PG_DASH  --> AC10
+    PG_HIST  --> AC11
 
     AXIOS --> AC1
     AXIOS --> AC2
@@ -342,6 +349,7 @@ graph TD
     AXIOS --> AC8
     AXIOS --> AC9
     AXIOS --> AC10
+    AXIOS --> AC11
 ```
 
 ---
@@ -376,6 +384,8 @@ graph TD
 
     subgraph API_TABLE ["api app table"]
         T_SETTING["SYSTEM_SETTING\nid (always=1) · app_name\nmaintenance_mode · contact_email\nenable_gps · enable_qr\nenable_ar_selfie · enable_trivia\nenable_accreditation\nenable_leaderboard\ndefault_quest_reward"]
+        T_NOTIF["NOTIFICATION\nid · recipient_id · title\nmessage · type\nis_read · created_at"]
+        T_FDBK["FEEDBACK\nid · user_id · type\nmessage · status · created_at"]
     end
 
     subgraph SOFT_DELETE ["Soft Delete Pattern\n(SoftDeleteModel)"]
@@ -411,6 +421,9 @@ graph TD
     T_SCENE -->|"source_scene"| T_HOTSPOT
     T_SCENE -->|"target_scene"| T_HOTSPOT
     T_QUEST -->|"1 to many"| T_PROG
+    
+    T_USER -->|"1 to many"| T_NOTIF
+    T_USER -->|"1 to many"| T_FDBK
 
     T_BLDG --> SD_CASCADE
     T_BLDG --> SD_RESTORE

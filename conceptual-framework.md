@@ -25,7 +25,8 @@ flowchart LR
         P4["AR Overlay Composition"]
         P5["Gamification Engine (Points & Quest Tracking)"]
         P6["Content Management & Soft-Delete Archiving"]
-        P1 --> P2 --> P3 --> P4 --> P5 --> P6
+        P7["Notification & Feedback Processing"]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
     end
 
     subgraph OUTPUT ["Outputs"]
@@ -35,7 +36,8 @@ flowchart LR
         O4["AR Trivia Modals & Branded Selfies"]
         O5["Updated Leaderboard Rankings"]
         O6["Admin Dashboard Metrics & Reports"]
-        O1 --> O2 --> O3 --> O4 --> O5 --> O6
+        O7["History Logs & System Notifications"]
+        O1 --> O2 --> O3 --> O4 --> O5 --> O6 --> O7
     end
 
     INPUT --> PROCESS
@@ -62,7 +64,8 @@ The core logic of ARQuest resides in its processing layer, primarily handled by 
 - **Gamification Logic**: The backend validates quest completions, calculates reward points and daily streaks, issues trivia facts, and updates user progress atomically.
 - **Security & Access**: All incoming requests are routed through JWT validation and strict Role-Based Access Control (RBAC) to ensure users only access what their role (Student, Admin, Professional) permits.
 - **Content Management**: Advanced features like Soft-Delete Archiving, multi-building department grouping, and draft workflows ensure data integrity without permanent data loss.
+- **Notification Processing**: Real-time evaluation of events to generate system, professional, building, and feedback notifications that provide admins with actionable history logs.
 
 ### Outputs
 
-The processed data results in tangible outputs for the user. Successful authentication yields JWT tokens and session data (including customizable avatars). Geofence validation results in building unlocks or proximity warnings (e.g. A-to-B navigation routing). 3D rendering processes output interactive, explorable models and immersive AR overlays. Gamification processes output increased exploration points, daily streak bonuses, trivia displays, and updated leaderboard standings. For administrators, the system outputs structured dashboard metrics and configuration states.
+The processed data results in tangible outputs for the user. Successful authentication yields JWT tokens and session data (including customizable avatars). Geofence validation results in building unlocks or proximity warnings (e.g. A-to-B navigation routing). 3D rendering processes output interactive, explorable models and immersive AR overlays. Gamification processes output increased exploration points, daily streak bonuses, trivia displays, and updated leaderboard standings. For administrators, the system outputs structured dashboard metrics, configuration states, and history logs with categorized notifications.
