@@ -161,6 +161,11 @@ def system_settings(request):
         serializer = SystemSettingSerializer(settings, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            Notification.objects.create(
+                title="System Settings Updated",
+                message=f"System settings were modified by {request.user.email}.",
+                type="SYSTEM"
+            )
             return success_response(serializer.data)
         return error_response('validation_error', 'Invalid data', details=serializer.errors, status_code=400)
 
@@ -186,7 +191,7 @@ from .models import Feedback
 from .serializers import FeedbackSerializer
 
 class FeedbackPagination(PageNumberPagination):
-    page_size = 10
+    page_size = 5
     page_size_query_param = 'page_size'
     max_page_size = 100
 
@@ -215,3 +220,55 @@ class FeedbackViewSet(viewsets.ModelViewSet):
         
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+        Notification.objects.create(
+            title="New Feedback Submitted",
+            message=f"A new feedback has been submitted by {self.request.user.email}.",
+            type="FEEDBACK"
+        )
+
+from .models import Notification
+from .serializers import NotificationSerializer
+from rest_framework.decorators import action
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    pagination_class = FeedbackPagination
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_anonymous:
+            return Notification.objects.none()
+            
+        # Admin gets broadcast notifications (recipient=None) and personal notifications
+        if user.is_admin_role:
+            from django.db.models import Q
+            qs = Notification.objects.filter(Q(recipient=user) | Q(recipient__isnull=True))
+        else:
+            qs = Notification.objects.filter(recipient=user)
+            
+        read_status = self.request.query_params.get('read_status')
+        if read_status == 'read':
+            qs = qs.filter(is_read=True)
+        elif read_status == 'unread':
+            qs = qs.filter(is_read=False)
+            
+        sort_by = self.request.query_params.get('sort', 'desc')
+        if sort_by == 'asc':
+            return qs.order_by('created_at')
+        return qs.order_by('-created_at')
+        
+    def get_permissions(self):
+        return [IsAuthenticated()]
+        
+    @action(detail=True, methods=['post'])
+    def read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return success_response({'status': 'read'})
+        
+    @action(detail=False, methods=['post'], url_path='read-all')
+    def read_all(self, request):
+        qs = self.get_queryset()
+        qs.update(is_read=True)
+        return success_response({'status': 'all_read'})

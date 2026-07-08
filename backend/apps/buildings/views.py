@@ -7,6 +7,7 @@ from apps.authentication.permissions import IsAdminRole
 from apps.api.responses import success_response, error_response
 from apps.geofencing.serializers import LocationValidationSerializer
 from apps.geofencing.utils import calculate_distance
+from apps.api.models import Notification
 from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Department
 from .serializers import (
     BuildingSerializer,
@@ -91,6 +92,11 @@ def building_list_create(request):
         serializer = BuildingWriteSerializer(data=request.data)
         if serializer.is_valid():
             building = serializer.save()
+            Notification.objects.create(
+                title="Building Created",
+                message=f"New building '{building.name}' was created by {request.user.email}.",
+                type="BUILDING"
+            )
             return success_response(BuildingSerializer(building, context={'request': request}).data, status_code=status.HTTP_201_CREATED)
         return error_response('validation_error', 'Invalid building data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
@@ -116,6 +122,11 @@ def building_detail(request, id):
         serializer = BuildingWriteSerializer(building, data=request.data, partial=True)
         if serializer.is_valid():
             building = serializer.save()
+            Notification.objects.create(
+                title="Building Updated",
+                message=f"Building '{building.name}' was updated by {request.user.email}.",
+                type="BUILDING"
+            )
             return success_response(BuildingSerializer(building, context={'request': request}).data)
         return error_response('validation_error', 'Invalid building data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
     
@@ -123,7 +134,13 @@ def building_detail(request, id):
         if not request.user.is_admin_role:
             return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
+        building_name = building.name
         building.delete()
+        Notification.objects.create(
+            title="Building Deleted",
+            message=f"Building '{building_name}' was deleted by {request.user.email}.",
+            type="BUILDING"
+        )
         return success_response({'message': 'Building deleted successfully'}, status_code=status.HTTP_204_NO_CONTENT)
 
 

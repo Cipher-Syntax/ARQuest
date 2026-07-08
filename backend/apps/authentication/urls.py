@@ -11,6 +11,7 @@ urlpatterns = [
     path('token/refresh/', views.token_refresh, name='token_refresh'),
     path('users/', views.user_list, name='user_list'),
     path('users/professional/', views.create_professional, name='create_professional'),
+    path('users/professional/<int:pk>/', views.delete_professional, name='delete_professional'),
     path('leaderboard/', views.leaderboard, name='leaderboard'),
     path('checkin/', views.daily_checkin, name='daily_checkin'),
     path('push-token/', views.register_push_token, name='register_push_token'),

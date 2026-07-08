@@ -19,6 +19,7 @@ import {
     Camera,
     Layers,
     ArchiveRestore,
+    Activity,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -56,6 +57,7 @@ const NAV_GROUPS = [
         items: [
             { to: "/professionals", icon: Briefcase, label: "Professionals" },
             { to: "/feedback", icon: HelpCircle, label: "Feedback & Issues" },
+            { to: "/history", icon: Activity, label: "History & Logs" },
             { to: "/archives", icon: ArchiveRestore, label: "Archives" },
             { to: "/settings", icon: Settings, label: "Settings" },
         ],

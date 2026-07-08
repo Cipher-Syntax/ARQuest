@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.response import Response
-from apps.api.models import SystemSetting
+from apps.api.models import SystemSetting, Notification
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -267,10 +267,33 @@ def create_professional(request):
         )
     
     user = serializer.save()
+    Notification.objects.create(
+        title="New Professional Account",
+        message=f"Professional account for {user.first_name} {user.last_name} ({user.email}) has been created.",
+        type="PROFESSIONAL"
+    )
     return success_response({
         'message': 'Professional account created successfully.',
         'user': UserSerializer(user).data
     }, status_code=status.HTTP_201_CREATED)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_professional(request, pk):
+    if not request.user.is_admin_role:
+        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        user = User.objects.get(pk=pk, role='professional')
+        user.delete()
+        Notification.objects.create(
+            title="Professional Account Deleted",
+            message=f"Professional account for {user.email} has been deleted.",
+            type="PROFESSIONAL"
+        )
+        return success_response({'message': 'Professional account deleted successfully.'})
+    except User.DoesNotExist:
+        return error_response('not_found', 'Professional account not found', status_code=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

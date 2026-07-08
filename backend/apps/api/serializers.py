@@ -16,3 +16,11 @@ class FeedbackSerializer(serializers.ModelSerializer):
         model = Feedback
         fields = ['id', 'user', 'username', 'role', 'type', 'message', 'status', 'created_at']
         read_only_fields = ['user', 'created_at']
+
+from .models import Notification
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'recipient', 'title', 'message', 'type', 'is_read', 'created_at']
+        read_only_fields = ['id', 'created_at']

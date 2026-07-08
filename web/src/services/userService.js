@@ -13,4 +13,8 @@ export const userService = {
         const response = await api.post("/api/auth/users/professional/", data);
         return response.data;
     },
+    deleteProfessional: async (id) => {
+        const response = await api.delete(`/api/auth/users/professional/${id}/`);
+        return response.data;
+    },
 };

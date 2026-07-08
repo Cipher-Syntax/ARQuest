@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, X } from "lucide-react";
-import { Card, Badge, Button, Pagination } from "../components/ui";
+import { Search, Plus, X, Trash2 } from "lucide-react";
+import { Card, Badge, Button, Pagination, ConfirmDeleteModal } from "../components/ui";
 import { userService } from "../services/userService";
 import { getAvatarUri } from "../utils/avatarUtils";
 import {
@@ -198,6 +198,8 @@ export default function ProfessionalsPage() {
     const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
@@ -214,6 +216,24 @@ export default function ProfessionalsPage() {
     useEffect(() => {
         loadUsers();
     }, []);
+
+    const handleDeleteClick = (id) => {
+        setUserToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (userToDelete) {
+            try {
+                await userService.deleteProfessional(userToDelete);
+                setIsDeleteModalOpen(false);
+                setUserToDelete(null);
+                await loadUsers();
+            } catch (err) {
+                console.error("Failed to delete user", err);
+            }
+        }
+    };
 
     const filteredUsers = users.filter((user) => {
         return (
@@ -296,13 +316,16 @@ export default function ProfessionalsPage() {
                                 <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">
                                     Status
                                 </th>
+                                <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-brand-border">
                             {filteredUsers.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan="4"
+                                        colSpan="5"
                                         className="px-6 py-8 text-center text-gray-500 font-medium"
                                     >
                                         No professional accounts found.
@@ -370,6 +393,15 @@ export default function ProfessionalsPage() {
                                                 </span>
                                             </div>
                                         </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button
+                                                onClick={() => handleDeleteClick(user.id)}
+                                                className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                                                title="Delete Account"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -389,6 +421,14 @@ export default function ProfessionalsPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={loadUsers}
+            />
+            
+            <ConfirmDeleteModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Professional Account"
+                message="Are you sure you want to delete this professional account? This action cannot be undone."
             />
         </div>
     );

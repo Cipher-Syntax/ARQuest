@@ -50,3 +50,27 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()} - {self.user.username if self.user else 'Anonymous'}"
+
+import uuid
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('SYSTEM', 'System Alert'),
+        ('PROFESSIONAL', 'Professional Management'),
+        ('BUILDING', 'Building Management'),
+        ('FEEDBACK', 'User Feedback'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES, default='SYSTEM')
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} - {'Read' if self.is_read else 'Unread'}"

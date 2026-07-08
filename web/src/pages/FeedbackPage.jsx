@@ -31,7 +31,7 @@ export default function FeedbackPage() {
             );
             if (data.results) {
                 setFeedbacks(data.results);
-                setTotalPages(Math.ceil(data.count / 10));
+                setTotalPages(Math.ceil(data.count / 5));
             } else {
                 setFeedbacks(data);
             }
