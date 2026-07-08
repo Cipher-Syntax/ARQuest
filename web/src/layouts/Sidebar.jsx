@@ -132,7 +132,7 @@ function SidebarContent({
               ${isCollapsed ? "justify-center px-2 py-3" : "px-4 py-3 gap-3"}
               ${
                   isActive
-                      ? "bg-white/20 text-white shadow-inner shadow-black/10"
+                      ? "text-white"
                       : "text-white/70 hover:bg-white/10 hover:text-white"
               }`
                                 }
