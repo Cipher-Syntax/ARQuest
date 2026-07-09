@@ -22,6 +22,7 @@ import {
     Activity,
 } from "lucide-react";
 import { useState } from "react";
+import { Modal, Button } from "../components/ui";
 
 const NAV_GROUPS = [
     {
@@ -160,13 +161,13 @@ function SidebarContent({
             </nav>
 
             <div
-                className={`p-4 border-t border-white/50 transition-all duration-300 ${isCollapsed ? "flex justify-center" : ""}`}
+                className={`p-4 border-t border-white/20 transition-all duration-300 ${isCollapsed ? "flex justify-center" : ""}`}
             >
                 <button
                     onClick={onLogout}
                     title={isCollapsed ? "Logout" : ""}
                     className={`flex items-center text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white rounded-md transition-all duration-200 group
-            ${isCollapsed ? "p-3" : "w-full px-4 py-3 gap-3"}`}
+            ${isCollapsed ? "p-3 justify-center" : "w-full px-4 py-3 gap-3"}`}
                 >
                     <LogOut size={18} className="shrink-0 transition-colors" />
                     {!isCollapsed && <span>Logout</span>}
@@ -181,8 +182,10 @@ export default function Sidebar() {
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-    const handleLogout = () => {
+    const handleConfirmLogout = () => {
+        setIsLogoutModalOpen(false);
         logout();
         navigate("/login");
     };
@@ -211,7 +214,7 @@ export default function Sidebar() {
                             <X size={20} />
                         </button>
                         <SidebarContent
-                            onLogout={handleLogout}
+                            onLogout={() => setIsLogoutModalOpen(true)}
                             onMobileClose={() => setMobileOpen(false)}
                             isCollapsed={false}
                             setIsCollapsed={() => {}}
@@ -225,11 +228,36 @@ export default function Sidebar() {
                 className={`hidden lg:flex flex-col bg-brand h-screen sticky top-0 flex-shrink-0 border-r-4 border-r-brand transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"}`}
             >
                 <SidebarContent
-                    onLogout={handleLogout}
+                    onLogout={() => setIsLogoutModalOpen(true)}
                     isCollapsed={isCollapsed}
                     setIsCollapsed={setIsCollapsed}
                 />
             </aside>
+
+            <Modal
+                isOpen={isLogoutModalOpen}
+                onClose={() => setIsLogoutModalOpen(false)}
+                title="Log Out"
+                footer={
+                    <>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsLogoutModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button variant="danger" onClick={handleConfirmLogout}>
+                            Log Out
+                        </Button>
+                    </>
+                }
+            >
+                <div className="py-4">
+                    <p className="text-gray-600">
+                        Are you sure you want to log out of the dashboard?
+                    </p>
+                </div>
+            </Modal>
         </>
     );
 }

@@ -76,7 +76,7 @@ class BuildingSerializer(serializers.ModelSerializer):
         model = Building
         fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active', 'geofences',
                   'model_url', 'model_version', 'model_file_size', 'model_active', 'image_url', 'hotspots', 'qr_code_secret',
-                  'departments', 'primary_department', 'created_at', 'updated_at']
+                  'departments', 'primary_department', 'created_at', 'updated_at', 'deleted_at']
     
     def get_model_url(self, obj):
         if obj.model_file:
