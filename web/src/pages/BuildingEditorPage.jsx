@@ -48,6 +48,7 @@ const BuildingEditorPage = () => {
     const [errors, setErrors] = useState({});
     const [geofenceErrors, setGeofenceErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
     const [deptSearch, setDeptSearch] = useState("");
     const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
@@ -337,8 +338,17 @@ const BuildingEditorPage = () => {
                 setTimeout(() => setSuccessMessage(""), 3000);
             }
         } catch (error) {
-            const apiErrors = error.response?.data?.errors || {};
+            const apiErrors = error.response?.data?.error?.details || {};
             setErrors(apiErrors);
+            
+            const genericMessage = error.response?.data?.error?.message;
+            if (genericMessage) {
+                setErrorMessage(genericMessage);
+                setTimeout(() => setErrorMessage(""), 5000);
+            } else if (Object.keys(apiErrors).length === 0) {
+                setErrorMessage("An unexpected server error occurred. The file might be too large.");
+                setTimeout(() => setErrorMessage(""), 5000);
+            }
         } finally {
             setSaving(false);
         }
@@ -348,6 +358,29 @@ const BuildingEditorPage = () => {
 
     return (
         <div>
+            {errorMessage && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: "80px",
+                        right: "24px",
+                        backgroundColor: "#ef4444",
+                        color: "#ffffff",
+                        padding: "16px 24px",
+                        borderRadius: theme.radius.md,
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                        zIndex: 9999,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: theme.spacing.sm,
+                        fontSize: "15px",
+                        fontWeight: "500",
+                        animation: "slideIn 0.3s ease-out",
+                    }}
+                >
+                    {errorMessage}
+                </div>
+            )}
             {successMessage && (
                 <div
                     style={{

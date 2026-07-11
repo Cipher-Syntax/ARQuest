@@ -8,6 +8,7 @@ from apps.api.responses import success_response, error_response
 from apps.geofencing.serializers import LocationValidationSerializer
 from apps.geofencing.utils import calculate_distance
 from apps.api.models import Notification
+from cloudinary.exceptions import BadRequest
 from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Department
 from .serializers import (
     BuildingSerializer,
@@ -91,7 +92,11 @@ def building_list_create(request):
         
         serializer = BuildingWriteSerializer(data=request.data)
         if serializer.is_valid():
-            building = serializer.save()
+            try:
+                building = serializer.save()
+            except BadRequest as e:
+                return error_response('upload_failed', str(e), status_code=status.HTTP_400_BAD_REQUEST)
+                
             Notification.objects.create(
                 title="Building Created",
                 message=f"New building '{building.name}' was created by {request.user.email}.",
@@ -121,7 +126,11 @@ def building_detail(request, id):
         
         serializer = BuildingWriteSerializer(building, data=request.data, partial=True)
         if serializer.is_valid():
-            building = serializer.save()
+            try:
+                building = serializer.save()
+            except BadRequest as e:
+                return error_response('upload_failed', str(e), status_code=status.HTTP_400_BAD_REQUEST)
+                
             Notification.objects.create(
                 title="Building Updated",
                 message=f"Building '{building.name}' was updated by {request.user.email}.",

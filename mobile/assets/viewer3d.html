@@ -42,6 +42,7 @@
         <script type="module">
             import * as THREE from "three";
             import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+            import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
             import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
             let scene, camera, renderer, controls, model;
@@ -90,6 +91,12 @@
             function loadModel(url) {
                 console.log("Starting to load model from:", url);
                 const loader = new GLTFLoader();
+                
+                // Set up Draco Decoder
+                const dracoLoader = new DRACOLoader();
+                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                loader.setDRACOLoader(dracoLoader);
+                
                 loader.load(
                     url,
                     (gltf) => {

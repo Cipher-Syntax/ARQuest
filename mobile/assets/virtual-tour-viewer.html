@@ -221,6 +221,7 @@
         <script type="module">
             import * as THREE from "three";
             import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+            import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
             import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
             let scene, camera, renderer, controls, model;
@@ -238,6 +239,13 @@
             let hotspots = [];
             const tapRaycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
+
+            // Teleportation state
+            let teleportTarget = null;
+            let teleportProgress = 0;
+            let teleportStartPos = new THREE.Vector3();
+            const TELEPORT_SPEED = 0.04;
+            let teleportMarker = null;
 
             // ── Gyroscope state (Native Bridge — expo-sensors → postMessage) ──
             // Android WebView does NOT fire deviceorientation events.
@@ -374,7 +382,16 @@
             };
 
             // Allow tapping anywhere on the canvas / camera-zone to interact with hotspots/doors
+            let pointerDownPos = new THREE.Vector2();
+            document.addEventListener("pointerdown", (e) => {
+                pointerDownPos.set(e.clientX, e.clientY);
+            });
+            
             document.addEventListener("pointerup", (e) => {
+                // If dragged more than 10 pixels, it's a drag (looking around), not a tap.
+                const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+                if (dist > 10) return;
+
                 if (e.target.id === "canvas" || e.target.id === "camera-zone") {
                     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
                     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -403,6 +420,38 @@
                             document.getElementById(
                                 "info-panel",
                             ).style.display = "block";
+                        }
+                    } else if (model) {
+                        // Handle Teleportation on Model Floor
+                        const modelIntersects = tapRaycaster.intersectObject(model, true);
+                        if (modelIntersects.length > 0) {
+                            const hit = modelIntersects[0];
+                            // Check if the surface is mostly flat/horizontal (it's a floor)
+                            const normal = hit.face.normal.clone();
+                            if (hit.object.matrixWorld) {
+                                normal.transformDirection(hit.object.matrixWorld);
+                            }
+                            // y > 0.7 means it's pointing up (at least ~45 degrees)
+                            if (normal.y > 0.7) {
+                                // Start teleport
+                                teleportStartPos.copy(camera.position);
+                                // The new target is exactly the clicked point, plus eye height
+                                teleportTarget = new THREE.Vector3(hit.point.x, hit.point.y + 1.6, hit.point.z);
+                                teleportProgress = 0;
+                                
+                                // Show a marker briefly
+                                if (!teleportMarker) {
+                                    const markerGeom = new THREE.RingGeometry(0.2, 0.3, 32);
+                                    const markerMat = new THREE.MeshBasicMaterial({ color: 0x00E5FF, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+                                    teleportMarker = new THREE.Mesh(markerGeom, markerMat);
+                                    teleportMarker.rotation.x = -Math.PI / 2;
+                                    scene.add(teleportMarker);
+                                }
+                                teleportMarker.position.copy(hit.point);
+                                teleportMarker.position.y += 0.05; // Slightly above ground
+                                teleportMarker.material.opacity = 0.8;
+                                teleportMarker.visible = true;
+                            }
                         }
                     }
                 }
@@ -494,6 +543,11 @@
             function loadModel(url) {
                 console.log("Starting to load interior model from:", url);
                 const loader = new GLTFLoader();
+                
+                const dracoLoader = new DRACOLoader();
+                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                loader.setDRACOLoader(dracoLoader);
+                
                 loader.load(
                     url,
                     (gltf) => {
@@ -637,19 +691,52 @@
                         h.position.y += Math.sin(time + h.position.x) * 0.002;
                     });
 
-                    // Downward Raycast for Floor Height (Stairs / Gravity)
-                    const origin = camera.position.clone();
-                    origin.y += 1.0; // Cast from slightly above eye level to detect stairs
-                    raycaster.set(origin, downVector);
-                    const floorHits = raycaster.intersectObject(model, true);
+                    // Handle Teleport Animation OR Gravity
+                    if (teleportTarget) {
+                        teleportProgress += TELEPORT_SPEED;
+                        if (teleportProgress >= 1) {
+                            camera.position.copy(teleportTarget);
+                            teleportTarget = null;
+                            if (teleportMarker) teleportMarker.visible = false;
+                        } else {
+                            // Smooth easing (ease-out cubic)
+                            const t = teleportProgress;
+                            const ease = 1 - Math.pow(1 - t, 3);
+                            
+                            // To prevent weird camera jitter while teleporting, we interpolate the position
+                            // directly rather than applying gravity or movement.
+                            camera.position.lerpVectors(teleportStartPos, teleportTarget, ease);
+                            
+                            // Fade out the marker
+                            if (teleportMarker) {
+                                teleportMarker.material.opacity = 0.8 * (1 - ease);
+                            }
+                        }
+                    } else {
+                        // Downward Raycast for Floor Height (Stairs / Gravity)
+                        const origin = camera.position.clone();
+                        origin.y += 1.0; // Cast from slightly above eye level to detect stairs
+                        raycaster.set(origin, downVector);
+                        const floorHits = raycaster.intersectObject(model, true);
 
-                    if (floorHits.length > 0) {
-                        const floorY = floorHits[0].point.y;
-                        if (
-                            Math.abs(camera.position.y - (floorY + 1.6)) < 2.0
-                        ) {
-                            camera.position.y +=
-                                (floorY + 1.6 - camera.position.y) * 0.1;
+                        if (floorHits.length > 0 && !ghostMode) {
+                            const floorY = floorHits[0].point.y;
+                            const targetY = floorY + 1.6;
+                            const diff = targetY - camera.position.y;
+                            
+                            if (diff > 0 && diff < 2.5) {
+                                // Going up stairs (snap up smoothly)
+                                camera.position.y += diff * 0.15;
+                            } else if (diff < 0) {
+                                // Going down stairs or falling
+                                if (diff > -2.5) {
+                                    // Small drop (like stairs), snap down smoothly
+                                    camera.position.y += diff * 0.15;
+                                } else {
+                                    // Large drop (falling off ledge), fall at constant gravity speed
+                                    camera.position.y -= 0.15;
+                                }
+                            }
                         }
                     }
 
