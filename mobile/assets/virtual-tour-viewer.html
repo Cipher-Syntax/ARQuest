@@ -83,19 +83,32 @@
             }
             #info-panel {
                 position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
                 background: rgba(0, 0, 0, 0.85);
                 border: 2px solid #00e5ff;
                 color: white;
-                padding: 20px;
+                padding: 15px;
                 border-radius: 12px;
-                width: 300px;
+                width: 220px;
                 text-align: center;
                 font-family: system-ui;
                 z-index: 200;
                 display: none;
+                pointer-events: auto;
+                transform: translate(-50%, -100%);
+                margin-top: -15px; /* Spacing above head */
+                box-shadow: 0 10px 30px rgba(0, 229, 255, 0.2);
+            }
+            #info-panel::after {
+                content: '';
+                position: absolute;
+                bottom: -10px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 10px 10px 0;
+                border-style: solid;
+                border-color: #00e5ff transparent transparent transparent;
+                display: block;
+                width: 0;
             }
             #info-panel h2 {
                 margin-top: 0;
@@ -229,7 +242,7 @@
             let moveRight = 0;
             let joystickManager;
             let ghostMode = false;
-            const MOVE_SPEED = 0.05;
+            const MOVE_SPEED = 0.10;
             const COLLISION_DISTANCE = 0.3;
             const raycaster = new THREE.Raycaster();
             const centerRaycaster = new THREE.Raycaster();
@@ -386,7 +399,8 @@
             document.addEventListener("pointerdown", (e) => {
                 pointerDownPos.set(e.clientX, e.clientY);
             });
-            
+            let activeHotspot = null;
+
             document.addEventListener("pointerup", (e) => {
                 // If dragged more than 10 pixels, it's a drag (looking around), not a tap.
                 const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
@@ -404,22 +418,11 @@
 
                     if (intersects.length > 0) {
                         let hit = intersects[0].object;
-                        // If hit the core sphere, get the parent marker
-                        if (
-                            !hit.userData.title &&
-                            hit.parent &&
-                            hit.parent.userData.title
-                        ) {
-                            hit = hit.parent;
-                        }
                         if (hit.userData.title) {
-                            document.getElementById("info-title").textContent =
-                                hit.userData.title;
-                            document.getElementById("info-desc").textContent =
-                                hit.userData.desc;
-                            document.getElementById(
-                                "info-panel",
-                            ).style.display = "block";
+                            activeHotspot = hit; 
+                            document.getElementById("info-title").textContent = hit.userData.title;
+                            document.getElementById("info-desc").textContent = hit.userData.desc;
+                            document.getElementById("info-panel").style.display = "block";
                         }
                     } else if (model) {
                         // Handle Teleportation on Model Floor
@@ -573,42 +576,66 @@
                         controls.target.set(startX, startY, startZ - 0.01);
                         controls.update();
 
-                        // ── Create Interactive Hotspots ──────────────────────
+                        // ── Create Interactive Hotspots (NPC) ──────────────────────
                         const createHotspot = (x, y, z, title, desc, color) => {
-                            const geometry = new THREE.SphereGeometry(
-                                0.2,
-                                16,
-                                16,
-                            );
-                            const material = new THREE.MeshBasicMaterial({
-                                color: color,
-                                wireframe: true,
-                                depthTest: false,
-                                transparent: true,
-                                opacity: 0.8,
-                            });
-                            const sphere = new THREE.Mesh(geometry, material);
-                            sphere.position.set(x, y, z);
-                            sphere.renderOrder = 999;
-                            sphere.userData = { title, desc };
+                            const npcGroup = new THREE.Group();
+                            npcGroup.position.set(x, y, z);
 
-                            const coreGeom = new THREE.SphereGeometry(
-                                0.1,
-                                16,
-                                16,
-                            );
-                            const coreMat = new THREE.MeshBasicMaterial({
-                                color: 0xffffff,
+                            const material = new THREE.MeshBasicMaterial({
+                                color: 0xffffff, // Solid white
                                 depthTest: false,
                                 transparent: true,
                                 opacity: 0.9,
                             });
-                            const core = new THREE.Mesh(coreGeom, coreMat);
-                            core.renderOrder = 1000;
-                            sphere.add(core);
 
-                            scene.add(sphere);
-                            hotspots.push(sphere);
+                            // Torso
+                            const torsoGeom = new THREE.BoxGeometry(0.4, 0.6, 0.2);
+                            const torso = new THREE.Mesh(torsoGeom, material);
+                            torso.position.y = 1.0;
+                            torso.renderOrder = 999;
+                            npcGroup.add(torso);
+
+                            // Head
+                            const headGeom = new THREE.SphereGeometry(0.18, 16, 16);
+                            const head = new THREE.Mesh(headGeom, material);
+                            head.position.y = 1.45;
+                            head.renderOrder = 999;
+                            npcGroup.add(head);
+
+                            // Arms
+                            const armGeom = new THREE.BoxGeometry(0.12, 0.55, 0.12);
+                            const leftArm = new THREE.Mesh(armGeom, material);
+                            leftArm.position.set(-0.28, 1.0, 0);
+                            leftArm.renderOrder = 999;
+                            npcGroup.add(leftArm);
+                            
+                            const rightArm = new THREE.Mesh(armGeom, material);
+                            rightArm.position.set(0.28, 1.0, 0);
+                            rightArm.renderOrder = 999;
+                            npcGroup.add(rightArm);
+
+                            // Legs
+                            const legGeom = new THREE.BoxGeometry(0.15, 0.7, 0.15);
+                            const leftLeg = new THREE.Mesh(legGeom, material);
+                            leftLeg.position.set(-0.1, 0.35, 0);
+                            leftLeg.renderOrder = 999;
+                            npcGroup.add(leftLeg);
+
+                            const rightLeg = new THREE.Mesh(legGeom, material);
+                            rightLeg.position.set(0.1, 0.35, 0);
+                            rightLeg.renderOrder = 999;
+                            npcGroup.add(rightLeg);
+
+                            // Invisible Hitbox
+                            const hitBoxGeom = new THREE.CylinderGeometry(0.5, 0.5, 1.8, 8);
+                            const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
+                            const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
+                            hitBox.position.y = 0.9;
+                            hitBox.userData = { title, desc, parentGroup: npcGroup };
+
+                            npcGroup.add(hitBox);
+                            scene.add(npcGroup);
+                            hotspots.push(hitBox);
                         };
 
                         // Load Dynamic Hotspots from the Database
@@ -667,9 +694,60 @@
             // ── Animation Loop ─────────────────────────────────────────────
             const velocity = new THREE.Vector3();
             const direction = new THREE.Vector3();
+            const tempVector = new THREE.Vector3();
 
             function animate() {
                 requestAnimationFrame(animate);
+
+                // Auto-detect nearby NPCs (Proximity check like a video game)
+                let nearestNpc = null;
+                let minDist = 3.5; // Trigger distance: 3.5 meters
+
+                hotspots.forEach((h) => {
+                    h.userData.parentGroup.getWorldPosition(tempVector);
+                    const dist = tempVector.distanceTo(camera.position);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearestNpc = h;
+                    }
+                });
+
+                // If we found an NPC nearby, auto-open their bubble
+                if (nearestNpc) {
+                    if (activeHotspot !== nearestNpc) {
+                        activeHotspot = nearestNpc;
+                        document.getElementById("info-title").textContent = activeHotspot.userData.title;
+                        document.getElementById("info-desc").textContent = activeHotspot.userData.desc;
+                        document.getElementById("info-panel").style.display = "block";
+                    }
+                } else if (activeHotspot) {
+                    // Walked away from the NPC, auto-close the bubble
+                    activeHotspot = null;
+                    document.getElementById("info-panel").style.display = "none";
+                }
+
+                // Update speech bubble position dynamically to float above NPC
+                if (activeHotspot && document.getElementById("info-panel").style.display === "block") {
+                    // Get world position of the NPC group
+                    activeHotspot.userData.parentGroup.getWorldPosition(tempVector);
+                    tempVector.y += 1.7; // Position slightly above the head
+
+                    // Project 3D position to 2D screen coordinates
+                    tempVector.project(camera);
+
+                    // Check if NPC is behind the camera
+                    if (tempVector.z > 1) {
+                        document.getElementById("info-panel").style.opacity = "0";
+                    } else {
+                        document.getElementById("info-panel").style.opacity = "1";
+                        const x = (tempVector.x *  0.5 + 0.5) * window.innerWidth;
+                        const y = (tempVector.y * -0.5 + 0.5) * window.innerHeight;
+                        
+                        const panel = document.getElementById("info-panel");
+                        panel.style.left = `${x}px`;
+                        panel.style.top = `${y}px`;
+                    }
+                }
 
                 if (model) {
                     // Apply gyroscope camera rotation FIRST (before movement processing)
@@ -683,12 +761,9 @@
                             ? controls.target.clone().sub(camera.position)
                             : null;
 
-                    // Animate hotspot markers
-                    const time = Date.now() * 0.003;
+                    // Animate NPC hotspots
                     hotspots.forEach((h) => {
-                        h.rotation.y += 0.02;
-                        h.rotation.x += 0.01;
-                        h.position.y += Math.sin(time + h.position.x) * 0.002;
+                        h.userData.parentGroup.rotation.y += 0.02;
                     });
 
                     // Handle Teleport Animation OR Gravity
@@ -719,8 +794,10 @@
                         raycaster.set(origin, downVector);
                         const floorHits = raycaster.intersectObject(model, true);
 
-                        if (floorHits.length > 0 && !ghostMode) {
-                            const floorY = floorHits[0].point.y;
+                        const validHit = floorHits.find(hit => hit.point.y < camera.position.y + 0.5);
+
+                        if (validHit && !ghostMode) {
+                            const floorY = validHit.point.y;
                             const targetY = floorY + 1.6;
                             const diff = targetY - camera.position.y;
                             

@@ -173,6 +173,18 @@
             const mouse = new THREE.Vector2();
             let pendingCoordinate = null;
             let editingHotspotId = null;
+            
+            // Teleportation state
+            let teleportTargetControls = null;
+            let teleportTargetCamera = null;
+            let teleportProgress = 0;
+            let teleportStartControls = new THREE.Vector3();
+            let teleportStartCamera = new THREE.Vector3();
+            const TELEPORT_SPEED = 0.04;
+            let pointerDownPos = new THREE.Vector2();
+            
+            // Keyboard state for FPS movement
+            const keys = { w: false, a: false, s: false, d: false };
 
             // Initialize from React iframe message
             window.addEventListener("message", (event) => {
@@ -215,9 +227,46 @@
 
                 controls = new OrbitControls(camera, renderer.domElement);
                 controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.rotateSpeed = 0.6;
+                controls.zoomSpeed = 0.8;
+                controls.panSpeed = 0.8;
 
                 document.addEventListener("dblclick", onDoubleClick);
                 document.addEventListener("pointerdown", onPointerDown);
+                document.addEventListener("pointerup", onPointerUp);
+                
+                // Escape hatch to easily zoom out from first-person mode
+                document.addEventListener("wheel", (e) => {
+                    const dist = camera.position.distanceTo(controls.target);
+                    if (dist < 0.5 && e.deltaY > 0) {
+                        const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+                        camera.position.add(dir.multiplyScalar(2.0));
+                        controls.update();
+                    }
+                });
+
+                // Keyboard Controls (WASD)
+                document.addEventListener("keydown", (event) => {
+                    // Ignore keydown if they are typing in an input field
+                    if (document.activeElement && document.activeElement.tagName === "INPUT") return;
+                    
+                    switch (event.key.toLowerCase()) {
+                        case "w": case "arrowup": keys.w = true; break;
+                        case "a": case "arrowleft": keys.a = true; break;
+                        case "s": case "arrowdown": keys.s = true; break;
+                        case "d": case "arrowright": keys.d = true; break;
+                    }
+                });
+
+                document.addEventListener("keyup", (event) => {
+                    switch (event.key.toLowerCase()) {
+                        case "w": case "arrowup": keys.w = false; break;
+                        case "a": case "arrowleft": keys.a = false; break;
+                        case "s": case "arrowdown": keys.s = false; break;
+                        case "d": case "arrowright": keys.d = false; break;
+                    }
+                });
 
                 loadModel(modelUrl);
                 animate();
@@ -291,6 +340,7 @@
 
             function onPointerDown(event) {
                 if (event.target.id !== "canvas") return;
+                pointerDownPos.set(event.clientX, event.clientY);
 
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -323,6 +373,60 @@
                     document.getElementById("hotspot-form").style.display =
                         "block";
                 }
+            }
+
+            let clickTimeout = null;
+
+            function onPointerUp(event) {
+                if (event.target.id !== "canvas") return;
+                const dist = Math.hypot(event.clientX - pointerDownPos.x, event.clientY - pointerDownPos.y);
+                if (dist > 10) return; // Ignore drag
+                
+                if (document.getElementById("hotspot-form").style.display === "block") return;
+
+                if (clickTimeout !== null) {
+                    // This is the second click of a double-click! Cancel the teleport.
+                    clearTimeout(clickTimeout);
+                    clickTimeout = null;
+                    return;
+                }
+
+                // Wait 250ms to see if the user double-clicks before teleporting
+                clickTimeout = setTimeout(() => {
+                    clickTimeout = null;
+                    
+                    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                    raycaster.setFromCamera(mouse, camera);
+                    const hsIntersects = raycaster.intersectObjects(hotspotMeshes, true);
+                    if (hsIntersects.length > 0) return;
+
+                    if (model) {
+                        const intersects = raycaster.intersectObject(model, true);
+                        if (intersects.length > 0) {
+                            const hit = intersects[0];
+                            
+                            teleportStartControls.copy(controls.target);
+                            teleportStartCamera.copy(camera.position);
+                            
+                            // Move camera exactly to where they clicked, at eye level (1.5m)
+                            teleportTargetCamera = new THREE.Vector3(hit.point.x, hit.point.y + 1.5, hit.point.z);
+                            
+                            // Find the direction the camera is currently looking, flattened horizontally
+                            const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                            dir.y = 0;
+                            if (dir.lengthSq() < 0.01) dir.set(0, 0, -1);
+                            dir.normalize();
+                            
+                            // Set the rotation pivot point extremely close (5 centimeters) in front of the camera
+                            // This makes dragging rotate the camera in place like a head, rather than swinging wide
+                            teleportTargetControls = teleportTargetCamera.clone().add(dir.multiplyScalar(0.05));
+                            
+                            teleportProgress = 0;
+                        }
+                    }
+                }, 250);
             }
 
             window.cancelHotspot = () => {
@@ -376,23 +480,66 @@
                     (m) => m.userData.hotspot.id === editingHotspotId,
                 );
                 if (meshIndex > -1) {
-                    scene.remove(hotspotMeshes[meshIndex]);
+                    const mesh = hotspotMeshes[meshIndex];
+                    scene.remove(mesh.userData.parentGroup);
                     hotspotMeshes.splice(meshIndex, 1);
                 }
                 cancelHotspot();
             };
 
             function createHotspotMesh(hs) {
-                const geom = new THREE.SphereGeometry(0.3, 16, 16);
-                const mat = new THREE.MeshBasicMaterial({
-                    color: 0x00e5ff,
-                    wireframe: true,
+                const npcGroup = new THREE.Group();
+                npcGroup.position.set(hs.x, hs.y, hs.z);
+
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    roughness: 0.7,
+                    metalness: 0.1
                 });
-                const sphere = new THREE.Mesh(geom, mat);
-                sphere.position.set(hs.x, hs.y, hs.z);
-                sphere.userData = { hotspot: hs };
-                scene.add(sphere);
-                hotspotMeshes.push(sphere);
+
+                // Torso
+                const torsoGeom = new THREE.BoxGeometry(0.4, 0.6, 0.2);
+                const torso = new THREE.Mesh(torsoGeom, material);
+                torso.position.y = 1.0; 
+                npcGroup.add(torso);
+
+                // Head
+                const headGeom = new THREE.SphereGeometry(0.18, 16, 16);
+                const head = new THREE.Mesh(headGeom, material);
+                head.position.y = 1.45; 
+                npcGroup.add(head);
+
+                // Arms
+                const armGeom = new THREE.BoxGeometry(0.12, 0.55, 0.12);
+                const leftArm = new THREE.Mesh(armGeom, material);
+                leftArm.position.set(-0.28, 1.0, 0);
+                npcGroup.add(leftArm);
+                
+                const rightArm = new THREE.Mesh(armGeom, material);
+                rightArm.position.set(0.28, 1.0, 0);
+                npcGroup.add(rightArm);
+
+                // Legs
+                const legGeom = new THREE.BoxGeometry(0.15, 0.7, 0.15);
+                const leftLeg = new THREE.Mesh(legGeom, material);
+                leftLeg.position.set(-0.1, 0.35, 0);
+                npcGroup.add(leftLeg);
+
+                const rightLeg = new THREE.Mesh(legGeom, material);
+                rightLeg.position.set(0.1, 0.35, 0);
+                npcGroup.add(rightLeg);
+
+                // Invisible Hitbox for Raycasting
+                const hitBoxGeom = new THREE.CylinderGeometry(0.4, 0.4, 1.8, 8);
+                const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
+                const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
+                hitBox.position.y = 0.9;
+                
+                hitBox.userData = { hotspot: hs, parentGroup: npcGroup };
+                npcGroup.add(hitBox);
+
+                scene.add(npcGroup);
+                hotspotMeshes.push(hitBox);
             }
 
             window.sendDataToReact = () => {
@@ -407,9 +554,82 @@
 
             function animate() {
                 requestAnimationFrame(animate);
+                
+                if (teleportTargetControls && teleportTargetCamera) {
+                    teleportProgress += TELEPORT_SPEED;
+                    if (teleportProgress >= 1) {
+                        controls.target.copy(teleportTargetControls);
+                        camera.position.copy(teleportTargetCamera);
+                        teleportTargetControls = null;
+                        teleportTargetCamera = null;
+                    } else {
+                        const t = teleportProgress;
+                        const ease = 1 - Math.pow(1 - t, 3);
+                        controls.target.lerpVectors(teleportStartControls, teleportTargetControls, ease);
+                        camera.position.lerpVectors(teleportStartCamera, teleportTargetCamera, ease);
+                    }
+                }
+                
+                // Process WASD movement
+                const isFirstPerson = camera.position.distanceTo(controls.target) < 0.5;
+                
+                if (keys.w || keys.a || keys.s || keys.d) {
+                    const moveSpeed = 0.15;
+                    const forward = new THREE.Vector3().subVectors(controls.target, camera.position);
+                    if (isFirstPerson) forward.y = 0; // Keep movement purely horizontal in first-person
+                    forward.normalize();
+                    const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+                    const moveVector = new THREE.Vector3();
+                    
+                    if (keys.w) moveVector.add(forward.clone().multiplyScalar(moveSpeed));
+                    if (keys.s) moveVector.add(forward.clone().multiplyScalar(-moveSpeed));
+                    if (keys.a) moveVector.add(right.clone().multiplyScalar(-moveSpeed));
+                    if (keys.d) moveVector.add(right.clone().multiplyScalar(moveSpeed));
+                    
+                    camera.position.add(moveVector);
+                    controls.target.add(moveVector);
+                }
+
+                // Gravity & Stair Climbing (only active in first-person walking mode)
+                if (isFirstPerson && model) {
+                    const downVector = new THREE.Vector3(0, -1, 0);
+                    const origin = camera.position.clone();
+                    origin.y += 1.0; // Cast from slightly above eye level
+                    
+                    // We need a temporary raycaster for gravity so we don't break hotspot hovering
+                    const gravityRaycaster = new THREE.Raycaster(origin, downVector);
+                    const floorHits = gravityRaycaster.intersectObject(model, true);
+
+                    // Filter out ceilings or stairs above us
+                    const validHit = floorHits.find(hit => hit.point.y < camera.position.y + 0.5);
+
+                    if (validHit) {
+                        const floorY = validHit.point.y;
+                        const targetY = floorY + 1.6; // Eye level
+                        const diff = targetY - camera.position.y;
+                        
+                        let yChange = 0;
+                        if (diff > 0 && diff < 2.5) {
+                            // Going up stairs
+                            yChange = diff * 0.15;
+                        } else if (diff < 0) {
+                            if (diff > -2.5) {
+                                // Going down stairs
+                                yChange = diff * 0.15;
+                            } else {
+                                // Free-falling off a ledge
+                                yChange = -0.15;
+                            }
+                        }
+                        
+                        camera.position.y += yChange;
+                        controls.target.y += yChange;
+                    }
+                }
+                
                 controls.update();
                 hotspotMeshes.forEach((h) => {
-                    h.rotation.y += 0.02;
+                    h.userData.parentGroup.rotation.y += 0.02;
                 });
                 renderer.render(scene, camera);
             }
