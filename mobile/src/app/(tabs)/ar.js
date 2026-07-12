@@ -14,8 +14,8 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
-import { router } from "expo-router";
-import { X, Camera as CameraIcon, QrCode } from "lucide-react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
@@ -60,7 +60,10 @@ export default function ARScreen() {
     const arViewRef = useRef(null);
     const { canUseAR } = useRoleAccess();
 
-    const { location, startTracking, stopTracking } = useLocationTracking();
+    const { targetBuildingId } = useLocalSearchParams();
+    const [navTargetFull, setNavTargetFull] = useState(null);
+
+    const { location, heading, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
 
     useEffect(() => {
@@ -132,6 +135,78 @@ export default function ARScreen() {
             q.target_building === nearbyBuildingFull.id &&
             !q.is_completed,
     );
+
+    useEffect(() => {
+        let fetchId = targetBuildingId;
+        if (!fetchId && activeQuests && activeQuests.length > 0) {
+            const firstIncomplete = activeQuests.find(q => !q.is_completed);
+            if (firstIncomplete) {
+                fetchId = firstIncomplete.target_building;
+            }
+        }
+        
+        if (fetchId) {
+            if (nearbyBuildingFull && nearbyBuildingFull.id === fetchId) {
+                setNavTargetFull(nearbyBuildingFull);
+            } else {
+                api.get(`/api/buildings/${fetchId}/`)
+                    .then((res) => {
+                        if (res.data.success) {
+                            setNavTargetFull(res.data.data);
+                        }
+                    })
+                    .catch((err) => console.error("Error fetching nav target", err));
+            }
+        } else {
+            setNavTargetFull(null);
+        }
+    }, [targetBuildingId, activeQuests, nearbyBuildingFull]);
+
+    const getBearing = (lat1, lon1, lat2, lon2) => {
+        const toRad = (val) => (val * Math.PI) / 180;
+        const toDeg = (val) => (val * 180) / Math.PI;
+
+        const dLon = toRad(lon2 - lon1);
+        const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+        const x =
+            Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+            Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+
+        return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    };
+
+    const getDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371e3;
+        const p1 = (lat1 * Math.PI) / 180;
+        const p2 = (lat2 * Math.PI) / 180;
+        const dp = ((lat2 - lat1) * Math.PI) / 180;
+        const dl = ((lon2 - lon1) * Math.PI) / 180;
+
+        const a =
+            Math.sin(dp / 2) * Math.sin(dp / 2) +
+            Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    };
+
+    let arrowAngle = 0;
+    let distanceToTarget = 0;
+    if (navTargetFull && location && heading !== undefined && heading !== null) {
+        const bearing = getBearing(
+            location.latitude,
+            location.longitude,
+            navTargetFull.latitude,
+            navTargetFull.longitude
+        );
+        arrowAngle = (bearing - heading + 360) % 360;
+        distanceToTarget = getDistance(
+            location.latitude,
+            location.longitude,
+            navTargetFull.latitude,
+            navTargetFull.longitude
+        );
+    }
 
     const handleClaimQuest = async () => {
         if (!matchingQuest || isClaiming) return;
@@ -310,7 +385,7 @@ export default function ARScreen() {
     const isModelVisible = !!(
         nearbyBuildingFull &&
         unlockedBuildings.some((b) => b.id === nearbyBuildingFull.id) &&
-        nearbyBuildingFull.image_url
+        (nearbyBuildingFull.image_url || nearbyBuildingFull.model_url)
     );
 
     const handleBarCodeScanned = async ({ type, data }) => {
@@ -391,7 +466,8 @@ export default function ARScreen() {
         try {
             // Reset readiness state
             setBgReady(false);
-            setModelReady(!isModelVisible); // If no model, it's immediately ready
+            const has3DModel = isModelVisible && nearbyBuildingFull?.model_url;
+            setModelReady(!has3DModel); // If no 3D model, it's immediately ready
             setCapturing(true); // Hide controls, show frame
 
             // Take native photo to use as the static background
@@ -580,7 +656,6 @@ export default function ARScreen() {
                                         source={{ uri: nearbyBuildingFull?.image_url }}
                                         style={styles.modelMiniature}
                                         resizeMode="cover"
-                                        onLoadEnd={() => setModelReady(true)}
                                     />
                                 </View>
                             )}
@@ -621,6 +696,60 @@ export default function ARScreen() {
                             </View>
                         </View>
                     </View>
+                )}
+
+                {/* --- NAVIGATION HUD --- */}
+                {navTargetFull && location && !capturing && !triviaModalVisible && (
+                    <View style={styles.navigationHud}>
+                        {geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull.id ? (
+                            <Animated.View style={{ opacity: pulseAnim }}>
+                                <Text style={styles.navDistanceText}>🎉 YOU HAVE ARRIVED</Text>
+                            </Animated.View>
+                        ) : (
+                            <>
+                                <Text style={styles.navTargetText}>PATH TO: {navTargetFull.name.toUpperCase()}</Text>
+                                <Animated.View 
+                                    style={[
+                                        styles.navPathContainer, 
+                                        { 
+                                            transform: [
+                                                { perspective: 800 },
+                                                { rotateX: '60deg' }, 
+                                                { rotateZ: `${arrowAngle}deg` }
+                                            ] 
+                                        }
+                                    ]}
+                                >
+                                    <Ionicons name="chevron-up" size={80} color="rgba(16, 185, 129, 0.3)" style={{ marginBottom: -45 }} />
+                                    <Ionicons name="chevron-up" size={80} color="rgba(16, 185, 129, 0.6)" style={{ marginBottom: -45 }} />
+                                    <Ionicons name="chevron-up" size={80} color={theme.colors.success} />
+                                </Animated.View>
+                                <Text style={styles.navDistanceText}>
+                                    📍 {Math.round(distanceToTarget)} meters
+                                </Text>
+                            </>
+                        )}
+                    </View>
+                )}
+
+                {/* 2.5 3D Model Overlay in Center */}
+                {isModelVisible && nearbyBuildingFull?.model_url && (
+                    <AR3DModelOverlay
+                        modelUrl={nearbyBuildingFull.model_url}
+                        buildingName={nearbyBuildingFull.name}
+                        capturing={capturing}
+                        onSnapshotReady={() => setModelReady(true)}
+                        style={{
+                            position: "absolute",
+                            top: "50%",
+                            left: "50%",
+                            width: 240,
+                            height: 240,
+                            marginLeft: -120,
+                            marginTop: -120,
+                            zIndex: 10,
+                        }}
+                    />
                 )}
 
                 {/* 3. Reticle and Gamified HUD Overlays */}
@@ -944,6 +1073,50 @@ const styles = StyleSheet.create({
         fontSize: 14,
         letterSpacing: 0.5,
         marginLeft: 8,
+    },
+    navigationHud: {
+        position: 'absolute',
+        top: '40%',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 50,
+        pointerEvents: 'none',
+    },
+    navTargetText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontFamily: fonts.heading.bold,
+        letterSpacing: 1,
+        textShadowColor: 'rgba(0,0,0,0.8)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
+        marginBottom: 20,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    navPathContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 160,
+    },
+    navDistanceText: {
+        color: theme.colors.success,
+        fontSize: 18,
+        fontFamily: fonts.heading.bold,
+        marginTop: 20,
+        textShadowColor: 'rgba(0,0,0,0.9)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 4,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 12,
+        overflow: 'hidden',
     },
     bottomControls: {
         position: "absolute",

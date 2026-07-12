@@ -343,12 +343,12 @@ export default function ExploreScreen() {
                             end={{ x: 1, y: 1 }}
                         >
                             <Ionicons
-                                name={isTracking ? "stop" : "search"}
+                                name={isTracking ? "stop" : "business"}
                                 size={48}
                                 color={theme.colors.white}
                             />
                             <Text style={styles.radarButtonText}>
-                                {isTracking ? "STOP SCAN" : "START SCAN"}
+                                {isTracking ? "STOP" : "DISCOVER NOW"}
                             </Text>
                         </LinearGradient>
                     </TouchableOpacity>
@@ -600,21 +600,36 @@ export default function ExploreScreen() {
                                             </Text>
                                         </View>
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.navigateBtn}
-                                        onPress={() =>
-                                            router.push("/buildings")
-                                        }
-                                    >
-                                        <Ionicons
-                                            name="navigate"
-                                            size={16}
-                                            color={theme.colors.white}
-                                        />
-                                        <Text style={styles.navigateText}>
-                                            View Map
-                                        </Text>
-                                    </TouchableOpacity>
+                                    <View style={{ flexDirection: 'column', gap: 6 }}>
+                                        <TouchableOpacity
+                                            style={styles.navigateBtn}
+                                            onPress={() =>
+                                                router.push({
+                                                    pathname: "/(tabs)/ar",
+                                                    params: { targetBuildingId: building.id }
+                                                })
+                                            }
+                                        >
+                                            <Ionicons
+                                                name="compass"
+                                                size={16}
+                                                color={theme.colors.white}
+                                            />
+                                            <Text style={styles.navigateText}>
+                                                AR Nav
+                                            </Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.navigateBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.primary }]}
+                                            onPress={() =>
+                                                router.push("/buildings")
+                                            }
+                                        >
+                                            <Text style={[styles.navigateText, { color: theme.colors.primary }]}>
+                                                Map
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             );
                         })}

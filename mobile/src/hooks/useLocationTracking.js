@@ -6,7 +6,9 @@ export const useLocationTracking = () => {
     const [error, setError] = useState(null);
     const [permissionStatus, setPermissionStatus] = useState("undetermined");
     const [isTracking, setIsTracking] = useState(false);
+    const [heading, setHeading] = useState(0);
     const watchSubscription = useRef(null);
+    const headingSubscription = useRef(null);
 
     useEffect(() => {
         checkPermission();
@@ -82,6 +84,16 @@ export const useLocationTracking = () => {
                     });
                 },
             );
+
+            headingSubscription.current = await Location.watchHeadingAsync(
+                (headingData) => {
+                    const compassHeading =
+                        headingData.trueHeading !== -1 && headingData.trueHeading !== undefined
+                            ? headingData.trueHeading
+                            : headingData.magHeading;
+                    setHeading(compassHeading);
+                }
+            );
         } catch (err) {
             setError(err.message);
             setIsTracking(false);
@@ -93,6 +105,10 @@ export const useLocationTracking = () => {
             watchSubscription.current.remove();
             watchSubscription.current = null;
         }
+        if (headingSubscription.current) {
+            headingSubscription.current.remove();
+            headingSubscription.current = null;
+        }
         setIsTracking(false);
     };
 
@@ -101,6 +117,7 @@ export const useLocationTracking = () => {
         error,
         permissionStatus,
         isTracking,
+        heading,
         startTracking,
         stopTracking,
         requestPermission,

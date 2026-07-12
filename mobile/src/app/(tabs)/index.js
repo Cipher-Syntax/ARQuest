@@ -286,7 +286,10 @@ export default function HomeScreen() {
                                                 styles.heroDeployBtnDisabled,
                                         ]}
                                         onPress={() =>
-                                            router.push("/(tabs)/ar")
+                                            router.push({
+                                                pathname: "/(tabs)/ar",
+                                                params: { targetBuildingId: activeQuest.target_building }
+                                            })
                                         }
                                         disabled={!activeQuest}
                                     >
