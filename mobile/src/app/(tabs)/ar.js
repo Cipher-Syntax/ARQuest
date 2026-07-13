@@ -707,7 +707,7 @@ export default function ARScreen() {
                             </Animated.View>
                         ) : (
                             <>
-                                <Text style={styles.navTargetText}>PATH TO: {navTargetFull.name.toUpperCase()}</Text>
+                                <Text style={styles.navTargetText}>WALK TOWARD THE ARROW</Text>
                                 <Animated.View 
                                     style={[
                                         styles.navPathContainer, 
@@ -725,7 +725,7 @@ export default function ARScreen() {
                                     <Ionicons name="chevron-up" size={80} color={theme.colors.success} />
                                 </Animated.View>
                                 <Text style={styles.navDistanceText}>
-                                    📍 {Math.round(distanceToTarget)} meters
+                                    📍 {Math.round(distanceToTarget)}m remaining
                                 </Text>
                             </>
                         )}
