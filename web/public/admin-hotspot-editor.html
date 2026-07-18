@@ -636,10 +636,14 @@
                 
                 if (isRestricted) {
                     // Cross arms forming X in front of chest
-                    leftArmGroup.rotation.x = -1.0;
-                    rightArmGroup.rotation.x = -1.1; // Offset to prevent Z-fighting
-                    leftArmGroup.rotation.z = 1.0;
-                    rightArmGroup.rotation.z = -1.0;
+                    leftArmGroup.rotation.order = 'ZXY';
+                    rightArmGroup.rotation.order = 'ZXY';
+                    
+                    leftArmGroup.rotation.z = 1.2; // Swing inwards
+                    leftArmGroup.rotation.x = -0.4; // Swing forward to clear chest
+                    
+                    rightArmGroup.rotation.z = -1.2; // Swing inwards
+                    rightArmGroup.rotation.x = -0.6; // Swing more forward to overlap cleanly
                 }
                 
                 npcGroup.add(leftArmGroup);
