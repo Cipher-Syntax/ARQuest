@@ -103,9 +103,46 @@
                 cursor: pointer;
                 box-shadow: 0 4px 12px rgba(0, 229, 255, 0.3);
             }
+
+            #floating-labels {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 10;
+            }
+            .floating-label {
+                position: absolute;
+                background: rgba(0, 229, 255, 0.9);
+                color: #000;
+                font-weight: bold;
+                padding: 6px 14px;
+                border-radius: 14px;
+                font-family: system-ui, sans-serif;
+                font-size: 14px;
+                pointer-events: none;
+                transform: translate(-50%, -100%);
+                display: none;
+                white-space: nowrap;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                text-align: center;
+            }
+            .floating-label::after {
+                content: '';
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -6px;
+                border-width: 6px;
+                border-style: solid;
+                border-color: rgba(0, 229, 255, 0.9) transparent transparent transparent;
+            }
         </style>
     </head>
     <body>
+        <div id="floating-labels"></div>
         <div id="loading">LOADING EDITOR...</div>
 
         <div id="ui-overlay">
@@ -452,7 +489,11 @@
                         const mesh = hotspotMeshes.find(
                             (m) => m.userData.hotspot.id === editingHotspotId,
                         );
-                        if (mesh) mesh.userData.hotspot = hs;
+                        if (mesh) {
+                            mesh.userData.hotspot = hs;
+                            const label = document.getElementById(mesh.userData.labelId);
+                            if (label) label.textContent = hs.title;
+                        }
                     }
                 } else {
                     const newHotspot = {
@@ -482,6 +523,8 @@
                 if (meshIndex > -1) {
                     const mesh = hotspotMeshes[meshIndex];
                     scene.remove(mesh.userData.parentGroup);
+                    const label = document.getElementById(mesh.userData.labelId);
+                    if (label) label.remove();
                     hotspotMeshes.splice(meshIndex, 1);
                 }
                 cancelHotspot();
@@ -491,42 +534,67 @@
                 const npcGroup = new THREE.Group();
                 npcGroup.position.set(hs.x, hs.y, hs.z);
 
-                const material = new THREE.MeshStandardMaterial({
-                    color: 0xffffff,
-                    roughness: 0.7,
-                    metalness: 0.1
-                });
+                // WMSU Staff Colors
+                const skinMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.6, metalness: 0.1 });
+                const shirtMat = new THREE.MeshStandardMaterial({ color: 0x8A1538, roughness: 0.8, metalness: 0.1 }); // Crimson
+                const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9, metalness: 0.1 }); // Dark
 
                 // Torso
                 const torsoGeom = new THREE.BoxGeometry(0.4, 0.6, 0.2);
-                const torso = new THREE.Mesh(torsoGeom, material);
+                const torso = new THREE.Mesh(torsoGeom, shirtMat);
                 torso.position.y = 1.0; 
                 npcGroup.add(torso);
 
                 // Head
                 const headGeom = new THREE.SphereGeometry(0.18, 16, 16);
-                const head = new THREE.Mesh(headGeom, material);
+                const head = new THREE.Mesh(headGeom, skinMat);
                 head.position.y = 1.45; 
+
+                // Face: Eyes
+                const eyeGeom = new THREE.SphereGeometry(0.025, 8, 8);
+                const faceMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+                
+                const leftEye = new THREE.Mesh(eyeGeom, faceMat);
+                leftEye.position.set(-0.06, 0.05, 0.16); // Left of face, slightly up, forward
+                head.add(leftEye);
+                
+                const rightEye = new THREE.Mesh(eyeGeom, faceMat);
+                rightEye.position.set(0.06, 0.05, 0.16); // Right of face
+                head.add(rightEye);
+
+                // Face: Smiling Mouth (half torus)
+                const smileGeom = new THREE.TorusGeometry(0.06, 0.015, 8, 16, Math.PI);
+                const smile = new THREE.Mesh(smileGeom, faceMat);
+                smile.position.set(0, -0.02, 0.17);
+                smile.rotation.z = Math.PI; // Flip arc upside down to make a smile
+                head.add(smile);
+
                 npcGroup.add(head);
 
                 // Arms
                 const armGeom = new THREE.BoxGeometry(0.12, 0.55, 0.12);
-                const leftArm = new THREE.Mesh(armGeom, material);
-                leftArm.position.set(-0.28, 1.0, 0);
+                
+                // Left Arm (from NPC's perspective, so +X)
+                const leftArm = new THREE.Mesh(armGeom, shirtMat);
+                leftArm.position.set(0.28, 1.0, 0);
                 npcGroup.add(leftArm);
                 
-                const rightArm = new THREE.Mesh(armGeom, material);
-                rightArm.position.set(0.28, 1.0, 0);
-                npcGroup.add(rightArm);
+                // Right Arm (from NPC's perspective, so -X) (This will wave)
+                const rightArmGroup = new THREE.Group();
+                rightArmGroup.position.set(-0.28, 1.25, 0); // Shoulder pivot point
+                const rightArmMesh = new THREE.Mesh(armGeom, shirtMat);
+                rightArmMesh.position.set(0, -0.275, 0); // Center of geometry down from pivot
+                rightArmGroup.add(rightArmMesh);
+                npcGroup.add(rightArmGroup);
 
                 // Legs
                 const legGeom = new THREE.BoxGeometry(0.15, 0.7, 0.15);
-                const leftLeg = new THREE.Mesh(legGeom, material);
-                leftLeg.position.set(-0.1, 0.35, 0);
+                const leftLeg = new THREE.Mesh(legGeom, pantsMat);
+                leftLeg.position.set(0.1, 0.35, 0);
                 npcGroup.add(leftLeg);
 
-                const rightLeg = new THREE.Mesh(legGeom, material);
-                rightLeg.position.set(0.1, 0.35, 0);
+                const rightLeg = new THREE.Mesh(legGeom, pantsMat);
+                rightLeg.position.set(-0.1, 0.35, 0);
                 npcGroup.add(rightLeg);
 
                 // Invisible Hitbox for Raycasting
@@ -535,11 +603,28 @@
                 const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
                 hitBox.position.y = 0.9;
                 
-                hitBox.userData = { hotspot: hs, parentGroup: npcGroup };
+                hitBox.userData = { 
+                    hotspot: hs, 
+                    labelId: "label-" + hs.id,
+                    parentGroup: npcGroup,
+                    rightArm: rightArmGroup,
+                    isNPC: true
+                };
                 npcGroup.add(hitBox);
+
+                // Make sure NPC faces forward initially (towards +Z, standard in Threejs)
+                npcGroup.lookAt(0, 0, 1000);
 
                 scene.add(npcGroup);
                 hotspotMeshes.push(hitBox);
+
+                // Create Floating Speech Bubble
+                const labelContainer = document.getElementById("floating-labels");
+                const labelDiv = document.createElement("div");
+                labelDiv.className = "floating-label";
+                labelDiv.id = hitBox.userData.labelId;
+                labelDiv.textContent = hs.title || "NPC";
+                labelContainer.appendChild(labelDiv);
             }
 
             window.sendDataToReact = () => {
@@ -628,9 +713,60 @@
                 }
                 
                 controls.update();
+                
+                const time = Date.now() * 0.005;
                 hotspotMeshes.forEach((h) => {
-                    h.userData.parentGroup.rotation.y += 0.02;
+                    const group = h.userData.parentGroup;
+                    if (group && h.userData.isNPC) {
+                        const dist = camera.position.distanceTo(group.position);
+                        if (dist < 4.0) {
+                            // Close enough to wave!
+                            // Since arm is at -X, a negative Z rotation moves it outwards, preventing clipping with the head
+                            h.userData.rightArm.rotation.z = -2.0 + Math.sin(time * 1.5) * 0.4; 
+                            h.userData.rightArm.rotation.x = Math.sin(time) * 0.2;
+                            
+                            // Look at camera
+                            const targetPos = camera.position.clone();
+                            targetPos.y = group.position.y;
+                            group.lookAt(targetPos);
+                        } else {
+                            // Idle
+                            h.userData.rightArm.rotation.z = 0;
+                            h.userData.rightArm.rotation.x = 0;
+                            
+                            // Gently face the camera even from afar so face is visible
+                            const targetPos = camera.position.clone();
+                            targetPos.y = group.position.y;
+                            group.lookAt(targetPos);
+                        }
+
+                        // 3D to 2D projection for speech bubble
+                        const pos = group.position.clone();
+                        pos.y += 2.0; // Float above head
+                        pos.project(camera);
+                        
+                        const labelDiv = document.getElementById(h.userData.labelId);
+                        if (labelDiv) {
+                            if (pos.z < 1) { // In front of camera
+                                labelDiv.style.display = "block";
+                                labelDiv.style.left = (pos.x * 0.5 + 0.5) * window.innerWidth + "px";
+                                labelDiv.style.top = (-(pos.y * 0.5) + 0.5) * window.innerHeight + "px";
+                                
+                                const title = h.userData.hotspot.title || "NPC";
+                                const desc = h.userData.hotspot.desc || "";
+                                
+                                if (dist < 4.0) {
+                                     labelDiv.innerHTML = title + (desc ? "<br><span style='font-size:12px;font-weight:normal;'>" + desc + "</span>" : "");
+                                } else {
+                                     labelDiv.innerHTML = title;
+                                }
+                            } else {
+                                labelDiv.style.display = "none";
+                            }
+                        }
+                    }
                 });
+                
                 renderer.render(scene, camera);
             }
 

@@ -124,6 +124,36 @@
                 border-radius: 6px;
                 width: 100%;
             }
+            .floating-label {
+                position: absolute;
+                background: rgba(0, 229, 255, 0.9);
+                color: #000;
+                font-weight: bold;
+                padding: 6px 14px;
+                border-radius: 14px;
+                font-family: system-ui, sans-serif;
+                font-size: 14px;
+                pointer-events: none;
+                transform: translate(-50%, -100%);
+                opacity: 0;
+                white-space: nowrap;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                transition: opacity 0.2s;
+                text-align: center;
+                z-index: 150;
+            }
+            .floating-label::after {
+                content: '';
+                position: absolute;
+                bottom: -6px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 6px 6px 0;
+                border-style: solid;
+                border-color: rgba(0, 229, 255, 0.9) transparent transparent transparent;
+                display: block;
+                width: 0;
+            }
 
             /* ── Gyroscope mode indicator pill ─────────────────────── */
             #gyro-indicator {
@@ -215,11 +245,14 @@
             </button>
         </div>
 
+        <!-- Info panel is kept for backwards compatibility or clicks, but we'll use floating-labels for hover -->
         <div id="info-panel">
             <h2 id="info-title">Title</h2>
             <p id="info-desc">Description</p>
             <button id="info-close" onclick="closeInfoPanel()">CLOSE</button>
         </div>
+        
+        <div id="floating-labels"></div>
 
         <canvas id="canvas"></canvas>
 
@@ -581,47 +614,73 @@
                             const npcGroup = new THREE.Group();
                             npcGroup.position.set(x, y, z);
 
-                            const material = new THREE.MeshBasicMaterial({
-                                color: 0xffffff, // Solid white
-                                depthTest: false,
-                                transparent: true,
-                                opacity: 0.9,
-                            });
+                            const skinMat = new THREE.MeshBasicMaterial({ color: 0xffe0bd, depthTest: false });
+                            const clothesMat = new THREE.MeshBasicMaterial({ color: 0x8a1538, depthTest: false }); // WMSU Crimson
+                            const pantsMat = new THREE.MeshBasicMaterial({ color: 0x333333, depthTest: false });
 
                             // Torso
                             const torsoGeom = new THREE.BoxGeometry(0.4, 0.6, 0.2);
-                            const torso = new THREE.Mesh(torsoGeom, material);
+                            const torso = new THREE.Mesh(torsoGeom, clothesMat);
                             torso.position.y = 1.0;
                             torso.renderOrder = 999;
                             npcGroup.add(torso);
 
                             // Head
+                            const headGroup = new THREE.Group();
+                            headGroup.position.y = 1.45;
+
                             const headGeom = new THREE.SphereGeometry(0.18, 16, 16);
-                            const head = new THREE.Mesh(headGeom, material);
-                            head.position.y = 1.45;
+                            const head = new THREE.Mesh(headGeom, skinMat);
                             head.renderOrder = 999;
-                            npcGroup.add(head);
+                            headGroup.add(head);
+
+                            // Eyes
+                            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthTest: false });
+                            const eyeGeom = new THREE.SphereGeometry(0.02, 8, 8);
+                            const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
+                            leftEye.position.set(-0.06, 0.03, 0.16);
+                            leftEye.renderOrder = 999;
+                            const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
+                            rightEye.position.set(0.06, 0.03, 0.16);
+                            rightEye.renderOrder = 999;
+                            headGroup.add(leftEye);
+                            headGroup.add(rightEye);
+
+                            // Smile
+                            const smileCurve = new THREE.EllipseCurve(0, -0.05, 0.08, 0.05, 0, Math.PI, false, 0);
+                            const smilePoints = smileCurve.getPoints(10);
+                            const smileGeom = new THREE.BufferGeometry().setFromPoints(smilePoints);
+                            const smileLine = new THREE.Line(smileGeom, new THREE.LineBasicMaterial({ color: 0x000000, depthTest: false }));
+                            smileLine.rotation.x = Math.PI;
+                            smileLine.position.z = 0.17;
+                            smileLine.renderOrder = 999;
+                            headGroup.add(smileLine);
+
+                            npcGroup.add(headGroup);
 
                             // Arms
                             const armGeom = new THREE.BoxGeometry(0.12, 0.55, 0.12);
-                            const leftArm = new THREE.Mesh(armGeom, material);
-                            leftArm.position.set(-0.28, 1.0, 0);
+                            const leftArm = new THREE.Mesh(armGeom, clothesMat);
+                            leftArm.position.set(0.28, 1.0, 0); // NPC's left arm (our right)
                             leftArm.renderOrder = 999;
                             npcGroup.add(leftArm);
                             
-                            const rightArm = new THREE.Mesh(armGeom, material);
-                            rightArm.position.set(0.28, 1.0, 0);
+                            const rightArmGroup = new THREE.Group();
+                            rightArmGroup.position.set(-0.28, 1.15, 0); // NPC's right arm (our left)
+                            const rightArm = new THREE.Mesh(armGeom, clothesMat);
+                            rightArm.position.set(0, -0.15, 0);
                             rightArm.renderOrder = 999;
-                            npcGroup.add(rightArm);
+                            rightArmGroup.add(rightArm);
+                            npcGroup.add(rightArmGroup);
 
                             // Legs
                             const legGeom = new THREE.BoxGeometry(0.15, 0.7, 0.15);
-                            const leftLeg = new THREE.Mesh(legGeom, material);
+                            const leftLeg = new THREE.Mesh(legGeom, pantsMat);
                             leftLeg.position.set(-0.1, 0.35, 0);
                             leftLeg.renderOrder = 999;
                             npcGroup.add(leftLeg);
 
-                            const rightLeg = new THREE.Mesh(legGeom, material);
+                            const rightLeg = new THREE.Mesh(legGeom, pantsMat);
                             rightLeg.position.set(0.1, 0.35, 0);
                             rightLeg.renderOrder = 999;
                             npcGroup.add(rightLeg);
@@ -631,7 +690,14 @@
                             const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
                             const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
                             hitBox.position.y = 0.9;
-                            hitBox.userData = { title, desc, parentGroup: npcGroup };
+                            
+                            // Create HTML Label
+                            const labelDiv = document.createElement("div");
+                            labelDiv.className = "floating-label";
+                            labelDiv.innerHTML = title;
+                            document.getElementById("floating-labels").appendChild(labelDiv);
+
+                            hitBox.userData = { title, desc, parentGroup: npcGroup, rightArm: rightArmGroup, labelDiv: labelDiv };
 
                             npcGroup.add(hitBox);
                             scene.add(npcGroup);
@@ -699,55 +765,48 @@
             function animate() {
                 requestAnimationFrame(animate);
 
-                // Auto-detect nearby NPCs (Proximity check like a video game)
-                let nearestNpc = null;
-                let minDist = 3.5; // Trigger distance: 3.5 meters
+                // Auto-detect nearby NPCs and update labels
+                let minDist = 3.5;
+                const time = performance.now() * 0.003;
 
                 hotspots.forEach((h) => {
-                    h.userData.parentGroup.getWorldPosition(tempVector);
+                    const npcGroup = h.userData.parentGroup;
+                    const rightArm = h.userData.rightArm;
+                    const labelDiv = h.userData.labelDiv;
+                    
+                    npcGroup.getWorldPosition(tempVector);
                     const dist = tempVector.distanceTo(camera.position);
+                    
+                    // Face camera
+                    const targetPos = camera.position.clone();
+                    targetPos.y = npcGroup.position.y;
+                    npcGroup.lookAt(targetPos);
+                    
+                    // Wave and expand bubble if close
                     if (dist < minDist) {
-                        minDist = dist;
-                        nearestNpc = h;
-                    }
-                });
-
-                // If we found an NPC nearby, auto-open their bubble
-                if (nearestNpc) {
-                    if (activeHotspot !== nearestNpc) {
-                        activeHotspot = nearestNpc;
-                        document.getElementById("info-title").textContent = activeHotspot.userData.title;
-                        document.getElementById("info-desc").textContent = activeHotspot.userData.desc;
-                        document.getElementById("info-panel").style.display = "block";
-                    }
-                } else if (activeHotspot) {
-                    // Walked away from the NPC, auto-close the bubble
-                    activeHotspot = null;
-                    document.getElementById("info-panel").style.display = "none";
-                }
-
-                // Update speech bubble position dynamically to float above NPC
-                if (activeHotspot && document.getElementById("info-panel").style.display === "block") {
-                    // Get world position of the NPC group
-                    activeHotspot.userData.parentGroup.getWorldPosition(tempVector);
-                    tempVector.y += 1.7; // Position slightly above the head
-
-                    // Project 3D position to 2D screen coordinates
-                    tempVector.project(camera);
-
-                    // Check if NPC is behind the camera
-                    if (tempVector.z > 1) {
-                        document.getElementById("info-panel").style.opacity = "0";
+                        rightArm.rotation.z = -2.0 + Math.sin(time * 1.5) * 0.5;
+                        rightArm.rotation.x = Math.sin(time) * 0.2;
+                        labelDiv.innerHTML = h.userData.title + (h.userData.desc ? "<br><span style='font-size:12px;font-weight:normal;'>" + h.userData.desc + "</span>" : "");
                     } else {
-                        document.getElementById("info-panel").style.opacity = "1";
+                        rightArm.rotation.z = 0;
+                        rightArm.rotation.x = 0;
+                        labelDiv.innerHTML = h.userData.title;
+                    }
+
+                    // Update label position
+                    tempVector.y += 1.8; // Above head
+                    tempVector.project(camera);
+                    
+                    if (tempVector.z > 1) {
+                        labelDiv.style.opacity = "0";
+                    } else {
+                        labelDiv.style.opacity = "1";
                         const x = (tempVector.x *  0.5 + 0.5) * window.innerWidth;
                         const y = (tempVector.y * -0.5 + 0.5) * window.innerHeight;
-                        
-                        const panel = document.getElementById("info-panel");
-                        panel.style.left = `${x}px`;
-                        panel.style.top = `${y}px`;
+                        labelDiv.style.left = `${x}px`;
+                        labelDiv.style.top = `${y}px`;
                     }
-                }
+                });
 
                 if (model) {
                     // Apply gyroscope camera rotation FIRST (before movement processing)
@@ -762,9 +821,7 @@
                             : null;
 
                     // Animate NPC hotspots
-                    hotspots.forEach((h) => {
-                        h.userData.parentGroup.rotation.y += 0.02;
-                    });
+                    // Removed old spinning loop
 
                     // Handle Teleport Animation OR Gravity
                     if (teleportTarget) {
