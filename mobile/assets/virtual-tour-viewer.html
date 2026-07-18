@@ -690,9 +690,13 @@
 
                             // Arms
                             const armGeom = new THREE.BoxGeometry(0.12, 0.55, 0.12);
+                            
+                            const leftArmGroup = new THREE.Group();
+                            leftArmGroup.position.set(0.28, 1.15, 0); // NPC's left arm (our right)
                             const leftArm = new THREE.Mesh(armGeom, clothesMat);
-                            leftArm.position.set(0.28, 1.0, 0); // NPC's left arm (our right)
+                            leftArm.position.set(0, -0.15, 0);
                             leftArm.renderOrder = 999;
+                            leftArmGroup.add(leftArm);
                             
                             const rightArmGroup = new THREE.Group();
                             rightArmGroup.position.set(-0.28, 1.15, 0); // NPC's right arm (our left)
@@ -702,12 +706,14 @@
                             rightArmGroup.add(rightArm);
                             
                             if (isRestricted) {
-                                // Cross arms forming X
-                                leftArm.rotation.z = 0.8;  // Point inwards and down
-                                rightArmGroup.rotation.z = -0.8; // Point inwards and down
+                                // Cross arms forming X in front of chest
+                                leftArmGroup.rotation.x = -1.0;
+                                rightArmGroup.rotation.x = -1.1; // Offset to prevent Z-fighting
+                                leftArmGroup.rotation.z = 1.0;
+                                rightArmGroup.rotation.z = -1.0;
                             }
                             
-                            npcGroup.add(leftArm);
+                            npcGroup.add(leftArmGroup);
                             npcGroup.add(rightArmGroup);
 
                             // Legs

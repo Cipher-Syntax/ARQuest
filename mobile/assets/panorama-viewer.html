@@ -379,9 +379,12 @@
                     // Arms
                     const armGeom = new THREE.BoxGeometry(0.12, 0.55, 0.12);
                     
-                    // Left Arm
+                    // Left Arm Group
+                    const leftArmGroup = new THREE.Group();
+                    leftArmGroup.position.set(0.28, 1.25, 0); // Pivot point
                     const leftArm = new THREE.Mesh(armGeom, shirtMat);
-                    leftArm.position.set(0.28, 1.0, 0);
+                    leftArm.position.set(0, -0.275, 0);
+                    leftArmGroup.add(leftArm);
                     
                     // Right Arm (waving)
                     const rightArmGroup = new THREE.Group();
@@ -391,12 +394,14 @@
                     rightArmGroup.add(rightArmMesh);
                     
                     if (isRestricted) {
-                        // Cross arms forming X
-                        leftArm.rotation.z = 0.8;
-                        rightArmGroup.rotation.z = -0.8;
+                        // Cross arms forming X in front of chest
+                        leftArmGroup.rotation.x = -1.0;
+                        rightArmGroup.rotation.x = -1.1; // Offset to prevent Z-fighting
+                        leftArmGroup.rotation.z = 1.0;
+                        rightArmGroup.rotation.z = -1.0;
                     }
                     
-                    npcGroup.add(leftArm);
+                    npcGroup.add(leftArmGroup);
                     npcGroup.add(rightArmGroup);
 
                     // Legs
