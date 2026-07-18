@@ -170,6 +170,10 @@
                 placeholder="Description..."
                 rows="3"
             ></textarea>
+            <select id="hs-category" style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 10px; background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 4px;">
+                <option value="normal">Normal</option>
+                <option value="restricted">Restricted</option>
+            </select>
             <div class="btn-group">
                 <button class="btn btn-cancel" onclick="cancelHotspot()">
                     Cancel
@@ -414,6 +418,8 @@
                         hsData.title || "";
                     document.getElementById("hs-desc").value =
                         hsData.desc || "";
+                    document.getElementById("hs-category").value =
+                        hsData.category || "normal";
                     document.getElementById("hotspot-form").style.display =
                         "block";
                 }
@@ -484,6 +490,7 @@
             window.saveHotspot = () => {
                 const title = document.getElementById("hs-title").value;
                 const desc = document.getElementById("hs-desc").value;
+                const category = document.getElementById("hs-category").value;
                 if (!title || !pendingCoordinate) return;
 
                 if (editingHotspotId) {
@@ -493,13 +500,25 @@
                     if (hs) {
                         hs.title = title;
                         hs.desc = desc;
+                        hs.category = category;
                         const mesh = hotspotMeshes.find(
                             (m) => m.userData.hotspot.id === editingHotspotId,
                         );
                         if (mesh) {
                             mesh.userData.hotspot = hs;
+                            
+                            // Immediately update style in editor visually
                             const label = document.getElementById(mesh.userData.labelId);
-                            if (label) label.textContent = hs.title;
+                            if (label) {
+                                label.textContent = hs.title;
+                                if (hs.category === "restricted") {
+                                    label.classList.add("restricted");
+                                } else {
+                                    label.classList.remove("restricted");
+                                }
+                            }
+                            // Important: Re-render NPC features based on category (arms, face) would require re-creating the NPC or toggling parts.
+                            // For simplicity in the admin editor, a page reload or standard update is fine, but the label updates instantly!
                         }
                     }
                 } else {
@@ -507,6 +526,7 @@
                         id: Math.random().toString(36).substr(2, 9),
                         title: title,
                         desc: desc,
+                        category: category,
                         x: pendingCoordinate.x,
                         y: pendingCoordinate.y,
                         z: pendingCoordinate.z,
