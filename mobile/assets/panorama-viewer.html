@@ -83,6 +83,13 @@
                 border-style: solid;
                 border-color: rgba(0, 229, 255, 0.9) transparent transparent transparent;
             }
+            .floating-label.restricted {
+                background: rgba(220, 53, 69, 0.9);
+                color: #fff;
+            }
+            .floating-label.restricted::after {
+                border-color: rgba(220, 53, 69, 0.9) transparent transparent transparent;
+            }
         </style>
     </head>
     <body>
@@ -340,11 +347,31 @@
                     rightEye.position.set(0.06, 0.05, 0.16); // Right of face
                     head.add(rightEye);
 
+                    const isRestricted = (hotspot.category === "restricted");
+
                     // Face: Smiling Mouth (half torus)
                     const smileGeom = new THREE.TorusGeometry(0.06, 0.015, 8, 16, Math.PI);
                     const smile = new THREE.Mesh(smileGeom, faceMat);
-                    smile.position.set(0, -0.02, 0.17);
-                    smile.rotation.z = Math.PI; // Flip arc upside down to make a smile
+                    
+                    if (isRestricted) {
+                        smile.position.set(0, -0.05, 0.17); // Frown position
+                        smile.rotation.z = 0; // Frown
+                        
+                        // Eyebrows
+                        const eyebrowGeom = new THREE.BoxGeometry(0.06, 0.015, 0.01);
+                        const leftEyebrow = new THREE.Mesh(eyebrowGeom, faceMat);
+                        leftEyebrow.position.set(-0.06, 0.07, 0.17);
+                        leftEyebrow.rotation.z = -0.3; // Angle inwards
+                        head.add(leftEyebrow);
+                        
+                        const rightEyebrow = new THREE.Mesh(eyebrowGeom, faceMat);
+                        rightEyebrow.position.set(0.06, 0.07, 0.17);
+                        rightEyebrow.rotation.z = 0.3; // Angle inwards
+                        head.add(rightEyebrow);
+                    } else {
+                        smile.position.set(0, -0.02, 0.17);
+                        smile.rotation.z = Math.PI; // Flip arc upside down to make a smile
+                    }
                     head.add(smile);
 
                     npcGroup.add(head);
@@ -355,7 +382,6 @@
                     // Left Arm
                     const leftArm = new THREE.Mesh(armGeom, shirtMat);
                     leftArm.position.set(0.28, 1.0, 0);
-                    npcGroup.add(leftArm);
                     
                     // Right Arm (waving)
                     const rightArmGroup = new THREE.Group();
@@ -363,6 +389,14 @@
                     const rightArmMesh = new THREE.Mesh(armGeom, shirtMat);
                     rightArmMesh.position.set(0, -0.275, 0);
                     rightArmGroup.add(rightArmMesh);
+                    
+                    if (isRestricted) {
+                        // Cross arms forming X
+                        leftArm.rotation.z = 0.8;
+                        rightArmGroup.rotation.z = -0.8;
+                    }
+                    
+                    npcGroup.add(leftArm);
                     npcGroup.add(rightArmGroup);
 
                     // Legs
@@ -386,7 +420,8 @@
                         labelId: "label-" + hotspotMeshes.length,
                         parentGroup: npcGroup,
                         rightArm: rightArmGroup,
-                        isNPC: true
+                        isNPC: true,
+                        isRestricted: isRestricted
                     };
                     npcGroup.add(hitBox);
                     
@@ -401,6 +436,9 @@
                         document.getElementById("floating-labels");
                     const labelDiv = document.createElement("div");
                     labelDiv.className = "floating-label";
+                    if (isRestricted) {
+                        labelDiv.classList.add("restricted");
+                    }
                     labelDiv.id = hitBox.userData.labelId;
                     labelDiv.textContent =
                         hotspot.label ||
@@ -459,9 +497,11 @@
                         
                         if (angle < 0.4) {
                             // User is looking directly at it! Wave!
-                            // Since arm is at -X, a negative Z rotation moves it outwards
-                            mesh.userData.rightArm.rotation.z = -2.0 + Math.sin(time * 1.5) * 0.5; 
-                            mesh.userData.rightArm.rotation.x = Math.sin(time) * 0.2;
+                            if (!mesh.userData.isRestricted) {
+                                // Since arm is at -X, a negative Z rotation moves it outwards
+                                mesh.userData.rightArm.rotation.z = -2.0 + Math.sin(time * 1.5) * 0.5; 
+                                mesh.userData.rightArm.rotation.x = Math.sin(time) * 0.2;
+                            }
                             
                             const label = document.getElementById(mesh.userData.labelId);
                             const title = mesh.userData.hotspot.label || mesh.userData.hotspot.target_scene_title || "Next Scene";
@@ -469,8 +509,10 @@
                             if (label) label.innerHTML = title + (desc ? "<br><span style='font-size:12px;font-weight:normal;'>" + desc + "</span>" : "");
                         } else {
                             // Idle
-                            mesh.userData.rightArm.rotation.z = 0;
-                            mesh.userData.rightArm.rotation.x = 0;
+                            if (!mesh.userData.isRestricted) {
+                                mesh.userData.rightArm.rotation.z = 0;
+                                mesh.userData.rightArm.rotation.x = 0;
+                            }
                             
                             const label = document.getElementById(mesh.userData.labelId);
                             const title = mesh.userData.hotspot.label || mesh.userData.hotspot.target_scene_title || "Next Scene";

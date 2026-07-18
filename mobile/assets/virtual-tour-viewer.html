@@ -154,7 +154,13 @@
                 display: block;
                 width: 0;
             }
-
+            .floating-label.restricted {
+                background: rgba(220, 53, 69, 0.9);
+                color: #fff;
+            }
+            .floating-label.restricted::after {
+                border-color: rgba(220, 53, 69, 0.9) transparent transparent transparent;
+            }
             /* ── Gyroscope mode indicator pill ─────────────────────── */
             #gyro-indicator {
                 position: absolute;
@@ -610,7 +616,7 @@
                         controls.update();
 
                         // ── Create Interactive Hotspots (NPC) ──────────────────────
-                        const createHotspot = (x, y, z, title, desc, color) => {
+                        const createHotspot = (x, y, z, title, desc, color, category) => {
                             const npcGroup = new THREE.Group();
                             npcGroup.position.set(x, y, z);
 
@@ -646,13 +652,37 @@
                             headGroup.add(leftEye);
                             headGroup.add(rightEye);
 
-                            // Smile
+                            // Smile / Frown
+                            const isRestricted = (category === "restricted");
                             const smileCurve = new THREE.EllipseCurve(0, -0.05, 0.08, 0.05, 0, Math.PI, false, 0);
                             const smilePoints = smileCurve.getPoints(10);
                             const smileGeom = new THREE.BufferGeometry().setFromPoints(smilePoints);
                             const smileLine = new THREE.Line(smileGeom, new THREE.LineBasicMaterial({ color: 0x000000, depthTest: false }));
-                            smileLine.rotation.x = Math.PI;
-                            smileLine.position.z = 0.17;
+                            
+                            if (isRestricted) {
+                                // Frown
+                                smileLine.rotation.x = 0;
+                                smileLine.position.set(0, -0.05, 0.17); // Adjust position for frown
+                                
+                                // Eyebrows
+                                const eyebrowGeom = new THREE.BoxGeometry(0.06, 0.01, 0.01);
+                                const leftEyebrow = new THREE.Mesh(eyebrowGeom, eyeMat);
+                                leftEyebrow.position.set(-0.06, 0.07, 0.17);
+                                leftEyebrow.rotation.z = -0.3; // Angle inwards
+                                leftEyebrow.renderOrder = 999;
+                                headGroup.add(leftEyebrow);
+                                
+                                const rightEyebrow = new THREE.Mesh(eyebrowGeom, eyeMat);
+                                rightEyebrow.position.set(0.06, 0.07, 0.17);
+                                rightEyebrow.rotation.z = 0.3; // Angle inwards
+                                rightEyebrow.renderOrder = 999;
+                                headGroup.add(rightEyebrow);
+                            } else {
+                                // Smile
+                                smileLine.rotation.x = Math.PI;
+                                smileLine.position.z = 0.17;
+                            }
+                            
                             smileLine.renderOrder = 999;
                             headGroup.add(smileLine);
 
@@ -663,7 +693,6 @@
                             const leftArm = new THREE.Mesh(armGeom, clothesMat);
                             leftArm.position.set(0.28, 1.0, 0); // NPC's left arm (our right)
                             leftArm.renderOrder = 999;
-                            npcGroup.add(leftArm);
                             
                             const rightArmGroup = new THREE.Group();
                             rightArmGroup.position.set(-0.28, 1.15, 0); // NPC's right arm (our left)
@@ -671,6 +700,14 @@
                             rightArm.position.set(0, -0.15, 0);
                             rightArm.renderOrder = 999;
                             rightArmGroup.add(rightArm);
+                            
+                            if (isRestricted) {
+                                // Cross arms forming X
+                                leftArm.rotation.z = 0.8;  // Point inwards and down
+                                rightArmGroup.rotation.z = -0.8; // Point inwards and down
+                            }
+                            
+                            npcGroup.add(leftArm);
                             npcGroup.add(rightArmGroup);
 
                             // Legs
@@ -694,10 +731,13 @@
                             // Create HTML Label
                             const labelDiv = document.createElement("div");
                             labelDiv.className = "floating-label";
+                            if (isRestricted) {
+                                labelDiv.classList.add("restricted");
+                            }
                             labelDiv.innerHTML = title;
                             document.getElementById("floating-labels").appendChild(labelDiv);
 
-                            hitBox.userData = { title, desc, parentGroup: npcGroup, rightArm: rightArmGroup, labelDiv: labelDiv };
+                            hitBox.userData = { title, desc, category, isRestricted, parentGroup: npcGroup, rightArm: rightArmGroup, labelDiv: labelDiv };
 
                             npcGroup.add(hitBox);
                             scene.add(npcGroup);
@@ -717,6 +757,7 @@
                                     h.title,
                                     h.desc || "",
                                     0x00e5ff,
+                                    h.category
                                 );
                             });
                         }
@@ -784,12 +825,16 @@
                     
                     // Wave and expand bubble if close
                     if (dist < minDist) {
-                        rightArm.rotation.z = -2.0 + Math.sin(time * 1.5) * 0.5;
-                        rightArm.rotation.x = Math.sin(time) * 0.2;
+                        if (!h.userData.isRestricted) {
+                            rightArm.rotation.z = -2.0 + Math.sin(time * 1.5) * 0.5;
+                            rightArm.rotation.x = Math.sin(time) * 0.2;
+                        }
                         labelDiv.innerHTML = h.userData.title + (h.userData.desc ? "<br><span style='font-size:12px;font-weight:normal;'>" + h.userData.desc + "</span>" : "");
                     } else {
-                        rightArm.rotation.z = 0;
-                        rightArm.rotation.x = 0;
+                        if (!h.userData.isRestricted) {
+                            rightArm.rotation.z = 0;
+                            rightArm.rotation.x = 0;
+                        }
                         labelDiv.innerHTML = h.userData.title;
                     }
 
