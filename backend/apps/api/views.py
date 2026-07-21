@@ -19,6 +19,7 @@ from datetime import timedelta
 from apps.buildings.models import Building, BuildingUnlock, TriviaFact
 from apps.authentication.models import User
 from .responses import success_response, error_response
+from .errors import ErrorCodes
 
 from django.db.models import Count
 from apps.buildings.models import UserQuestProgress
@@ -27,7 +28,7 @@ from apps.buildings.models import UserQuestProgress
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
     if not request.user.is_admin_role:
-        return error_response('permission_denied', 'Admin access required', status_code=403)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=403)
         
     total_buildings = Building.objects.filter(is_active=True).count()
     active_students = User.objects.filter(role='student', is_active=True).count()
@@ -156,7 +157,7 @@ def system_settings(request):
         
     elif request.method == 'PUT':
         if request.user.is_anonymous or not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required to modify settings', status_code=403)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required to modify settings', status_code=403)
             
         serializer = SystemSettingSerializer(settings, data=request.data, partial=True)
         if serializer.is_valid():
@@ -167,7 +168,7 @@ def system_settings(request):
                 type="SYSTEM"
             )
             return success_response(serializer.data)
-        return error_response('validation_error', 'Invalid data', details=serializer.errors, status_code=400)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', details=serializer.errors, status_code=400)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

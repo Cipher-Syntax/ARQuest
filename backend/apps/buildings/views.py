@@ -5,6 +5,7 @@ from rest_framework import status
 from django.utils import timezone
 from apps.authentication.permissions import IsAdminRole
 from apps.api.responses import success_response, error_response
+from apps.api.errors import ErrorCodes
 from apps.geofencing.serializers import LocationValidationSerializer
 from apps.geofencing.utils import calculate_distance
 from apps.api.models import Notification
@@ -36,13 +37,13 @@ def department_list_create(request):
 
     elif request.method == 'POST':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
 
         serializer = DepartmentWriteSerializer(data=request.data)
         if serializer.is_valid():
             department = serializer.save()
             return success_response(DepartmentSerializer(department).data, status_code=status.HTTP_201_CREATED)
-        return error_response('validation_error', 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
@@ -51,7 +52,7 @@ def department_detail(request, id):
     try:
         department = Department.objects.get(id=id)
     except Department.DoesNotExist:
-        return error_response('not_found', 'Department not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Department not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
         serializer = DepartmentSerializer(department)
@@ -59,17 +60,17 @@ def department_detail(request, id):
 
     elif request.method == 'PATCH':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
 
         serializer = DepartmentWriteSerializer(department, data=request.data, partial=True)
         if serializer.is_valid():
             department = serializer.save()
             return success_response(DepartmentSerializer(department).data)
-        return error_response('validation_error', 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
     elif request.method == 'DELETE':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
 
         department.delete()
         return success_response({'message': 'Department deleted successfully'}, status_code=status.HTTP_204_NO_CONTENT)
@@ -88,14 +89,14 @@ def building_list_create(request):
     
     elif request.method == 'POST':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
         serializer = BuildingWriteSerializer(data=request.data)
         if serializer.is_valid():
             try:
                 building = serializer.save()
             except BadRequest as e:
-                return error_response('upload_failed', str(e), status_code=status.HTTP_400_BAD_REQUEST)
+                return error_response(ErrorCodes.UPLOAD_FAILED, str(e), status_code=status.HTTP_400_BAD_REQUEST)
                 
             Notification.objects.create(
                 title="Building Created",
@@ -103,7 +104,7 @@ def building_list_create(request):
                 type="BUILDING"
             )
             return success_response(BuildingSerializer(building, context={'request': request}).data, status_code=status.HTTP_201_CREATED)
-        return error_response('validation_error', 'Invalid building data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid building data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
@@ -112,24 +113,24 @@ def building_detail(request, id):
     try:
         building = Building.objects.get(id=id)
     except Building.DoesNotExist:
-        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
         if building.status not in ['VISIBLE', 'MAINTENANCE'] and not getattr(request.user, 'is_admin_role', False):
-            return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+            return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         serializer = BuildingSerializer(building, context={'request': request})
         return success_response(serializer.data)
     
     elif request.method == 'PATCH':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
         serializer = BuildingWriteSerializer(building, data=request.data, partial=True)
         if serializer.is_valid():
             try:
                 building = serializer.save()
             except BadRequest as e:
-                return error_response('upload_failed', str(e), status_code=status.HTTP_400_BAD_REQUEST)
+                return error_response(ErrorCodes.UPLOAD_FAILED, str(e), status_code=status.HTTP_400_BAD_REQUEST)
                 
             Notification.objects.create(
                 title="Building Updated",
@@ -137,11 +138,11 @@ def building_detail(request, id):
                 type="BUILDING"
             )
             return success_response(BuildingSerializer(building, context={'request': request}).data)
-        return error_response('validation_error', 'Invalid building data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid building data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
     
     elif request.method == 'DELETE':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
         building_name = building.name
         building.delete()
@@ -159,7 +160,7 @@ def building_geofence(request, id):
     try:
         building = Building.objects.get(id=id)
     except Building.DoesNotExist:
-        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
         geofence = building.geofences.filter(is_active=True).first()
@@ -170,13 +171,13 @@ def building_geofence(request, id):
     
     elif request.method == 'POST':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
         serializer = GeofenceWriteSerializer(data=request.data)
         if serializer.is_valid():
             geofence = serializer.save(building=building)
             return success_response(GeofenceSerializer(geofence).data, status_code=status.HTTP_201_CREATED)
-        return error_response('validation_error', 'Invalid geofence data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid geofence data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 
 @api_view(['PATCH'])
@@ -185,13 +186,13 @@ def geofence_update(request, id):
     try:
         geofence = Geofence.objects.get(id=id)
     except Geofence.DoesNotExist:
-        return error_response('not_found', 'Geofence not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Geofence not found', status_code=status.HTTP_404_NOT_FOUND)
     
     serializer = GeofenceWriteSerializer(geofence, data=request.data, partial=True)
     if serializer.is_valid():
         geofence = serializer.save()
         return success_response(GeofenceSerializer(geofence).data)
-    return error_response('validation_error', 'Invalid geofence data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+    return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid geofence data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 
 
@@ -200,11 +201,11 @@ def geofence_update(request, id):
 @permission_classes([IsAuthenticated])
 def unlock_building(request):
     if request.user.is_visitor_role:
-        return error_response('permission_denied', 'Visitors cannot unlock buildings', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot unlock buildings', status_code=status.HTTP_403_FORBIDDEN)
 
     serializer = LocationValidationSerializer(data=request.data)
     if not serializer.is_valid():
-        return error_response('INVALID_INPUT', 'Invalid location data', status_code=400, details=serializer.errors)
+        return error_response(ErrorCodes.INVALID_INPUT, 'Invalid location data', status_code=400, details=serializer.errors)
 
     user_lat = serializer.validated_data['latitude']
     user_lon = serializer.validated_data['longitude']
@@ -227,7 +228,7 @@ def unlock_building(request):
         
         if distance <= radius:
             if building.status == 'MAINTENANCE':
-                return error_response('maintenance', 'This building is currently under maintenance and cannot be unlocked.', status_code=status.HTTP_400_BAD_REQUEST)
+                return error_response(ErrorCodes.MAINTENANCE, 'This building is currently under maintenance and cannot be unlocked.', status_code=status.HTTP_400_BAD_REQUEST)
 
             # Server-side Time-Distance Speed Validation
             last_unlock = BuildingUnlock.objects.filter(user=request.user).exclude(building=building).order_by('-last_validated_at').first()
@@ -242,7 +243,7 @@ def unlock_building(request):
                     if time_diff > 0:
                         speed = dist_between / time_diff
                         if speed > 50:  # > 50 m/s (approx 180 km/h) is impossible walking/driving on campus
-                            return error_response('speed_violation', 'Movement too fast, spoofing detected.', status_code=400)
+                            return error_response(ErrorCodes.SPEED_VIOLATION, 'Movement too fast, spoofing detected.', status_code=400)
 
             unlock, created = BuildingUnlock.objects.get_or_create(
                 user=request.user,
@@ -263,31 +264,31 @@ def unlock_building(request):
             data['newly_earned_badges'] = newly_earned_badges
             return success_response(data)
     
-    return error_response('NOT_IN_GEOFENCE', 'Not inside any building geofence', status_code=400)
+    return error_response(ErrorCodes.GEOFENCE_OUTSIDE, 'Not inside any building geofence', status_code=400)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def unlock_building_qr(request):
     if request.user.is_visitor_role:
-        return error_response('permission_denied', 'Visitors cannot unlock buildings', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot unlock buildings', status_code=status.HTTP_403_FORBIDDEN)
 
     qr_secret = request.data.get('qr_code_secret')
     if not qr_secret:
-        return error_response('invalid_input', 'QR code secret is required', status_code=status.HTTP_400_BAD_REQUEST)
+        return error_response(ErrorCodes.INVALID_INPUT, 'QR code secret is required', status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
         building = Building.objects.get(qr_code_secret=qr_secret, is_active=True, status__in=['VISIBLE', 'MAINTENANCE'])
         if building.status == 'MAINTENANCE':
-            return error_response('maintenance', 'This building is currently under maintenance and cannot be unlocked.', status_code=status.HTTP_400_BAD_REQUEST)
+            return error_response(ErrorCodes.MAINTENANCE, 'This building is currently under maintenance and cannot be unlocked.', status_code=status.HTTP_400_BAD_REQUEST)
     except Building.DoesNotExist:
-        return error_response('invalid_qr', 'Invalid or inactive QR code', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.INVALID_QR, 'Invalid or inactive QR code', status_code=status.HTTP_404_NOT_FOUND)
 
     lat = request.data.get('lat')
     lng = request.data.get('lng')
 
     if not lat or not lng:
-        return error_response('location_required', 'GPS location is required to verify the QR code.', status_code=status.HTTP_400_BAD_REQUEST)
+        return error_response(ErrorCodes.LOCATION_REQUIRED, 'GPS location is required to verify the QR code.', status_code=status.HTTP_400_BAD_REQUEST)
 
     geofence = building.geofences.filter(is_active=True).first()
     if geofence:
@@ -297,7 +298,7 @@ def unlock_building_qr(request):
         )
         # 50 meter strict threshold for QR
         if distance > 50:
-            return error_response('too_far', 'You must be within 50 meters of the building to scan its QR code.', status_code=status.HTTP_400_BAD_REQUEST)
+            return error_response(ErrorCodes.QR_TOO_FAR, 'You must be within 50 meters of the building to scan its QR code.', status_code=status.HTTP_400_BAD_REQUEST)
 
     unlock, created = BuildingUnlock.objects.get_or_create(
         user=request.user,
@@ -370,18 +371,18 @@ def building_assets(request, id):
     try:
         building = Building.objects.get(id=id)
     except Building.DoesNotExist:
-        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
     if building.status not in ['VISIBLE', 'MAINTENANCE'] and not getattr(request.user, 'is_admin_role', False):
-        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.user.is_visitor_role:
-        return error_response('permission_denied', 'Visitors cannot access heavy assets', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot access heavy assets', status_code=status.HTTP_403_FORBIDDEN)
 
     if request.user.is_student_role:
         is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
         if not is_unlocked:
-            return error_response('permission_denied', 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
             
     assets = BuildingAsset.objects.filter(building=building, is_active=True)
     serializer = BuildingAssetSerializer(assets, many=True, context={'request': request})
@@ -394,22 +395,22 @@ def asset_metadata(request, id):
     try:
         asset = BuildingAsset.objects.select_related('building').get(id=id)
     except BuildingAsset.DoesNotExist:
-        return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
 
     building = asset.building
     if building.status not in ['VISIBLE', 'MAINTENANCE'] and not getattr(request.user, 'is_admin_role', False):
-         return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
+         return error_response(ErrorCodes.NOT_FOUND, 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
          
     if request.user.is_visitor_role:
-        return error_response('permission_denied', 'Visitors cannot access heavy assets', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot access heavy assets', status_code=status.HTTP_403_FORBIDDEN)
 
     if request.user.is_student_role:
         is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
         if not is_unlocked:
-            return error_response('permission_denied', 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
 
     if not asset.is_active and not request.user.is_admin_role:
-        return error_response('not_found', 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Asset not found', status_code=status.HTTP_404_NOT_FOUND)
 
     serializer = BuildingAssetSerializer(asset, context={'request': request})
     return success_response(serializer.data)
@@ -429,7 +430,7 @@ def quest_list_create(request):
         return success_response(QuestSerializer(quests, many=True).data)
     elif request.method == 'POST':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
         from apps.api.models import SystemSetting
         if 'reward_points' not in request.data or not request.data.get('reward_points'):
@@ -461,24 +462,24 @@ def quest_list_create(request):
                 print(f"Error sending notifications: {e}")
                 
             return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
-        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 @api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def quest_detail(request, id):
     if not request.user.is_admin_role:
-        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
     try:
         quest = Quest.objects.get(id=id)
     except Quest.DoesNotExist:
-        return error_response('not_found', 'Quest not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Quest not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PATCH':
         serializer = QuestSerializer(quest, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return success_response(serializer.data)
-        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
     elif request.method == 'DELETE':
         quest.delete()
         return success_response({'message': 'Quest deleted'})
@@ -495,29 +496,29 @@ def trivia_list_create(request):
         return success_response(TriviaFactSerializer(trivias, many=True).data)
     elif request.method == 'POST':
         if not request.user.is_admin_role:
-            return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         serializer = TriviaFactSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
-        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 @api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def trivia_detail(request, id):
     if not request.user.is_admin_role:
-        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
     try:
         trivia = TriviaFact.objects.get(id=id)
     except TriviaFact.DoesNotExist:
-        return error_response('not_found', 'Trivia not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Trivia not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PATCH':
         serializer = TriviaFactSerializer(trivia, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return success_response(serializer.data)
-        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
     elif request.method == 'DELETE':
         trivia.delete()
         return success_response({'message': 'Trivia deleted'})
@@ -528,7 +529,7 @@ def building_quiz(request, id):
     try:
         building = Building.objects.get(id=id, is_active=True, status__in=['VISIBLE', 'MAINTENANCE'])
     except Building.DoesNotExist:
-        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     
     from .models import UserQuizProgress
     answered_ids = UserQuizProgress.objects.filter(user=request.user, is_correct=True).values_list('question_id', flat=True)
@@ -548,12 +549,12 @@ def submit_quiz_answer(request):
     selected_option = request.data.get('selected_option')
     
     if not question_id or not selected_option:
-        return error_response('invalid_input', 'Missing question_id or selected_option', status_code=status.HTTP_400_BAD_REQUEST)
+        return error_response(ErrorCodes.INVALID_INPUT, 'Missing question_id or selected_option', status_code=status.HTTP_400_BAD_REQUEST)
     
     try:
         question = QuizQuestion.objects.get(id=question_id, is_active=True)
     except QuizQuestion.DoesNotExist:
-        return error_response('not_found', 'Question not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Question not found', status_code=status.HTTP_404_NOT_FOUND)
         
     is_correct = (selected_option == question.correct_option)
     exp_awarded = 0
@@ -595,7 +596,7 @@ def submit_quiz_answer(request):
 @permission_classes([IsAuthenticated])
 def quiz_question_list_create(request):
     if not request.user.is_admin_role:
-        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
     if request.method == 'GET':
         building_id = request.query_params.get('building_id')
@@ -610,25 +611,25 @@ def quiz_question_list_create(request):
         if serializer.is_valid():
             serializer.save()
             return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
-        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 @api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def quiz_question_detail(request, pk):
     if not request.user.is_admin_role:
-        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
     try:
         question = QuizQuestion.objects.get(id=pk)
     except QuizQuestion.DoesNotExist:
-        return error_response('not_found', 'Question not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Question not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PATCH':
         serializer = QuizQuestionSerializer(question, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return success_response(serializer.data)
-        return error_response('validation_error', 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
         
     elif request.method == 'DELETE':
         question.delete()

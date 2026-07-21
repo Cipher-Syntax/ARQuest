@@ -9,6 +9,7 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.core.mail import send_mail
 from django.conf import settings
 from apps.api.responses import success_response, error_response
+from apps.api.errors import ErrorCodes
 from .serializers import LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer, ResendOTPSerializer, CreateProfessionalSerializer
 from .models import User, EmailOTP
 
@@ -237,7 +238,7 @@ def current_user(request):
         if serializer.is_valid():
             serializer.save()
             return success_response({'user': serializer.data})
-        return error_response('validation_error', 'Invalid data', details=serializer.errors)
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', details=serializer.errors)
         
     return success_response({
         'user': UserSerializer(request.user).data
@@ -247,7 +248,7 @@ def current_user(request):
 @permission_classes([IsAuthenticated])
 def user_list(request):
     if not request.user.is_admin_role:
-        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
     users = User.objects.all().order_by('-date_joined')
     return success_response(UserSerializer(users, many=True).data)
 
@@ -255,7 +256,7 @@ def user_list(request):
 @permission_classes([IsAuthenticated])
 def create_professional(request):
     if not request.user.is_admin_role:
-        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
     
     serializer = CreateProfessionalSerializer(data=request.data)
     if not serializer.is_valid():
@@ -281,7 +282,7 @@ def create_professional(request):
 @permission_classes([IsAuthenticated])
 def delete_professional(request, pk):
     if not request.user.is_admin_role:
-        return error_response('permission_denied', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
     
     try:
         user = User.objects.get(pk=pk, role='professional')
@@ -293,7 +294,7 @@ def delete_professional(request, pk):
         )
         return success_response({'message': 'Professional account deleted successfully.'})
     except User.DoesNotExist:
-        return error_response('not_found', 'Professional account not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Professional account not found', status_code=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -324,7 +325,7 @@ def daily_checkin(request):
 def register_push_token(request):
     token = request.data.get('token')
     if not token:
-        return error_response('invalid_data', 'Token is required', status_code=status.HTTP_400_BAD_REQUEST)
+        return error_response(ErrorCodes.INVALID_DATA, 'Token is required', status_code=status.HTTP_400_BAD_REQUEST)
     
     from .models import UserDevice
     device, created = UserDevice.objects.update_or_create(

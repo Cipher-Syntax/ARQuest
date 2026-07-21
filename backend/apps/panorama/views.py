@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from apps.buildings.models import Building
 from apps.api.responses import success_response, error_response
+from apps.api.errors import ErrorCodes
 from .models import PanoramaScene, PanoramaHotspot
 from .serializers import (
     PanoramaSceneSerializer, 
@@ -18,16 +19,16 @@ def building_panorama_walkthrough(request, id):
     try:
         building = Building.objects.get(id=id, is_active=True)
     except Building.DoesNotExist:
-        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
     if request.user.is_visitor_role:
-        return error_response('permission_denied', 'Visitors cannot access panoramas', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot access panoramas', status_code=status.HTTP_403_FORBIDDEN)
         
     if request.user.is_student_role:
         from apps.buildings.models import BuildingUnlock
         is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
         if not is_unlocked:
-            return error_response('permission_denied', 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
     
     # Get active scenes for this building
     active_scenes = PanoramaScene.objects.filter(
@@ -36,7 +37,7 @@ def building_panorama_walkthrough(request, id):
     ).prefetch_related('hotspots')
     
     if not active_scenes.exists():
-        return error_response('not_found', 'No panorama walkthrough available', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'No panorama walkthrough available', status_code=status.HTTP_404_NOT_FOUND)
     
     # Get start scene
     start_scene = active_scenes.filter(is_start_scene=True).first()
@@ -61,16 +62,16 @@ def panorama_scene_detail(request, id):
     try:
         scene = PanoramaScene.objects.get(id=id, is_active=True)
     except PanoramaScene.DoesNotExist:
-        return error_response('not_found', 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
         
     if request.user.is_visitor_role:
-        return error_response('permission_denied', 'Visitors cannot access panoramas', status_code=status.HTTP_403_FORBIDDEN)
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot access panoramas', status_code=status.HTTP_403_FORBIDDEN)
         
     if request.user.is_student_role:
         from apps.buildings.models import BuildingUnlock
         is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=scene.building).exists()
         if not is_unlocked:
-            return error_response('permission_denied', 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
     
     serializer = PanoramaSceneSerializer(scene, context={'request': request})
     return success_response(serializer.data)
@@ -81,7 +82,7 @@ def building_scenes_admin(request, building_id):
     try:
         building = Building.objects.get(id=building_id)
     except Building.DoesNotExist:
-        return error_response('not_found', 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
     # GET: List all scenes for a building (Admin dashboard needs to see active and inactive)
     if request.method == 'GET':
@@ -99,7 +100,7 @@ def building_scenes_admin(request, building_id):
         if serializer.is_valid():
             serializer.save(building=building)
             return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
-        return error_response('validation_error', serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        return error_response(ErrorCodes.VALIDATION_ERROR, serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
@@ -113,7 +114,7 @@ def scene_detail_admin(request, id):
         scene.delete()
         return success_response({'message': 'Scene deleted successfully'})
     except PanoramaScene.DoesNotExist:
-        return error_response('not_found', 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET', 'POST'])
@@ -126,7 +127,7 @@ def scene_hotspots_admin(request, scene_id):
     try:
         scene = PanoramaScene.objects.get(id=scene_id)
     except PanoramaScene.DoesNotExist:
-        return error_response('not_found', 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
         
     if request.method == 'GET':
         hotspots = PanoramaHotspot.objects.filter(source_scene=scene)
@@ -139,7 +140,7 @@ def scene_hotspots_admin(request, scene_id):
         if serializer.is_valid():
             serializer.save(source_scene=scene)
             return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
-        return error_response('validation_error', serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        return error_response(ErrorCodes.VALIDATION_ERROR, serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PATCH', 'DELETE'])
@@ -152,14 +153,14 @@ def hotspot_detail_admin(request, id):
     try:
         hotspot = PanoramaHotspot.objects.get(id=id)
     except PanoramaHotspot.DoesNotExist:
-        return error_response('not_found', 'Hotspot not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Hotspot not found', status_code=status.HTTP_404_NOT_FOUND)
         
     if request.method == 'PATCH':
         serializer = PanoramaHotspotWriteSerializer(hotspot, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return success_response(serializer.data)
-        return error_response('validation_error', serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        return error_response(ErrorCodes.VALIDATION_ERROR, serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
         
     elif request.method == 'DELETE':
         hotspot.delete()

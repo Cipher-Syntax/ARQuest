@@ -1,0 +1,26 @@
+class ErrorCodes:
+    """Standardized API Error Codes"""
+    
+    # General & Validation
+    VALIDATION_ERROR = 'VALIDATION_ERROR'
+    NOT_FOUND = 'NOT_FOUND'
+    PERMISSION_DENIED = 'PERMISSION_DENIED'
+    INVALID_INPUT = 'INVALID_INPUT'
+    INVALID_DATA = 'INVALID_DATA'
+    UPLOAD_FAILED = 'UPLOAD_FAILED'
+    MAINTENANCE = 'MAINTENANCE'
+    
+    # Auth & Security
+    UNAUTHORIZED = 'UNAUTHORIZED'
+    
+    # Geofence & Location
+    GEOFENCE_OUTSIDE = 'GEOFENCE_OUTSIDE' 
+    LOCATION_REQUIRED = 'LOCATION_REQUIRED'
+    SPEED_VIOLATION = 'SPEED_VIOLATION'
+    
+    # QR Codes
+    INVALID_QR = 'INVALID_QR'
+    QR_TOO_FAR = 'QR_TOO_FAR'
+    
+    # Gamification
+    ALREADY_COMPLETED = 'ALREADY_COMPLETED'

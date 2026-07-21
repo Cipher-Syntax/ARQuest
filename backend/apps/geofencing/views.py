@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from apps.api.responses import success_response, error_response
+from apps.api.errors import ErrorCodes
 from apps.buildings.models import Building, Geofence
 from .serializers import LocationValidationSerializer
 from .utils import calculate_distance
@@ -11,7 +12,7 @@ class ValidateLocationView(APIView):
     def post(self, request):
         serializer = LocationValidationSerializer(data=request.data)
         if not serializer.is_valid():
-            return error_response('INVALID_INPUT', 'Invalid location data', status_code=400, details=serializer.errors)
+            return error_response(ErrorCodes.INVALID_INPUT, 'Invalid location data', status_code=400, details=serializer.errors)
 
         user_lat = serializer.validated_data['latitude']
         user_lon = serializer.validated_data['longitude']
