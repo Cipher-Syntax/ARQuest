@@ -28,8 +28,7 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 		return get_rank_info(obj.exploration_points)
 
 	def get_quests_completed(self, obj):
-		from .models import UserQuestProgress
-		return UserQuestProgress.objects.filter(user=obj, is_completed=True).count()
+		return getattr(obj, 'quests_completed_count', 0)
 
 class QuestSerializer(serializers.ModelSerializer):
 	target_building_name = serializers.CharField(source='target_building.name', read_only=True)
@@ -40,8 +39,12 @@ class QuestSerializer(serializers.ModelSerializer):
 		fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'is_completed', 'expires_at']
 
 	def get_is_completed(self, obj):
+		completed_ids = self.context.get('completed_quest_ids')
+		if completed_ids is not None:
+			return obj.id in completed_ids
+			
 		user = self.context.get('request').user
-		if user.is_authenticated:
+		if user and user.is_authenticated:
 			return UserQuestProgress.objects.filter(user=user, quest=obj, is_completed=True).exists()
 		return False
 

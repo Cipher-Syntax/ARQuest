@@ -80,9 +80,9 @@ def department_detail(request, id):
 def building_list_create(request):
     if request.method == 'GET':
         if getattr(request.user, 'is_admin_role', False):
-            buildings = Building.objects.all()
+            buildings = Building.objects.prefetch_related('geofences', 'departments').select_related('primary_department').all()
         else:
-            buildings = Building.objects.filter(status__in=['VISIBLE', 'MAINTENANCE'])
+            buildings = Building.objects.prefetch_related('geofences', 'departments').select_related('primary_department').filter(status__in=['VISIBLE', 'MAINTENANCE'])
         serializer = BuildingSerializer(buildings, many=True, context={'request': request})
         return success_response(serializer.data)
     
@@ -213,7 +213,8 @@ def unlock_building(request):
     active_buildings = Building.objects.filter(is_active=True, status__in=['VISIBLE', 'MAINTENANCE']).prefetch_related('geofences')
     
     for building in active_buildings:
-        geofence = building.geofences.filter(is_active=True).first()
+        geofences = [g for g in building.geofences.all() if g.is_active]
+        geofence = geofences[0] if geofences else None
         if not geofence:
             continue
 
