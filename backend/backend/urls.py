@@ -29,7 +29,7 @@ urlpatterns = [
     path('api/geofencing/', include('apps.geofencing.urls')),
     path('api/panorama/', include('apps.panorama.urls')),
     path('api/assets/', include('apps.buildings.asset_urls')),
-    path('api/gamification/', include('apps.buildings.gamification_urls')),
+    path('api/gamification/', include('apps.gamification.urls')),
 ]
 
 if settings.DEBUG:

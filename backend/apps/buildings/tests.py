@@ -759,7 +759,8 @@ class DepartmentAPITests(APITestCase):
         self.assertFalse(response.data['success'])
 
 from django.utils import timezone
-from .models import Building, Quest, SoftDeleteManager
+from .models import Building, SoftDeleteManager
+from apps.gamification.models import Quest
 
 class SoftDeleteTests(TestCase):
     def test_soft_delete_building_and_cascade(self):
@@ -954,7 +955,8 @@ class DepartmentAPITests(APITestCase):
         self.assertFalse(response.data['success'])
 
 from django.utils import timezone
-from .models import Building, Quest, SoftDeleteManager
+from .models import Building, SoftDeleteManager
+from apps.gamification.models import Quest
 
 class SoftDeleteTests(TestCase):
     def test_soft_delete_building_and_cascade(self):
@@ -1007,7 +1009,7 @@ class TriviaToggleTests(APITestCase):
         
         self.building = Building.objects.create(name='Test Building', slug='test-b', latitude=1, longitude=1, is_active=True, status='VISIBLE')
         self.quest = Quest.objects.create(title='Test Quest', hint='Hint', target_building=self.building, reward_points=10)
-        from .models import TriviaFact
+        from apps.quizzes.models import TriviaFact
         TriviaFact.objects.create(building=self.building, fact="Trivia!")
 
     def test_trivia_included_when_enabled(self):

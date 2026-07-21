@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Quest, TriviaFact, Department
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Department
+from apps.gamification.models import Quest
+from apps.quizzes.models import TriviaFact
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -24,19 +26,8 @@ class DepartmentWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Code must be slug-safe (letters, numbers, hyphens, underscores only).')
         return value
 
-class QuestSerializer(serializers.ModelSerializer):
-    target_building_name = serializers.CharField(source='target_building.name', read_only=True)
 
-    class Meta:
-        model = Quest
-        fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'is_active', 'expires_at', 'created_at']
 
-class TriviaFactSerializer(serializers.ModelSerializer):
-    building_name = serializers.CharField(source='building.name', read_only=True)
-
-    class Meta:
-        model = TriviaFact
-        fields = ['id', 'building', 'building_name', 'fact', 'is_active', 'created_at', 'updated_at']
 class GeofenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Geofence

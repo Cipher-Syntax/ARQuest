@@ -416,112 +416,9 @@ def asset_metadata(request, id):
     return success_response(serializer.data)
 
 
-# Quests and Trivias
 
-from .models import Quest, TriviaFact, QuizQuestion
-from .serializers import QuestSerializer, TriviaFactSerializer
-from .gamification_serializers import QuizQuestionSerializer
 
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
-def quest_list_create(request):
-    if request.method == 'GET':
-        quests = Quest.objects.all().order_by('-created_at')
-        return success_response(QuestSerializer(quests, many=True).data)
-    elif request.method == 'POST':
-        if not request.user.is_admin_role:
-            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
-        
-        from apps.api.models import SystemSetting
-        if 'reward_points' not in request.data or not request.data.get('reward_points'):
-            if hasattr(request.data, '_mutable'):
-                request.data._mutable = True
-            request.data['reward_points'] = SystemSetting.get_settings().default_quest_reward
-            
-        serializer = QuestSerializer(data=request.data)
-        if serializer.is_valid():
-            quest = serializer.save()
-            
-            # Send Push Notification
-            try:
-                from apps.authentication.models import UserDevice
-                from apps.core.notifications import send_push_notifications
-                
-                tokens = UserDevice.objects.values_list('push_token', flat=True)
-                
-                if tokens:
-                    messages = [{
-                        "to": token,
-                        "title": f"New Quest: {quest.title}",
-                        "body": "Tap to view your new mission!",
-                        "data": {"type": "quest", "quest_id": str(quest.id)}
-                    } for token in set(tokens)]
-                    
-                    send_push_notifications(messages)
-            except Exception as e:
-                print(f"Error sending notifications: {e}")
-                
-            return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
-        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
-@api_view(['PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
-def quest_detail(request, id):
-    if not request.user.is_admin_role:
-        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
-    try:
-        quest = Quest.objects.get(id=id)
-    except Quest.DoesNotExist:
-        return error_response(ErrorCodes.NOT_FOUND, 'Quest not found', status_code=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'PATCH':
-        serializer = QuestSerializer(quest, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return success_response(serializer.data)
-        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
-    elif request.method == 'DELETE':
-        quest.delete()
-        return success_response({'message': 'Quest deleted'})
-
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
-def trivia_list_create(request):
-    if request.method == 'GET':
-        building_id = request.query_params.get('building_id')
-        if building_id:
-            trivias = TriviaFact.objects.filter(building_id=building_id).order_by('-created_at')
-        else:
-            trivias = TriviaFact.objects.all().order_by('-created_at')
-        return success_response(TriviaFactSerializer(trivias, many=True).data)
-    elif request.method == 'POST':
-        if not request.user.is_admin_role:
-            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
-        serializer = TriviaFactSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
-        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
-
-@api_view(['PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
-def trivia_detail(request, id):
-    if not request.user.is_admin_role:
-        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
-    try:
-        trivia = TriviaFact.objects.get(id=id)
-    except TriviaFact.DoesNotExist:
-        return error_response(ErrorCodes.NOT_FOUND, 'Trivia not found', status_code=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'PATCH':
-        serializer = TriviaFactSerializer(trivia, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return success_response(serializer.data)
-        return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
-    elif request.method == 'DELETE':
-        trivia.delete()
-        return success_response({'message': 'Trivia deleted'})
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -531,7 +428,7 @@ def building_quiz(request, id):
     except Building.DoesNotExist:
         return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     
-    from .models import UserQuizProgress
+    from apps.quizzes.models import UserQuizProgress
     answered_ids = UserQuizProgress.objects.filter(user=request.user, is_correct=True).values_list('question_id', flat=True)
     questions = list(QuizQuestion.objects.filter(building=building, is_active=True).exclude(id__in=answered_ids))
     
@@ -560,7 +457,7 @@ def submit_quiz_answer(request):
     exp_awarded = 0
     newly_earned_badges = []
     
-    from .models import UserQuizProgress
+    from apps.quizzes.models import UserQuizProgress
     with transaction.atomic():
         progress, created = UserQuizProgress.objects.get_or_create(user=request.user, question=question)
         progress = UserQuizProgress.objects.select_for_update().get(id=progress.id)

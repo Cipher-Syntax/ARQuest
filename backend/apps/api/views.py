@@ -16,13 +16,14 @@ def health_check(request):
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from datetime import timedelta
-from apps.buildings.models import Building, BuildingUnlock, TriviaFact
+from apps.buildings.models import Building, BuildingUnlock
+from apps.gamification.models import UserQuestProgress
+from apps.quizzes.models import TriviaFact
 from apps.authentication.models import User
 from .responses import success_response, error_response
 from .errors import ErrorCodes
 
 from django.db.models import Count
-from apps.buildings.models import UserQuestProgress
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'role', 'email_verified', 'exploration_points', 'streak_count', 'last_login_date', 'date_joined']
 
     def get_rank_info(self, obj):
-        from apps.buildings.gamification_utils import get_rank_info
+        from apps.gamification.utils import get_rank_info
         return get_rank_info(obj.exploration_points)
 
 

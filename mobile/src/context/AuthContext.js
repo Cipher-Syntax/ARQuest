@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import {} from "react-native";
 import { customAlert as Alert } from "../components/CustomAlert";
 import { api } from "../services/api";
@@ -6,38 +6,23 @@ import { authService } from "../services/authService";
 import NetInfo from "@react-native-community/netinfo";
 import { offlineQueueService } from "../services/offlineQueueService";
 
-const AuthContext = createContext(null);
+const AuthStateContext = createContext(null);
+const AuthActionsContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        checkToken();
-
-        // Listen for network restoration to process offline queue
-        const unsubscribe = NetInfo.addEventListener((state) => {
-            if (state.isConnected) {
-                offlineQueueService.processQueue();
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    const checkToken = async () => {
+    const checkToken = useCallback(async () => {
         try {
             const token = await authService.getAccessToken();
             if (token) {
                 const response = await api.get("/api/auth/me/");
-                // The backend `success_response` wraps in { data: { user: {...} } }
                 const payload = response.data.data || response.data;
                 const restoredUser = payload.user;
                 setUser((prev) => {
                     if (prev?.rank_info && restoredUser?.rank_info) {
-                        if (
-                            restoredUser.rank_info.level > prev.rank_info.level
-                        ) {
+                        if (restoredUser.rank_info.level > prev.rank_info.level) {
                             setTimeout(() => {
                                 Alert(
                                     `⭐ Level Up!`,
@@ -50,19 +35,16 @@ export const AuthProvider = ({ children }) => {
                     return restoredUser;
                 });
 
-                // Fire daily streak on every app open — safe to call repeatedly,
-                // update_streak() is a no-op when already checked in today.
                 let streakBonusExp = 0;
                 try {
                     const checkinRes = await api.post("/api/auth/checkin/");
                     const checkinData = checkinRes.data.data || checkinRes.data;
                     streakBonusExp = checkinData.streak_bonus_exp || 0;
 
-                    // Sync the updated streak_count back into local user state
-                    let newStreak =
-                        checkinData.streak_count !== undefined
+                    let newStreak = checkinData.streak_count !== undefined
                             ? checkinData.streak_count
                             : restoredUser.streak_count;
+                            
                     if (checkinData.streak_count !== undefined) {
                         setUser((prev) => ({
                             ...prev,
@@ -70,15 +52,9 @@ export const AuthProvider = ({ children }) => {
                         }));
                     }
 
-                    // Show global toast for daily check-in and milestones
                     if (streakBonusExp > 0) {
-                        // Small delay ensures the UI is ready before showing the alert
                         setTimeout(() => {
-                            if (
-                                streakBonusExp === 10 &&
-                                newStreak > 0 &&
-                                newStreak % 3 === 0
-                            ) {
+                            if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
                                 Alert(
                                     `🔥 ${newStreak}-Day Streak!`,
                                     `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
@@ -94,7 +70,6 @@ export const AuthProvider = ({ children }) => {
                         }, 500);
                     }
                 } catch (checkinErr) {
-                    // Non-fatal — streak update failure should not break session restore
                     console.log("Checkin failed (non-fatal):", checkinErr);
                 }
 
@@ -107,29 +82,22 @@ export const AuthProvider = ({ children }) => {
             setIsLoading(false);
         }
         return null;
-    };
+    }, []);
 
-    const login = async (username, password) => {
+    const login = useCallback(async (username, password) => {
         setIsLoading(true);
         try {
-            const response = await api.post("/api/auth/login/", {
-                username,
-                password,
-            });
-
-            // Extract tokens from the response
+            const response = await api.post("/api/auth/login/", { username, password });
             const payload = response.data.data || response.data;
             const { access, refresh } = payload;
             await authService.setTokens(access, refresh);
-
-            // checkToken handles the checkin + streak update
             return await checkToken();
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [checkToken]);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         setIsLoading(true);
         try {
             const refresh = await authService.getRefreshToken();
@@ -143,21 +111,55 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             setIsLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        checkToken();
+
+        const unsubscribe = NetInfo.addEventListener((state) => {
+            if (state.isConnected) {
+                offlineQueueService.processQueue();
+            }
+        });
+
+        return () => unsubscribe();
+    }, [checkToken]);
+
+    const stateValue = useMemo(() => ({
+        user,
+        isLoading
+    }), [user, isLoading]);
+
+    const actionsValue = useMemo(() => ({
+        login,
+        logout,
+        checkToken
+    }), [login, logout, checkToken]);
 
     return (
-        <AuthContext.Provider
-            value={{ user, isLoading, login, logout, checkToken }}
-        >
-            {children}
-        </AuthContext.Provider>
+        <AuthStateContext.Provider value={stateValue}>
+            <AuthActionsContext.Provider value={actionsValue}>
+                {children}
+            </AuthActionsContext.Provider>
+        </AuthStateContext.Provider>
     );
 };
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth must be used within an AuthProvider");
-    }
+export const useAuthState = () => {
+    const context = useContext(AuthStateContext);
+    if (!context) throw new Error("useAuthState must be used within an AuthProvider");
     return context;
+};
+
+export const useAuthActions = () => {
+    const context = useContext(AuthActionsContext);
+    if (!context) throw new Error("useAuthActions must be used within an AuthProvider");
+    return context;
+};
+
+// Backwards compatibility layer
+export const useAuth = () => {
+    const state = useAuthState();
+    const actions = useAuthActions();
+    return useMemo(() => ({ ...state, ...actions }), [state, actions]);
 };
