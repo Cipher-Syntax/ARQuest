@@ -178,7 +178,7 @@ class CompleteQuestView(views.APIView):
 		newly_earned_badges = check_and_award_badges(user)
 
 		from apps.api.models import SystemSetting
-		from .serializers import TriviaFactSerializer
+		from apps.quizzes.serializers import TriviaFactSerializer
 
 		trivia_fact = None
 		if SystemSetting.get_settings().enable_trivia:
@@ -192,7 +192,7 @@ class CompleteQuestView(views.APIView):
 			'newly_earned_badges': newly_earned_badges,
 		}
 
-		from apps.buildings.gamification_utils import get_rank_info
+		from .utils import get_rank_info
 		response_data['rank_info'] = get_rank_info(user.exploration_points)
 
 		if trivia_fact:

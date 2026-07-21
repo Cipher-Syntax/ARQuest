@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from apps.buildings.models import Badge
+from apps.gamification.models import Badge
 
 
 class Command(BaseCommand):

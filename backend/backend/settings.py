@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'apps.api',
     'apps.geofencing',
     'apps.panorama',
+    'apps.gamification',
+    'apps.quizzes',
 ]
 
 REST_FRAMEWORK = {

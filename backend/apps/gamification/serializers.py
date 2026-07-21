@@ -1,11 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Quest, UserQuestProgress, Badge, UserBadge, QuizQuestion
-
-class QuizQuestionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = QuizQuestion
-        fields = ['id', 'building', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_option', 'exp_reward']
+from apps.gamification.models import Quest, UserQuestProgress, Badge, UserBadge
 
 
 User = get_user_model()
@@ -24,7 +19,7 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 		return self.context.get('rank', 0)
 
 	def get_rank_info(self, obj):
-		from apps.buildings.gamification_utils import get_rank_info
+		from .utils import get_rank_info
 		return get_rank_info(obj.exploration_points)
 
 	def get_quests_completed(self, obj):
