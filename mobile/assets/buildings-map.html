@@ -327,7 +327,13 @@
 
                 el.addEventListener('click', (e) => {
                     e.stopPropagation(); // prevent map click
-                    if (window.ReactNativeWebView) {
+                    if (window.ARBridge) {
+                        window.ARBridge.sendMessage("building_click", {
+                            buildingId: b.id,
+                            isUnlocked: isUnlocked,
+                            name: b.name,
+                        });
+                    } else if (window.ReactNativeWebView) {
                         window.ReactNativeWebView.postMessage(
                             JSON.stringify({
                                 type: "building_click",

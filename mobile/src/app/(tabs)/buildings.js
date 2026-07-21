@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { customAlert as Alert } from "../../components/CustomAlert";
 import { WebView } from "react-native-webview";
+import { INJECTED_BRIDGE_SCRIPT, createBridgeMessage, parseBridgeMessage } from "../../utils/WebViewBridge";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -76,8 +77,7 @@ export default function BuildingsScreen() {
     useEffect(() => {
         if (webViewReady && webViewRef.current && allBuildings.length > 0) {
             const unlockedIds = unlockedBuildings.map((b) => b.id);
-            const message = JSON.stringify({
-                type: "update",
+            const message = createBridgeMessage("update", {
                 buildings: allBuildings,
                 unlockedIds: unlockedIds, 
                 mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
@@ -88,32 +88,35 @@ export default function BuildingsScreen() {
     }, [webViewReady, allBuildings, unlockedBuildings, location]);
 
     const handleMessage = (event) => {
-        try {
-            const data = JSON.parse(event.nativeEvent.data);
-            if (data.type === "building_click") {
-                const building = allBuildings.find(
-                    (b) => b.id === data.buildingId,
-                );
-                
-                if (data.isUnlocked || role === "visitor" || (building && building.status === "MAINTENANCE")) {
-                    const unlockedData =
-                        unlockedBuildings.find(
-                            (b) => b.id === data.buildingId,
-                        ) || {};
-                    if (building) {
-                        setSelectedBuilding({ ...building, ...unlockedData });
-                        setModalVisible(true);
-                    }
-                } else {
-                    Alert(
-                        "ZONE LOCKED",
-                        `You must physically deploy to ${data.name} to unlock its AR capabilities.`,
-                        [{ text: "ACKNOWLEDGE" }],
-                    );
+        const result = parseBridgeMessage(event.nativeEvent.data);
+        if (!result.success) {
+            console.error("WebView bridge parsing error", result.error);
+            return;
+        }
+
+        const { type, payload } = result.data;
+
+        if (type === "building_click") {
+            const building = allBuildings.find(
+                (b) => b.id === payload.buildingId,
+            );
+            
+            if (payload.isUnlocked || role === "visitor" || (building && building.status === "MAINTENANCE")) {
+                const unlockedData =
+                    unlockedBuildings.find(
+                        (b) => b.id === payload.buildingId,
+                    ) || {};
+                if (building) {
+                    setSelectedBuilding({ ...building, ...unlockedData });
+                    setModalVisible(true);
                 }
+            } else {
+                Alert(
+                    "ZONE LOCKED",
+                    `You must physically deploy to ${payload.name} to unlock its AR capabilities.`,
+                    [{ text: "ACKNOWLEDGE" }],
+                );
             }
-        } catch (e) {
-            console.error("WebView message error", e);
         }
     };
 
@@ -210,13 +213,11 @@ export default function BuildingsScreen() {
         setIsSearchFocused(false);
 
         if (webViewRef.current) {
-            webViewRef.current.postMessage(
-                JSON.stringify({
-                    type: "draw_route",
-                    buildingId: building.id,
-                    sourceBuildingId: routeOrigin ? routeOrigin.id : null,
-                }),
-            );
+            const message = createBridgeMessage("draw_route", {
+                buildingId: building.id,
+                sourceBuildingId: routeOrigin ? routeOrigin.id : null,
+            });
+            webViewRef.current.postMessage(message);
         }
     };
 
@@ -226,13 +227,11 @@ export default function BuildingsScreen() {
         setIsOriginFocused(false);
 
         if (routeTarget && webViewRef.current) {
-            webViewRef.current.postMessage(
-                JSON.stringify({
-                    type: "draw_route",
-                    buildingId: routeTarget.id,
-                    sourceBuildingId: building.id,
-                }),
-            );
+            const message = createBridgeMessage("draw_route", {
+                buildingId: routeTarget.id,
+                sourceBuildingId: building.id,
+            });
+            webViewRef.current.postMessage(message);
         }
     };
 
@@ -240,13 +239,11 @@ export default function BuildingsScreen() {
         setRouteOrigin(null);
         setOriginQuery("");
         if (routeTarget && webViewRef.current) {
-            webViewRef.current.postMessage(
-                JSON.stringify({
-                    type: "draw_route",
-                    buildingId: routeTarget.id,
-                    sourceBuildingId: null,
-                }),
-            );
+            const message = createBridgeMessage("draw_route", {
+                buildingId: routeTarget.id,
+                sourceBuildingId: null,
+            });
+            webViewRef.current.postMessage(message);
         }
     };
 
@@ -255,11 +252,8 @@ export default function BuildingsScreen() {
         setSearchQuery("");
 
         if (webViewRef.current) {
-            webViewRef.current.postMessage(
-                JSON.stringify({
-                    type: "clear_route",
-                }),
-            );
+            const message = createBridgeMessage("clear_route");
+            webViewRef.current.postMessage(message);
         }
     };
 
@@ -290,6 +284,7 @@ export default function BuildingsScreen() {
                 allowFileAccess={true}
                 allowUniversalAccessFromFileURLs={true}
                 originWhitelist={["*"]}
+                injectedJavaScript={INJECTED_BRIDGE_SCRIPT}
             />
 
             {/* Routing Search Overlay */}
