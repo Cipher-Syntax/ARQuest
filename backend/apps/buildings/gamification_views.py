@@ -53,7 +53,10 @@ class LeaderboardView(views.APIView):
 	permission_classes = [IsAuthenticated]
 
 	def get(self, request):
-		users = User.objects.filter(is_active=True, role='student').order_by('-exploration_points')[:50]
+		from django.db.models import Count, Q
+		users = User.objects.filter(is_active=True, role='student').annotate(
+			quests_completed_count=Count('quest_progress', filter=Q(quest_progress__is_completed=True))
+		).order_by('-exploration_points')[:50]
 		data = []
 		for index, user in enumerate(users):
 			serializer = LeaderboardSerializer(user, context={'rank': index + 1})
@@ -86,7 +89,7 @@ class ActiveQuestsView(views.APIView):
 
 		available_quests = list(Quest.objects.filter(is_active=True).filter(
 			expires_at__isnull=True
-		).exclude(id__in=completed_quest_ids))
+		).exclude(id__in=completed_quest_ids).select_related('target_building'))
 
 		if not available_quests:
 			return Response({'success': True, 'data': []})
@@ -115,16 +118,17 @@ class ChallengesView(views.APIView):
 	def get(self, request):
 		user = request.user
 		from django.utils import timezone
-		from django.db.models import Q
 		now = timezone.now()
 		
 		# Active challenges that haven't expired
 		challenges = Quest.objects.filter(
 			is_active=True,
 			expires_at__gt=now
-		)
+		).select_related('target_building')
 
-		serializer = QuestSerializer(challenges, many=True, context={'request': request})
+		completed_ids = set(UserQuestProgress.objects.filter(user=user, is_completed=True).values_list('quest_id', flat=True))
+
+		serializer = QuestSerializer(challenges, many=True, context={'request': request, 'completed_quest_ids': completed_ids})
 		
 		return Response({
 			'success': True,

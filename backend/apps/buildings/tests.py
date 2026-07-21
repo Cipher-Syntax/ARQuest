@@ -350,7 +350,7 @@ class GeofenceAPITest(APITestCase):
         response = self.client.get(f'/api/buildings/{self.building.id}/geofence/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data['success'])
-        self.assertEqual(response.data['data']['id'], geofence.id)
+        self.assertEqual(response.data['data']['id'], str(geofence.id))
     
     def test_get_geofence_none(self):
         self.client.force_authenticate(user=self.student)

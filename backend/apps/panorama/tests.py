@@ -116,7 +116,7 @@ class PanoramaAPITestCase(TestCase):
         start_scene = response.data['data']['start_scene']
         self.assertEqual(len(start_scene['hotspots']), 1)
         self.assertEqual(start_scene['hotspots'][0]['label'], 'Go to Hallway')
-        self.assertEqual(start_scene['hotspots'][0]['target_scene_id'], self.scene2.id)
+        self.assertEqual(start_scene['hotspots'][0]['target_scene_id'], str(self.scene2.id))
     
     def test_building_panorama_not_found(self):
         """Test 404 for building without panorama"""
