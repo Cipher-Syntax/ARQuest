@@ -30,6 +30,7 @@ import { router } from "expo-router";
 import { api } from "../../services/api";
 import theme from "../../theme/tokens";
 import { useAuth } from "../../hooks/useAuth";
+import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { AVATARS } from "../../constants/Avatars";
 import { fonts } from "../../constants/typography";
 import FeedbackModal from "../../components/FeedbackModal";
@@ -37,6 +38,7 @@ import { customAlert as Alert } from "../../components/CustomAlert";
 
 export default function ProfileScreen() {
     const { user, logout, checkToken } = useAuth();
+    const { stopTracking } = useLocationTracking();
     const [myStats, setMyStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [badgeCount, setBadgeCount] = useState(null);
@@ -530,7 +532,10 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* Logout Button */}
-                <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+                <TouchableOpacity style={styles.logoutButton} onPress={() => {
+                    if (stopTracking) stopTracking();
+                    logout();
+                }}>
                     <LogOut
                         size={20}
                         color={theme.colors.error}

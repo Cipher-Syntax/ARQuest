@@ -29,13 +29,12 @@ import QuizModal from "../../components/QuizModal";
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading: isUnlockedLoading } =
         useUnlockedBuildings();
-    const { location, startTracking } = useLocationTracking();
+    const { location } = useLocationTracking();
     const { canAccessBuildingFeatures, canView3D, canViewPanorama, role } =
         useRoleAccess();
     const router = useRouter();
 
     useEffect(() => {
-        startTracking();
     }, []);
 
     const [allBuildings, setAllBuildings] = useState([]);
@@ -256,8 +255,9 @@ export default function BuildingsScreen() {
             webViewRef.current.postMessage(message);
         }
     };
+    const { mapHtmlString } = require("../../../assets/buildings-map");
 
-    const mapHtml = require("../../../assets/buildings-map.html");
+    const mapHtml = mapHtmlString;
 
     return (
         <View style={styles.container}>
@@ -275,16 +275,29 @@ export default function BuildingsScreen() {
 
             <WebView
                 ref={webViewRef}
-                source={mapHtml}
+                source={{ html: mapHtml, baseUrl: 'https://api.mapbox.com/' }}
                 style={styles.webview}
                 onMessage={handleMessage}
-                onLoadEnd={() => setWebViewReady(true)}
+                onLoadEnd={() => {
+                    console.log("[WebView] Load End Triggered");
+                    setWebViewReady(true);
+                }}
+                onError={(syntheticEvent) => {
+                    const { nativeEvent } = syntheticEvent;
+                    console.warn('[WebView] WebView error: ', nativeEvent);
+                }}
+                onHttpError={(syntheticEvent) => {
+                    const { nativeEvent } = syntheticEvent;
+                    console.warn('[WebView] HTTP error: ', nativeEvent);
+                }}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 allowFileAccess={true}
+                allowFileAccessFromFileURLs={true}
                 allowUniversalAccessFromFileURLs={true}
                 originWhitelist={["*"]}
                 injectedJavaScript={INJECTED_BRIDGE_SCRIPT}
+                mixedContentMode="always"
             />
 
             {/* Routing Search Overlay */}

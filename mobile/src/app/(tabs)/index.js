@@ -54,13 +54,14 @@ export default function HomeScreen() {
     const FULL_ITEM_WIDTH = ITEM_WIDTH + ITEM_SPACING;
     const INSET_HORIZONTAL = (CAROUSEL_WIDTH - ITEM_WIDTH) / 2;
 
-    const { location, startTracking } = useLocationTracking();
+    const { location } = useLocationTracking();
     const [buildings, setBuildings] = useState([]);
     const [nearestBuilding, setNearestBuilding] = useState(null);
     const [distanceToNearest, setDistanceToNearest] = useState(null);
 
     useEffect(() => {
-        startTracking();
+        // We only want tracking to start manually on Explore tab
+        // startTracking();
     }, []);
 
     // Gamification Backend States

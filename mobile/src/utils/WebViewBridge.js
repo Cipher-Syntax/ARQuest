@@ -36,7 +36,7 @@ export const createBridgeMessage = (type, payload = {}, correlationId = null) =>
   return JSON.stringify({
     type,
     payload,
-    correlationId: correlationId || \`rn_req_\${Date.now()}_\${Math.random().toString(36).substr(2, 9)}\`,
+    correlationId: correlationId || `rn_req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     timestamp: Date.now(),
     source: 'REACT_NATIVE'
   });
