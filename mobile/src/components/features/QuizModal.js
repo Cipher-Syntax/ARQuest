@@ -9,10 +9,10 @@ import {
     Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import theme from "../theme/tokens";
-import { fonts } from "../constants/typography";
-import api from "../services/api";
-import SoundManager from "../utils/SoundManager";
+import theme from "../../theme/tokens";
+import { fonts } from "../../constants/typography";
+import api from "../../services/api";
+import SoundManager from "../../utils/SoundManager";
 
 export default function QuizModal({ visible, building, onClose }) {
     const [questions, setQuestions] = useState([]);

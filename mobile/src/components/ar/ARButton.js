@@ -5,8 +5,8 @@ import {
     StyleSheet,
     ActivityIndicator,
 } from "react-native";
-import theme from "../theme/tokens";
-import { fonts } from "../constants/typography";
+import theme from "../../theme/tokens";
+import { fonts } from "../../constants/typography";
 
 export default function ARButton({
     title,

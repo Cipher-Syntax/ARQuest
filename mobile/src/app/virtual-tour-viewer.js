@@ -6,7 +6,7 @@ import {
     ActivityIndicator,
     TouchableOpacity,
 } from "react-native";
-import { customAlert as Alert } from "../components/CustomAlert";
+import { customAlert as Alert } from "../components/ui/CustomAlert";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";

@@ -1,7 +1,7 @@
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import theme from "../theme/tokens";
-import { fonts } from "../constants/typography";
+import theme from "../../theme/tokens";
+import { fonts } from "../../constants/typography";
 import { AlertCircle, Info } from "lucide-react-native";
 
 export const alertRef = React.createRef();

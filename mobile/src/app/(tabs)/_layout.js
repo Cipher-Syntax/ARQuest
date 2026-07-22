@@ -9,7 +9,7 @@ import { UnlockedBuildingsProvider } from "../../context/UnlockedBuildingsContex
 import { Redirect } from "expo-router";
 import { registerForPushNotificationsAsync } from "../../utils/pushNotifications";
 import { useEffect } from "react";
-import OnboardingTutorial from "../../components/OnboardingTutorial";
+import OnboardingTutorial from "../../components/features/OnboardingTutorial";
 
 function CustomTabBar({ state, descriptors, navigation }) {
     return (

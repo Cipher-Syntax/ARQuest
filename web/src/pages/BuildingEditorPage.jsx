@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { buildingService } from "../services/buildingService";
 import { departmentService } from "../services/departmentService";
-import GeofenceEditor from "../components/GeofenceEditor";
+import GeofenceEditor from "../components/map/GeofenceEditor";
 import DragDropFileUpload from "../components/common/DragDropFileUpload";
 import { theme } from "../theme";
 import { validateForm, validateString } from "../utils/validation";

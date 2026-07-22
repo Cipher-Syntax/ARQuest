@@ -9,12 +9,12 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from "react-native";
-import { customAlert as Alert } from "../../components/CustomAlert";
+import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import theme from "../../theme/tokens";
 import { api } from "../../services/api";
-import ARGlassCard from "../../components/ARGlassCard";
-import ARButton from "../../components/ARButton";
+import ARGlassCard from "../../components/ar/ARGlassCard";
+import ARButton from "../../components/ar/ARButton";
 import { validateString } from "../../utils/validation";
 
 export default function VerifyOtpScreen() {

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Map, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-gl/mapbox";
 import circle from "@turf/circle";
-import { theme } from "../theme";
+import { theme } from "../../theme";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@google/model-viewer";
 

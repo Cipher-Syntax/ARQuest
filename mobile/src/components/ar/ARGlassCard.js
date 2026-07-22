@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
-import theme from "../theme/tokens";
+import theme from "../../theme/tokens";
 
 export default function ARGlassCard({ children, style }) {
     return (

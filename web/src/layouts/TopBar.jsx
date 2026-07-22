@@ -1,7 +1,7 @@
 import React from "react";
 import { Bell, Search, User } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import NotificationDropdown from "../components/NotificationDropdown";
+import NotificationDropdown from "../components/layout/NotificationDropdown";
 
 export default function TopBar({ user }) {
     const location = useLocation();

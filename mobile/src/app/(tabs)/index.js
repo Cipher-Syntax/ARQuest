@@ -19,8 +19,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
-import ARGlassCard from "../../components/ARGlassCard";
-import ARButton from "../../components/ARButton";
+import ARGlassCard from "../../components/ar/ARGlassCard";
+import ARButton from "../../components/ar/ARButton";
 import {
     Trophy,
     Compass,
