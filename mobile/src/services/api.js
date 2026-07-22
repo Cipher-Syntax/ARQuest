@@ -1,5 +1,5 @@
 import axios from "axios";
-import { authService } from "./authService";
+import { authService } from "./auth/authService";
 
 const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -84,7 +84,7 @@ api.interceptors.response.use(
             ) {
                 const {
                     offlineQueueService,
-                } = require("./offlineQueueService");
+                } = require("./core/offlineQueueService");
                 const data = originalRequest.data
                     ? JSON.parse(originalRequest.data)
                     : null;

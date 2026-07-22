@@ -27,7 +27,7 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { api } from "../../services/api";
+import { api } from "../../services";
 import theme from "../../theme/tokens";
 import { useAuth } from "../../hooks/useAuth";
 import { useLocationTracking } from "../../hooks/useLocationTracking";

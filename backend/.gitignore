@@ -52,3 +52,8 @@ Thumbs.db
 
 celerybeat-schedule
 celerybeat.pid
+# Environment Variables
+.env
+.env.*
+.env.local
+.env.*.local

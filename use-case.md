@@ -21,20 +21,21 @@ flowchart TB
             UC2(["Explore Campus via GPS"])
             UC3(["Unlock Building (Geofence/QR)"])
             UC5(["Complete Quest & Claim Points"])
+            UC5B(["Take Building Quiz"])
             UC6(["Take Branded AR Selfie"])
             UC4(["View 3D Model & Walkthrough"])
             UC14(["Manage Account Settings & Avatar"])
             UC7(["Access VR Virtual Tour"])
             
             %% Force vertical list to prevent horizontal spread
-            UC1 ~~~ UC2 ~~~ UC3 ~~~ UC5 ~~~ UC6 ~~~ UC4 ~~~ UC14 ~~~ UC7
+            UC1 ~~~ UC2 ~~~ UC3 ~~~ UC5 ~~~ UC5B ~~~ UC6 ~~~ UC4 ~~~ UC14 ~~~ UC7
         end
 
         subgraph Web ["Web Dashboard"]
             UC8(["Manage Buildings & Departments"])
             UC9(["Configure Map Geofences"])
-            UC10(["Upload 3D Models & Media"])
-            UC11(["Manage Quests & Trivia"])
+            UC10(["Manage Building Assets (3D/Pano)"])
+            UC11(["Create Quests, Quizzes & Trivia"])
             UC12(["Manage Users & Professionals"])
             UC13(["Toggle System Feature Flags"])
             UC15(["View History, Logs & Notifications"])
@@ -48,9 +49,10 @@ flowchart TB
     Student --- UC1
     Student --- UC2
     Student --- UC3
-    Student --- UC5
-    Student --- UC6
     Student --- UC4
+    Student --- UC5
+    Student --- UC5B
+    Student --- UC6
     Student --- UC14
 
     %% Professional Connections (Middle)

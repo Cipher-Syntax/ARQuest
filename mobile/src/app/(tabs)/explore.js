@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
     View,
     Text,
@@ -16,9 +16,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
-import { geofencingService } from "../../services/geofencingService";
+import { geofencingService } from "../../services";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
-import api from "../../services/api";
+import { api } from "../../services";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
 import { useAuth } from "../../context/AuthContext";
@@ -45,8 +45,15 @@ export default function ExploreScreen() {
     const [activeQuests, setActiveQuests] = useState([]);
     const [earnedBadges, setEarnedBadges] = useState([]);
     const badgeAnim = useRef(new Animated.Value(0)).current;
-
     const [refreshing, setRefreshing] = useState(false);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            return () => {
+                stopTracking();
+            };
+        }, [stopTracking])
+    );
 
     const loadData = async () => {
         try {

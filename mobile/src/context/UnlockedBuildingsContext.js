@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
-import { unlockService } from "../services/unlockService";
+import { unlockService } from "../services";
 
 const UnlockedBuildingsStateContext = createContext(null);
 const UnlockedBuildingsActionsContext = createContext(null);

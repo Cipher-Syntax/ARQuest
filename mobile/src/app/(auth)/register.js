@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import theme from "../../theme/tokens";
-import { api } from "../../services/api";
+import { api } from "../../services";
 import { Eye, EyeOff } from "lucide-react-native";
 import ARGlassCard from "../../components/ar/ARGlassCard";
 import ARButton from "../../components/ar/ARButton";

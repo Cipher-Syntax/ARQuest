@@ -26,7 +26,8 @@ flowchart LR
         P5["Gamification Engine (Points & Quest Tracking)"]
         P6["Content Management & Soft-Delete Archiving"]
         P7["Notification & Feedback Processing"]
-        P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
+        P8["Centralized Mobile State Management"]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8
     end
 
     subgraph OUTPUT ["Outputs"]
@@ -62,7 +63,8 @@ The core logic of ARQuest resides in its processing layer, primarily handled by 
 - **Location Processing**: The geofencing engine uses the Haversine formula to validate user proximity to building boundaries.
 - **Visualization Rendering**: Three.js engines inside mobile WebViews parse 3D models and map equirectangular images into interactive 360° spheres or Magic Window VR views with Gyroscope controls.
 - **Gamification Logic**: The backend validates quest completions, calculates reward points and daily streaks, issues trivia facts, and updates user progress atomically.
-- **Security & Access**: All incoming requests are routed through JWT validation and strict Role-Based Access Control (RBAC) to ensure users only access what their role (Student, Admin, Professional) permits.
+- **Security & Access**: All incoming requests are routed through JWT validation and strict Role-Based Access Control (RBAC) to ensure users only access what their role (Student, Admin, Professional) permits. Environment security enforces strict separation of secrets from source control using `.env.example` templates.
+- **Centralized State Management**: The mobile app uses a global Context architecture to coordinate complex state (like GPS tracking, authentication, and building unlocks) securely and efficiently across screens, optimizing battery usage through background pausing.
 - **Content Management**: Advanced features like Soft-Delete Archiving, multi-building department grouping, and draft workflows ensure data integrity without permanent data loss.
 - **Notification Processing**: Real-time evaluation of events to generate system, professional, building, and feedback notifications that provide admins with actionable history logs.
 

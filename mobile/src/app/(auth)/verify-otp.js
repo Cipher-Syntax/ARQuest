@@ -12,7 +12,7 @@ import {
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import theme from "../../theme/tokens";
-import { api } from "../../services/api";
+import { api } from "../../services";
 import ARGlassCard from "../../components/ar/ARGlassCard";
 import ARButton from "../../components/ar/ARButton";
 import { validateString } from "../../utils/validation";

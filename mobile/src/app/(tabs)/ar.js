@@ -14,13 +14,13 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
-import { geofencingService } from "../../services/geofencingService";
-import { api } from "../../services/api";
+import { geofencingService } from "../../services";
+import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
 import BrandedSelfieFrame from "../../components/ar/BrandedSelfieFrame";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
@@ -66,12 +66,19 @@ export default function ARScreen() {
     const { location, heading, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
 
-    useEffect(() => {
-        startTracking();
-        return () => {
-            stopTracking();
-        };
-    }, []);
+    const [isCameraActive, setIsCameraActive] = useState(false);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            setIsCameraActive(true);
+            startTracking();
+            
+            return () => {
+                setIsCameraActive(false);
+                stopTracking();
+            };
+        }, [startTracking, stopTracking])
+    );
 
     useEffect(() => {
         const fetchQuests = async () => {
@@ -608,17 +615,19 @@ export default function ARScreen() {
                         onLoad={onBackgroundImageLoad}
                     />
                 ) : (
-                    <CameraView
-                        style={styles.camera}
-                        facing="back"
-                        ref={cameraRef}
-                        onBarcodeScanned={
-                            isScanningQr ? handleBarCodeScanned : undefined
-                        }
-                        barcodeScannerSettings={{
-                            barcodeTypes: ["qr"],
-                        }}
-                    />
+                    isCameraActive && (
+                        <CameraView
+                            style={styles.camera}
+                            facing="back"
+                            ref={cameraRef}
+                            onBarcodeScanned={
+                                isScanningQr ? handleBarCodeScanned : undefined
+                            }
+                            barcodeScannerSettings={{
+                                barcodeTypes: ["qr"],
+                            }}
+                        />
+                    )
                 )}
 
                 {/* 2. Middle Layer removed (Model moved into targetCard) */}

@@ -10,7 +10,7 @@ import {
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useRouter } from "expo-router";
 import { AVATARS } from "../../constants/Avatars";
-import { api } from "../../services/api";
+import { api } from "../../services";
 
 export default function AvatarSelectionScreen() {
     const [selectedId, setSelectedId] = useState(null);
