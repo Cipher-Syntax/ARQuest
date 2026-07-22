@@ -130,9 +130,17 @@
                 }
 
                 hotspotMeshes.forEach((mesh) => {
-                    scene.remove(mesh);
-                    mesh.geometry.dispose();
-                    mesh.material.dispose();
+                    if (mesh.userData && mesh.userData.parentGroup) {
+                        scene.remove(mesh.userData.parentGroup);
+                        mesh.userData.parentGroup.children.forEach(child => {
+                            if (child.geometry) child.geometry.dispose();
+                            if (child.material) child.material.dispose();
+                        });
+                    } else {
+                        scene.remove(mesh);
+                        mesh.geometry.dispose();
+                        mesh.material.dispose();
+                    }
                 });
                 hotspotMeshes = [];
                 document.getElementById("floating-labels").innerHTML = "";
