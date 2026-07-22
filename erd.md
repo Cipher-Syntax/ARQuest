@@ -327,37 +327,37 @@ Versioned file metadata for media assets (3D models, panoramas, images). SHA256 
 
 ---
 
-### `QUEST` — `buildings` app
+### `QUEST` — `gamification` app
 Gamification quest targeting a specific building. Soft-deleted when the parent building is archived. Students earn `reward_points` on completion.
 
 ---
 
-### `USER_QUEST_PROGRESS` — `buildings` app
+### `USER_QUEST_PROGRESS` — `gamification` app
 Join table tracking per-user quest completion. Unique per `(user, quest)` pair.
 
 ---
 
-### `TRIVIA_FACT` — `buildings` app
+### `TRIVIA_FACT` — `gamification` app
 Building-specific trivia facts surfaced in the AR camera overlay on quest completion. Soft-delete cascades from parent building.
 
 ---
 
-### `QUIZ_QUESTION` — `buildings` app
+### `QUIZ_QUESTION` — `quizzes` app
 Building-specific quiz questions surfaced in the AR UI to reward players with extra points upon answering correctly.
 
 ---
 
-### `USER_QUIZ_PROGRESS` — `buildings` app
+### `USER_QUIZ_PROGRESS` — `quizzes` app
 Records a user answering a quiz question and whether they got it right. Unique per `(user, question)` pair.
 
 ---
 
-### `BADGE` — `buildings` app
+### `BADGE` — `gamification` app
 Achievement badges unlocked via predefined triggers (e.g., number of buildings unlocked, total quests completed, etc.).
 
 ---
 
-### `USER_BADGE` — `buildings` app
+### `USER_BADGE` — `gamification` app
 Records a badge earned by a user along with the timestamp it was awarded. Unique per `(user, badge)`.
 
 ---
@@ -430,7 +430,9 @@ All other models use standard **hard delete**.
 | App | Models |
 |---|---|
 | `authentication` | `User`, `EmailOTP` |
-| `buildings` | `Department`, `Building`, `Geofence`, `BuildingUnlock`, `BuildingAsset`, `Quest`, `UserQuestProgress`, `TriviaFact`, `QuizQuestion`, `UserQuizProgress`, `Badge`, `UserBadge` |
+| `buildings` | `Department`, `Building`, `Geofence`, `BuildingUnlock`, `BuildingAsset` |
+| `gamification` | `Quest`, `UserQuestProgress`, `TriviaFact`, `Badge`, `UserBadge` |
+| `quizzes` | `QuizQuestion`, `UserQuizProgress` |
 | `panorama` | `PanoramaScene`, `PanoramaHotspot` |
 | `geofencing` | _(no models; logic is utility-only via Haversine utils)_ |
 | `api` | `SystemSetting`, `Feedback`, `Notification` |

@@ -67,11 +67,13 @@ graph TD
     end
 
     subgraph SERVICES ["Services  (src/services/)"]
-        API_JS["api.js\nAxios instance + JWT interceptors\n+ 401 auto-refresh"]
-        AUTH_SVC["authService.js\nlogin · register · logout · me"]
-        GEO_SVC["geofencingService.js\nfetchGeofences · validateLocation\nHaversine distance calc"]
-        UNLOCK_SVC["unlockService.js\nunlockBuilding · unlockByQR"]
-        ASSET_SVC["assetService.js\nfetch versioned asset URLs"]
+        API_JS["core/api.js\nAxios instance + JWT interceptors\n+ 401 auto-refresh\nCentralized Error Handling"]
+        AUTH_SVC["auth/authService.js\nlogin · register · logout · me"]
+        GEO_SVC["geofencing/geofencingService.js\nfetchGeofences · validateLocation\nHaversine distance calc"]
+        UNLOCK_SVC["core/unlockService.js\nunlockBuilding · unlockByQR"]
+        ASSET_SVC["assets/assetService.js\nfetch versioned asset URLs"]
+        GAME_SVC["gamification/gamificationService.js\nfetchQuests · submitQuiz"]
+        BARREL["index.js\nBarrel Exports"]
     end
 
     subgraph HOOKS ["Hooks  (src/hooks/)"]
@@ -178,8 +180,6 @@ graph TD
         EP_UNLOCK["POST  unlock/"]
         EP_UNLOCK_QR["POST  unlock/qr/"]
         EP_UNLOCKED["GET   unlocked/"]
-        EP_QUESTS["GET/POST  quests/"]
-        EP_TRIVIA["GET/POST  trivias/"]
         EP_ASSETS["GET  buildings/{id}/assets/"]
     end
 
@@ -195,11 +195,18 @@ graph TD
         EP_P_HOT_D["PATCH/DELETE  hotspots/{id}/"]
     end
 
-    subgraph GAME_APP ["App: gamification (buildings)"]
+    subgraph GAME_APP ["App: gamification"]
         EP_G_LEAD["GET   leaderboard/"]
         EP_G_ACTIVE["GET   quests/active/"]
         EP_G_COMPLETE["POST  quests/{id}/complete/"]
         EP_G_RECENT["GET   recent-activity/"]
+        EP_QUESTS["GET/POST  quests/"]
+        EP_TRIVIA["GET/POST  trivias/"]
+    end
+
+    subgraph QUIZ_APP ["App: quizzes"]
+        EP_Q_LIST["GET/POST  quizzes/"]
+        EP_Q_SUBMIT["POST  quizzes/{id}/submit/"]
     end
 
     subgraph API_APP ["App: api"]
@@ -372,9 +379,16 @@ graph TD
         T_GEO["GEOFENCE\nid · building_id\nlatitude · longitude\nradius_meters · is_active"]
         T_UNLOCK["BUILDING_UNLOCK\nid · user_id · building_id\nsource · unlocked_at\nlast_validated_at\nUNIQUE(user, building)"]
         T_ASSET["BUILDING_ASSET\nid · building_id · asset_type\nfile · version · file_size\nchecksum · is_active"]
+    end
+
+    subgraph GAME_TABLES ["gamification app tables"]
         T_QUEST["QUEST\nid · target_building_id\ntitle · hint · reward_points\nis_active · created_at\ndeleted_at ← soft delete"]
         T_PROG["USER_QUEST_PROGRESS\nid · user_id · quest_id\nis_completed · completed_at\nUNIQUE(user, quest)"]
         T_TRIVIA["TRIVIA_FACT\nid · building_id\nfact · is_active\ncreated_at · deleted_at ← soft delete"]
+    end
+
+    subgraph QUIZ_TABLES ["quizzes app tables"]
+        T_QUIZ["QUIZ_QUESTION\nid · building_id\nquestion · options\ncreated_at"]
     end
 
     subgraph PANO_TABLES ["panorama app tables"]

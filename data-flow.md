@@ -61,6 +61,10 @@ sequenceDiagram
     App->>API: POST /api/auth/token/refresh/ (refresh token)
     API-->>App: New access token
     App->>SecureStore: Replace access_token
+
+    Note over App,API: Centralized Error Handling...
+    API-->>App: 400/500 Error Response
+    App->>App: Axios interceptor formats and standardizes error message
 ```
 
 ---
@@ -404,7 +408,7 @@ This flow only applies to students. Professional accounts are created by adminis
 
 ARQuest uses JWT tokens managed by SimpleJWT. After a successful login, the backend returns an access token (valid for 60 minutes) and a refresh token (valid for 7 days). The mobile app stores both in Expo SecureStore, which is an encrypted storage area on the Android device, and attaches the access token as a Bearer header on every API call.
 
-When an API call returns 401 Unauthorized, the Axios interceptor automatically sends a refresh request using the stored refresh token. If the refresh works, the new access token replaces the old one in SecureStore and the original request is retried. If the refresh fails because the token has expired or was blacklisted, the user is sent to the login screen.
+When an API call returns 401 Unauthorized, the Axios interceptor automatically sends a refresh request using the stored refresh token. If the refresh works, the new access token replaces the old one in SecureStore and the original request is retried. If the refresh fails because the token has expired or was blacklisted, the user is sent to the login screen. Additionally, the centralized API interceptor in `core/api.js` intercepts all 400 and 500 error responses and standardizes their format, preventing crashes from unexpected payload structures.
 
 On logout, the refresh token is sent to the backend and added to the JWT blacklist table. This prevents the token from being reused even if a copy of it were obtained after logout.
 
@@ -412,7 +416,7 @@ On logout, the refresh token is sent to the backend and added to the JWT blackli
 
 ### Flow 3 - GPS Geofence Detection and Building Unlock
 
-This is the core location-aware mechanism of ARQuest. The `useLocationTracking` hook starts a background GPS watcher when the user is on the Explore tab. Updates are throttled to a minimum of five seconds and ten meters to reduce battery usage.
+This is the core location-aware mechanism of ARQuest. The `LocationContext` acts as a centralized global state provider. The `useLocationTracking` hook starts a background GPS watcher when the user is on a relevant screen (like the Explore tab). Updates are throttled to a minimum of five seconds and ten meters to reduce battery usage. Furthermore, to save battery, screens use `useFocusEffect` to automatically pause GPS tracking and the AR camera when the tab loses focus, and resume instantly upon return.
 
 Each location update goes to `geofencingService`, which runs a quick client-side Haversine estimate against cached geofence data. If the result suggests proximity, a validation request is sent to the backend. The backend runs its own Haversine calculation across all visible buildings with active geofences and returns one of four statuses: inside, nearby, outside, or weak signal.
 
