@@ -21,7 +21,7 @@ import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
-import { geofencingService } from "../../services/geofencingService";
+import { geofencingService } from "../../services/geofencing/geofencingService";
 import { ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";

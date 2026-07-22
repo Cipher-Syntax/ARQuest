@@ -36,7 +36,7 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
-import { geofencingService } from "../../services/geofencingService";
+import { geofencingService } from "../../services/geofencing/geofencingService";
 
 export default function HomeScreen() {
     const { user } = useAuth();

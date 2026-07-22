@@ -84,7 +84,7 @@ api.interceptors.response.use(
             ) {
                 const {
                     offlineQueueService,
-                } = require("./offlineQueueService");
+                } = require("./core/offlineQueueService");
                 const data = originalRequest.data
                     ? JSON.parse(originalRequest.data)
                     : null;

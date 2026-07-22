@@ -2,9 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import {} from "react-native";
 import { customAlert as Alert } from "../components/ui/CustomAlert";
 import { api } from "../services/api";
-import { authService } from "../services/authService";
+import { authService } from "../services/auth/authService";
 import NetInfo from "@react-native-community/netinfo";
-import { offlineQueueService } from "../services/offlineQueueService";
+import { offlineQueueService } from "../services/core/offlineQueueService";
 
 const AuthStateContext = createContext(null);
 const AuthActionsContext = createContext(null);

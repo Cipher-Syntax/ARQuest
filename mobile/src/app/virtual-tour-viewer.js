@@ -15,7 +15,7 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import { DeviceMotion } from "expo-sensors";
 import { theme } from "../theme/tokens";
 import { useAssetCache } from "../hooks/useAssetCache";
-import { assetService } from "../services/assetService";
+import { assetService } from "../services/assets/assetService";
 import api from "../services/api";
 
 export default function VirtualTourViewerScreen() {

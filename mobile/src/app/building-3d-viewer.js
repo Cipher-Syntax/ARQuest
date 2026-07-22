@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { theme } from "../theme/tokens";
 import { useAssetCache } from "../hooks/useAssetCache";
-import { assetService } from "../services/assetService";
+import { assetService } from "../services/assets/assetService";
 import api from "../services/api";
 
 export default function Building3DViewerScreen() {

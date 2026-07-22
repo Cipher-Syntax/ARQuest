@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
-import { geofencingService } from "../../services/geofencingService";
+import { geofencingService } from "../../services/geofencing/geofencingService";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import api from "../../services/api";
 import { fonts } from "../../constants/typography";

@@ -19,7 +19,7 @@ import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
-import { geofencingService } from "../../services/geofencingService";
+import { geofencingService } from "../../services/geofencing/geofencingService";
 import { api } from "../../services/api";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
 import BrandedSelfieFrame from "../../components/ar/BrandedSelfieFrame";

@@ -15,7 +15,7 @@ import ViewerHeader from "../components/viewer/ViewerHeader";
 import { theme } from "../theme/tokens";
 import api from "../services/api";
 import { useAssetCache } from "../hooks/useAssetCache";
-import { assetService } from "../services/assetService";
+import { assetService } from "../services/assets/assetService";
 
 export default function PanoramaViewerScreen() {
     const { buildingId, buildingName } = useLocalSearchParams();
