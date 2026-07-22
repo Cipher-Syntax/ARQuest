@@ -798,6 +798,16 @@ export default function ARScreen() {
                         {/* Dark backdrop */}
                         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
 
+                        {/* 3D Model (Renders when modal opens, uses default top: 80 centering) */}
+                        {nearbyBuildingFull?.model_url && (
+                            <AR3DModelOverlay
+                                modelUrl={nearbyBuildingFull.model_url}
+                                buildingName={nearbyBuildingFull.name}
+                                capturing={false}
+                                style={{ zIndex: 10 }}
+                            />
+                        )}
+
                         <Animated.View
                             style={[
                                 styles.triviaModal,
@@ -855,39 +865,7 @@ export default function ARScreen() {
                                 </Text>
                             </View>
                         )}
-                    </Animated.View>
-                </View>
-            )}
 
-            {/* 5. Preload 3D Model (Hidden until Trivia Modal opens, placed AFTER modal for z-index safety) */}
-            {nearbyBuildingFull?.model_url && (
-                <View 
-                    style={[
-                        StyleSheet.absoluteFillObject, 
-                        { 
-                            // Hide completely off-screen during preload to avoid Android WebView Surface destruction
-                            top: triviaModalVisible ? 0 : -9999,
-                            opacity: 1, // Keep opacity 1 so it actually renders
-                            zIndex: 101
-                        }
-                    ]} 
-                    pointerEvents="box-none"
-                >
-                    <AR3DModelOverlay
-                        modelUrl={nearbyBuildingFull.model_url}
-                        buildingName={nearbyBuildingFull.name}
-                        capturing={false}
-                        style={{
-                            position: "absolute",
-                            top: "15%",
-                            left: "50%",
-                            width: 320,
-                            height: 320,
-                            marginLeft: -160,
-                        }}
-                    />
-                </View>
-            )}
 
             {/* --- Bottom Camera Controls --- */}
             {!capturing && (
