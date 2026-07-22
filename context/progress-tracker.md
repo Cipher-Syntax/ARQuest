@@ -29,7 +29,7 @@ Update this file after every meaningful implementation change.
 
 ### Phase 3 (Scaling)
 - [x] **Test Data Factories:** Add `factory_boy` fixtures for E2E testing.
-- [ ] **Admin Dashboard Form Patterns:** Extract reusable `FormBuilder` with centralized validation.
+- [x] **Admin Dashboard Form Patterns:** Extract reusable `FormBuilder` with centralized validation.
 - [ ] **Logging & Observability:** Add structured backend logging and mobile event logging.
 - [ ] **Caching Strategy:** Document caching and invalidation rules.
 - [ ] **Component Library Audit:** Audit and organize React components.
