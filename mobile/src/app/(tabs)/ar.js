@@ -671,7 +671,9 @@ export default function ARScreen() {
 
                             {/* Right Side: Info & Claim */}
                             <View style={styles.targetCardRight}>
-                                <Text style={styles.targetLabel}>TARGET ACQUIRED</Text>
+                                <Text style={styles.targetLabel}>
+                                    {geofenceStatus?.status === 'inside' ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
+                                </Text>
                                 <Text style={[styles.buildingLabel, { color: theme.colors.primary }]}>{nearbyBuilding.name}</Text>
                                 
                                 {geofenceStatus?.status === 'inside' ? (
@@ -679,9 +681,14 @@ export default function ARScreen() {
                                         ✓ You have arrived!
                                     </Text>
                                 ) : (
-                                    <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
-                                        📍 {Math.round(geofenceStatus?.distance_meters || 0)} meters away
-                                    </Text>
+                                    <>
+                                        <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
+                                            📍 {Math.round(geofenceStatus?.distance_meters || 0)} meters away
+                                        </Text>
+                                        <Text style={[styles.buildingStatus, { fontSize: 10, marginTop: 4, color: theme.colors.textMuted }]}>
+                                            Keep moving closer to unlock.
+                                        </Text>
+                                    </>
                                 )}
 
                                 {/* Gamified Claim Button */}
