@@ -714,8 +714,20 @@ export default function ARScreen() {
                 {navTargetFull && location && !capturing && !triviaModalVisible && (
                     <View style={styles.navigationHud}>
                         {geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull.id ? (
-                            <Animated.View style={{ opacity: pulseAnim }}>
+                            <Animated.View style={{ opacity: pulseAnim, alignItems: 'center' }}>
                                 <Text style={styles.navDistanceText}>🎉 YOU HAVE ARRIVED</Text>
+                                {/* Gamified Claim Button for Navigation Mode */}
+                                {user?.role === 'student' && matchingQuest ? (
+                                    <TouchableOpacity style={[styles.claimQuestBtn, { marginTop: 16 }]} onPress={handleClaimQuest}>
+                                        <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                                        <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
+                                    </TouchableOpacity>
+                                ) : nearbyBuildingFull ? (
+                                    <TouchableOpacity style={[styles.claimQuestBtn, { marginTop: 16 }]} onPress={handleViewTriviaOnly}>
+                                        <Ionicons name="information-circle" size={16} color="#FFFFFF" />
+                                        <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
+                                    </TouchableOpacity>
+                                ) : null}
                             </Animated.View>
                         ) : (
                             <>
