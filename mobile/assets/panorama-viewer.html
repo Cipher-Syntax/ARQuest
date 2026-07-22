@@ -312,132 +312,47 @@
                     const y = distance * Math.cos(phi);
                     const z = distance * Math.sin(phi) * Math.sin(theta);
 
-                    const npcGroup = new THREE.Group();
-                    npcGroup.position.set(x, y, z);
-                    npcGroup.userData = { originalY: y };
+                    const dotGroup = new THREE.Group();
+                    dotGroup.position.set(x, y, z);
+                    dotGroup.userData = { originalY: y };
                     
-                    // Scale up for the panorama distance
-                    npcGroup.scale.set(40, 40, 40);
-
-                    // Use Basic Material because there are no lights in the panorama viewer
-                    const skinMat = new THREE.MeshBasicMaterial({ color: 0xffcc99 });
-                    const shirtMat = new THREE.MeshBasicMaterial({ color: 0x8a1538 }); // WMSU Crimson
-                    const pantsMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a }); 
-
-                    // Torso
-                    const torsoGeom = new THREE.BoxGeometry(0.4, 0.6, 0.2);
-                    const torso = new THREE.Mesh(torsoGeom, shirtMat);
-                    torso.position.y = 1.0; 
-                    npcGroup.add(torso);
-
-                    // Head
-                    const headGeom = new THREE.SphereGeometry(0.18, 16, 16);
-                    const head = new THREE.Mesh(headGeom, skinMat);
-                    head.position.y = 1.45; 
-
-                    // Face: Eyes
-                    const eyeGeom = new THREE.SphereGeometry(0.025, 8, 8);
-                    const faceMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-                    
-                    const leftEye = new THREE.Mesh(eyeGeom, faceMat);
-                    leftEye.position.set(-0.06, 0.05, 0.16); // Left of face, slightly up, forward
-                    head.add(leftEye);
-                    
-                    const rightEye = new THREE.Mesh(eyeGeom, faceMat);
-                    rightEye.position.set(0.06, 0.05, 0.16); // Right of face
-                    head.add(rightEye);
-
+                    // The main red dot
+                    const dotGeom = new THREE.SphereGeometry(8, 32, 32);
                     const isRestricted = (hotspot.category === "restricted");
-
-                    // Face: Smiling Mouth (half torus)
-                    const smileGeom = new THREE.TorusGeometry(0.06, 0.015, 8, 16, Math.PI);
-                    const smile = new THREE.Mesh(smileGeom, faceMat);
+                    const dotColor = isRestricted ? 0xff0000 : 0xff0000; 
+                    const dotMat = new THREE.MeshBasicMaterial({ color: dotColor });
+                    const dot = new THREE.Mesh(dotGeom, dotMat);
+                    dotGroup.add(dot);
                     
-                    if (isRestricted) {
-                        smile.position.set(0, -0.05, 0.17); // Frown position
-                        smile.rotation.z = 0; // Frown
-                        
-                        // Eyebrows
-                        const eyebrowGeom = new THREE.BoxGeometry(0.06, 0.015, 0.01);
-                        const leftEyebrow = new THREE.Mesh(eyebrowGeom, faceMat);
-                        leftEyebrow.position.set(-0.06, 0.07, 0.17);
-                        leftEyebrow.rotation.z = -0.3; // Angle inwards
-                        head.add(leftEyebrow);
-                        
-                        const rightEyebrow = new THREE.Mesh(eyebrowGeom, faceMat);
-                        rightEyebrow.position.set(0.06, 0.07, 0.17);
-                        rightEyebrow.rotation.z = 0.3; // Angle inwards
-                        head.add(rightEyebrow);
-                    } else {
-                        smile.position.set(0, -0.02, 0.17);
-                        smile.rotation.z = Math.PI; // Flip arc upside down to make a smile
-                    }
-                    head.add(smile);
-
-                    npcGroup.add(head);
-
-                    // Arms
-                    const armGeom = new THREE.BoxGeometry(0.12, 0.55, 0.12);
-                    
-                    // Left Arm Group
-                    const leftArmGroup = new THREE.Group();
-                    leftArmGroup.position.set(0.28, 1.25, 0); // Pivot point
-                    const leftArm = new THREE.Mesh(armGeom, shirtMat);
-                    leftArm.position.set(0, -0.275, 0);
-                    leftArmGroup.add(leftArm);
-                    
-                    // Right Arm (waving)
-                    const rightArmGroup = new THREE.Group();
-                    rightArmGroup.position.set(-0.28, 1.25, 0); // Pivot point
-                    const rightArmMesh = new THREE.Mesh(armGeom, shirtMat);
-                    rightArmMesh.position.set(0, -0.275, 0);
-                    rightArmGroup.add(rightArmMesh);
-                    
-                    if (isRestricted) {
-                        // Cross arms forming X in front of chest
-                        leftArmGroup.rotation.order = 'ZXY';
-                        rightArmGroup.rotation.order = 'ZXY';
-                        
-                        leftArmGroup.rotation.z = -1.8; // Swing inwards and slightly up (under chin)
-                        leftArmGroup.rotation.x = -0.5; // Swing forward to clear chest
-                        
-                        rightArmGroup.rotation.z = 1.8; // Swing inwards and slightly up
-                        rightArmGroup.rotation.x = -0.6; // Swing more forward to overlap cleanly
-                    }
-                    
-                    npcGroup.add(leftArmGroup);
-                    npcGroup.add(rightArmGroup);
-
-                    // Legs
-                    const legGeom = new THREE.BoxGeometry(0.15, 0.7, 0.15);
-                    const leftLeg = new THREE.Mesh(legGeom, pantsMat);
-                    leftLeg.position.set(0.1, 0.35, 0);
-                    npcGroup.add(leftLeg);
-
-                    const rightLeg = new THREE.Mesh(legGeom, pantsMat);
-                    rightLeg.position.set(-0.1, 0.35, 0);
-                    npcGroup.add(rightLeg);
+                    // A larger, semi-transparent sphere for a glowing pulse effect
+                    const glowGeom = new THREE.SphereGeometry(14, 32, 32);
+                    const glowMat = new THREE.MeshBasicMaterial({ 
+                        color: dotColor,
+                        transparent: true,
+                        opacity: 0.5
+                    });
+                    const glow = new THREE.Mesh(glowGeom, glowMat);
+                    dotGroup.add(glow);
 
                     // Hitbox for raycaster (clicking)
-                    const hitBoxGeom = new THREE.CylinderGeometry(0.6, 0.6, 2.0, 8);
+                    const hitBoxGeom = new THREE.SphereGeometry(20, 16, 16);
                     const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
                     const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
-                    hitBox.position.y = 0.9;
                     
                     hitBox.userData = { 
                         hotspot: hotspot, 
                         labelId: "label-" + hotspotMeshes.length,
-                        parentGroup: npcGroup,
-                        rightArm: rightArmGroup,
-                        isNPC: true,
+                        parentGroup: dotGroup,
+                        glowMesh: glow,
+                        isHotspot: true,
                         isRestricted: isRestricted
                     };
-                    npcGroup.add(hitBox);
+                    dotGroup.add(hitBox);
                     
                     // Make it always face the camera center (0,0,0)
-                    npcGroup.lookAt(0, 0, 0);
+                    dotGroup.lookAt(0, 0, 0);
 
-                    scene.add(npcGroup);
+                    scene.add(dotGroup);
                     hotspotMeshes.push(hitBox);
 
                     // Create Floating Label
@@ -494,23 +409,24 @@
                 camera.getWorldDirection(cameraDirection);
 
                 hotspotMeshes.forEach((mesh, index) => {
-                    if (mesh.userData.isNPC) {
+                    if (mesh.userData.isHotspot) {
                         const group = mesh.userData.parentGroup;
+                        const glowMesh = mesh.userData.glowMesh;
                         
-                        // Check if the user is looking at this NPC
+                        // Check if the user is looking at this hotspot
                         const hotspotDirection = group.position.clone().normalize();
                         const angle = cameraDirection.angleTo(hotspotDirection);
                         
                         // Float slightly for "breathing" effect
-                        group.position.y = group.userData.originalY + Math.sin(time * 2 + index) * 8.0;
+                        group.position.y = group.userData.originalY + Math.sin(time * 2 + index) * 5.0;
+
+                        // Pulse glow effect
+                        const scale = 1.0 + Math.abs(Math.sin(time * 3 + index)) * 0.3;
+                        glowMesh.scale.set(scale, scale, scale);
                         
                         if (angle < 0.4) {
-                            // User is looking directly at it! Wave!
-                            if (!mesh.userData.isRestricted) {
-                                // Since arm is at -X, a negative Z rotation moves it outwards
-                                mesh.userData.rightArm.rotation.z = -2.0 + Math.sin(time * 1.5) * 0.5; 
-                                mesh.userData.rightArm.rotation.x = Math.sin(time) * 0.2;
-                            }
+                            // User is looking directly at it! Make glow more opaque
+                            glowMesh.material.opacity = 0.8;
                             
                             const label = document.getElementById(mesh.userData.labelId);
                             const title = mesh.userData.hotspot.label || mesh.userData.hotspot.target_scene_title || "Next Scene";
@@ -518,10 +434,7 @@
                             if (label) label.innerHTML = title + (desc ? "<br><span style='font-size:12px;font-weight:normal;'>" + desc + "</span>" : "");
                         } else {
                             // Idle
-                            if (!mesh.userData.isRestricted) {
-                                mesh.userData.rightArm.rotation.z = 0;
-                                mesh.userData.rightArm.rotation.x = 0;
-                            }
+                            glowMesh.material.opacity = 0.5;
                             
                             const label = document.getElementById(mesh.userData.labelId);
                             const title = mesh.userData.hotspot.label || mesh.userData.hotspot.target_scene_title || "Next Scene";
@@ -531,9 +444,9 @@
 
                     // 3D to 2D projection for floating label
                     let pos;
-                    if (mesh.userData.isNPC) {
+                    if (mesh.userData.isHotspot) {
                         pos = mesh.userData.parentGroup.position.clone();
-                        pos.y += 80.0; // Above head (scale is 40, head is ~60)
+                        pos.y += 30.0; // Above dot
                     } else {
                         pos = mesh.position.clone();
                     }
