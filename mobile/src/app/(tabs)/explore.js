@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
     View,
     Text,
@@ -45,8 +45,15 @@ export default function ExploreScreen() {
     const [activeQuests, setActiveQuests] = useState([]);
     const [earnedBadges, setEarnedBadges] = useState([]);
     const badgeAnim = useRef(new Animated.Value(0)).current;
-
     const [refreshing, setRefreshing] = useState(false);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            return () => {
+                stopTracking();
+            };
+        }, [stopTracking])
+    );
 
     const loadData = async () => {
         try {
