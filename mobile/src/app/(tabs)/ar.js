@@ -680,7 +680,7 @@ export default function ARScreen() {
                                     </Text>
                                 ) : (
                                     <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
-                                        📍 {Math.round(geofenceStatus?.distance || 0)} meters away
+                                        📍 {Math.round(geofenceStatus?.distance_meters || 0)} meters away
                                     </Text>
                                 )}
 
