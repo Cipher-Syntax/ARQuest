@@ -31,7 +31,7 @@ Update this file after every meaningful implementation change.
 - [x] **Test Data Factories:** Add `factory_boy` fixtures for E2E testing.
 - [x] **Admin Dashboard Form Patterns:** Extract reusable `FormBuilder` with centralized validation.
 - [x] **Logging & Observability:** Add structured backend logging and mobile event logging.
-- [ ] **Caching Strategy:** Document caching and invalidation rules.
+- [x] **Caching Strategy:** Document caching and invalidation rules.
 - [ ] **Component Library Audit:** Audit and organize React components.
 
 ---
