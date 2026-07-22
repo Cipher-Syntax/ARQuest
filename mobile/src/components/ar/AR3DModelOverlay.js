@@ -60,7 +60,7 @@ export default function AR3DModelOverlay({
         }
     };
 
-    const viewerHtml = require("../../assets/ar-viewer.html");
+    const viewerHtml = require("../../../assets/ar-viewer.html");
 
     return (
         <View style={[styles.container, style]} pointerEvents="none">
