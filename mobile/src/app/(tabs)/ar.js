@@ -692,22 +692,18 @@ export default function ARScreen() {
                                 )}
 
                                 {/* Gamified Claim Button */}
-                                {!capturing && !triviaModalVisible && (
-                                    user?.role === 'student' ? (
-                                        matchingQuest && geofenceStatus?.status === 'inside' && (
-                                            <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
-                                                <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                                                <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
-                                            </TouchableOpacity>
-                                        )
-                                    ) : (
-                                        geofenceStatus?.status === 'inside' && nearbyBuildingFull && (
-                                            <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
-                                                <Ionicons name="information-circle" size={16} color="#FFFFFF" />
-                                                <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
-                                            </TouchableOpacity>
-                                        )
-                                    )
+                                {!capturing && !triviaModalVisible && geofenceStatus?.status === 'inside' && (
+                                    user?.role === 'student' && matchingQuest ? (
+                                        <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
+                                            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                                            <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
+                                        </TouchableOpacity>
+                                    ) : nearbyBuildingFull ? (
+                                        <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
+                                            <Ionicons name="information-circle" size={16} color="#FFFFFF" />
+                                            <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
+                                        </TouchableOpacity>
+                                    ) : null
                                 )}
                             </View>
                         </View>
