@@ -794,19 +794,9 @@ export default function ARScreen() {
 
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
             {triviaModalVisible && (
-                <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]}>
+                <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]} pointerEvents="box-none">
                         {/* Dark backdrop */}
                         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
-
-                        {/* 3D Model (Renders when modal opens, uses default top: 80 centering) */}
-                        {nearbyBuildingFull?.model_url && (
-                            <AR3DModelOverlay
-                                modelUrl={nearbyBuildingFull.model_url}
-                                buildingName={nearbyBuildingFull.name}
-                                capturing={false}
-                                style={{ zIndex: 10 }}
-                            />
-                        )}
 
                         <Animated.View
                             style={[
@@ -867,6 +857,26 @@ export default function ARScreen() {
                         )}
                     </Animated.View>
                 </View>
+            )}
+
+            {/* --- Holographic 3D Model Overlay --- */}
+            {/* Placed at the root level to guarantee Android WebView rendering and z-index safety */}
+            {triviaModalVisible && nearbyBuildingFull?.model_url && (
+                <AR3DModelOverlay
+                    modelUrl={nearbyBuildingFull.model_url}
+                    buildingName={nearbyBuildingFull.name}
+                    capturing={false}
+                    style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        width: 280,
+                        height: 280,
+                        marginLeft: -140,
+                        marginTop: -200, // Shifted upwards so it perfectly floats above the modal
+                        zIndex: 105, // Higher than Trivia Modal backdrop (100)
+                    }}
+                />
             )}
 
             {/* --- Bottom Camera Controls --- */}
