@@ -790,33 +790,7 @@ export default function ARScreen() {
             </View>
             {/* --- END CAPTURE TARGET --- */}
 
-            {/* 5. Preload 3D Model (Hidden until Trivia Modal opens) */}
-            {nearbyBuildingFull?.model_url && (
-                <View 
-                    style={[
-                        StyleSheet.absoluteFillObject, 
-                        { 
-                            zIndex: triviaModalVisible ? 101 : -1, 
-                            opacity: triviaModalVisible ? 1 : 0 
-                        }
-                    ]} 
-                    pointerEvents={triviaModalVisible ? "auto" : "none"}
-                >
-                    <AR3DModelOverlay
-                        modelUrl={nearbyBuildingFull.model_url}
-                        buildingName={nearbyBuildingFull.name}
-                        capturing={false}
-                        style={{
-                            position: "absolute",
-                            top: "15%",
-                            left: "50%",
-                            width: 320,
-                            height: 320,
-                            marginLeft: -160,
-                        }}
-                    />
-                </View>
-            )}
+
 
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
             {triviaModalVisible && (
@@ -882,6 +856,36 @@ export default function ARScreen() {
                             </View>
                         )}
                     </Animated.View>
+                </View>
+            )}
+
+            {/* 5. Preload 3D Model (Hidden until Trivia Modal opens, placed AFTER modal for z-index safety) */}
+            {nearbyBuildingFull?.model_url && (
+                <View 
+                    style={[
+                        StyleSheet.absoluteFillObject, 
+                        { 
+                            // Hide completely off-screen during preload to avoid Android WebView Surface destruction
+                            top: triviaModalVisible ? 0 : -9999,
+                            opacity: 1, // Keep opacity 1 so it actually renders
+                            zIndex: 101
+                        }
+                    ]} 
+                    pointerEvents="box-none"
+                >
+                    <AR3DModelOverlay
+                        modelUrl={nearbyBuildingFull.model_url}
+                        buildingName={nearbyBuildingFull.name}
+                        capturing={false}
+                        style={{
+                            position: "absolute",
+                            top: "15%",
+                            left: "50%",
+                            width: 320,
+                            height: 320,
+                            marginLeft: -160,
+                        }}
+                    />
                 </View>
             )}
 
