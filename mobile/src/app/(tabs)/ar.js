@@ -819,9 +819,8 @@ export default function ARScreen() {
             )}
 
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
-            {triviaModalVisible &&
-                (user?.role === "student" ? claimedQuest : true) && (
-                    <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]}>
+            {triviaModalVisible && (
+                <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]}>
                         {/* Dark backdrop */}
                         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
 
@@ -845,7 +844,7 @@ export default function ARScreen() {
                                     style={{ marginRight: 8 }}
                                 />
                                 <Text style={styles.triviaTitle}>
-                                    {user?.role === "student"
+                                    {user?.role === "student" && claimedQuest
                                         ? "New Discovery"
                                         : "Building Information"}
                                 </Text>
