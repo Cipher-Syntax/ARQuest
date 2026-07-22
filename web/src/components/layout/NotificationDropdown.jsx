@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, Trash2, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import api from '../services/api';
+import api from '../../services/api';
 
 export default function NotificationDropdown() {
     const [notifications, setNotifications] = useState([]);

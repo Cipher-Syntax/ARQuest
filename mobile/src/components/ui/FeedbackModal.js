@@ -13,10 +13,10 @@ import {
 } from "react-native";
 import { customAlert as Alert } from "./CustomAlert";
 import { X, MessageSquare, AlertCircle, Lightbulb } from "lucide-react-native";
-import theme from "../theme/tokens";
-import { fonts } from "../constants/typography";
-import { api } from "../services/api";
-import { validateString } from "../utils/validation";
+import theme from "../../theme/tokens";
+import { fonts } from "../../constants/typography";
+import { api } from "../../services/api";
+import { validateString } from "../../utils/validation";
 
 export default function FeedbackModal({ visible, onClose }) {
     const [type, setType] = useState("bug");

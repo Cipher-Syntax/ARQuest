@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator, Text, Image } from "react-native";
 import { WebView } from "react-native-webview";
-import { theme } from "../theme/tokens";
+import { theme } from "../../theme/tokens";
 
 export default function AR3DModelOverlay({
     modelUrl,

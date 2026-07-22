@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { theme } from "../theme/tokens";
+import { theme } from "../../theme/tokens";
 
 export default function BrandedSelfieFrame({ buildingName, visible }) {
     if (!visible) return null;
