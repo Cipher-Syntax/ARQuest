@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Edit3 } from "lucide-react";
-import { Button, Modal } from "../ui";
+import { Button, Modal, FormBuilder } from "../ui";
 import {
     validateForm,
     validateString,
@@ -86,117 +86,39 @@ export default function GeofenceModal({
             }
         >
             <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
-                            Building Code
-                        </label>
-                        <input
-                            type="text"
-                            value={newName}
-                            onChange={(e) => {
-                                setNewName(e.target.value);
-                                if (errors.newName)
-                                    setErrors({ ...errors, newName: null });
-                            }}
-                            placeholder="e.g. CCS"
-                            className={`w-full border ${errors.newName ? "border-red-500" : "border-brand-border"} rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold`}
-                        />
-                        {errors.newName && (
-                            <p className="text-xs text-red-500 mt-1">
-                                {errors.newName}
-                            </p>
-                        )}
-                    </div>
-                    <div className="col-span-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
-                            Radius
-                        </label>
-                        <input
-                            type="text"
-                            value={newRadius}
-                            onChange={(e) => {
-                                setNewRadius(e.target.value);
-                                if (errors.newRadius)
-                                    setErrors({ ...errors, newRadius: null });
-                            }}
-                            placeholder="e.g. 50m"
-                            className={`w-full border ${errors.newRadius ? "border-red-500" : "border-brand-border"} rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold`}
-                        />
-                        {errors.newRadius && (
-                            <p className="text-xs text-red-500 mt-1">
-                                {errors.newRadius}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
-                        Full Building Name
-                    </label>
-                    <input
-                        type="text"
-                        value={newFullBuilding}
-                        onChange={(e) => {
-                            setNewFullBuilding(e.target.value);
-                            if (errors.newFullBuilding)
-                                setErrors({ ...errors, newFullBuilding: null });
-                        }}
-                        placeholder="e.g. College of Computer Studies"
-                        className={`w-full border ${errors.newFullBuilding ? "border-red-500" : "border-brand-border"} rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium`}
-                    />
-                    {errors.newFullBuilding && (
-                        <p className="text-xs text-red-500 mt-1">
-                            {errors.newFullBuilding}
-                        </p>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
-                            Latitude
-                        </label>
-                        <input
-                            type="text"
-                            value={newLat}
-                            onChange={(e) => {
-                                setNewLat(e.target.value);
-                                if (errors.newLat)
-                                    setErrors({ ...errors, newLat: null });
-                            }}
-                            placeholder="14.5547° N"
-                            className={`w-full border ${errors.newLat ? "border-red-500" : "border-brand-border"} rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono`}
-                        />
-                        {errors.newLat && (
-                            <p className="text-xs text-red-500 mt-1">
-                                {errors.newLat}
-                            </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
-                            Longitude
-                        </label>
-                        <input
-                            type="text"
-                            value={newLng}
-                            onChange={(e) => {
-                                setNewLng(e.target.value);
-                                if (errors.newLng)
-                                    setErrors({ ...errors, newLng: null });
-                            }}
-                            placeholder="121.0244° E"
-                            className={`w-full border ${errors.newLng ? "border-red-500" : "border-brand-border"} rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-mono`}
-                        />
-                        {errors.newLng && (
-                            <p className="text-xs text-red-500 mt-1">
-                                {errors.newLng}
-                            </p>
-                        )}
-                    </div>
-                </div>
+                <FormBuilder
+                    formData={{ newName, newRadius, newFullBuilding, newLat, newLng }}
+                    setFormData={(data) => {
+                        if (data.newName !== undefined) {
+                            setNewName(data.newName);
+                            if (errors.newName) setErrors({ ...errors, newName: null });
+                        }
+                        if (data.newRadius !== undefined) {
+                            setNewRadius(data.newRadius);
+                            if (errors.newRadius) setErrors({ ...errors, newRadius: null });
+                        }
+                        if (data.newFullBuilding !== undefined) {
+                            setNewFullBuilding(data.newFullBuilding);
+                            if (errors.newFullBuilding) setErrors({ ...errors, newFullBuilding: null });
+                        }
+                        if (data.newLat !== undefined) {
+                            setNewLat(data.newLat);
+                            if (errors.newLat) setErrors({ ...errors, newLat: null });
+                        }
+                        if (data.newLng !== undefined) {
+                            setNewLng(data.newLng);
+                            if (errors.newLng) setErrors({ ...errors, newLng: null });
+                        }
+                    }}
+                    errors={errors}
+                    fields={[
+                        { name: "newName", label: "Building Code", placeholder: "e.g. CCS", width: "half" },
+                        { name: "newRadius", label: "Radius", placeholder: "e.g. 50m", width: "half" },
+                        { name: "newFullBuilding", label: "Full Building Name", placeholder: "e.g. College of Computer Studies" },
+                        { name: "newLat", label: "Latitude", placeholder: "14.5547° N", width: "half" },
+                        { name: "newLng", label: "Longitude", placeholder: "121.0244° E", width: "half" }
+                    ]}
+                />
             </div>
         </Modal>
     );

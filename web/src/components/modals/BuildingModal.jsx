@@ -1,5 +1,5 @@
 import { X, Building2, Box, Image as ImageIcon } from "lucide-react";
-import { Button, Input, Modal } from "../ui";
+import { Button, Input, Modal, FormBuilder } from "../ui";
 
 export default function BuildingModal({
     isOpen,
@@ -28,90 +28,35 @@ export default function BuildingModal({
             }
         >
             <div className="space-y-5 max-h-[70vh] overflow-y-auto scrollbar-thin pr-2">
-                <Input
-                    label="Building Name"
-                    placeholder="e.g. College of Computer Studies"
-                    value={formData.name}
-                    onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                    }
+                <FormBuilder
+                    formData={formData}
+                    setFormData={setFormData}
+                    fields={[
+                        { name: "name", label: "Building Name", placeholder: "e.g. College of Computer Studies" },
+                        { name: "code", label: "Short Code", placeholder: "e.g. CCS", width: "half" },
+                        { 
+                            name: "department", 
+                            label: "Category / Department", 
+                            type: "select", 
+                            width: "half",
+                            options: [
+                                { label: "Uncategorized", value: "Uncategorized" },
+                                ...categories.map(c => ({ label: c.name, value: c.name }))
+                            ]
+                        },
+                        { name: "lat", label: "Latitude", placeholder: "14.5547", width: "half" },
+                        { name: "lng", label: "Longitude", placeholder: "121.0244", width: "half" },
+                        { 
+                            name: "status", 
+                            label: "Status", 
+                            type: "toggleGroup", 
+                            options: [
+                                { label: "active", value: "active" },
+                                { label: "inactive", value: "inactive" }
+                            ]
+                        }
+                    ]}
                 />
-
-                <div className="grid grid-cols-2 gap-4">
-                    <Input
-                        label="Short Code"
-                        placeholder="e.g. CCS"
-                        value={formData.code}
-                        onChange={(e) =>
-                            setFormData({ ...formData, code: e.target.value })
-                        }
-                    />
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                            Category / Department
-                        </label>
-                        <select
-                            value={formData.department}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    department: e.target.value,
-                                })
-                            }
-                            className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer font-bold"
-                        >
-                            <option value="Uncategorized">Uncategorized</option>
-                            {categories.map((c) => (
-                                <option key={c.id} value={c.name}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <Input
-                        label="Latitude"
-                        placeholder="14.5547"
-                        value={formData.lat}
-                        onChange={(e) =>
-                            setFormData({ ...formData, lat: e.target.value })
-                        }
-                    />
-                    <Input
-                        label="Longitude"
-                        placeholder="121.0244"
-                        value={formData.lng}
-                        onChange={(e) =>
-                            setFormData({ ...formData, lng: e.target.value })
-                        }
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Status
-                    </label>
-                    <div className="flex gap-2">
-                        {["active", "inactive"].map((s) => (
-                            <button
-                                key={s}
-                                type="button"
-                                onClick={() =>
-                                    setFormData({ ...formData, status: s })
-                                }
-                                className={`flex-1 py-2.5 rounded-md text-sm font-bold capitalize transition-all ${
-                                    formData.status === s
-                                        ? "bg-brand text-white shadow-sm"
-                                        : "bg-gray-50 text-gray-500 hover:bg-brand-light"
-                                }`}
-                            >
-                                {s}
-                            </button>
-                        ))}
-                    </div>
-                </div>
 
                 <div className="pt-6 border-t border-brand-border">
                     <p className="text-[10px] font-black text-brand uppercase tracking-[0.2em] mb-4">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Upload, Edit3 } from "lucide-react";
-import { Button, Input, Modal } from "../ui";
+import { Button, Input, Modal, FormBuilder } from "../ui";
 import {
     validateForm,
     validateString,
@@ -70,78 +70,42 @@ export default function AssetModal({
             }
         >
             <div className="p-0 space-y-5">
-                <Input
-                    label="Asset Name"
-                    placeholder="e.g. ccs_entrance_v1.glb"
-                    value={newName}
-                    onChange={(e) => {
-                        setNewName(e.target.value);
-                        if (errors.newName)
-                            setErrors({ ...errors, newName: null });
+                <FormBuilder
+                    formData={{ newName, newCategory, newType }}
+                    setFormData={(data) => {
+                        if (data.newName !== undefined) {
+                            setNewName(data.newName);
+                            if (errors.newName) setErrors({ ...errors, newName: null });
+                        }
+                        if (data.newCategory !== undefined) {
+                            setNewCategory(data.newCategory);
+                            if (errors.newCategory) setErrors({ ...errors, newCategory: null });
+                        }
+                        if (data.newType !== undefined) {
+                            setNewType(data.newType);
+                            if (errors.newType) setErrors({ ...errors, newType: null });
+                        }
                     }}
-                    error={errors.newName}
+                    errors={errors}
+                    fields={[
+                        { name: "newName", label: "Asset Name", placeholder: "e.g. ccs_entrance_v1.glb" },
+                        { 
+                            name: "newCategory", 
+                            label: "Building", 
+                            type: "select", 
+                            options: categories.map(cat => ({ label: cat.name, value: cat.name }))
+                        },
+                        { 
+                            name: "newType", 
+                            label: "Asset Type", 
+                            type: "toggleGroup", 
+                            options: [
+                                { label: "3D Model", value: "3D Model" },
+                                { label: "360° Panorama", value: "360° Panorama" }
+                            ]
+                        }
+                    ]}
                 />
-
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Building
-                    </label>
-                    <select
-                        value={newCategory}
-                        onChange={(e) => {
-                            setNewCategory(e.target.value);
-                            if (errors.newCategory)
-                                setErrors({ ...errors, newCategory: null });
-                        }}
-                        className={`w-full border ${errors.newCategory ? "border-red-500" : "border-brand-border"} rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-bold`}
-                    >
-                        {categories.map((cat) => (
-                            <option key={cat.id} value={cat.name}>
-                                {cat.name}
-                            </option>
-                        ))}
-                    </select>
-                    {errors.newCategory && (
-                        <p className="text-xs text-red-500 mt-1">
-                            {errors.newCategory}
-                        </p>
-                    )}
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Asset Type
-                    </label>
-                    <div
-                        className={`flex gap-2 p-1 rounded-md ${errors.newType ? "border border-red-500" : ""}`}
-                    >
-                        <button
-                            onClick={() => {
-                                setNewType("3D Model");
-                                if (errors.newType)
-                                    setErrors({ ...errors, newType: null });
-                            }}
-                            className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${newType === "3D Model" ? "bg-brand text-white shadow-sm" : "bg-gray-50 text-gray-500 hover:bg-brand-light"}`}
-                        >
-                            3D Model
-                        </button>
-                        <button
-                            onClick={() => {
-                                setNewType("360° Panorama");
-                                if (errors.newType)
-                                    setErrors({ ...errors, newType: null });
-                            }}
-                            className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${newType === "360° Panorama" ? "bg-brand text-white shadow-sm" : "bg-gray-50 text-gray-500 hover:bg-brand-light"}`}
-                        >
-                            360° Panorama
-                        </button>
-                    </div>
-                    {errors.newType && (
-                        <p className="text-xs text-red-500 mt-1">
-                            {errors.newType}
-                        </p>
-                    )}
-                </div>
 
                 {!editingAsset && (
                     <div className="space-y-2">
