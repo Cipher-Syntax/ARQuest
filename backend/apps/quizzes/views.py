@@ -12,9 +12,9 @@ from .serializers import QuizQuestionSerializer
 class BuildingQuizView(APIView):
     permission_classes = [IsAuthenticated]
     
-    def get(self, request, building_id):
+    def get(self, request, id):
         try:
-            building = Building.objects.get(id=building_id, is_active=True)
+            building = Building.objects.get(id=id, is_active=True)
         except Building.DoesNotExist:
             return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
@@ -22,7 +22,7 @@ class BuildingQuizView(APIView):
         questions = list(QuizQuestion.objects.filter(building=building, is_active=True).exclude(id__in=answered_ids))
         
         if not questions:
-            return success_response([], message='No new questions available for this building.')
+            return success_response([])
             
         import random
         random.shuffle(questions)
