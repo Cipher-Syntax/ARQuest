@@ -11,7 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
-import api from "../../services/api";
+import api from "../../services";
 import SoundManager from "../../utils/SoundManager";
 
 export default function QuizModal({ visible, building, onClose }) {

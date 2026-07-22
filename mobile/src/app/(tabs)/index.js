@@ -16,7 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import { WebView } from "react-native-webview";
 
 import { useAuth } from "../../hooks/useAuth";
-import { api } from "../../services/api";
+import { api } from "../../services";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
 import ARGlassCard from "../../components/ar/ARGlassCard";
@@ -36,7 +36,7 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
-import { geofencingService } from "../../services/geofencing/geofencingService";
+import { geofencingService } from "../../services";
 
 export default function HomeScreen() {
     const { user } = useAuth();

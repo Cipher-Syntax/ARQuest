@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, CheckCircle2, MapPin } from "lucide-react-native";
 import { router } from "expo-router";
-import { api } from "../services/api";
+import { api } from "../services";
 import theme from "../theme/tokens";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";

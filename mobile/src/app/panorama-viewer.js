@@ -13,9 +13,9 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
 import ViewerHeader from "../components/viewer/ViewerHeader";
 import { theme } from "../theme/tokens";
-import api from "../services/api";
+import api from "../services";
 import { useAssetCache } from "../hooks/useAssetCache";
-import { assetService } from "../services/assets/assetService";
+import { assetService } from "../services";
 
 export default function PanoramaViewerScreen() {
     const { buildingId, buildingName } = useLocalSearchParams();

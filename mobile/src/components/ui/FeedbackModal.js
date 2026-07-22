@@ -15,7 +15,7 @@ import { customAlert as Alert } from "./CustomAlert";
 import { X, MessageSquare, AlertCircle, Lightbulb } from "lucide-react-native";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
-import { api } from "../../services/api";
+import { api } from "../../services";
 import { validateString } from "../../utils/validation";
 
 export default function FeedbackModal({ visible, onClose }) {

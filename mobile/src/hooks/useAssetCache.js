@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { assetService } from "../services/assets/assetService";
+import { assetService } from "../services";
 
 export function useAssetCache() {
     const [state, setState] = useState({

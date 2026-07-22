@@ -22,7 +22,7 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
-import { api } from "../services/api";
+import { api } from "../services";
 import theme from "../theme/tokens";
 import { fonts } from "../constants/typography";
 import { AVATARS } from "../constants/Avatars";

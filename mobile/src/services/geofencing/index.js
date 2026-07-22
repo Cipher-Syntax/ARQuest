@@ -1,0 +1,1 @@
+﻿export { geofencingService } from './geofencingService';

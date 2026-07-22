@@ -1,5 +1,5 @@
 import { useAuth } from "./useAuth";
-import { roleAccess } from "../services/auth/roleAccess";
+import { roleAccess } from "../services";
 
 export const useRoleAccess = () => {
     const { user } = useAuth();
