@@ -16,7 +16,7 @@ import { DeviceMotion } from "expo-sensors";
 import { theme } from "../theme/tokens";
 import { useAssetCache } from "../hooks/useAssetCache";
 import { assetService } from "../services";
-import api from "../services";
+import { api } from "../services";
 
 export default function VirtualTourViewerScreen() {
     const {

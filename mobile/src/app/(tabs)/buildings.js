@@ -20,7 +20,7 @@ import theme from "../../theme/tokens";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
-import api from "../../services";
+import { api } from "../../services";
 import { geofencingService } from "../../services";
 import { ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";

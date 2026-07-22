@@ -18,7 +18,7 @@ import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService } from "../../services";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
-import api from "../../services";
+import { api } from "../../services";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
 import { useAuth } from "../../context/AuthContext";

@@ -57,4 +57,3 @@ celerybeat.pid
 .env.*
 .env.local
 .env.*.local
-!.env.example

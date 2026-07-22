@@ -14,7 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { theme } from "../theme/tokens";
 import { useAssetCache } from "../hooks/useAssetCache";
 import { assetService } from "../services";
-import api from "../services";
+import { api } from "../services";
 
 export default function Building3DViewerScreen() {
     const { buildingId, buildingName, buildingDescription, modelUrl } =
