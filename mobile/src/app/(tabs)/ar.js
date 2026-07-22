@@ -748,26 +748,6 @@ export default function ARScreen() {
                     </View>
                 )}
 
-                {/* 2.5 3D Model Overlay in Center */}
-                {isModelVisible && nearbyBuildingFull?.model_url && (
-                    <AR3DModelOverlay
-                        modelUrl={nearbyBuildingFull.model_url}
-                        buildingName={nearbyBuildingFull.name}
-                        capturing={capturing}
-                        onSnapshotReady={() => setModelReady(true)}
-                        style={{
-                            position: "absolute",
-                            top: "50%",
-                            left: "50%",
-                            width: 240,
-                            height: 240,
-                            marginLeft: -120,
-                            marginTop: -120,
-                            zIndex: 10,
-                        }}
-                    />
-                )}
-
                 {/* 3. Reticle and Gamified HUD Overlays */}
                 {!isScanningQr ? (
                     <View style={styles.reticleContainer} pointerEvents="none">
@@ -805,13 +785,35 @@ export default function ARScreen() {
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
             {triviaModalVisible &&
                 (user?.role === "student" ? claimedQuest : true) && (
-                    <Animated.View
-                        style={[
-                            styles.triviaModal,
-                            { transform: [{ translateY: slideAnim }] },
-                        ]}
-                    >
-                        <View style={styles.triviaModalHeader}>
+                    <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]}>
+                        {/* Dark backdrop */}
+                        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
+                        
+                        {/* Holographic 3D Model above the modal */}
+                        {nearbyBuildingFull?.model_url && (
+                            <AR3DModelOverlay
+                                modelUrl={nearbyBuildingFull.model_url}
+                                buildingName={nearbyBuildingFull.name}
+                                capturing={false}
+                                style={{
+                                    position: "absolute",
+                                    top: "15%",
+                                    left: "50%",
+                                    width: 320,
+                                    height: 320,
+                                    marginLeft: -160,
+                                    zIndex: 10,
+                                }}
+                            />
+                        )}
+
+                        <Animated.View
+                            style={[
+                                styles.triviaModal,
+                                { transform: [{ translateY: slideAnim }] },
+                            ]}
+                        >
+                            <View style={styles.triviaModalHeader}>
                             <View
                                 style={{
                                     flexDirection: "row",
@@ -863,7 +865,8 @@ export default function ARScreen() {
                             </View>
                         )}
                     </Animated.View>
-                )}
+                </View>
+            )}
 
             {/* --- Bottom Camera Controls --- */}
             {!capturing && (
