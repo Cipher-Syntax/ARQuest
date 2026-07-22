@@ -865,7 +865,9 @@ export default function ARScreen() {
                                 </Text>
                             </View>
                         )}
-
+                    </Animated.View>
+                </View>
+            )}
 
             {/* --- Bottom Camera Controls --- */}
             {!capturing && (
