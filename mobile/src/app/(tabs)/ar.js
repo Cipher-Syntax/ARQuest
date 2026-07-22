@@ -778,30 +778,40 @@ export default function ARScreen() {
             </View>
             {/* --- END CAPTURE TARGET --- */}
 
+            {/* 5. Preload 3D Model (Hidden until Trivia Modal opens) */}
+            {nearbyBuildingFull?.model_url && (
+                <View 
+                    style={[
+                        StyleSheet.absoluteFillObject, 
+                        { 
+                            zIndex: triviaModalVisible ? 101 : -1, 
+                            opacity: triviaModalVisible ? 1 : 0 
+                        }
+                    ]} 
+                    pointerEvents={triviaModalVisible ? "auto" : "none"}
+                >
+                    <AR3DModelOverlay
+                        modelUrl={nearbyBuildingFull.model_url}
+                        buildingName={nearbyBuildingFull.name}
+                        capturing={false}
+                        style={{
+                            position: "absolute",
+                            top: "15%",
+                            left: "50%",
+                            width: 320,
+                            height: 320,
+                            marginLeft: -160,
+                        }}
+                    />
+                </View>
+            )}
+
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
             {triviaModalVisible &&
                 (user?.role === "student" ? claimedQuest : true) && (
                     <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]}>
                         {/* Dark backdrop */}
                         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
-                        
-                        {/* Holographic 3D Model above the modal */}
-                        {nearbyBuildingFull?.model_url && (
-                            <AR3DModelOverlay
-                                modelUrl={nearbyBuildingFull.model_url}
-                                buildingName={nearbyBuildingFull.name}
-                                capturing={false}
-                                style={{
-                                    position: "absolute",
-                                    top: "15%",
-                                    left: "50%",
-                                    width: 320,
-                                    height: 320,
-                                    marginLeft: -160,
-                                    zIndex: 10,
-                                }}
-                            />
-                        )}
 
                         <Animated.View
                             style={[
