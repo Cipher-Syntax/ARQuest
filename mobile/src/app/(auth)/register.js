@@ -13,8 +13,8 @@ import { useRouter, Link } from "expo-router";
 import theme from "../../theme/tokens";
 import { api } from "../../services/api";
 import { Eye, EyeOff } from "lucide-react-native";
-import ARGlassCard from "../../components/ARGlassCard";
-import ARButton from "../../components/ARButton";
+import ARGlassCard from "../../components/ar/ARGlassCard";
+import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 import { validateString, validateEmail } from "../../utils/validation";
 

@@ -9,7 +9,7 @@ import {
     TextInput,
     ScrollView,
 } from "react-native";
-import { customAlert as Alert } from "../../components/CustomAlert";
+import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { WebView } from "react-native-webview";
 import { INJECTED_BRIDGE_SCRIPT, createBridgeMessage, parseBridgeMessage } from "../../utils/WebViewBridge";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,7 +24,7 @@ import api from "../../services/api";
 import { geofencingService } from "../../services/geofencingService";
 import { ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
-import QuizModal from "../../components/QuizModal";
+import QuizModal from "../../components/features/QuizModal";
 
 export default function BuildingsScreen() {
     const { unlockedBuildings, isLoading: isUnlockedLoading } =

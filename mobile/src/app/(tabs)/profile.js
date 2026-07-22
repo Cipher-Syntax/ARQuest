@@ -33,8 +33,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { AVATARS } from "../../constants/Avatars";
 import { fonts } from "../../constants/typography";
-import FeedbackModal from "../../components/FeedbackModal";
-import { customAlert as Alert } from "../../components/CustomAlert";
+import FeedbackModal from "../../components/ui/FeedbackModal";
+import { customAlert as Alert } from "../../components/ui/CustomAlert";
 
 export default function ProfileScreen() {
     const { user, logout, checkToken } = useAuth();

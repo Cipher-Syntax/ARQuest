@@ -26,7 +26,7 @@ import { api } from "../services/api";
 import theme from "../theme/tokens";
 import { fonts } from "../constants/typography";
 import { AVATARS } from "../constants/Avatars";
-import { customAlert as Alert } from "../components/CustomAlert";
+import { customAlert as Alert } from "../components/ui/CustomAlert";
 
 export default function AccountSettingsScreen() {
     const { user, checkToken } = useAuth();

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import {} from "react-native";
-import { customAlert as Alert } from "../components/CustomAlert";
+import { customAlert as Alert } from "../components/ui/CustomAlert";
 import { api } from "../services/api";
 import { authService } from "../services/authService";
 import NetInfo from "@react-native-community/netinfo";

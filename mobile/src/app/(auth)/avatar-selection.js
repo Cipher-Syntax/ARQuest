@@ -7,7 +7,7 @@ import {
     StyleSheet,
     FlatList,
 } from "react-native";
-import { customAlert as Alert } from "../../components/CustomAlert";
+import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useRouter } from "expo-router";
 import { AVATARS } from "../../constants/Avatars";
 import { api } from "../../services/api";

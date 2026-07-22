@@ -9,13 +9,13 @@ import {
     Platform,
     Image,
 } from "react-native";
-import { customAlert as Alert } from "../../components/CustomAlert";
+import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
 import { Link, useRouter } from "expo-router";
 import { Eye, EyeOff } from "lucide-react-native";
-import ARGlassCard from "../../components/ARGlassCard";
-import ARButton from "../../components/ARButton";
+import ARGlassCard from "../../components/ar/ARGlassCard";
+import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 import { validateString } from "../../utils/validation";
 

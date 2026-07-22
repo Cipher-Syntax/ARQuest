@@ -8,7 +8,7 @@ import {
     Image,
     Animated,
 } from "react-native";
-import { customAlert as Alert } from "../../components/CustomAlert";
+import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,8 +21,8 @@ import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService } from "../../services/geofencingService";
 import { api } from "../../services/api";
-import AR3DModelOverlay from "../../components/AR3DModelOverlay";
-import BrandedSelfieFrame from "../../components/BrandedSelfieFrame";
+import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
+import BrandedSelfieFrame from "../../components/ar/BrandedSelfieFrame";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
 import { fonts } from "../../constants/typography";
