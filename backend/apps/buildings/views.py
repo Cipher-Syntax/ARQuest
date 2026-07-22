@@ -256,7 +256,7 @@ def unlock_building(request):
 
             newly_earned_badges = []
             if created:
-                from apps.buildings.gamification_views import check_and_award_badges
+                from apps.gamification.views import check_and_award_badges
                 newly_earned_badges = check_and_award_badges(request.user)
 
             serializer = BuildingUnlockSerializer(unlock)
@@ -315,7 +315,7 @@ def unlock_building_qr(request):
 
     newly_earned_badges = []
     if created:
-        from apps.buildings.gamification_views import check_and_award_badges
+        from apps.gamification.views import check_and_award_badges
         newly_earned_badges = check_and_award_badges(request.user)
 
     serializer = BuildingUnlockSerializer(unlock)
@@ -479,7 +479,7 @@ def submit_quiz_answer(request):
             user.save(update_fields=['exploration_points'])
             exp_awarded = question.exp_reward
             
-            from apps.buildings.gamification_views import check_and_award_badges
+            from apps.gamification.views import check_and_award_badges
             newly_earned_badges = check_and_award_badges(user)
         
     return success_response({

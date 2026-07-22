@@ -38,9 +38,9 @@ class QuestSerializer(serializers.ModelSerializer):
 		if completed_ids is not None:
 			return obj.id in completed_ids
 			
-		user = self.context.get('request').user
-		if user and user.is_authenticated:
-			return UserQuestProgress.objects.filter(user=user, quest=obj, is_completed=True).exists()
+		request = self.context.get('request')
+		if request and hasattr(request, 'user') and request.user.is_authenticated:
+			return UserQuestProgress.objects.filter(user=request.user, quest=obj, is_completed=True).exists()
 		return False
 
 
