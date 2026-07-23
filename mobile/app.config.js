@@ -7,6 +7,13 @@ export default {
         icon: "./assets/images/icon.png",
         scheme: "ARQuest",
         userInterfaceStyle: "automatic",
+        
+        updates: {
+            url: "https://u.expo.dev/a93fe083-ea87-495c-b5fc-74424c017742"
+        },
+        runtimeVersion: {
+            policy: "appVersion"
+        },
 
         ios: {
             icon: "./assets/expo.icon",
