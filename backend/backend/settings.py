@@ -217,7 +217,6 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 
 BACKEND_URL = config('BACKEND_URL')
-FRONTEND_URL = config('FRONTEND_URL')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
