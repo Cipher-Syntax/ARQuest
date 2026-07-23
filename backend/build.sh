@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # exit on error
 set -o errexit
 
@@ -12,7 +12,7 @@ python manage.py collectstatic --no-input
 python manage.py migrate
 
 # Create default superuser if it doesn't exist
-if [[ -n "$DJANGO_SUPERUSER_USERNAME" ]] && [[ -n "$DJANGO_SUPERUSER_PASSWORD" ]]; then
+if [[ -n "$DJANGO_SUPERUSER_USERNAME" ]] && [[ -n "$DJANGO_SUPERUSER_PASSWORD" ]] && [[ -n "$DJANGO_SUPERUSER_EMAIL" ]]; then
     echo "Creating superuser..."
     python manage.py createsuperuser --noinput || echo "Superuser already exists."
 fi
