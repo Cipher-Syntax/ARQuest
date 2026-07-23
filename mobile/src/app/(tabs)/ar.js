@@ -671,7 +671,9 @@ export default function ARScreen() {
 
                             {/* Right Side: Info & Claim */}
                             <View style={styles.targetCardRight}>
-                                <Text style={styles.targetLabel}>TARGET ACQUIRED</Text>
+                                <Text style={styles.targetLabel}>
+                                    {geofenceStatus?.status === 'inside' ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
+                                </Text>
                                 <Text style={[styles.buildingLabel, { color: theme.colors.primary }]}>{nearbyBuilding.name}</Text>
                                 
                                 {geofenceStatus?.status === 'inside' ? (
@@ -679,28 +681,29 @@ export default function ARScreen() {
                                         ✓ You have arrived!
                                     </Text>
                                 ) : (
-                                    <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
-                                        📍 {Math.round(geofenceStatus?.distance || 0)} meters away
-                                    </Text>
+                                    <>
+                                        <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
+                                            📍 {Math.round(geofenceStatus?.distance_meters || 0)} meters away
+                                        </Text>
+                                        <Text style={[styles.buildingStatus, { fontSize: 10, marginTop: 4, color: theme.colors.textMuted }]}>
+                                            Keep moving closer to unlock.
+                                        </Text>
+                                    </>
                                 )}
 
                                 {/* Gamified Claim Button */}
-                                {!capturing && !triviaModalVisible && (
-                                    user?.role === 'student' ? (
-                                        matchingQuest && geofenceStatus?.status === 'inside' && (
-                                            <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
-                                                <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                                                <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
-                                            </TouchableOpacity>
-                                        )
-                                    ) : (
-                                        geofenceStatus?.status === 'inside' && nearbyBuildingFull && (
-                                            <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
-                                                <Ionicons name="information-circle" size={16} color="#FFFFFF" />
-                                                <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
-                                            </TouchableOpacity>
-                                        )
-                                    )
+                                {!capturing && !triviaModalVisible && geofenceStatus?.status === 'inside' && (
+                                    user?.role === 'student' && matchingQuest ? (
+                                        <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
+                                            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                                            <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
+                                        </TouchableOpacity>
+                                    ) : nearbyBuildingFull ? (
+                                        <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
+                                            <Ionicons name="information-circle" size={16} color="#FFFFFF" />
+                                            <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
+                                        </TouchableOpacity>
+                                    ) : null
                                 )}
                             </View>
                         </View>
@@ -711,8 +714,20 @@ export default function ARScreen() {
                 {navTargetFull && location && !capturing && !triviaModalVisible && (
                     <View style={styles.navigationHud}>
                         {geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull.id ? (
-                            <Animated.View style={{ opacity: pulseAnim }}>
+                            <Animated.View style={{ opacity: pulseAnim, alignItems: 'center' }}>
                                 <Text style={styles.navDistanceText}>🎉 YOU HAVE ARRIVED</Text>
+                                {/* Gamified Claim Button for Navigation Mode */}
+                                {user?.role === 'student' && matchingQuest ? (
+                                    <TouchableOpacity style={[styles.claimQuestBtn, { marginTop: 16 }]} onPress={handleClaimQuest}>
+                                        <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                                        <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
+                                    </TouchableOpacity>
+                                ) : nearbyBuildingFull ? (
+                                    <TouchableOpacity style={[styles.claimQuestBtn, { marginTop: 16 }]} onPress={handleViewTriviaOnly}>
+                                        <Ionicons name="information-circle" size={16} color="#FFFFFF" />
+                                        <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
+                                    </TouchableOpacity>
+                                ) : null}
                             </Animated.View>
                         ) : (
                             <>
@@ -739,26 +754,6 @@ export default function ARScreen() {
                             </>
                         )}
                     </View>
-                )}
-
-                {/* 2.5 3D Model Overlay in Center */}
-                {isModelVisible && nearbyBuildingFull?.model_url && (
-                    <AR3DModelOverlay
-                        modelUrl={nearbyBuildingFull.model_url}
-                        buildingName={nearbyBuildingFull.name}
-                        capturing={capturing}
-                        onSnapshotReady={() => setModelReady(true)}
-                        style={{
-                            position: "absolute",
-                            top: "50%",
-                            left: "50%",
-                            width: 240,
-                            height: 240,
-                            marginLeft: -120,
-                            marginTop: -120,
-                            zIndex: 10,
-                        }}
-                    />
                 )}
 
                 {/* 3. Reticle and Gamified HUD Overlays */}
@@ -795,16 +790,21 @@ export default function ARScreen() {
             </View>
             {/* --- END CAPTURE TARGET --- */}
 
+
+
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
-            {triviaModalVisible &&
-                (user?.role === "student" ? claimedQuest : true) && (
-                    <Animated.View
-                        style={[
-                            styles.triviaModal,
-                            { transform: [{ translateY: slideAnim }] },
-                        ]}
-                    >
-                        <View style={styles.triviaModalHeader}>
+            {triviaModalVisible && (
+                <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]} pointerEvents="box-none">
+                        {/* Dark backdrop */}
+                        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
+
+                        <Animated.View
+                            style={[
+                                styles.triviaModal,
+                                { transform: [{ translateY: slideAnim }] },
+                            ]}
+                        >
+                            <View style={styles.triviaModalHeader}>
                             <View
                                 style={{
                                     flexDirection: "row",
@@ -818,7 +818,7 @@ export default function ARScreen() {
                                     style={{ marginRight: 8 }}
                                 />
                                 <Text style={styles.triviaTitle}>
-                                    {user?.role === "student"
+                                    {user?.role === "student" && claimedQuest
                                         ? "New Discovery"
                                         : "Building Information"}
                                 </Text>
@@ -856,7 +856,28 @@ export default function ARScreen() {
                             </View>
                         )}
                     </Animated.View>
-                )}
+                </View>
+            )}
+
+            {/* --- Holographic 3D Model Overlay --- */}
+            {/* Placed at the root level to guarantee Android WebView rendering and z-index safety */}
+            {triviaModalVisible && nearbyBuildingFull?.model_url && (
+                <AR3DModelOverlay
+                    modelUrl={nearbyBuildingFull.model_url}
+                    buildingName={nearbyBuildingFull.name}
+                    capturing={false}
+                    style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        width: 280,
+                        height: 280,
+                        marginLeft: -140,
+                        marginTop: -200, // Shifted upwards so it perfectly floats above the modal
+                        zIndex: 105, // Higher than Trivia Modal backdrop (100)
+                    }}
+                />
+            )}
 
             {/* --- Bottom Camera Controls --- */}
             {!capturing && (

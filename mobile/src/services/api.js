@@ -48,7 +48,7 @@ api.interceptors.response.use(
                                 refresh: refreshToken,
                             },
                         );
-                        const { access } = response.data;
+                        const { access } = response.data.data;
                         await authService.setTokens(access, null); // Don't overwrite the refresh token
 
                         // Retry the original request with the new access token

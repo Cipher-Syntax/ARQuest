@@ -38,10 +38,7 @@ class ValidateLocationView(APIView):
                 min_distance = distance
                 radius = float(geofence.radius_meters)
 
-                if accuracy > 50:
-                    status = 'weak_signal'
-                elif distance <= radius:
-                    status = 'inside'
+                if distance <= radius + 20:
                     matched_building = {
                         'id': building.id,
                         'name': building.name,
@@ -49,8 +46,13 @@ class ValidateLocationView(APIView):
                         'status': building.status,
                         'is_active': building.is_active,
                     }
-                elif distance <= radius + 20:
-                    status = 'nearby'
+                    
+                    if accuracy > 50:
+                        status = 'weak_signal'
+                    elif distance <= radius:
+                        status = 'inside'
+                    else:
+                        status = 'nearby'
 
         result = {
             'status': status,
