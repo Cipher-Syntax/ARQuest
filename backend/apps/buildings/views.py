@@ -582,4 +582,4 @@ def cron_cleanup(request):
     for b in old_buildings:
         b.hard_delete()
         
-    return Response({"success": True, "deleted": count}, status=204)
+    return Response({"success": True, "deleted": count}, status=200)
