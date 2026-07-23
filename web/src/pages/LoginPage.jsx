@@ -56,9 +56,10 @@ const LoginPage = () => {
             }
             navigate("/dashboard");
         } catch (err) {
+            const errorData = err.response?.data?.error;
             const errorMessage =
                 err.response?.data?.message ||
-                err.response?.data?.error ||
+                (typeof errorData === "string" ? errorData : errorData?.message) ||
                 "Invalid username or password";
             setError(errorMessage);
             setLoading(false);
