@@ -1,8 +1,23 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
 from django.utils import timezone
 from datetime import timedelta, date
 import random
+
+
+class CustomUserManager(UserManager):
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        # Force role to admin for superusers so they can login to React Web Admin
+        extra_fields.setdefault('role', 'admin')
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self._create_user(username, email, password, **extra_fields)
 
 
 class User(AbstractUser):
@@ -22,6 +37,8 @@ class User(AbstractUser):
     avatar_id = models.CharField(max_length=50, blank=True, null=True)
     streak_count = models.IntegerField(default=0, help_text="Consecutive daily login streak")
     last_login_date = models.DateField(null=True, blank=True, help_text="Date of the user's last recorded login for streak tracking")
+    
+    objects = CustomUserManager()
     
     @property
     def is_admin_role(self):

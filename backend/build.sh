@@ -16,3 +16,7 @@ if [[ -n "$DJANGO_SUPERUSER_USERNAME" ]] && [[ -n "$DJANGO_SUPERUSER_PASSWORD" ]
     echo "Creating superuser..."
     python manage.py createsuperuser --noinput || echo "Superuser already exists."
 fi
+
+# Ensure all superusers have the 'admin' role so they can log into the React dashboard
+python manage.py shell -c "from apps.authentication.models import User; User.objects.filter(is_superuser=True).update(role='admin')"
+
