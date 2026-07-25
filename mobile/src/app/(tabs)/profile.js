@@ -190,16 +190,26 @@ export default function ProfileScreen() {
                                 @{user?.username}
                             </Text>
                             {user?.role === "student" ? (
-                                <View style={styles.playerRankBadge}>
-                                    <Text style={styles.playerRankIcon}>
-                                        {user?.rank_info?.icon || "🎒"}
-                                    </Text>
-                                    <Text style={styles.playerRoleLabel}>
-                                        Lv.{user?.rank_info?.level || 1}{" "}
-                                        {user?.rank_info?.title?.toUpperCase() ||
-                                            "FRESHMAN"}
-                                    </Text>
-                                </View>
+                                <>
+                                    <View style={styles.playerRankBadge}>
+                                        <Text style={styles.playerRankIcon}>
+                                            {user?.rank_info?.icon || "🎒"}
+                                        </Text>
+                                        <Text style={styles.playerRoleLabel}>
+                                            Lv.{user?.rank_info?.level || 1}{" "}
+                                            {user?.rank_info?.title?.toUpperCase() ||
+                                                "FRESHMAN"}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.miniStreak}>
+                                        <Text style={styles.miniStreakText}>
+                                            {user?.streak_count || 0} Days Streak!
+                                        </Text>
+                                        <Text style={styles.miniStreakFlame}>
+                                            🔥
+                                        </Text>
+                                    </View>
+                                </>
                             ) : (
                                 <Text style={styles.playerRoleLabel}>
                                     {user?.role?.toUpperCase() ||
@@ -263,51 +273,36 @@ export default function ProfileScreen() {
                                                 ? `${user.rank_info.exp_to_next_rank} EXP to next rank`
                                                 : "Max Rank Achieved!"}
                                         </Text>
-                                        <View style={styles.miniStreak}>
-                                            <Text
-                                                style={styles.miniStreakFlame}
-                                            >
-                                                🔥
-                                            </Text>
-                                            <Text style={styles.miniStreakText}>
-                                                {user?.streak_count || 0}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.gamifiedStatsGrid}>
-                                        <View style={styles.gamifiedStatBox}>
-                                            <Text
-                                                style={styles.gamifiedStatLabel}
-                                            >
-                                                TOTAL QUESTS
-                                            </Text>
-                                            <Text
-                                                style={styles.gamifiedStatValue}
-                                            >
-                                                {myStats?.quests_completed || 0}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.gamifiedStatBox}>
-                                            <Text
-                                                style={styles.gamifiedStatLabel}
-                                            >
-                                                TOTAL BADGES
-                                            </Text>
-                                            <Text
-                                                style={styles.gamifiedStatValue}
-                                            >
-                                                {badgeCount
-                                                    ? badgeCount.split("/")[0]
-                                                    : 0}
-                                            </Text>
-                                        </View>
                                     </View>
                                 </>
                             )}
                         </View>
                     )}
                 </LinearGradient>
+
+                {/* --- Stats Overview --- */}
+                {user?.role === "student" && (
+                    <View style={styles.gamifiedStatsGrid}>
+                        <View style={styles.gamifiedStatBox}>
+                            <Crosshair size={28} color={theme.colors.primary} />
+                            <Text style={[styles.gamifiedStatValue, { marginTop: 4 }]}>
+                                {(myStats?.quests_completed || 0).toString().padStart(2, '0')}
+                            </Text>
+                            <Text style={styles.gamifiedStatLabel}>
+                                TOTAL QUESTS
+                            </Text>
+                        </View>
+                        <View style={styles.gamifiedStatBox}>
+                            <Award size={28} color={theme.colors.primary} />
+                            <Text style={[styles.gamifiedStatValue, { marginTop: 4 }]}>
+                                {badgeCount ? badgeCount.split("/")[0].padStart(2, '0') : "00"}
+                            </Text>
+                            <Text style={styles.gamifiedStatLabel}>
+                                TOTAL BADGES
+                            </Text>
+                        </View>
+                    </View>
+                )}
 
                 {/* --- Badge Showcase --- */}
                 {user?.role === "student" && (
@@ -441,8 +436,9 @@ export default function ProfileScreen() {
                 )}
 
                 {/* General Settings */}
+                {/* General Settings */}
                 <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>GENERAL SETTINGS</Text>
+                    <Text style={styles.sectionTitle}>ACCOUNT & PREFERENCES</Text>
                     <View style={styles.settingsCard}>
                         {user?.role === "student" && (
                             <SettingsRow
@@ -533,12 +529,28 @@ export default function ProfileScreen() {
 
                 {/* Logout Button */}
                 <TouchableOpacity style={styles.logoutButton} onPress={() => {
-                    if (stopTracking) stopTracking();
-                    logout();
+                    Alert(
+                        "Log Out",
+                        "Are you sure you want to log out?",
+                        [
+                            {
+                                text: "Cancel",
+                                style: "cancel"
+                            },
+                            {
+                                text: "Log Out",
+                                style: "destructive",
+                                onPress: () => {
+                                    if (stopTracking) stopTracking();
+                                    logout();
+                                }
+                            }
+                        ]
+                    );
                 }}>
                     <LogOut
                         size={20}
-                        color={theme.colors.error}
+                        color={theme.colors.primary}
                         style={{ marginRight: 8 }}
                     />
                     <Text style={styles.logoutButtonText}>Log Out</Text>
@@ -843,13 +855,8 @@ const styles = StyleSheet.create({
     miniStreak: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.15)",
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 12,
+        marginTop: 6,
         gap: 4,
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.3)",
     },
     miniStreakFlame: {
         fontSize: 12,
@@ -857,36 +864,38 @@ const styles = StyleSheet.create({
     miniStreakText: {
         fontFamily: fonts.hud.bold,
         color: "#FFFFFF",
-        fontSize: 10,
+        fontSize: 12,
+        letterSpacing: 0.5,
     },
     gamifiedStatsGrid: {
         flexDirection: "row",
         gap: 12,
-        borderTopWidth: 1,
-        borderTopColor: "rgba(255, 255, 255, 0.15)",
-        paddingTop: 16,
+        marginBottom: 24,
     },
     gamifiedStatBox: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
-        paddingVertical: 10,
+        backgroundColor: "#ffffff",
+        paddingVertical: 16,
         borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.2)",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     gamifiedStatLabel: {
-        fontFamily: fonts.hud.bold,
-        color: "rgba(255, 255, 255, 0.7)",
-        fontSize: 10,
+        fontFamily: fonts.heading.bold,
+        color: "#594040",
+        fontSize: 12,
         letterSpacing: 1,
-        marginBottom: 4,
+        marginTop: 4,
     },
     gamifiedStatValue: {
         fontFamily: fonts.heading.bold,
-        color: "#FFFFFF",
-        fontSize: 18,
+        color: "#1c1b1b",
+        fontSize: 20,
     },
     sectionHeader: {
         flexDirection: "row",
@@ -973,9 +982,9 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontFamily: fonts.heading.bold,
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: "bold",
-        color: theme.colors.textSecondary,
+        color: "#594040",
         marginBottom: 10,
         marginLeft: 4,
         letterSpacing: 1,
@@ -1019,19 +1028,24 @@ const styles = StyleSheet.create({
     },
     logoutButton: {
         flexDirection: "row",
-        backgroundColor: theme.colors.surface,
+        backgroundColor: "#ffffff",
         padding: 16,
         borderRadius: 16,
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: 2,
-        borderColor: theme.colors.error,
         marginTop: 10,
+        borderColor: theme.colors.primary,
+        borderWidth: 1,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
     },
     logoutButtonText: {
-        color: theme.colors.error,
-        fontSize: 16,
-        fontWeight: "bold",
+        color: theme.colors.primary,
+        fontSize: 20,
+        fontFamily: fonts.heading.medium,
     },
     missionLogCard: {
         backgroundColor: theme.colors.surfaceSoft,

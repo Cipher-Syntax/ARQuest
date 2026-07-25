@@ -183,7 +183,7 @@ export default function HomeScreen() {
                 >
                     <View style={styles.headerTopRow}>
                         <View style={styles.userInfo}>
-                            <Text style={styles.greeting}>WELCOME BACK</Text>
+                            <Text style={styles.greeting}>CAMPUS EXPLORER</Text>
                             <Text style={styles.username}>
                                 {user?.username || "Guest"}
                             </Text>
@@ -213,7 +213,7 @@ export default function HomeScreen() {
                     {user?.role === "student" && (
                         <View style={styles.expContainer}>
                             <View style={styles.expTextRow}>
-                                <Text style={styles.expLabel}>YOUR EXP</Text>
+                                <Text style={styles.expLabel}>SEASON PROGRESS</Text>
                                 <Text style={styles.expValue}>
                                     {stats?.points || 0} PTS
                                 </Text>
@@ -242,7 +242,7 @@ export default function HomeScreen() {
                                             size={14}
                                         />
                                         <Text style={styles.heroChipText}>
-                                            TODAY'S MISSION
+                                            DAILY OBJECTIVE
                                         </Text>
                                     </View>
                                     {activeQuest && (
@@ -263,13 +263,13 @@ export default function HomeScreen() {
                                         ? "Loading..."
                                         : activeQuest
                                           ? activeQuest.title
-                                          : "You've finished all missions for today!"}
+                                          : "All missions cleared!\nCheck back later for new tasks."}
                                 </Text>
 
                                 <View style={styles.heroBottomRow}>
                                     <View style={styles.heroTargetInfo}>
                                         <Text style={styles.heroTargetLabel}>
-                                            Target Building
+                                            CURRENT TARGET
                                         </Text>
                                         <Text
                                             style={styles.heroTargetValue}
@@ -277,7 +277,7 @@ export default function HomeScreen() {
                                         >
                                             {activeQuest
                                                 ? activeQuest.target_building_name
-                                                : "None"}
+                                                : "Scanning campus..."}
                                         </Text>
                                     </View>
                                     <TouchableOpacity
@@ -321,7 +321,7 @@ export default function HomeScreen() {
                             <View style={styles.section}>
                                 <View style={styles.sectionHeader}>
                                     <Text style={styles.sectionTitle}>
-                                        Limited Missions
+                                        SPECIAL EVENTS
                                     </Text>
                                     {challenges.length > 1 && (
                                         <View style={styles.swipeHint}>
@@ -527,7 +527,7 @@ export default function HomeScreen() {
                                                     ]}
                                                     numberOfLines={2}
                                                 >
-                                                    No active limited missions
+                                                    No active limited events
                                                 </Text>
                                                 <View
                                                     style={styles.ticketFooter}
@@ -538,7 +538,7 @@ export default function HomeScreen() {
                                                                 styles.ticketTargetLabel
                                                             }
                                                         >
-                                                            STATUS
+                                                            STATUS: IDLE
                                                         </Text>
                                                         <Text
                                                             style={[
@@ -550,7 +550,7 @@ export default function HomeScreen() {
                                                                 },
                                                             ]}
                                                         >
-                                                            Waiting
+                                                            STANDBY
                                                         </Text>
                                                     </View>
                                                     <View
@@ -651,7 +651,7 @@ export default function HomeScreen() {
                                         : "--"}
                                 </Text>
                                 <Text style={styles.splitLabel}>
-                                    Nearest Building
+                                    NEAREST HUB
                                 </Text>
                             </View>
                         </View>
@@ -659,7 +659,7 @@ export default function HomeScreen() {
 
                     {/* Quick Actions */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
+                        <Text style={styles.sectionTitle}>TOOLS & NAVIGATION</Text>
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -675,7 +675,7 @@ export default function HomeScreen() {
                                         size={24}
                                     />
                                 </View>
-                                <Text style={styles.actionText}>AR Camera</Text>
+                                <Text style={styles.actionText}>AR Lens</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -689,7 +689,7 @@ export default function HomeScreen() {
                                     />
                                 </View>
                                 <Text style={styles.actionText}>
-                                    Campus Map
+                                    Map
                                 </Text>
                             </TouchableOpacity>
 
@@ -708,7 +708,7 @@ export default function HomeScreen() {
                                             />
                                         </View>
                                         <Text style={styles.actionText}>
-                                            Rankings
+                                            Leader
                                         </Text>
                                     </TouchableOpacity>
 
@@ -822,12 +822,12 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
         marginBottom: 4,
     },
-    username: {
-        fontFamily: fonts.heading.bold,
-        color: "#FFFFFF",
-        fontSize: 28,
-        letterSpacing: 1,
-    },
+      username: {
+          fontFamily: fonts.heading.bold,
+          color: "#FFFFFF",
+          fontSize: 36,
+          letterSpacing: 1,
+      },
     userLevel: {
         fontFamily: fonts.body.bold,
         color: "#FFFFFF",

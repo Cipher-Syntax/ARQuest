@@ -7,6 +7,8 @@ import theme from "../theme/tokens";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import UpdateBanner from "../components/UpdateBanner";
+import useAppUpdate from "../hooks/useAppUpdate";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -20,6 +22,13 @@ export default function RootLayout() {
         Rajdhani_500Medium: require("../../assets/fonts/Rajdhani/Rajdhani-Medium.ttf"),
         Rajdhani_600SemiBold: require("../../assets/fonts/Rajdhani/Rajdhani-SemiBold.ttf"),
     });
+
+    const {
+        applyUpdate,
+        dismissUpdateBanner,
+        isUpdateDownloading,
+        shouldShowUpdateBanner,
+    } = useAppUpdate();
 
     useEffect(() => {
         if (fontsLoaded || error) {
@@ -40,6 +49,12 @@ export default function RootLayout() {
         <AuthProvider>
             <StatusBar style="dark" />
             <OfflineBanner />
+            <UpdateBanner
+                visible={shouldShowUpdateBanner}
+                isUpdating={isUpdateDownloading}
+                onUpdatePress={applyUpdate}
+                onDismissPress={dismissUpdateBanner}
+            />
             <CustomAlert ref={alertRef} />
             <Stack
                 screenOptions={{

@@ -36,10 +36,14 @@ export default function AvatarSelectionScreen() {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Choose Your Avatar</Text>
+            <Text style={styles.subtitle}>
+                Pick a look that matches your vibe for the{"\n"}semester ahead.
+            </Text>
             <FlatList
                 data={AVATARS}
-                numColumns={3}
+                numColumns={2}
                 keyExtractor={(item) => item.id}
+                columnWrapperStyle={styles.row}
                 renderItem={({ item }) => (
                     <TouchableOpacity
                         style={[
@@ -62,37 +66,56 @@ export default function AvatarSelectionScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
+        padding: 24,
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "flex-start",
+    },
+    title: {
+        fontSize: 32,
+        fontWeight: "bold",
+        color: "#1C1B1B",
+        marginTop: 60,
+        marginBottom: 8,
+        textAlign: "center",
+    },
+    subtitle: {
+        fontSize: 14,
+        color: "#594040",
+        textAlign: "center",
+        marginBottom: 32,
+        lineHeight: 20,
+    },
+    row: {
+        justifyContent: "space-between",
+    },
+    avatarContainer: {
+        margin: 8,
+        width: 156,
+        height: 152,
+        backgroundColor: "#F0EDED",
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: "transparent",
         alignItems: "center",
         justifyContent: "center",
     },
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        marginTop: 60,
-        marginBottom: 20,
-    },
-    avatarContainer: {
-        margin: 10,
-        padding: 5,
-        borderRadius: 50,
-        borderWidth: 2,
-        borderColor: "transparent",
-    },
-    selected: { borderColor: "#007bff" },
+    selected: { borderColor: "#85001E" },
     avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: "#e0e0e0",
+        width: 96,
+        height: 96,
+        borderRadius: 48,
     },
     button: {
-        marginTop: 30,
-        backgroundColor: "#007bff",
-        padding: 15,
-        borderRadius: 10,
+        marginTop: 20,
+        backgroundColor: "#85001E",
+        paddingVertical: 16,
+        borderRadius: 9999,
         width: "100%",
         alignItems: "center",
+        justifyContent: "center",
+        height: 56,
+        marginBottom: 20,
     },
-    buttonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+    buttonText: { color: "white", fontWeight: "600", fontSize: 20 },
 });
