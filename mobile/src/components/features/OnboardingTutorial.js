@@ -33,10 +33,10 @@ const TUTORIAL_STEPS = [
         pointerLeft: "10%",
     },
     {
-        title: "EXPLORE RADAR",
+        title: "BUILDINGS MAP",
         description:
-            "See what buildings are nearby. Tap them to answer trivia and earn bonus EXP!",
-        icon: MapPin,
+            "View the full 2D campus map and see your live GPS location.",
+        icon: Map,
         position: "bottom",
         pointerLeft: "30%",
     },
@@ -49,10 +49,10 @@ const TUTORIAL_STEPS = [
         pointerLeft: "50%",
     },
     {
-        title: "BUILDINGS MAP",
+        title: "EXPLORE RADAR",
         description:
-            "View the full 2D campus map and see your live GPS location.",
-        icon: Map,
+            "See what buildings are nearby. Tap them to answer trivia and earn bonus EXP!",
+        icon: MapPin,
         position: "bottom",
         pointerLeft: "70%",
     },
@@ -193,16 +193,17 @@ export default function OnboardingTutorial() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Pointer Triangle for bottom tooltips */}
-                        {step.position === "bottom" && (
-                            <View
-                                style={[
-                                    styles.pointer,
-                                    { left: step.pointerLeft },
-                                ]}
-                            />
-                        )}
                     </View>
+
+                    {/* Pointer Triangle for bottom tooltips */}
+                    {step.position === "bottom" && (
+                        <View
+                            style={[
+                                styles.pointer,
+                                { left: step.pointerLeft },
+                            ]}
+                        />
+                    )}
 
                     {/* Highlight Circle for tabs (approximate) */}
                     {step.position === "bottom" && (
@@ -260,6 +261,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: fonts.heading.bold,
+        fontWeight: "bold",
         fontSize: 20,
         color: theme.colors.textPrimary,
         marginBottom: 8,
@@ -305,7 +307,7 @@ const styles = StyleSheet.create({
     },
     pointer: {
         position: "absolute",
-        bottom: -15,
+        bottom: 105,
         width: 0,
         height: 0,
         borderLeftWidth: 15,

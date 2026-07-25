@@ -96,7 +96,7 @@ export default function VerifyOtpScreen() {
 
             <View style={styles.content}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Verify Comm Link</Text>
+                    <Text style={styles.title}>Verification</Text>
                     <Text style={styles.subtitle}>
                         Enter the 6-digit code sent to {email}
                     </Text>
@@ -242,6 +242,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.05)",
         color: "#FFFFFF",
         padding: theme.spacing.md,
+        paddingLeft: theme.spacing.md + 10,
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.colors.border,
