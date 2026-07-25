@@ -287,8 +287,11 @@ export default function ExploreScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.title}>AR Explorer</Text>
-                    <Text style={styles.subtitle}>
-                        Start scanning to find nearby buildings
+                    <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 16, textAlign: 'center', marginTop: -2 }}>
+                        Explore Campus
+                    </Text>
+                    <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 20 }}>
+                        Uncover hidden stories and unlock exclusive rewards as you wander.
                     </Text>
                 </View>
 
@@ -649,15 +652,16 @@ export default function ExploreScreen() {
                         {/* Progress Tracker */}
                         <View style={styles.card}>
                             <View style={styles.cardHeaderRow}>
-                                <Ionicons
-                                    name="bar-chart"
-                                    size={22}
-                                    color={theme.colors.primary}
-                                />
-                                <Text style={styles.cardTitle}>
-                                    YOUR PROGRESS
+                                <Text style={[styles.cardTitle, { color: theme.colors.textPrimary, fontSize: 20, fontFamily: fonts.heading.bold }]}>
+                                    Campus Explorer
                                 </Text>
                             </View>
+                            <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 14, marginBottom: 16 }}>
+                                Collect stamps from every landmark
+                            </Text>
+                            <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 24, marginBottom: 12 }}>
+                                {unlockedBuildings.length} <Text style={{ fontFamily: fonts.body.regular, fontSize: 14, color: theme.colors.textSecondary }}>/ {totalBuildings || 15}</Text>
+                            </Text>
                             <View style={styles.progressBarContainer}>
                                 <LinearGradient
                                     colors={["#B21830", "#E53935"]}
@@ -669,27 +673,21 @@ export default function ExploreScreen() {
                                     end={{ x: 1, y: 0 }}
                                 />
                             </View>
-                            <Text style={styles.progressText}>
-                                {unlockedBuildings.length} of{" "}
-                                {totalBuildings || 15} Buildings Unlocked
-                            </Text>
                         </View>
 
                         {/* Daily Quest */}
                         <View style={styles.card}>
                             <View style={styles.cardHeaderRow}>
-                                <Ionicons
-                                    name="star"
-                                    size={22}
-                                    color={theme.colors.primary}
-                                />
-                                <Text style={styles.cardTitle}>
-                                    TODAY'S MISSION
+                                <Text style={[styles.cardTitle, { color: theme.colors.textPrimary, fontSize: 20, fontFamily: fonts.heading.bold }]}>
+                                    Daily Missions
                                 </Text>
+                                <View style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                                    <Text style={{ color: '#FFF', fontFamily: fonts.heading.bold, fontSize: 10, letterSpacing: 1 }}>1 TASK</Text>
+                                </View>
                             </View>
 
                             {activeQuests.length > 0 ? (
-                                activeQuests.map((quest) => {
+                                activeQuests.slice(0, 1).map((quest) => {
                                     if (quest.is_completed) return null;
                                     return (
                                         <View

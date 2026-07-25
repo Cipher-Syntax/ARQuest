@@ -214,9 +214,10 @@ export default function AccountSettingsScreen() {
 
                         <FlatList
                             data={AVATARS}
-                            numColumns={3}
+                            numColumns={2}
                             keyExtractor={(item) => item.id}
                             contentContainerStyle={styles.avatarGrid}
+                            columnWrapperStyle={{ justifyContent: "space-between" }}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
                                     style={[
@@ -457,26 +458,29 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     avatarOption: {
-        margin: 10,
-        borderRadius: 40,
-        borderWidth: 3,
+        margin: 8,
+        width: 156,
+        height: 152,
+        backgroundColor: "#F0EDED",
+        borderRadius: 12,
+        borderWidth: 2,
         borderColor: "transparent",
+        alignItems: "center",
+        justifyContent: "center",
         position: "relative",
     },
     avatarOptionSelected: {
         borderColor: theme.colors.primary,
     },
     avatarOptionImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 96,
+        height: 96,
+        borderRadius: 48,
     },
     avatarOptionOverlay: {
         position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        width: 96,
+        height: 96,
         backgroundColor: "rgba(178, 24, 48, 0.4)",
         borderRadius: 40,
         justifyContent: "center",
