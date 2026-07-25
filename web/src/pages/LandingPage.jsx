@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Trophy, Eye, ChevronRight, Smartphone, Camera, Navigation, Layers, Monitor, Target } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { MapPin, Trophy, Eye, ChevronRight, Smartphone, Camera, Navigation, Layers, Monitor, Target, ShieldCheck, Cuboid, Crosshair, ChevronDown } from 'lucide-react';
 import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import '@google/model-viewer';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
@@ -44,7 +45,62 @@ const FadeUp = ({ children, delay = 0 }) => {
     );
 };
 
+const CountUp = ({ end, suffix = "", duration = 2000 }) => {
+    const [count, setCount] = useState(0);
+    const [isVisible, setIsVisible] = useState(false);
+    const domRef = useRef();
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting) {
+                setIsVisible(true);
+                observer.unobserve(domRef.current);
+            }
+        });
+        if (domRef.current) observer.observe(domRef.current);
+        return () => {
+            if (domRef.current) observer.unobserve(domRef.current);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isVisible) return;
+        let startTime;
+        const step = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            setCount(Math.floor(progress * end));
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }, [isVisible, end, duration]);
+
+    return <span ref={domRef}>{count.toLocaleString()}{suffix}</span>;
+};
+
+const FAQItem = ({ question, answer }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <div className="border-b border-gray-200 py-4">
+            <button 
+                className="flex w-full items-center justify-between text-left font-bold text-gray-900 focus:outline-none"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <span className="text-lg">{question}</span>
+                <ChevronDown className={`transform transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#8A1538]' : 'text-gray-400'}`} size={20} />
+            </button>
+            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-40 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                <p className="text-gray-600 leading-relaxed">{answer}</p>
+            </div>
+        </div>
+    );
+};
+
 const LandingPage = () => {
+    const navigate = useNavigate();
+
     return (
         <div className="min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden selection:bg-[#8A1538] selection:text-white">
             
@@ -131,6 +187,55 @@ const LandingPage = () => {
                 </div>
             </section>
 
+            {/* Infinite Marquee Ecosystem Banner */}
+            <section className="border-y border-gray-100 bg-gray-50 overflow-hidden py-8">
+                <div className="flex w-[200%] animate-marquee">
+                    {/* Double the list to create the seamless infinite effect */}
+                    {[1, 2].map((set) => (
+                        <div key={set} className="flex-1 flex justify-around items-center px-6">
+                            <span className="text-gray-500 font-bold tracking-widest uppercase text-sm whitespace-nowrap">College of Computing Studies</span>
+                            <span className="text-gray-300">✦</span>
+                            <span className="text-gray-500 font-bold tracking-widest uppercase text-sm whitespace-nowrap">College of Engineering</span>
+                            <span className="text-gray-300">✦</span>
+                            <span className="text-gray-500 font-bold tracking-widest uppercase text-sm whitespace-nowrap">University Library</span>
+                            <span className="text-gray-300">✦</span>
+                            <span className="text-gray-500 font-bold tracking-widest uppercase text-sm whitespace-nowrap">College of Science</span>
+                            <span className="text-gray-300">✦</span>
+                            <span className="text-gray-500 font-bold tracking-widest uppercase text-sm whitespace-nowrap">College of Architecture</span>
+                            <span className="text-gray-300">✦</span>
+                            <span className="text-gray-500 font-bold tracking-widest uppercase text-sm whitespace-nowrap">WMSU Grandstand</span>
+                            <span className="text-gray-300">✦</span>
+                            <span className="text-gray-500 font-bold tracking-widest uppercase text-sm whitespace-nowrap">College of Nursing</span>
+                            <span className="text-gray-300">✦</span>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* Stats & Scale Counters */}
+            <section className="bg-gray-900 py-16 border-b border-gray-800">
+                <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-gray-800">
+                    <div className="flex flex-col items-center justify-center py-4">
+                        <div className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
+                            <CountUp end={50} suffix="+" />
+                        </div>
+                        <p className="text-gray-400 font-semibold tracking-wide uppercase text-sm">Buildings Mapped</p>
+                    </div>
+                    <div className="flex flex-col items-center justify-center py-4">
+                        <div className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
+                            <CountUp end={1000} suffix="+" />
+                        </div>
+                        <p className="text-gray-400 font-semibold tracking-wide uppercase text-sm">Interactive Quests</p>
+                    </div>
+                    <div className="flex flex-col items-center justify-center py-4">
+                        <div className="text-4xl md:text-5xl font-black text-[#8A1538] mb-2 tracking-tight">
+                            <CountUp end={360} suffix="°" />
+                        </div>
+                        <p className="text-gray-400 font-semibold tracking-wide uppercase text-sm">Remote Walkthroughs</p>
+                    </div>
+                </div>
+            </section>
+
             {/* Editorial Split Section (Campus Image) */}
             <section className="py-24 bg-white relative">
                 <div className="max-w-7xl mx-auto px-8 flex flex-col lg:flex-row items-center gap-16">
@@ -172,6 +277,92 @@ const LandingPage = () => {
                                 />
                             </div>
                         </FadeUp>
+                    </div>
+                </div>
+            </section>
+
+            {/* How It Works */}
+            <section className="py-24 bg-gray-50 border-t border-gray-100 relative">
+                <div className="max-w-7xl mx-auto px-8">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">How It Works</h2>
+                        <p className="text-gray-500 mt-4 max-w-2xl mx-auto font-medium">Your physical campus, perfectly synced with your digital dashboard.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+                        {/* Connecting Line */}
+                        <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-gray-200 -z-10"></div>
+                        
+                        {/* Step 1 */}
+                        <FadeUp delay={100}>
+                            <div className="flex flex-col items-center text-center bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-full relative">
+                                <div className="w-16 h-16 bg-[#8A1538]/10 text-[#8A1538] rounded-full flex items-center justify-center mb-6 ring-8 ring-gray-50">
+                                    <Smartphone size={28} />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-3">1. Open the Scanner</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed">Launch the ARQuest mobile app and activate your camera to scan your surroundings.</p>
+                            </div>
+                        </FadeUp>
+
+                        {/* Step 2 */}
+                        <FadeUp delay={200}>
+                            <div className="flex flex-col items-center text-center bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-full relative">
+                                <div className="w-16 h-16 bg-[#8A1538]/10 text-[#8A1538] rounded-full flex items-center justify-center mb-6 ring-8 ring-gray-50">
+                                    <Crosshair size={28} />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-3">2. Enter a Geofence</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed">Walk into designated campus zones to trigger location-based events automatically.</p>
+                            </div>
+                        </FadeUp>
+
+                        {/* Step 3 */}
+                        <FadeUp delay={300}>
+                            <div className="flex flex-col items-center text-center bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-full relative">
+                                <div className="w-16 h-16 bg-[#8A1538] text-white rounded-full flex items-center justify-center mb-6 ring-8 ring-gray-50 shadow-md shadow-[#8A1538]/20">
+                                    <Cuboid size={28} />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-3">3. Unlock Discoveries</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed">Gain EXP, answer trivia, and interact with 3D architectural models of the buildings.</p>
+                            </div>
+                        </FadeUp>
+                    </div>
+                </div>
+            </section>
+
+            {/* Interactive 3D Showcase */}
+            <section className="py-24 bg-white border-t border-gray-100 relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row items-center gap-16">
+                    <div className="flex-1 space-y-6">
+                        <FadeUp>
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
+                                True Spatial <br/> <span className="text-[#8A1538]">Understanding.</span>
+                            </h2>
+                        </FadeUp>
+                        <FadeUp delay={100}>
+                            <p className="text-lg text-gray-600 font-medium leading-relaxed max-w-lg">
+                                Don't just read about the campus—experience it. ARQuest renders lightweight, high-fidelity 3D models directly in your browser or phone. Rotate, zoom, and inspect architecture before you even step foot inside.
+                            </p>
+                        </FadeUp>
+                        <FadeUp delay={200}>
+                            <div className="flex items-center gap-2 text-sm font-bold text-[#8A1538] bg-[#8A1538]/10 w-max px-4 py-2 rounded-full">
+                                <Monitor size={16} /> Fully Interactive — Try spinning it!
+                            </div>
+                        </FadeUp>
+                    </div>
+                    <div className="flex-1 w-full flex justify-center mt-12 md:mt-0">
+                        <div className="w-[300px] h-[300px] md:w-[450px] md:h-[450px] flex items-center justify-center relative">
+                            {/* model-viewer web component */}
+                            <model-viewer 
+                                src="/models/WMSU_Admin.glb" 
+                                alt="3D WMSU Building Model" 
+                                auto-rotate="true" 
+                                camera-controls="true"
+                                style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, zIndex: 10, display: 'block', backgroundColor: 'transparent' }}
+                                shadow-intensity="1"
+                                exposure="1"
+                            >
+                            </model-viewer>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -374,6 +565,75 @@ const LandingPage = () => {
                         </div>
 
                     </div>
+                </div>
+            </section>
+
+            {/* Interactive FAQ */}
+            <section className="py-24 bg-gray-50 border-t border-gray-200">
+                <div className="max-w-3xl mx-auto px-8">
+                    <div className="text-center mb-16">
+                        <FadeUp>
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Frequently Asked Questions</h2>
+                        </FadeUp>
+                    </div>
+                    <div className="space-y-2">
+                        <FadeUp delay={100}>
+                            <FAQItem 
+                                question="Do I need a high-end smartphone to use ARQuest?" 
+                                answer="Not at all. The 3D models and geofencing systems are highly optimized to run smoothly on most smartphones. No expensive LiDAR sensors are required." 
+                            />
+                        </FadeUp>
+                        <FadeUp delay={200}>
+                            <FAQItem 
+                                question="Do I need a VR Headset for the 360° Walkthroughs?" 
+                                answer="No. The 360° Walkthroughs utilize 'Magic Window VR', which uses your phone's built-in gyroscope. You simply move your phone to look around the room." 
+                            />
+                        </FadeUp>
+                        <FadeUp delay={300}>
+                            <FAQItem 
+                                question="Will the app drain my battery quickly?" 
+                                answer="We use background-optimized GPS geofencing that only polls your location actively when you are engaged in a quest, preserving your battery life." 
+                            />
+                        </FadeUp>
+                        <FadeUp delay={400}>
+                            <FAQItem 
+                                question="Is this available for visitors or only students?" 
+                                answer="ARQuest features role-based access. Students enjoy gamified quests and leaderboards, while Visitors and Professional Accreditors get streamlined access to mapping and facility tours." 
+                            />
+                        </FadeUp>
+                    </div>
+                </div>
+            </section>
+
+            {/* Final Push CTA Block */}
+            <section className="py-24 bg-[#8A1538] relative overflow-hidden">
+                {/* Abstract background graphics */}
+                <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 translate-y-12 -translate-x-1/3 w-96 h-96 bg-black opacity-20 rounded-full blur-3xl"></div>
+                
+                <div className="max-w-4xl mx-auto px-8 relative z-10 text-center space-y-8">
+                    <FadeUp>
+                        <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+                            Ready to explore the digital campus?
+                        </h2>
+                    </FadeUp>
+                    <FadeUp delay={100}>
+                        <p className="text-lg text-white/80 font-medium max-w-2xl mx-auto">
+                            The ultimate spatial mapping and quest system for Western Mindanao State University is waiting.
+                        </p>
+                    </FadeUp>
+                    <FadeUp delay={200}>
+                        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
+                            <button className="px-8 py-4 bg-white text-[#8A1538] rounded-md font-bold hover:bg-gray-50 transition-colors shadow-lg flex items-center gap-2">
+                                <Smartphone size={20} />
+                                Download the App
+                            </button>
+                            <button className="px-8 py-4 bg-transparent border-2 border-white/30 text-white rounded-md font-bold hover:bg-white/10 transition-colors flex items-center gap-2" onClick={() => navigate('/login')}>
+                                <ShieldCheck size={20} />
+                                Access Dashboard
+                            </button>
+                        </div>
+                    </FadeUp>
                 </div>
             </section>
 
