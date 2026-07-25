@@ -234,7 +234,18 @@ def token_refresh(request):
 @permission_classes([IsAuthenticated])
 def current_user(request):
     if request.method == 'PATCH':
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        data = request.data.copy()
+        
+        # Handle password explicitly if provided
+        password = data.pop('password', None)
+        if password:
+            if isinstance(password, list):
+                password = password[0]
+            if password:
+                request.user.set_password(password)
+                request.user.save()
+                
+        serializer = UserSerializer(request.user, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return success_response({'user': serializer.data})

@@ -27,7 +27,12 @@ export const authService = {
 
     getCurrentUser: async () => {
         const response = await api.get("/api/auth/me/");
-        return response.data.data;
+        return response.data.data?.user || response.data.data;
+    },
+
+    updateProfile: async (data) => {
+        const response = await api.patch("/api/auth/me/", data);
+        return response.data.data?.user || response.data.data || response.data;
     },
 
     isAuthenticated: () => {
