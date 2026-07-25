@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "../hooks/useAuth";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import LoginPage from "../pages/LoginPage";
+import LandingPage from "../pages/LandingPage";
 
 import AppLayout from "../layouts/AppLayout";
 
@@ -28,10 +29,7 @@ const App = () => {
             <AuthProvider>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
-                    <Route
-                        path="/"
-                        element={<Navigate to="/dashboard" replace />}
-                    />
+                    <Route path="/" element={<LandingPage />} />
                     <Route
                         path="/"
                         element={
