@@ -217,7 +217,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-gray-800">
                     <div className="flex flex-col items-center justify-center py-4">
                         <div className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
-                            <CountUp end={50} suffix="+" />
+                            <CountUp end={10} suffix="+" />
                         </div>
                         <p className="text-gray-400 font-semibold tracking-wide uppercase text-sm">Buildings Mapped</p>
                     </div>
