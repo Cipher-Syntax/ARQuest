@@ -221,7 +221,7 @@ export default function HomeScreen() {
                     {user?.role === "student" && (
                         <View style={styles.expContainer}>
                             <View style={styles.expTextRow}>
-                                <Text style={styles.expLabel}>SEASON PROGRESS</Text>
+                                <Text style={styles.expLabel}>EXPERIENCE POINTS</Text>
                                 <Text style={styles.expValue}>
                                     {stats?.points || 0} PTS
                                 </Text>
@@ -355,7 +355,7 @@ export default function HomeScreen() {
                             <View style={styles.section}>
                                 <View style={styles.sectionHeader}>
                                     <Text style={styles.sectionTitle}>
-                                        SPECIAL EVENTS
+                                        TIME-LIMITED QUESTS
                                     </Text>
                                     {challenges.length > 1 && (
                                         <View style={styles.swipeHint}>
