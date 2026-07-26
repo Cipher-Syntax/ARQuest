@@ -83,37 +83,74 @@ class ActiveQuestsView(views.APIView):
 	def get(self, request):
 		user = request.user
 
-		# 1. Get all active quests the user HAS NOT completed
-		completed_quest_ids = UserQuestProgress.objects.filter(
-			user=user, is_completed=True
-		).values_list('quest_id', flat=True)
-
+		# 1. Get all active daily quests (no expiry)
 		from django.db.models import Q
 		from django.utils import timezone
 		now = timezone.now()
 
-		available_quests = list(Quest.objects.filter(is_active=True).filter(
+		all_daily_quests = list(Quest.objects.filter(
+			is_active=True,
 			expires_at__isnull=True
-		).exclude(id__in=completed_quest_ids).select_related('target_building'))
+		).select_related('target_building'))
 
-		if not available_quests:
-			return Response({'success': True, 'data': []})
+		if not all_daily_quests:
+			return Response({'success': True, 'data': {'quests': [], 'weekly_progress': {'completed': 0, 'target': 10}}})
 
 		# 2. Seed the random generator with the user ID and the current date
 		today_str = date.today().isoformat()
 		random.seed(f"{user.id}-{today_str}")
 
-		# 3. Select 1 Daily Quest
-		daily_quest = random.choice(available_quests)
+		# 3. Select 3 Daily Quests (1 Easy, 1 Medium, 1 Hard)
+		easy_quests = [q for q in all_daily_quests if q.difficulty == 'EASY']
+		medium_quests = [q for q in all_daily_quests if q.difficulty == 'MEDIUM']
+		hard_quests = [q for q in all_daily_quests if q.difficulty == 'HARD']
+
+		daily_quests = []
+		if easy_quests: daily_quests.append(random.choice(easy_quests))
+		if medium_quests: daily_quests.append(random.choice(medium_quests))
+		if hard_quests: daily_quests.append(random.choice(hard_quests))
+
+		# Fallback: if we didn't get 3 quests because of missing difficulty tiers
+		while len(daily_quests) < 3 and len(daily_quests) < len(all_daily_quests):
+			candidate = random.choice(all_daily_quests)
+			if candidate not in daily_quests:
+				daily_quests.append(candidate)
 
 		# Reset the seed for the rest of the application
 		random.seed()
 
-		serializer = QuestSerializer([daily_quest], many=True, context={'request': request})
+		# Get completed IDs to pass to serializer context
+		completed_quest_ids = set(UserQuestProgress.objects.filter(
+			user=user, is_completed=True
+		).values_list('quest_id', flat=True))
+
+		# Get weekly progress
+		from django.utils import timezone
+		from datetime import timedelta
+		
+		now = timezone.now()
+		start_of_week = now - timedelta(days=now.weekday())
+		start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+		
+		weekly_completed_count = UserQuestProgress.objects.filter(
+			user=user, 
+			is_completed=True,
+			completed_at__gte=start_of_week
+		).count()
+		
+		weekly_goal = 10 # Hardcoded goal for now
+
+		serializer = QuestSerializer(daily_quests, many=True, context={'request': request, 'completed_quest_ids': completed_quest_ids})
 
 		return Response({
 			'success': True,
-			'data': serializer.data
+			'data': {
+				'quests': serializer.data,
+				'weekly_progress': {
+					'completed': weekly_completed_count,
+					'target': weekly_goal
+				}
+			}
 		})
 
 

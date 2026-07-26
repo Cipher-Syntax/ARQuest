@@ -31,7 +31,7 @@ class QuestSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Quest
-		fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'is_completed', 'expires_at']
+		fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'difficulty', 'is_completed', 'expires_at']
 
 	def get_is_completed(self, obj):
 		completed_ids = self.context.get('completed_quest_ids')

@@ -40,6 +40,7 @@ export default function CmsPage() {
     const [formTitle, setFormTitle] = useState("");
     const [formHint, setFormHint] = useState("");
     const [formReward, setFormReward] = useState(50);
+    const [formDifficulty, setFormDifficulty] = useState("easy");
     const [formFact, setFormFact] = useState("");
     const [formExpiresAt, setFormExpiresAt] = useState("");
 
@@ -104,6 +105,7 @@ export default function CmsPage() {
                 hint: formHint,
                 target_building: selectedBuilding.id,
                 reward_points: formReward,
+                difficulty: formDifficulty,
                 expires_at: formExpiresAt || null,
                 is_active: true,
             };
@@ -237,6 +239,7 @@ export default function CmsPage() {
         setFormHint("");
         setFormHint("");
         setFormFact("");
+        setFormDifficulty("easy");
         setFormExpiresAt("");
         setFormQuestion("");
         setFormOptionA("");
@@ -579,6 +582,20 @@ export default function CmsPage() {
                                                                 }
                                                             </p>
                                                         )}
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold mb-1 text-gray-700">
+                                                            Difficulty
+                                                        </label>
+                                                        <select
+                                                            value={formDifficulty}
+                                                            onChange={(e) => setFormDifficulty(e.target.value)}
+                                                            className="w-full p-2.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none bg-white"
+                                                        >
+                                                            <option value="easy">Easy</option>
+                                                            <option value="medium">Medium</option>
+                                                            <option value="hard">Hard</option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div>
@@ -975,6 +992,9 @@ export default function CmsPage() {
                                                                             );
                                                                             setFormReward(
                                                                                 quest.reward_points,
+                                                                            );
+                                                                            setFormDifficulty(
+                                                                                quest.difficulty || "easy",
                                                                             );
                                                                             setFormExpiresAt(
                                                                                 quest.expires_at

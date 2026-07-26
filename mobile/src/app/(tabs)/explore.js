@@ -46,6 +46,7 @@ export default function ExploreScreen() {
     const [buildingsList, setBuildingsList] = useState([]);
     const [totalBuildings, setTotalBuildings] = useState(0);
     const [activeQuests, setActiveQuests] = useState([]);
+    const [weeklyProgress, setWeeklyProgress] = useState({ completed: 0, target: 10 });
     const [earnedBadges, setEarnedBadges] = useState([]);
     const badgeAnim = useRef(new Animated.Value(0)).current;
     const [refreshing, setRefreshing] = useState(false);
@@ -67,7 +68,11 @@ export default function ExploreScreen() {
             }
             const questRes = await api.get("/api/gamification/quests/active/");
             if (questRes.data.success) {
-                setActiveQuests(questRes.data.data);
+                const quests = questRes.data.data.quests || questRes.data.data;
+                setActiveQuests(quests);
+                if (questRes.data.data.weekly_progress) {
+                    setWeeklyProgress(questRes.data.data.weekly_progress);
+                }
             }
         } catch (err) {
             console.error("Failed to fetch gamification data", err);
@@ -686,72 +691,100 @@ export default function ExploreScreen() {
                                     Daily Missions
                                 </Text>
                                 <View style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
-                                    <Text style={{ color: '#FFF', fontFamily: fonts.heading.bold, fontSize: 10, letterSpacing: 1 }}>1 TASK</Text>
+                                    <Text style={{ color: '#FFF', fontFamily: fonts.heading.bold, fontSize: 10, letterSpacing: 1 }}>{activeQuests.length} TASKS</Text>
+                                </View>
+                            </View>
+
+                            {/* Weekly Progress Bar */}
+                            <View style={{ marginBottom: 20 }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textSecondary, fontSize: 12 }}>WEEKLY CHALLENGE</Text>
+                                    <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.primary, fontSize: 12 }}>{weeklyProgress.completed} / {weeklyProgress.target}</Text>
+                                </View>
+                                <View style={styles.progressBarContainer}>
+                                    <LinearGradient
+                                        colors={["#FFD700", "#FFA500"]}
+                                        style={[
+                                            styles.progressBarFill,
+                                            { width: `${Math.min((weeklyProgress.completed / weeklyProgress.target) * 100, 100)}%` },
+                                        ]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                    />
                                 </View>
                             </View>
 
                             {activeQuests.length > 0 ? (
-                                activeQuests.slice(0, 1).map((quest) => {
-                                    if (quest.is_completed) return null;
+                                activeQuests.map((quest) => {
+                                    // Map difficulty to color/icon
+                                    let badgeColor = "#CD7F32"; // Bronze for Easy
+                                    let difficultyLabel = "EASY";
+                                    if (quest.difficulty === 'MEDIUM') { badgeColor = "#C0C0C0"; difficultyLabel = "MEDIUM"; }
+                                    if (quest.difficulty === 'HARD') { badgeColor = "#FFD700"; difficultyLabel = "HARD"; }
+
                                     return (
                                         <View
                                             key={quest.id}
                                             style={{
-                                                marginBottom: theme.spacing.sm,
+                                                marginBottom: theme.spacing.md,
+                                                opacity: quest.is_completed ? 0.5 : 1
                                             }}
                                         >
-                                            <View style={styles.questBriefBox}>
+                                            <View style={[styles.questBriefBox, { borderColor: badgeColor, borderWidth: 1 }]}>
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                                    <Text
+                                                        style={{
+                                                            fontFamily: fonts.heading.bold,
+                                                            color: theme.colors.textPrimary,
+                                                            fontSize: 16,
+                                                            flex: 1
+                                                        }}
+                                                    >
+                                                        {quest.title}
+                                                    </Text>
+                                                    <View style={{ backgroundColor: badgeColor, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                                                        <Text style={{ color: '#FFF', fontFamily: fonts.heading.bold, fontSize: 10 }}>{difficultyLabel}</Text>
+                                                    </View>
+                                                </View>
                                                 <Text
                                                     style={{
-                                                        fontFamily:
-                                                            fonts.heading.bold,
-                                                        color: theme.colors
-                                                            .textPrimary,
-                                                        fontSize: 16,
-                                                        marginBottom: 4,
-                                                    }}
-                                                >
-                                                    {quest.title}
-                                                </Text>
-                                                <Text
-                                                    style={{
-                                                        fontFamily:
-                                                            fonts.body.regular,
-                                                        color: theme.colors
-                                                            .textSecondary,
+                                                        fontFamily: fonts.body.regular,
+                                                        color: theme.colors.textSecondary,
                                                         fontSize: 13,
                                                         marginBottom: 8,
                                                     }}
                                                 >
-                                                    Target:{" "}
-                                                    {quest.target_building_name}
+                                                    Target: {quest.target_building_name}
                                                 </Text>
-                                                <Text style={styles.questHint}>
-                                                    Hint: "{quest.hint}"
-                                                </Text>
+                                                {quest.hint && (
+                                                    <Text style={styles.questHint}>
+                                                        Hint: "{quest.hint}"
+                                                    </Text>
+                                                )}
+                                                {quest.is_completed && (
+                                                    <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.success, fontSize: 12, marginTop: 4 }}>
+                                                        ✓ COMPLETED
+                                                    </Text>
+                                                )}
                                             </View>
-                                            <View
-                                                style={styles.compassContainer}
-                                            >
-                                                <Ionicons
-                                                    name="gift"
-                                                    size={20}
-                                                    color={theme.colors.primary}
-                                                />
-                                                <Text
-                                                    style={styles.compassText}
-                                                >
-                                                    Reward:{" "}
-                                                    {quest.reward_points} EXP
-                                                </Text>
-                                            </View>
+                                            {!quest.is_completed && (
+                                                <View style={styles.compassContainer}>
+                                                    <Ionicons
+                                                        name="gift"
+                                                        size={20}
+                                                        color={theme.colors.primary}
+                                                    />
+                                                    <Text style={styles.compassText}>
+                                                        Reward: {quest.reward_points} EXP
+                                                    </Text>
+                                                </View>
+                                            )}
                                         </View>
                                     );
                                 })
                             ) : (
                                 <Text style={styles.emptyLogText}>
-                                    You've finished all missions for today!
-                                    Great job.
+                                    No active missions. Check back later!
                                 </Text>
                             )}
                         </View>
