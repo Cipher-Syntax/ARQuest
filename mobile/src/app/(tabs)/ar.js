@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { useIsFocused } from "../../hooks/useIsFocused";
 import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
@@ -29,6 +30,7 @@ import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
 
 export default function ARScreen() {
+    const isFocused = useIsFocused();
     const { user, checkToken } = useAuth();
     const [cameraPermission, requestCameraPermission] = useCameraPermissions();
     const [mediaPermission, requestMediaPermission] =
@@ -599,7 +601,7 @@ export default function ARScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            {isFocused && <StatusBar style="light" />}
             {/* --- CAPTURE TARGET --- */}
             <View
                 ref={arViewRef}

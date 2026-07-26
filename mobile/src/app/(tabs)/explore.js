@@ -22,8 +22,11 @@ import { api } from "../../services";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
 import { useAuth } from "../../context/AuthContext";
+import { useIsFocused } from "../../hooks/useIsFocused";
+import { StatusBar } from "expo-status-bar";
 
 export default function ExploreScreen() {
+    const isFocused = useIsFocused();
     const { role } = useRoleAccess();
     const { checkToken } = useAuth();
     const {
@@ -266,6 +269,7 @@ export default function ExploreScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: "#F8F9FA" }}>
+            {isFocused && <StatusBar style="dark" />}
             {/* Subtle Background Gradient */}
             <LinearGradient
                 colors={["#FFFFFF", "#F2F4F7"]}

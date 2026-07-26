@@ -27,6 +27,8 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useIsFocused } from "../../hooks/useIsFocused";
+import { StatusBar } from "expo-status-bar";
 import { api } from "../../services";
 import theme from "../../theme/tokens";
 import { useAuth } from "../../hooks/useAuth";
@@ -37,6 +39,7 @@ import FeedbackModal from "../../components/ui/FeedbackModal";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 
 export default function ProfileScreen() {
+    const isFocused = useIsFocused();
     const { user, logout, checkToken } = useAuth();
     const { stopTracking } = useLocationTracking();
     const [myStats, setMyStats] = useState(null);
@@ -144,6 +147,7 @@ export default function ProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
+            {isFocused && <StatusBar style="dark" />}
             <View style={styles.appBar}>
                 <Text style={styles.appBarTitle}>Profile</Text>
             </View>

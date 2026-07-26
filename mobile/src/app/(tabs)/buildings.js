@@ -14,6 +14,7 @@ import { WebView } from "react-native-webview";
 import { INJECTED_BRIDGE_SCRIPT, createBridgeMessage, parseBridgeMessage } from "../../utils/WebViewBridge";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useIsFocused } from "../../hooks/useIsFocused";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../theme/tokens";
@@ -27,6 +28,7 @@ import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
 
 export default function BuildingsScreen() {
+    const isFocused = useIsFocused();
     const { unlockedBuildings, isLoading: isUnlockedLoading } =
         useUnlockedBuildings();
     const { location } = useLocationTracking();
@@ -261,7 +263,7 @@ export default function BuildingsScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="dark" />
+            {isFocused && <StatusBar style="dark" />}
 
             {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
                 <View style={styles.loadingOverlay}>
