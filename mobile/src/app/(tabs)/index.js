@@ -244,14 +244,14 @@ export default function HomeScreen() {
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
-                                style={[styles.ticketScroll, { marginBottom: 24 }]}
-                                contentContainerStyle={styles.ticketScrollContent}
-                                snapToInterval={Dimensions.get("window").width - 60}
+                                style={{ marginBottom: 24, overflow: "visible" }}
+                                contentContainerStyle={{ gap: 20 }}
+                                snapToInterval={Dimensions.get("window").width - 20}
                                 decelerationRate="fast"
                             >
                                 {activeQuests.length > 0 ? (
-                                    activeQuests.map((quest) => (
-                                        <View key={quest.id} style={[styles.heroCard, { width: Dimensions.get("window").width - 76, marginBottom: 0 }]}>
+                                    activeQuests.map((quest, index) => (
+                                        <View key={quest.id} style={[styles.heroCard, { width: Dimensions.get("window").width - 40, marginBottom: 0 }]}>
                                             <View style={styles.heroTopRow}>
                                                 <View style={styles.heroLabelChip}>
                                                     <Crosshair
@@ -306,10 +306,33 @@ export default function HomeScreen() {
                                                     />
                                                 </TouchableOpacity>
                                             </View>
+                                            {index < activeQuests.length - 1 && (
+                                                <View style={{
+                                                    position: "absolute",
+                                                    right: -10,
+                                                    top: "50%",
+                                                    marginTop: -16,
+                                                    backgroundColor: "#FFFFFF",
+                                                    borderRadius: 16,
+                                                    width: 32,
+                                                    height: 32,
+                                                    justifyContent: "center",
+                                                    alignItems: "center",
+                                                    shadowColor: "#000",
+                                                    shadowOffset: { width: 0, height: 2 },
+                                                    shadowOpacity: 0.15,
+                                                    shadowRadius: 4,
+                                                    elevation: 4,
+                                                    borderWidth: 1,
+                                                    borderColor: theme.colors.border
+                                                }}>
+                                                    <ChevronRight color={theme.colors.primary} size={20} />
+                                                </View>
+                                            )}
                                         </View>
                                     ))
                                 ) : (
-                                    <View style={[styles.heroCard, { width: Dimensions.get("window").width - 76, marginBottom: 0 }]}>
+                                    <View style={[styles.heroCard, { width: Dimensions.get("window").width - 40, marginBottom: 0 }]}>
                                         <View style={styles.heroTopRow}>
                                             <View style={styles.heroLabelChip}>
                                                 <Crosshair
