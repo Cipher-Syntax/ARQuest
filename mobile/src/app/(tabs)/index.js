@@ -241,27 +241,10 @@ export default function HomeScreen() {
                 <View style={styles.contentArea}>
                     {user?.role === "student" ? (
                         <>
-                            {/* --- Daily Missions Carousel --- */}
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionTitle}>
-                                    DAILY MISSIONS
-                                </Text>
-                                {activeQuests.length > 1 && (
-                                    <View style={styles.swipeHint}>
-                                        <Text style={styles.swipeHintText}>
-                                            SWIPE
-                                        </Text>
-                                        <ChevronRight
-                                            color={theme.colors.textMuted}
-                                            size={12}
-                                        />
-                                    </View>
-                                )}
-                            </View>
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
-                                style={styles.ticketScroll}
+                                style={[styles.ticketScroll, { marginBottom: 24 }]}
                                 contentContainerStyle={styles.ticketScrollContent}
                                 snapToInterval={Dimensions.get("window").width - 60}
                                 decelerationRate="fast"
