@@ -1,7 +1,8 @@
-import { Save } from "lucide-react";
-import { Card, Toggle, Button, Input } from "../components/ui";
+import { Save, User, Lock, Eye, EyeOff } from "lucide-react";
+import { Card, Toggle, Button } from "../components/ui";
 import { useState, useEffect } from "react";
 import { settingsService } from "../services/settingsService";
+import { useAuth } from "../hooks/useAuth";
 import {
     validateForm,
     validateString,
@@ -10,7 +11,11 @@ import {
 } from "../utils/validation";
 
 export default function Settings() {
+    const { user, updateUser } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
+    const [isProfileSaving, setIsProfileSaving] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [errors, setErrors] = useState({});
@@ -26,6 +31,20 @@ export default function Settings() {
         enable_leaderboard: true,
         default_quest_reward: 50,
     });
+    
+    // Profile State
+    const [profileData, setProfileData] = useState({
+        name: "",
+        password: "",
+        confirmPassword: ""
+    });
+
+    useEffect(() => {
+        if (user) {
+            const fullName = user.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "";
+            setProfileData(prev => ({ ...prev, name: fullName }));
+        }
+    }, [user]);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -61,14 +80,47 @@ export default function Settings() {
             setSuccessMessage("");
             setIsSaving(true);
             await settingsService.updateSettings(settings);
-            setSuccessMessage("Settings saved successfully!");
+            setSuccessMessage("System settings saved successfully!");
             setTimeout(() => setSuccessMessage(""), 3000);
         } catch (error) {
             console.error("Failed to save settings", error);
-            setErrorMessage("Failed to save settings. Please try again.");
+            setErrorMessage("Failed to save system settings. Please try again.");
             setTimeout(() => setErrorMessage(""), 3000);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleProfileSave = async () => {
+        try {
+            setIsProfileSaving(true);
+            setErrorMessage("");
+            setSuccessMessage("");
+            const parts = profileData.name.trim().split(" ");
+            const payload = {
+                first_name: parts[0] || "",
+                last_name: parts.slice(1).join(" ") || ""
+            };
+            if (profileData.password) {
+                if (profileData.password !== profileData.confirmPassword) {
+                    setErrorMessage("Passwords do not match!");
+                    setIsProfileSaving(false);
+                    return;
+                }
+                payload.password = profileData.password;
+            }
+            
+            await updateUser(payload);
+            
+            setProfileData(prev => ({ ...prev, password: "", confirmPassword: "" })); // Clear password fields
+            setSuccessMessage("Personal profile updated successfully!");
+            setTimeout(() => setSuccessMessage(""), 3000);
+        } catch (error) {
+            console.error("Failed to update profile", error);
+            setErrorMessage("Failed to update profile. Please try again.");
+            setTimeout(() => setErrorMessage(""), 3000);
+        } finally {
+            setIsProfileSaving(false);
         }
     };
 
@@ -107,6 +159,93 @@ export default function Settings() {
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-8">
                 <div className="space-y-6">
+                    <Card>
+                        <h3 className="text-sm font-bold text-gray-900 mb-5 flex items-center gap-2">
+                            <User size={18} className="text-brand" />
+                            Admin Profile
+                        </h3>
+                        <div className="space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Full Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={profileData.name}
+                                    onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
+                                    className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Email Address (Read-only)
+                                </label>
+                                <input
+                                    type="email"
+                                    value={user?.email || "admin@wmsu.edu.ph"}
+                                    disabled
+                                    className="w-full border border-gray-200 rounded-md bg-gray-50 text-sm py-3 px-4 text-gray-500 font-medium cursor-not-allowed"
+                                />
+                            </div>
+                            <div className="h-px bg-brand-border" />
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Lock size={14} /> New Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Leave blank to keep current"
+                                        value={profileData.password}
+                                        onChange={(e) => setProfileData(prev => ({ ...prev, password: e.target.value }))}
+                                        className="w-full border border-brand-border rounded-md bg-white text-sm py-3 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Lock size={14} /> Confirm New Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        placeholder="Type new password again"
+                                        value={profileData.confirmPassword}
+                                        onChange={(e) => setProfileData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                        className={`w-full border rounded-md bg-white text-sm py-3 px-4 pr-10 focus:outline-none focus:ring-2 font-medium ${profileData.confirmPassword && profileData.password !== profileData.confirmPassword ? "border-red-500 focus:ring-red-200" : "border-brand-border focus:ring-brand/20"}`}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                                {profileData.confirmPassword && profileData.password !== profileData.confirmPassword && (
+                                    <p className="text-xs text-red-500">Passwords do not match</p>
+                                )}
+                            </div>
+                            <div className="pt-2 flex justify-end">
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleProfileSave}
+                                    disabled={isProfileSaving}
+                                    className="text-sm px-4 py-2 h-auto"
+                                >
+                                    {isProfileSaving ? "Updating..." : "Update Profile"}
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+
                     <Card>
                         <h3 className="text-sm font-bold text-gray-900 mb-5">
                             General Settings
@@ -171,56 +310,6 @@ export default function Settings() {
                                         )
                                     }
                                 />
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card>
-                        <h3 className="text-sm font-bold text-gray-900 mb-5">
-                            Gamification
-                        </h3>
-                        <div className="space-y-5">
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900">
-                                        Leaderboard System
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                        Enable student rankings and XP scoring.
-                                    </p>
-                                </div>
-                                <Toggle
-                                    checked={settings.enable_leaderboard}
-                                    onChange={() =>
-                                        handleChange(
-                                            "enable_leaderboard",
-                                            !settings.enable_leaderboard,
-                                        )
-                                    }
-                                />
-                            </div>
-                            <div className="h-px bg-brand-border" />
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    Default Quest Reward (XP)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={settings.default_quest_reward}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        handleChange(
-                                            "default_quest_reward",
-                                            val === "" ? "" : parseInt(val),
-                                        );
-                                    }}
-                                    className={`w-full border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 font-medium max-w-[150px] ${errors.default_quest_reward ? "border-red-500 focus:ring-red-200" : "border-brand-border focus:ring-brand/20"}`}
-                                />
-                                {errors.default_quest_reward && (
-                                    <p className="text-xs text-red-500">
-                                        {errors.default_quest_reward}
-                                    </p>
-                                )}
                             </div>
                         </div>
                     </Card>
@@ -335,6 +424,56 @@ export default function Settings() {
                                         )
                                     }
                                 />
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card>
+                        <h3 className="text-sm font-bold text-gray-900 mb-5">
+                            Gamification
+                        </h3>
+                        <div className="space-y-5">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900">
+                                        Leaderboard System
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Enable student rankings and XP scoring.
+                                    </p>
+                                </div>
+                                <Toggle
+                                    checked={settings.enable_leaderboard}
+                                    onChange={() =>
+                                        handleChange(
+                                            "enable_leaderboard",
+                                            !settings.enable_leaderboard,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className="h-px bg-brand-border" />
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Default Quest Reward (XP)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={settings.default_quest_reward}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        handleChange(
+                                            "default_quest_reward",
+                                            val === "" ? "" : parseInt(val),
+                                        );
+                                    }}
+                                    className={`w-full border rounded-md bg-white text-sm py-3 px-4 focus:outline-none focus:ring-2 font-medium max-w-[150px] ${errors.default_quest_reward ? "border-red-500 focus:ring-red-200" : "border-brand-border focus:ring-brand/20"}`}
+                                />
+                                {errors.default_quest_reward && (
+                                    <p className="text-xs text-red-500">
+                                        {errors.default_quest_reward}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </Card>
