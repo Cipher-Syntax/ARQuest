@@ -19,8 +19,10 @@ import {
     Layers,
     ArchiveRestore,
     Activity,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const NAV_GROUPS = [
     {
@@ -68,6 +70,28 @@ function SidebarContent({
     isCollapsed,
     setIsCollapsed,
 }) {
+    const navRef = useRef(null);
+    const [canScrollDown, setCanScrollDown] = useState(false);
+    const [canScrollUp, setCanScrollUp] = useState(false);
+
+    const checkScroll = () => {
+        if (navRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = navRef.current;
+            setCanScrollUp(scrollTop > 0);
+            setCanScrollDown(scrollTop + clientHeight < scrollHeight - 1);
+        }
+    };
+
+    useEffect(() => {
+        // Give it a tiny delay to allow initial layout to settle
+        const timer = setTimeout(checkScroll, 100);
+        window.addEventListener("resize", checkScroll);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener("resize", checkScroll);
+        };
+    }, []);
+
     return (
         <div className="flex flex-col h-full bg-brand relative transition-all duration-300">
             <div
@@ -111,7 +135,11 @@ function SidebarContent({
                 )}
             </button>
 
-            <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-none pb-8">
+            <nav 
+                ref={navRef}
+                onScroll={checkScroll}
+                className="flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-none pb-8 relative"
+            >
                 {NAV_GROUPS.map((group, i) => (
                     <div key={i} className="space-y-1.5">
                         {!isCollapsed && (
@@ -157,7 +185,14 @@ function SidebarContent({
                 ))}
             </nav>
 
-
+            {/* Scroll Indicator */}
+            {(canScrollDown || canScrollUp) && (
+                <div 
+                    className={`absolute bottom-4 ${isCollapsed ? 'right-1/2 translate-x-1/2' : 'right-4'} bg-white/20 text-white rounded-full p-1.5 shadow-sm backdrop-blur-sm pointer-events-none transition-all duration-300 animate-bounce z-50`}
+                >
+                    {canScrollDown ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </div>
+            )}
         </div>
     );
 }
