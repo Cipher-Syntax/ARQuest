@@ -10,8 +10,13 @@ class Quest(SoftDeleteModel):
     reward_points = models.IntegerField(default=50)
     is_active = models.BooleanField(default=True)
     expires_at = models.DateTimeField(null=True, blank=True, help_text="If set, the quest will expire at this time (used for Timed Challenges)")
+    DIFFICULTY_CHOICES = [
+        ('EASY', 'Easy'),
+        ('MEDIUM', 'Medium'),
+        ('HARD', 'Hard'),
+    ]
+    difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='EASY')
     created_at = models.DateTimeField(auto_now_add=True)
-
     class Meta:
         db_table = 'buildings_quest'
 

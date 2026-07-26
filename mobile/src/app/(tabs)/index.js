@@ -91,8 +91,14 @@ export default function HomeScreen() {
             }
 
             const resQuest = await api.get("/api/gamification/quests/active/");
-            if (resQuest.data.success && resQuest.data.data.length > 0) {
-                setActiveQuest(resQuest.data.data[0]);
+            if (resQuest.data.success) {
+                const quests = resQuest.data.data.quests || resQuest.data.data;
+                if (quests && quests.length > 0) {
+                    const nextQuest = quests.find(q => !q.is_completed) || quests[0];
+                    setActiveQuest(nextQuest);
+                } else {
+                    setActiveQuest(null);
+                }
             } else {
                 setActiveQuest(null);
             }
