@@ -36,6 +36,7 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
+import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { geofencingService } from "../../services";
 
 export default function HomeScreen() {
