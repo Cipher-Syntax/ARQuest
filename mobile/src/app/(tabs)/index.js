@@ -35,10 +35,12 @@ import {
     Timer,
 } from "lucide-react-native";
 import { router } from "expo-router";
+import { useIsFocused } from "../../hooks/useIsFocused";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { geofencingService } from "../../services";
 
 export default function HomeScreen() {
+    const isFocused = useIsFocused();
     const { user } = useAuth();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -164,7 +166,7 @@ export default function HomeScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            {isFocused && <StatusBar style="light" />}
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={
