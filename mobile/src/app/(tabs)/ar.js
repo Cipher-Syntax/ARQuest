@@ -138,7 +138,8 @@ export default function ARScreen() {
         }
     };
 
-    const matchingQuest = activeQuests.find(
+    const safeActiveQuests = Array.isArray(activeQuests) ? activeQuests : [];
+    const matchingQuest = safeActiveQuests.find(
         (q) =>
             nearbyBuildingFull &&
             q.target_building === nearbyBuildingFull.id &&
@@ -147,8 +148,9 @@ export default function ARScreen() {
 
     useEffect(() => {
         let fetchId = targetBuildingId;
-        if (!fetchId && activeQuests && activeQuests.length > 0) {
-            const firstIncomplete = activeQuests.find(q => !q.is_completed);
+        const safeActiveQuests = Array.isArray(activeQuests) ? activeQuests : [];
+        if (!fetchId && safeActiveQuests.length > 0) {
+            const firstIncomplete = safeActiveQuests.find(q => !q.is_completed);
             if (firstIncomplete) {
                 fetchId = firstIncomplete.target_building;
             }
@@ -228,7 +230,7 @@ export default function ARScreen() {
                 SoundManager.play("quest_complete");
                 setClaimedQuest(matchingQuest);
                 setActiveQuests((prev) =>
-                    prev.map((q) =>
+                    (Array.isArray(prev) ? prev : []).map((q) =>
                         q.id === matchingQuest.id
                             ? { ...q, is_completed: true }
                             : q,
@@ -601,7 +603,7 @@ export default function ARScreen() {
 
     return (
         <View style={styles.container}>
-            {isFocused && <StatusBar style="light" />}
+            {isFocused && <StatusBar style="dark" />}
             {/* --- CAPTURE TARGET --- */}
             <View
                 ref={arViewRef}
@@ -644,7 +646,7 @@ export default function ARScreen() {
                         
                         
                         {/* Active Missions Pill */}
-                        {activeQuests && activeQuests.length > 0 && !triviaModalVisible && (
+                        {Array.isArray(activeQuests) && activeQuests.length > 0 && !triviaModalVisible && (
                             <TouchableOpacity style={styles.missionsPill}>
                                 <Ionicons name="list" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
                                 <Text style={styles.missionsPillText}>
