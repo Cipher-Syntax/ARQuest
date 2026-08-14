@@ -117,10 +117,6 @@ const LandingPage = () => {
                         <a href="#ecosystem" className="hover:text-[#8A1538] transition-colors">Ecosystem</a>
                         <a href="#features" className="hover:text-[#8A1538] transition-colors">Features</a>
                     </div>
-                    
-                    <Link to="/login" className="px-4 py-1.5 rounded-md bg-gray-900 text-white hover:bg-[#8A1538] transition-colors">
-                        Login
-                    </Link>
                 </div>
             </nav>
 
@@ -627,10 +623,6 @@ const LandingPage = () => {
                             <button className="px-8 py-4 bg-white text-[#8A1538] rounded-md font-bold hover:bg-gray-50 transition-colors shadow-lg flex items-center gap-2">
                                 <Smartphone size={20} />
                                 Download the App
-                            </button>
-                            <button className="px-8 py-4 bg-transparent border-2 border-white/30 text-white rounded-md font-bold hover:bg-white/10 transition-colors flex items-center gap-2" onClick={() => navigate('/login')}>
-                                <ShieldCheck size={20} />
-                                Access Dashboard
                             </button>
                         </div>
                     </FadeUp>
