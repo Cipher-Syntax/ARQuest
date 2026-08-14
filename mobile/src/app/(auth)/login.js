@@ -91,7 +91,7 @@ export default function LoginScreen() {
                             <View style={styles.logoBox}>
                                 <Image 
                                     source={require('../../../assets/images/logo.png')} 
-                                    style={{ width: 80, height: 80, resizeMode: 'contain' }} 
+                                    style={{ width: 150, height: 150, resizeMode: 'contain' }} 
                                 />
                             </View>
                             <Text style={styles.welcomeText}>ARQuest</Text>
@@ -236,6 +236,7 @@ const styles = StyleSheet.create({
         width: '100%',
         marginBottom: 25,
         paddingHorizontal: 10,
+        alignItems: 'center',
     },
     logoBox: {
         marginBottom: 10,

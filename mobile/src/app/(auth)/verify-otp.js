@@ -8,7 +8,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     ImageBackground,
-    ScrollView
+    ScrollView,
+    Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../hooks/useAuth";

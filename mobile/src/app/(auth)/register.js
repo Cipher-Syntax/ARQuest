@@ -9,6 +9,7 @@ import {
     Platform,
     ScrollView,
     ImageBackground,
+    Image,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import theme from "../../theme/tokens";
