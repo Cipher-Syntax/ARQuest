@@ -79,6 +79,7 @@ export default function LoginScreen() {
             <ImageBackground
                 source={require('../../../assets/images/wmsu_landing_page_background.jpg')}
                 style={styles.backgroundImage}
+                imageStyle={{ opacity: 0.3 }}
                 resizeMode="cover"
             >
                 <View style={styles.overlay} />
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
     },
     formCard: {
         width: '100%',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: '#FFFFFF',
         borderRadius: 6,
         paddingVertical: 30,
         paddingHorizontal: 25,
