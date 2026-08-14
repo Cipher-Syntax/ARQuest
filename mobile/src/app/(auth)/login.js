@@ -8,13 +8,14 @@ import {
     KeyboardAvoidingView,
     Platform,
     Image,
+    ImageBackground,
+    ScrollView
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
 import { Link, useRouter } from "expo-router";
 import { Eye, EyeOff } from "lucide-react-native";
-import ARGlassCard from "../../components/ar/ARGlassCard";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 import { validateString } from "../../utils/validation";
@@ -44,10 +45,6 @@ export default function LoginScreen() {
         try {
             const result = await login(username, password);
             const loggedInUser = result?.user || result;
-            const streakBonus = result?.streakBonusExp || 0;
-            const streakCount = loggedInUser?.streak_count || 0;
-
-            // Streak notification is now handled globally in AuthContext
 
             if (
                 loggedInUser &&
@@ -63,7 +60,6 @@ export default function LoginScreen() {
             let serverMessage =
                 err?.data?.error || err?.data?.message || err?.data?.detail;
 
-            // If the server error is an object (e.g., {"code": "...", "message": "..."}), extract the message
             if (typeof serverMessage === "object" && serverMessage !== null) {
                 serverMessage =
                     serverMessage.message ||
@@ -80,150 +76,134 @@ export default function LoginScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.container}
         >
-            {/* Background decorative elements */}
-            <View style={styles.glowOrbTop} />
-            <View style={styles.glowOrbBottom} />
+            <ImageBackground
+                source={require('../../../assets/images/wmsu_landing_page_background.jpg')}
+                style={styles.backgroundImage}
+                resizeMode="cover"
+            >
+                <View style={styles.overlay} />
 
-            <View style={styles.content}>
-                {/* App Logo */}
-                <View style={styles.logoBox}>
-                    <Image 
-                        source={require('../../../assets/images/logo.png')} 
-                        style={{ width: 180, height: 180, resizeMode: 'contain' }} 
-                    />
-                </View>
-
-                <View style={styles.header}>
-                    <Text style={styles.title}>ARQuest</Text>
-                    <Text style={styles.subtitle}>
-                        Campus Exploration System
-                    </Text>
-                </View>
-
-                <ARGlassCard style={styles.card}>
-                    {error ? <Text style={styles.error}>{error}</Text> : null}
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Username</Text>
-                        <TextInput
-                            style={[
-                                styles.input,
-                                fieldErrors.username && { borderColor: "red" },
-                            ]}
-                            placeholder="Username"
-                            placeholderTextColor={theme.colors.textMuted}
-                            value={username}
-                            onChangeText={(text) => {
-                                setUsername(text);
-                                if (fieldErrors.username)
-                                    setFieldErrors((prev) => ({
-                                        ...prev,
-                                        username: null,
-                                    }));
-                            }}
-                            autoCapitalize="none"
-                        />
-                        {fieldErrors.username && (
-                            <Text
-                                style={{
-                                    color: "red",
-                                    fontSize: 12,
-                                    marginTop: 4,
-                                }}
-                            >
-                                {fieldErrors.username}
+                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+                    
+                    <View style={styles.innerContentWrapper}>
+                        <View style={styles.headerContainer}>
+                            <View style={styles.logoBox}>
+                                <Image 
+                                    source={require('../../../assets/images/logo.png')} 
+                                    style={{ width: 80, height: 80, resizeMode: 'contain' }} 
+                                />
+                            </View>
+                            <Text style={styles.welcomeText}>ARQuest</Text>
+                            <Text style={styles.subtitleText}>
+                                Campus Exploration System
                             </Text>
-                        )}
-                    </View>
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Password</Text>
-                        <View
-                            style={[
-                                styles.passwordContainer,
-                                fieldErrors.password && { borderColor: "red" },
-                            ]}
-                        >
-                            <TextInput
-                                style={styles.passwordInput}
-                                placeholder="••••••••"
-                                placeholderTextColor={theme.colors.textMuted}
-                                value={password}
-                                onChangeText={(text) => {
-                                    setPassword(text);
-                                    if (fieldErrors.password)
-                                        setFieldErrors((prev) => ({
-                                            ...prev,
-                                            password: null,
-                                        }));
-                                }}
-                                secureTextEntry={!showPassword}
-                            />
-                            <TouchableOpacity
-                                style={styles.eyeIcon}
-                                onPress={() => setShowPassword(!showPassword)}
-                            >
-                                {showPassword ? (
-                                    <EyeOff
-                                        color={theme.colors.primary}
-                                        size={20}
+                        <View style={styles.formCard}>
+                            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+                            <View style={styles.inputWrapper}>
+                                <View style={[styles.inputContainer, fieldErrors.username && styles.inputError]}>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Student ID"
+                                        placeholderTextColor="#94A3B8"
+                                        value={username}
+                                        onChangeText={(text) => {
+                                            setUsername(text);
+                                            if (fieldErrors.username)
+                                                setFieldErrors((prev) => ({
+                                                    ...prev,
+                                                    username: null,
+                                                }));
+                                        }}
+                                        autoCapitalize="none"
                                     />
-                                ) : (
-                                    <Eye
-                                        color={theme.colors.textMuted}
-                                        size={20}
-                                    />
+                                </View>
+                                {fieldErrors.username && (
+                                    <Text style={styles.errorText}>
+                                        {fieldErrors.username}
+                                    </Text>
                                 )}
+                            </View>
+
+                            <View style={styles.inputWrapper}>
+                                <View style={[styles.inputContainer, fieldErrors.password && styles.inputError]}>
+                                    <TextInput
+                                        style={styles.passwordInput}
+                                        placeholder="Password"
+                                        placeholderTextColor="#94A3B8"
+                                        value={password}
+                                        onChangeText={(text) => {
+                                            setPassword(text);
+                                            if (fieldErrors.password)
+                                                setFieldErrors((prev) => ({
+                                                    ...prev,
+                                                    password: null,
+                                                }));
+                                        }}
+                                        secureTextEntry={!showPassword}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.eyeIcon}
+                                        onPress={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff color="#94A3B8" size={20} />
+                                        ) : (
+                                            <Eye color="#94A3B8" size={20} />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                                {fieldErrors.password && (
+                                    <Text style={styles.errorText}>
+                                        {fieldErrors.password}
+                                    </Text>
+                                )}
+                            </View>
+
+                            <TouchableOpacity style={styles.forgotPassword}>
+                                <Text style={styles.forgotText}>Forgot Password?</Text>
+                            </TouchableOpacity>
+
+                            <ARButton
+                                title="Login"
+                                onPress={handleLogin}
+                                isLoading={isLoading}
+                                variant="primary"
+                                style={styles.mainButton}
+                            />
+
+                            <View style={styles.switchContainer}>
+                                <Text style={styles.switchText}>Don't have an account? </Text>
+                                <Link href="/(auth)/register" asChild>
+                                    <TouchableOpacity>
+                                        <Text style={styles.switchLink}>Sign Up</Text>
+                                    </TouchableOpacity>
+                                </Link>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.visitorButton}
+                                onPress={async () => {
+                                    try {
+                                        setError("");
+                                        await login("visitor", "WMSU-Visitor2026!");
+                                        router.replace("/(tabs)");
+                                    } catch (err) {
+                                        setError("Visitor channel offline.");
+                                    }
+                                }}
+                                disabled={isLoading}
+                            >
+                                <Text style={styles.visitorText}>
+                                    Continue as Visitor (Guest Access)
+                                </Text>
                             </TouchableOpacity>
                         </View>
-                        {fieldErrors.password && (
-                            <Text
-                                style={{
-                                    color: "red",
-                                    fontSize: 12,
-                                    marginTop: 4,
-                                }}
-                            >
-                                {fieldErrors.password}
-                            </Text>
-                        )}
                     </View>
-
-                    <ARButton
-                        title="Game Start"
-                        onPress={handleLogin}
-                        isLoading={isLoading}
-                        variant="primary"
-                        style={styles.loginButton}
-                    />
-
-                    <Link href="/(auth)/register" asChild>
-                        <TouchableOpacity style={styles.registerLink}>
-                            <Text style={styles.registerText}>
-                                Don't have an account? Register
-                            </Text>
-                        </TouchableOpacity>
-                    </Link>
-
-                    <TouchableOpacity
-                        style={styles.visitorButton}
-                        onPress={async () => {
-                            try {
-                                setError("");
-                                await login("visitor", "WMSU-Visitor2026!");
-                                router.replace("/(tabs)");
-                            } catch (err) {
-                                setError("Visitor channel offline.");
-                            }
-                        }}
-                        disabled={isLoading}
-                    >
-                        <Text style={styles.visitorText}>
-                            Continue as Visitor (Guest Access)
-                        </Text>
-                    </TouchableOpacity>
-                </ARGlassCard>
-            </View>
+                </ScrollView>
+            </ImageBackground>
         </KeyboardAvoidingView>
     );
 }
@@ -232,130 +212,152 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    glowOrbTop: {
-        position: "absolute",
-        top: -100,
-        left: -100,
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        backgroundcolor: "#FFFFFF", // Red glow
-        opacity: 0.3, // Make more vibrant
-    },
-    glowOrbBottom: {
-        position: "absolute",
-        bottom: -150,
-        right: -100,
-        width: 400,
-        height: 400,
-        borderRadius: 200,
-        backgroundcolor: "#FFFFFF", // Also Red
-        opacity: 0.3,
-    },
-    content: {
+    backgroundImage: {
         flex: 1,
-        justifyContent: "center",
-        padding: theme.spacing.lg,
-        zIndex: 1,
+        width: '100%',
+        height: '100%',
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+    },
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'flex-end',
+    },
+    innerContentWrapper: {
+        width: '100%',
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+        alignItems: 'center',
+    },
+    headerContainer: {
+        width: '100%',
+        marginBottom: 25,
+        paddingHorizontal: 10,
     },
     logoBox: {
-        alignItems: "center",
-        justifyContent: "center",
-        alignSelf: "center",
         marginBottom: 10,
     },
-    header: {
-        alignItems: "center",
-        marginBottom: theme.spacing.xl,
-    },
-    title: {
+    welcomeText: {
         fontFamily: fonts.heading.bold,
-        color: "#FFFFFF",
-        fontSize: 32,
-        fontWeight: "900",
-        letterSpacing: 2,
-        textTransform: "uppercase",
-        marginBottom: 4,
+        fontSize: 36,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
-    subtitle: {
-        color: "#DDDDDD",
-        fontSize: theme.typography.sm,
-        fontWeight: "600",
-        letterSpacing: 3,
-        textTransform: "uppercase",
+    subtitleText: {
+        fontFamily: fonts.body.regular,
+        fontSize: 16,
+        color: '#E2E8F0',
+        marginTop: 5,
+        fontWeight: '500',
     },
-    card: {
-        paddingTop: theme.spacing.xl,
+    formCard: {
+        width: '100%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 30,
+        paddingVertical: 30,
+        paddingHorizontal: 25,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+        elevation: 10,
     },
-    inputGroup: {
-        marginBottom: theme.spacing.lg,
+    inputWrapper: {
+        marginBottom: 15,
     },
-    inputLabel: {
-        color: "rgba(255,255,255,0.6)",
-        fontSize: 10,
-        fontWeight: "bold",
-        textTransform: "uppercase",
-        letterSpacing: 1,
-        marginBottom: 8,
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F1F5F9',
+        borderRadius: 16,
+        height: 56,
+        paddingHorizontal: 15,
+        borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    inputError: {
+        borderColor: '#EF4444',
+        backgroundColor: '#FEF2F2',
     },
     input: {
         fontFamily: fonts.body.regular,
-        backgroundColor: "rgba(255,255,255,0.05)",
-        color: "#FFFFFF",
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        fontSize: theme.typography.md,
-    },
-    passwordContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.05)",
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        flex: 1,
+        fontSize: 16,
+        color: '#0F172A',
+        height: '100%',
     },
     passwordInput: {
         fontFamily: fonts.body.regular,
         flex: 1,
-        color: "#FFFFFF",
-        padding: theme.spacing.md,
-        fontSize: theme.typography.md,
+        fontSize: 16,
+        color: '#0F172A',
+        height: '100%',
     },
     eyeIcon: {
-        padding: theme.spacing.md,
+        padding: 10,
     },
-    loginButton: {
-        marginTop: theme.spacing.sm,
+    errorText: {
+        color: '#EF4444',
+        fontSize: 12,
+        marginLeft: 5,
+        marginTop: 4,
+        fontWeight: '500'
     },
     error: {
-        color: theme.colors.error,
-        marginBottom: theme.spacing.md,
+        color: '#EF4444',
+        marginBottom: 15,
         textAlign: "center",
-        fontSize: theme.typography.sm,
+        fontSize: 14,
         fontWeight: "600",
-        backgroundColor: "rgba(239, 68, 68, 0.1)",
-        padding: 10,
-        borderRadius: theme.radius.sm,
+        backgroundColor: "#FEF2F2",
+        padding: 12,
+        borderRadius: 12,
+        overflow: 'hidden',
     },
-    registerLink: {
-        marginTop: theme.spacing.lg,
-        alignItems: "center",
+    forgotPassword: {
+        alignItems: 'flex-end',
+        marginBottom: 25,
+        marginTop: 5,
     },
-    registerText: {
-        color: "#FFFFFF",
-        fontSize: theme.typography.sm,
-        fontWeight: "600",
-        opacity: 0.8,
+    forgotText: {
+        color: theme.colors.primary,
+        fontSize: 14,
+        fontWeight: '600'
+    },
+    mainButton: {
+        borderRadius: 16,
+        height: 56,
+        marginBottom: 20,
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 5,
+    },
+    switchText: {
+        color: '#64748B',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    switchLink: {
+        color: theme.colors.primary,
+        fontSize: 14,
+        fontWeight: '700',
     },
     visitorButton: {
-        marginTop: theme.spacing.md,
+        marginTop: 20,
         alignItems: "center",
     },
     visitorText: {
-        color: "rgba(255,255,255,0.6)",
-        fontSize: theme.typography.sm,
+        color: '#94A3B8',
+        fontSize: 14,
         fontWeight: "500",
         textDecorationLine: "underline",
     },

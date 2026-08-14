@@ -1,73 +1,71 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
+    ImageBackground,
+    ScrollView
 } from "react-native";
-import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
-import { api } from "../../services";
-import ARGlassCard from "../../components/ar/ARGlassCard";
 import ARButton from "../../components/ar/ARButton";
-import { validateString } from "../../utils/validation";
+import { fonts } from "../../constants/typography";
 
-export default function VerifyOtpScreen() {
+export default function VerifyOTP() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const email = params.email;
+    const { verifyOTP, resendOTP, isLoading } = useAuth();
+
+    const email = params?.email || "your email";
+    const username = params?.username;
 
     const [otp, setOtp] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-    const [isResending, setIsResending] = useState(false);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
+    const [isResending, setIsResending] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
 
+    useEffect(() => {
+        if (!username || !email) {
+            router.replace("/(auth)/login");
+        }
+    }, [username, email]);
+
     const handleVerify = async () => {
-        const otpError = validateString(
-            otp,
-            6,
-            "OTP must be exactly 6 digits.",
-        );
-        if (otpError || otp.length !== 6) {
-            setFieldErrors({
-                otp: otpError || "OTP must be exactly 6 digits.",
-            });
+        if (!otp || otp.length !== 6) {
+            setFieldErrors({ otp: "Please enter a valid 6-digit code." });
             return;
         }
 
-        setFieldErrors({});
-
-        setError("");
-        setIsLoading(true);
-
         try {
-            await api.post("/api/auth/verify-otp/", { email, otp });
-            Alert(
-                "Identity Verified",
-                "Your comm channel is confirmed. You may now initialize your quest.",
-                [
-                    {
-                        text: "Proceed",
-                        onPress: () => router.replace("/(auth)/login"),
-                    },
-                ],
-            );
+            setError("");
+            setMessage("");
+            setFieldErrors({});
+
+            await verifyOTP(username, otp);
+            router.replace("/(tabs)");
         } catch (err) {
             console.log("OTP verification error:", err);
-            setError(
-                err.data?.detail ||
-                    err.data?.non_field_errors?.[0] ||
-                    "Invalid or expired code.",
-            );
-        } finally {
-            setIsLoading(false);
+            
+            if (err?.data && typeof err.data === 'object') {
+                 if (err.data.otp) {
+                      setFieldErrors({ otp: Array.isArray(err.data.otp) ? err.data.otp[0] : err.data.otp });
+                      return;
+                 }
+            }
+
+            let serverMessage = err?.data?.error || err?.data?.message || err?.data?.detail;
+            
+            if (typeof serverMessage === "object" && serverMessage !== null) {
+                serverMessage = serverMessage.message || serverMessage.detail || JSON.stringify(serverMessage);
+            }
+            
+            setError(serverMessage || "Verification failed. Invalid or expired code.");
         }
     };
 
@@ -75,12 +73,20 @@ export default function VerifyOtpScreen() {
         setIsResending(true);
         setError("");
         setMessage("");
-
+        
         try {
-            await api.post("/api/auth/resend-otp/", { email });
-            setMessage("A new transmission has been sent to your channel.");
+            await resendOTP(username);
+            setMessage("A new code has been sent to your email.");
+            setOtp("");
         } catch (err) {
-            setError(err.data?.detail || "Failed to resend transmission.");
+            console.log("Resend OTP error:", err);
+            let serverMessage = err?.data?.error || err?.data?.message || err?.data?.detail;
+            
+            if (typeof serverMessage === "object" && serverMessage !== null) {
+                serverMessage = serverMessage.message || serverMessage.detail || JSON.stringify(serverMessage);
+            }
+            
+            setError(serverMessage || "Failed to resend code.");
         } finally {
             setIsResending(false);
         }
@@ -91,83 +97,81 @@ export default function VerifyOtpScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.container}
         >
-            <View style={styles.glowOrbTop} />
-            <View style={styles.glowOrbBottom} />
+            <ImageBackground
+                source={require('../../../assets/images/wmsu_landing_page_background.jpg')}
+                style={styles.backgroundImage}
+                resizeMode="cover"
+            >
+                <View style={styles.overlay} />
 
-            <View style={styles.content}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Verification</Text>
-                    <Text style={styles.subtitle}>
-                        Enter the 6-digit code sent to {email}
-                    </Text>
-                </View>
-
-                <ARGlassCard style={styles.card}>
-                    {error ? <Text style={styles.error}>{error}</Text> : null}
-                    {message ? (
-                        <Text style={styles.message}>{message}</Text>
-                    ) : null}
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Transmission Code</Text>
-                        <TextInput
-                            style={[
-                                styles.input,
-                                fieldErrors.otp && { borderColor: "red" },
-                            ]}
-                            placeholder="000000"
-                            placeholderTextColor={theme.colors.textMuted}
-                            value={otp}
-                            onChangeText={(text) => {
-                                setOtp(text);
-                                if (fieldErrors.otp) setFieldErrors({});
-                            }}
-                            keyboardType="numeric"
-                            maxLength={6}
-                            textAlign="center"
-                        />
-                        {fieldErrors.otp && (
-                            <Text
-                                style={{
-                                    color: "red",
-                                    fontSize: 12,
-                                    marginTop: 4,
-                                    textAlign: "center",
-                                }}
-                            >
-                                {fieldErrors.otp}
+                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+                    
+                    <View style={styles.innerContentWrapper}>
+                        <View style={styles.headerContainer}>
+                            <Text style={styles.welcomeText}>Verification</Text>
+                            <Text style={styles.subtitleText}>
+                                Enter the 6-digit code sent to {email}
                             </Text>
-                        )}
+                        </View>
+
+                        <View style={styles.formCard}>
+                            {error ? <Text style={styles.error}>{error}</Text> : null}
+                            {message ? <Text style={styles.message}>{message}</Text> : null}
+
+                            <View style={styles.inputWrapper}>
+                                <View style={[styles.inputContainer, fieldErrors.otp && styles.inputError]}>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="000000"
+                                        placeholderTextColor="#94A3B8"
+                                        value={otp}
+                                        onChangeText={(text) => {
+                                            setOtp(text);
+                                            if (fieldErrors.otp) setFieldErrors({});
+                                        }}
+                                        keyboardType="numeric"
+                                        maxLength={6}
+                                        textAlign="center"
+                                    />
+                                </View>
+                                {fieldErrors.otp && (
+                                    <Text style={styles.errorText}>
+                                        {fieldErrors.otp}
+                                    </Text>
+                                )}
+                            </View>
+
+                            <ARButton
+                                title="Verify Identity"
+                                onPress={handleVerify}
+                                isLoading={isLoading}
+                                disabled={isResending}
+                                variant="primary"
+                                style={styles.mainButton}
+                            />
+
+                            <TouchableOpacity
+                                style={styles.secondaryActionButton}
+                                onPress={handleResend}
+                                disabled={isLoading || isResending}
+                            >
+                                <Text style={styles.secondaryActionText}>
+                                    {isResending ? "Sending..." : "Resend Code"}
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.linkContainer}
+                                onPress={() => router.replace("/(auth)/login")}
+                            >
+                                <Text style={styles.linkText}>
+                                    Abort & Return to Login
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-
-                    <ARButton
-                        title="Verify Identity"
-                        onPress={handleVerify}
-                        isLoading={isLoading}
-                        disabled={isResending}
-                        variant="primary"
-                        style={styles.verifyButton}
-                    />
-
-                    <ARButton
-                        title="Resend Code"
-                        onPress={handleResend}
-                        isLoading={isResending}
-                        disabled={isLoading}
-                        variant="outline"
-                        style={styles.resendButton}
-                    />
-
-                    <TouchableOpacity
-                        style={styles.link}
-                        onPress={() => router.replace("/(auth)/login")}
-                    >
-                        <Text style={styles.linkText}>
-                            Abort & Return to Login
-                        </Text>
-                    </TouchableOpacity>
-                </ARGlassCard>
-            </View>
+                </ScrollView>
+            </ImageBackground>
         </KeyboardAvoidingView>
     );
 }
@@ -176,113 +180,142 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    glowOrbTop: {
-        position: "absolute",
-        top: -100,
-        left: -100,
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        backgroundColor: theme.colors.primaryDark,
-        opacity: 0.5,
-    },
-    glowOrbBottom: {
-        position: "absolute",
-        bottom: -150,
-        right: -100,
-        width: 400,
-        height: 400,
-        borderRadius: 200,
-        backgroundColor: "#EAB30810",
-    },
-    content: {
+    backgroundImage: {
         flex: 1,
-        justifyContent: "center",
-        padding: theme.spacing.lg,
-        zIndex: 1,
+        width: '100%',
+        height: '100%',
     },
-    header: {
-        alignItems: "center",
-        marginBottom: theme.spacing.xl,
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', 
     },
-    title: {
-        color: "#FFFFFF",
-        fontSize: 32,
-        fontWeight: "900",
-        letterSpacing: 2,
-        textTransform: "uppercase",
-        textShadowColor: "rgba(234, 179, 8, 0.4)",
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-        marginBottom: 4,
-        textAlign: "center",
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'flex-end',
     },
-    subtitle: {
-        color: theme.colors.accent,
-        fontSize: theme.typography.sm,
-        fontWeight: "600",
-        textAlign: "center",
+    innerContentWrapper: {
+        width: '100%',
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+        alignItems: 'center',
     },
-    card: {
-        paddingTop: theme.spacing.xl,
+    headerContainer: {
+        width: '100%',
+        marginBottom: 25,
+        paddingHorizontal: 10,
+        marginTop: 40,
     },
-    inputGroup: {
-        marginBottom: theme.spacing.lg,
+    welcomeText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 36,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
-    inputLabel: {
-        color: "rgba(255,255,255,0.6)",
-        fontSize: 10,
-        fontWeight: "bold",
-        textTransform: "uppercase",
-        letterSpacing: 1,
-        marginBottom: 8,
-        textAlign: "center",
+    subtitleText: {
+        fontFamily: fonts.body.regular,
+        fontSize: 16,
+        color: '#E2E8F0',
+        marginTop: 5,
+        fontWeight: '500',
+    },
+    formCard: {
+        width: '100%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 30,
+        paddingVertical: 30,
+        paddingHorizontal: 25,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    inputWrapper: {
+        marginBottom: 25,
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F1F5F9',
+        borderRadius: 16,
+        height: 64,
+        paddingHorizontal: 15,
+        borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    inputError: {
+        borderColor: '#EF4444',
+        backgroundColor: '#FEF2F2',
     },
     input: {
-        backgroundColor: "rgba(255,255,255,0.05)",
-        color: "#FFFFFF",
-        padding: theme.spacing.md,
-        paddingLeft: theme.spacing.md + 10,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        fontSize: theme.typography.xl,
-        textAlign: "center",
-        letterSpacing: 10,
+        fontFamily: fonts.heading.bold,
+        flex: 1,
+        fontSize: 28,
+        color: '#0F172A',
+        height: '100%',
+        letterSpacing: 8,
     },
-    verifyButton: {
-        marginTop: theme.spacing.sm,
-    },
-    resendButton: {
-        marginTop: theme.spacing.md,
+    errorText: {
+        color: '#EF4444',
+        fontSize: 12,
+        marginLeft: 5,
+        marginTop: 4,
+        fontWeight: '500',
+        textAlign: 'center',
     },
     error: {
-        color: theme.colors.error,
-        marginBottom: theme.spacing.md,
+        color: '#EF4444',
+        marginBottom: 15,
         textAlign: "center",
-        fontSize: theme.typography.sm,
+        fontSize: 14,
         fontWeight: "600",
-        backgroundColor: "rgba(239, 68, 68, 0.1)",
-        padding: 10,
-        borderRadius: theme.radius.sm,
+        backgroundColor: "#FEF2F2",
+        padding: 12,
+        borderRadius: 12,
+        overflow: 'hidden',
     },
     message: {
         color: theme.colors.success,
-        marginBottom: theme.spacing.md,
+        marginBottom: 15,
         textAlign: "center",
-        fontSize: theme.typography.sm,
+        fontSize: 14,
         fontWeight: "600",
-        backgroundColor: "rgba(16, 185, 129, 0.1)",
-        padding: 10,
-        borderRadius: theme.radius.sm,
+        backgroundColor: "rgba(56, 142, 60, 0.1)",
+        padding: 12,
+        borderRadius: 12,
+        overflow: 'hidden',
     },
-    link: {
-        marginTop: theme.spacing.xl,
-        alignItems: "center",
+    mainButton: {
+        borderRadius: 16,
+        height: 56,
+        marginBottom: 12,
+    },
+    secondaryActionButton: {
+        height: 56,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    secondaryActionText: {
+        color: '#334155',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    linkContainer: {
+        alignItems: 'center',
     },
     linkText: {
-        color: "rgba(255,255,255,0.6)",
-        fontSize: theme.typography.sm,
-        fontWeight: "500",
+        color: '#64748B',
+        fontSize: 14,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
     },
 });
