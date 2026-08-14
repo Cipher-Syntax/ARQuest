@@ -125,16 +125,7 @@ const LandingPage = () => {
                 <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-bl from-red-50/80 to-transparent -z-10 rounded-bl-md"></div>
 
                 <div className="flex-1 space-y-8 z-10">
-                    <FadeUp delay={0}>
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-50 border border-red-100 text-[#8A1538] text-xs font-bold tracking-widest uppercase">
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-md bg-[#8A1538] opacity-75"></span>
-                              <span className="relative inline-flex rounded-md h-2 w-2 bg-[#8A1538]"></span>
-                            </span>
-                            WMSU Smart Campus System
-                        </div>
-                    </FadeUp>
-                    
+
                     <FadeUp delay={100}>
                         <h1 className="text-5xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-gray-900">
                             Your Campus, <br />
