@@ -15,8 +15,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
+import { useAssetCache } from "../../hooks/useAssetCache";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
-import { geofencingService } from "../../services";
+import { geofencingService, assetService } from "../../services";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { api } from "../../services";
 import { fonts } from "../../constants/typography";
@@ -40,6 +41,8 @@ export default function ExploreScreen() {
     } = useLocationTracking();
 
     const { unlockedBuildings, attemptUnlock } = useUnlockedBuildings();
+    const { loadAsset } = useAssetCache();
+    const prefetchedBuildingsRef = useRef(new Set());
     const [validationResult, setValidationResult] = useState(null);
     const [isValidating, setIsValidating] = useState(false);
     const [lastUnlockAttempt, setLastUnlockAttempt] = useState(null);
@@ -205,6 +208,27 @@ export default function ExploreScreen() {
                 location.accuracy || 10,
             );
             setValidationResult(result);
+
+            // --- ASSET PREFETCHING MITIGATION ---
+            if ((result.status === "nearby" || result.status === "inside") && result.building) {
+                const buildingId = result.building.id;
+                if (!prefetchedBuildingsRef.current.has(buildingId)) {
+                    prefetchedBuildingsRef.current.add(buildingId);
+                    
+                    // Fetch building details to get model URL in background
+                    api.get(`/api/buildings/${buildingId}/`).then(bldgRes => {
+                        if (bldgRes.data.success && bldgRes.data.data.model_url) {
+                            const bldgData = bldgRes.data.data;
+                            loadAsset({
+                                id: `model_${bldgData.id}`,
+                                version: bldgData.updated_at ? new Date(bldgData.updated_at).getTime() : "1",
+                                file_url: bldgData.model_url
+                            }).catch(e => console.warn('Pre-fetch failed', e));
+                        }
+                    }).catch(err => console.warn("Failed to pre-fetch building assets", err));
+                }
+            }
+            // ------------------------------------
 
             if (result.status === "inside" && result.building) {
                 const buildingId = result.building.id;
