@@ -136,7 +136,7 @@ export default function RegisterScreen() {
                                 <View style={[styles.inputContainer, fieldErrors.username && styles.inputError]}>
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Student ID"
+                                        placeholder="Username"
                                         placeholderTextColor="#94A3B8"
                                         value={formData.username}
                                         onChangeText={(text) =>
@@ -226,17 +226,11 @@ export default function RegisterScreen() {
                                 
                                 {/* Password validation rules in rows */}
                                 <View style={styles.passwordRulesContainer}>
-                                    <View style={styles.rulesRow}>
-                                        <PasswordRule isValid={isLengthValid} text="8+ characters" />
-                                        <PasswordRule isValid={isUpperValid} text="1 uppercase letter" />
-                                    </View>
-                                    <View style={styles.rulesRow}>
-                                        <PasswordRule isValid={isLowerValid} text="1 lowercase letter" />
-                                        <PasswordRule isValid={isNumberValid} text="1 number" />
-                                    </View>
-                                    <View style={styles.rulesRow}>
-                                        <PasswordRule isValid={isSpecialValid} text="1 special character" />
-                                    </View>
+                                    <PasswordRule isValid={isLengthValid} text="8+ characters" />
+                                    <PasswordRule isValid={isUpperValid} text="1 uppercase letter" />
+                                    <PasswordRule isValid={isLowerValid} text="1 lowercase letter" />
+                                    <PasswordRule isValid={isNumberValid} text="1 number" />
+                                    <PasswordRule isValid={isSpecialValid} text="1 special character" />
                                 </View>
 
                                 {fieldErrors.password && (
@@ -348,8 +342,8 @@ const styles = StyleSheet.create({
     },
     formCard: {
         width: '100%',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 30,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 6,
         paddingVertical: 30,
         paddingHorizontal: 25,
         shadowColor: '#000',
@@ -369,7 +363,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F1F5F9',
-        borderRadius: 16,
+        borderRadius: 6,
         height: 56,
         paddingHorizontal: 15,
         borderWidth: 1,
@@ -399,17 +393,13 @@ const styles = StyleSheet.create({
     passwordRulesContainer: {
         marginTop: 8,
         flexDirection: "column",
-        gap: 6,
+        gap: 4,
         paddingHorizontal: 4,
-    },
-    rulesRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
     },
     ruleContainer: {
         flexDirection: "row",
         alignItems: "center",
-        flex: 1,
+        marginVertical: 2,
     },
     ruleText: {
         fontSize: 11,
@@ -437,11 +427,11 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         backgroundColor: "#FEF2F2",
         padding: 12,
-        borderRadius: 12,
+        borderRadius: 6,
         overflow: 'hidden',
     },
     mainButton: {
-        borderRadius: 16,
+        borderRadius: 6,
         height: 56,
         marginTop: 5,
         marginBottom: 20,

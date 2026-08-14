@@ -106,7 +106,7 @@ export default function LoginScreen() {
                                 <View style={[styles.inputContainer, fieldErrors.username && styles.inputError]}>
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Student ID"
+                                        placeholder="Username"
                                         placeholderTextColor="#94A3B8"
                                         value={username}
                                         onChangeText={(text) => {
@@ -258,8 +258,8 @@ const styles = StyleSheet.create({
     },
     formCard: {
         width: '100%',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 30,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 6,
         paddingVertical: 30,
         paddingHorizontal: 25,
         shadowColor: '#000',
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F1F5F9',
-        borderRadius: 16,
+        borderRadius: 6,
         height: 56,
         paddingHorizontal: 15,
         borderWidth: 1,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         backgroundColor: "#FEF2F2",
         padding: 12,
-        borderRadius: 12,
+        borderRadius: 6,
         overflow: 'hidden',
     },
     forgotPassword: {
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
         fontWeight: '600'
     },
     mainButton: {
-        borderRadius: 16,
+        borderRadius: 6,
         height: 56,
         marginBottom: 20,
     },
