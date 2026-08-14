@@ -236,10 +236,10 @@ const styles = StyleSheet.create({
         width: '100%',
         marginBottom: 25,
         paddingHorizontal: 10,
-        alignItems: 'center',
     },
     logoBox: {
         marginBottom: 10,
+        alignSelf: 'center',
     },
     welcomeText: {
         fontFamily: fonts.heading.bold,
