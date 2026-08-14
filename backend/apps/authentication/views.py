@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.response import Response
@@ -8,14 +8,22 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.core.mail import send_mail
 from django.conf import settings
+from rest_framework.throttling import AnonRateThrottle
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
 from .serializers import LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer, ResendOTPSerializer, CreateProfessionalSerializer
 from .models import User, EmailOTP
 
+class OTPRateThrottle(AnonRateThrottle):
+    rate = '3/minute'
+
+class LoginRateThrottle(AnonRateThrottle):
+    rate = '10/minute'
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([OTPRateThrottle])
 def register(request):
     if SystemSetting.get_settings().maintenance_mode:
         return Response({'success': False, 'error': 'System is under maintenance. Registration disabled.'}, status=503)
@@ -97,6 +105,7 @@ def verify_otp(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([OTPRateThrottle])
 def resend_otp(request):
     serializer = ResendOTPSerializer(data=request.data)
     
@@ -151,6 +160,7 @@ def resend_otp(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
 def login(request):
     serializer = LoginSerializer(data=request.data)
     

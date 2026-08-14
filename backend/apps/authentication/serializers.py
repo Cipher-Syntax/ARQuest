@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 from .models import User, EmailOTP
 
 
@@ -37,6 +38,13 @@ class RegisterSerializer(serializers.Serializer):
     def validate(self, data):
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError({'password_confirm': 'Passwords do not match.'})
+        
+        # Enforce password complexity
+        try:
+            validate_password(data['password'])
+        except Exception as e:
+            raise serializers.ValidationError({'password': list(e.messages)})
+            
         return data
     
     def create(self, validated_data):
@@ -121,6 +129,13 @@ class CreateProfessionalSerializer(serializers.Serializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError('Email already registered.')
         return value
+        
+    def validate(self, data):
+        try:
+            validate_password(data.get('password'))
+        except Exception as e:
+            raise serializers.ValidationError({'password': list(e.messages)})
+        return data
     
     def create(self, validated_data):
         user = User.objects.create_user(

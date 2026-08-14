@@ -12,11 +12,26 @@ import {
 import { useRouter, Link } from "expo-router";
 import theme from "../../theme/tokens";
 import { api } from "../../services";
-import { Eye, EyeOff } from "lucide-react-native";
+import { Eye, EyeOff, CheckCircle2, Circle } from "lucide-react-native";
 import ARGlassCard from "../../components/ar/ARGlassCard";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 import { validateString, validateEmail } from "../../utils/validation";
+
+const PasswordRule = ({ isValid, text }) => {
+    return (
+        <View style={styles.passwordRule}>
+            {isValid ? (
+                <CheckCircle2 color="#10b981" size={14} />
+            ) : (
+                <Circle color={theme.colors.textMuted} size={14} />
+            )}
+            <Text style={[styles.passwordRuleText, isValid && styles.passwordRuleTextValid]}>
+                {text}
+            </Text>
+        </View>
+    );
+};
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -37,6 +52,12 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    const isLengthValid = formData.password.length >= 8;
+    const isUpperValid = /[A-Z]/.test(formData.password);
+    const isLowerValid = /[a-z]/.test(formData.password);
+    const isNumberValid = /\d/.test(formData.password);
+    const isSpecialValid = /[()[\]{}|\\`~!@#$%^&*_\-+=;:'",<>./?]/.test(formData.password);
+
     const handleChange = (name, value) => {
         setFormData((prev) => ({ ...prev, [name]: value }));
         if (fieldErrors[name]) {
@@ -47,10 +68,17 @@ export default function RegisterScreen() {
     const handleRegister = async () => {
         const usernameError = validateString(formData.username, 3);
         const emailError = validateEmail(formData.email);
-        const passwordError = validateString(formData.password, 6);
+        
+        let passwordError = validateString(formData.password, 8);
+        if (!passwordError) {
+             if (!isUpperValid || !isLowerValid || !isNumberValid || !isSpecialValid) {
+                 passwordError = "Password does not meet complexity requirements.";
+             }
+        }
+        
         const passwordConfirmError = validateString(
             formData.password_confirm,
-            6,
+            8,
         );
         let matchError = null;
         if (
@@ -248,6 +276,13 @@ export default function RegisterScreen() {
                                     />
                                 )}
                             </TouchableOpacity>
+                        </View>
+                        <View style={styles.passwordRulesContainer}>
+                            <PasswordRule isValid={isLengthValid} text="8+ characters" />
+                            <PasswordRule isValid={isUpperValid} text="1 uppercase letter" />
+                            <PasswordRule isValid={isLowerValid} text="1 lowercase letter" />
+                            <PasswordRule isValid={isNumberValid} text="1 number" />
+                            <PasswordRule isValid={isSpecialValid} text="1 special character" />
                         </View>
                         {fieldErrors.password && (
                             <Text
@@ -452,5 +487,23 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.sm,
         fontWeight: "600",
         opacity: 0.8,
+    },
+    passwordRulesContainer: {
+        marginTop: 8,
+        marginBottom: 8,
+    },
+    passwordRule: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 6,
+    },
+    passwordRuleText: {
+        color: theme.colors.textMuted,
+        fontSize: 12,
+        marginLeft: 6,
+        fontFamily: fonts.body.regular,
+    },
+    passwordRuleTextValid: {
+        color: "#10b981",
     },
 });
