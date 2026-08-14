@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from apps.authentication.permissions import IsAdminRole
 from rest_framework import status
 from apps.buildings.models import Building
 from apps.api.responses import success_response, error_response
@@ -77,7 +78,7 @@ def panorama_scene_detail(request, id):
     return success_response(serializer.data)
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminRole])
 def building_scenes_admin(request, building_id):
     try:
         building = Building.objects.get(id=building_id)
@@ -92,10 +93,6 @@ def building_scenes_admin(request, building_id):
         
     # POST: Create a new scene
     elif request.method == 'POST':
-        # Enforce Admin Role
-        if getattr(request.user, 'role', '') != 'admin':
-            return error_response('forbidden', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
-            
         serializer = PanoramaSceneWriteSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(building=building)
@@ -103,12 +100,8 @@ def building_scenes_admin(request, building_id):
         return error_response(ErrorCodes.VALIDATION_ERROR, serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminRole])
 def scene_detail_admin(request, id):
-    # Enforce Admin Role
-    if getattr(request.user, 'role', '') != 'admin':
-        return error_response('forbidden', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
-        
     try:
         scene = PanoramaScene.objects.get(id=id)
         scene.delete()
@@ -118,12 +111,8 @@ def scene_detail_admin(request, id):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminRole])
 def scene_hotspots_admin(request, scene_id):
-    # Enforce Admin Role
-    if getattr(request.user, 'role', '') != 'admin':
-        return error_response('forbidden', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
-        
     try:
         scene = PanoramaScene.objects.get(id=scene_id)
     except PanoramaScene.DoesNotExist:
@@ -144,12 +133,8 @@ def scene_hotspots_admin(request, scene_id):
 
 
 @api_view(['PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminRole])
 def hotspot_detail_admin(request, id):
-    # Enforce Admin Role
-    if getattr(request.user, 'role', '') != 'admin':
-        return error_response('forbidden', 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
-        
     try:
         hotspot = PanoramaHotspot.objects.get(id=id)
     except PanoramaHotspot.DoesNotExist:

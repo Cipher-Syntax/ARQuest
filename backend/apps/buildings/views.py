@@ -537,19 +537,18 @@ from datetime import timedelta
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from apps.authentication.permissions import IsAdminRole
 
 @api_view(['GET'])
+@permission_classes([IsAdminRole])
 def building_archived_list(request):
-    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
-        return Response({"error": "Forbidden"}, status=403)
     archived = Building.all_objects.filter(deleted_at__isnull=False)
     serializer = BuildingSerializer(archived, many=True, context={'request': request})
     return Response({"success": True, "data": serializer.data})
 
 @api_view(['POST'])
+@permission_classes([IsAdminRole])
 def building_restore(request, pk):
-    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
-        return Response({"error": "Forbidden"}, status=403)
     try:
         building = Building.all_objects.get(pk=pk, deleted_at__isnull=False)
         building.restore()
@@ -558,9 +557,8 @@ def building_restore(request, pk):
         return Response({"error": "Not found"}, status=404)
 
 @api_view(['DELETE'])
+@permission_classes([IsAdminRole])
 def building_hard_delete(request, pk):
-    if getattr(request.user, 'role', None) != 'admin' and not getattr(request.user, 'is_staff', False):
-        return Response({"error": "Forbidden"}, status=403)
     try:
         building = Building.all_objects.get(pk=pk, deleted_at__isnull=False)
         building.hard_delete()
