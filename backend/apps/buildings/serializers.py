@@ -141,6 +141,13 @@ class BuildingWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError('Invalid JSON for hotspots')
         return value
 
+    def validate_model_file(self, value):
+        if value:
+            max_size = 200 * 1024 * 1024  # 200 MB
+            if value.size > max_size:
+                raise serializers.ValidationError(f'The 3D model exceeds the maximum file size limit of 200 MB. Current size is {value.size / (1024*1024):.2f} MB.')
+        return value
+
 
 
 

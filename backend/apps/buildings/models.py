@@ -94,6 +94,16 @@ class Building(SoftDeleteModel):
     def __str__(self):
         return self.name
     
+    def save(self, *args, **kwargs):
+        if self.model_file:
+            try:
+                self.model_file_size = self.model_file.size
+            except Exception:
+                pass
+        else:
+            self.model_file_size = None
+        super().save(*args, **kwargs)
+    
     def clean(self):
         if self.status in ['HIDDEN', 'VISIBLE', 'MAINTENANCE']:
             errors = {}

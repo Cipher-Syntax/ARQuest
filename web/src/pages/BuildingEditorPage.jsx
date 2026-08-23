@@ -53,8 +53,71 @@ const BuildingEditorPage = () => {
     const [deptSearch, setDeptSearch] = useState("");
     const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
     const [showHotspotEditor, setShowHotspotEditor] = useState(false);
+    const [isModelLoading, setIsModelLoading] = useState(false);
     const deptDropdownRef = useRef(null);
     const modelViewerRef = useRef(null);
+    const progressTextRef = useRef(null);
+    const progressBarRef = useRef(null);
+
+    const modelPreviewUrl = useMemo(() => {
+        if (building.model_file instanceof File) {
+            return URL.createObjectURL(building.model_file);
+        }
+        return building.model_url || null;
+    }, [building.model_file, building.model_url]);
+
+    useEffect(() => {
+        const viewer = modelViewerRef.current;
+        if (viewer) {
+            setIsModelLoading(true);
+
+            // Direct DOM manipulation to avoid React re-renders freezing the page
+            const updateProgressUI = (progress) => {
+                if (progressBarRef.current) {
+                    progressBarRef.current.style.width = `${progress}%`;
+                }
+                if (progressTextRef.current) {
+                    progressTextRef.current.innerText = `Downloading / Rendering Model... ${progress}%`;
+                }
+            };
+
+            const handleProgress = (event) => {
+                const progress = Math.round(event.detail.totalProgress * 100);
+                updateProgressUI(progress);
+
+                // When download is done, the browser starts the heavy CPU freeze to decompress
+                if (progress === 100) {
+                    if (progressTextRef.current) {
+                        progressTextRef.current.innerText = "Unpacking Geometry... (This may take a moment to unfreeze)";
+                    }
+                }
+            };
+
+            const handleLoad = () => {
+                updateProgressUI(100);
+                setIsModelLoading((prev) => {
+                    if (prev) {
+                        // Only hide the loading screen when the model has ACTUALLY finished rendering on the GPU
+                        setTimeout(() => setIsModelLoading(false), 200);
+                    }
+                    return prev;
+                });
+            };
+            const handleError = () => {
+                setIsModelLoading(false);
+            };
+
+            viewer.addEventListener("progress", handleProgress);
+            viewer.addEventListener("load", handleLoad);
+            viewer.addEventListener("error", handleError);
+
+            return () => {
+                viewer.removeEventListener("progress", handleProgress);
+                viewer.removeEventListener("load", handleLoad);
+                viewer.removeEventListener("error", handleError);
+            };
+        }
+    }, [modelPreviewUrl]);
 
     // Listen for messages from the iframe Hotspot Editor
     useEffect(() => {
@@ -161,13 +224,6 @@ const BuildingEditorPage = () => {
             setErrors((prev) => ({ ...prev, [name]: null }));
         }
     };
-
-    const modelPreviewUrl = useMemo(() => {
-        if (building.model_file instanceof File) {
-            return URL.createObjectURL(building.model_file);
-        }
-        return building.model_url || null;
-    }, [building.model_file, building.model_url]);
 
     const runValidation = () => {
         const schema = {
@@ -872,6 +928,24 @@ const BuildingEditorPage = () => {
                                         Upload a GLTF/GLB file to enable the 3D
                                         Viewer.
                                     </p>
+                                    <p className="text-xs font-semibold text-[#8a1538] mt-1">
+                                        Max File Size Limit: 200 MB
+                                    </p>
+                                    {(() => {
+                                        let sizeInBytes = 0;
+                                        if (building.model_file instanceof File) {
+                                            sizeInBytes = building.model_file.size;
+                                        } else if (building.model_file_size) {
+                                            sizeInBytes = building.model_file_size;
+                                        } else if (building.model_size) {
+                                            sizeInBytes = building.model_size;
+                                        }
+                                        return sizeInBytes > 0 ? (
+                                            <p className="text-xs font-medium text-gray-600 mt-1">
+                                                Current File: {(sizeInBytes / (1024 * 1024)).toFixed(2)} MB
+                                            </p>
+                                        ) : null;
+                                    })()}
                                 </div>
                                 <label
                                     className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors"
@@ -896,28 +970,59 @@ const BuildingEditorPage = () => {
                                             ? building.model_file
                                             : null
                                     }
-                                    onChange={(file) =>
+                                    onChange={(file) => {
+                                        if (file) {
+                                            // Enforce 200 MB limit
+                                            if (file.size > 200 * 1024 * 1024) {
+                                                setErrorMessage("The 3D model exceeds the maximum file size limit of 200 MB.");
+                                                setTimeout(() => setErrorMessage(""), 5000);
+                                                return;
+                                            }
+                                        }
                                         setBuilding((prev) => ({
                                             ...prev,
                                             model_file: file,
-                                        }))
-                                    }
+                                        }));
+                                    }}
                                     placeholder="Drag & drop 3D model here or click to browse"
                                     previewNode={
                                         modelPreviewUrl ? (
-                                            <model-viewer
-                                                ref={modelViewerRef}
-                                                src={modelPreviewUrl}
-                                                auto-rotate
-                                                style={{
-                                                    width: "100%",
-                                                    height: "250px",
-                                                    backgroundColor:
-                                                        "transparent",
-                                                    borderRadius:
-                                                        theme.radius.md,
-                                                }}
-                                            ></model-viewer>
+                                            <div style={{ position: "relative", width: "100%", height: "250px" }}>
+                                                <model-viewer
+                                                    ref={modelViewerRef}
+                                                    src={modelPreviewUrl}
+                                                    auto-rotate
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        backgroundColor: "transparent",
+                                                        borderRadius: theme.radius.md,
+                                                    }}
+                                                ></model-viewer>
+                                                {isModelLoading && (
+                                                    <div style={{
+                                                        position: "absolute",
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        backgroundColor: "rgba(255, 255, 255, 0.9)",
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        borderRadius: theme.radius.md,
+                                                        zIndex: 10,
+                                                    }}>
+                                                        <div style={{ width: "80%", height: "8px", backgroundColor: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
+                                                            <div ref={progressBarRef} style={{ width: "0%", height: "100%", backgroundColor: "#8a1538", transition: "width 0.2s ease-out" }} />
+                                                        </div>
+                                                        <span ref={progressTextRef} style={{ marginTop: "12px", fontSize: "14px", fontWeight: "600", color: "#374151" }}>
+                                                            Downloading Model... 0%
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         ) : null
                                     }
                                 />
