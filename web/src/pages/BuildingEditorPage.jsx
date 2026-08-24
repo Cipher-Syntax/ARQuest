@@ -306,8 +306,6 @@ const BuildingEditorPage = () => {
                     "primary_department_id",
                     building.primary_department_id,
                 );
-            } else {
-                formData.append("primary_department_id", "");
             }
 
             if (building.department_ids && building.department_ids.length > 0) {
@@ -326,10 +324,37 @@ const BuildingEditorPage = () => {
                             idealAspect: true,
                         });
                         if (blob) {
+                            // If it's still a PNG or large blob, we'll just send it, 
+                            // but actually, we should try to get a JPEG if model-viewer supports it.
+                            // However, we can also compress it manually using an offscreen canvas if needed.
+                            // Let's first try just passing it, wait, the user's PNG was 14.28MB.
+                            // Let's just create an Image from the blob and compress it!
+                            const img = new Image();
+                            const compressedBlob = await new Promise((resolve) => {
+                                img.onload = () => {
+                                    const canvas = document.createElement("canvas");
+                                    // Scale it down to a reasonable max width like 1280px to save space
+                                    const MAX_WIDTH = 1280;
+                                    let width = img.width;
+                                    let height = img.height;
+                                    if (width > MAX_WIDTH) {
+                                        height = Math.round((height * MAX_WIDTH) / width);
+                                        width = MAX_WIDTH;
+                                    }
+                                    canvas.width = width;
+                                    canvas.height = height;
+                                    const ctx = canvas.getContext("2d");
+                                    ctx.drawImage(img, 0, 0, width, height);
+                                    // Compress to high quality JPEG
+                                    canvas.toBlob(resolve, "image/jpeg", 0.8);
+                                };
+                                img.src = URL.createObjectURL(blob);
+                            });
+
                             formData.append(
                                 "image",
-                                blob,
-                                `${generatedSlug || "building"}_thumbnail.png`,
+                                compressedBlob,
+                                `${generatedSlug || "building"}_thumbnail.jpg`,
                             );
                         }
                     } catch (e) {
@@ -398,10 +423,14 @@ const BuildingEditorPage = () => {
             setErrors(apiErrors);
             
             const genericMessage = error.response?.data?.error?.message;
-            if (genericMessage) {
+            if (Object.keys(apiErrors).length > 0) {
+                const detailedErrors = Object.entries(apiErrors).map(([key, msgs]) => `${key}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`).join(' | ');
+                setErrorMessage(`${genericMessage || 'Error'} - ${detailedErrors}`);
+                setTimeout(() => setErrorMessage(""), 7000);
+            } else if (genericMessage) {
                 setErrorMessage(genericMessage);
                 setTimeout(() => setErrorMessage(""), 5000);
-            } else if (Object.keys(apiErrors).length === 0) {
+            } else {
                 setErrorMessage("An unexpected server error occurred. The file might be too large.");
                 setTimeout(() => setErrorMessage(""), 5000);
             }
