@@ -808,8 +808,9 @@
                 );
             }
 
-            // ── Animation Loop ─────────────────────────────────────────────
+            // ✨ Animation Loop ✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨
             const velocity = new THREE.Vector3();
+            let velocityY = 0;
             const direction = new THREE.Vector3();
             const tempVector = new THREE.Vector3();
 
@@ -908,22 +909,42 @@
 
                         const validHit = floorHits.find(hit => hit.point.y < camera.position.y + 0.5);
 
-                        if (validHit && !ghostMode) {
-                            const floorY = validHit.point.y;
-                            const targetY = floorY + 1.6;
-                            const diff = targetY - camera.position.y;
-                            
-                            if (diff > 0 && diff < 2.5) {
-                                // Going up stairs (snap up smoothly)
-                                camera.position.y += diff * 0.15;
-                            } else if (diff < 0) {
-                                // Going down stairs or falling
-                                if (diff > -2.5) {
-                                    // Small drop (like stairs), snap down smoothly
-                                    camera.position.y += diff * 0.15;
+                        if (!ghostMode) {
+                            if (validHit) {
+                                const floorY = validHit.point.y;
+                                const targetY = floorY + 1.6;
+                                const diff = targetY - camera.position.y;
+                                
+                                if (diff > 0 && diff <= 0.6) {
+                                    // Step Up: Only snap up if the obstacle is a real stair (< 0.6m)
+                                    camera.position.y += diff * 0.2;
+                                    velocityY = 0; // Grounded
+                                } else if (diff < 0 && diff >= -0.6) {
+                                    // Step Down: Small drop like walking down stairs
+                                    camera.position.y += diff * 0.2;
+                                    velocityY = 0; // Grounded
+                                } else if (diff < -0.6) {
+                                    // Free Fall: The floor is far below us
+                                    velocityY -= 0.008; // Real Gravity acceleration
+                                    camera.position.y += Math.max(diff, velocityY); // Fall but do not clip through floor
                                 } else {
-                                    // Large drop (falling off ledge), fall at constant gravity speed
-                                    camera.position.y -= 0.15;
+                                    // Hitting a Wall/Ladder: obstacle is > 0.6m high (too tall to step up)
+                                    // Do NOT snap to top. Just apply gravity if we are in mid-air.
+                                    if (camera.position.y > targetY + 0.1) {
+                                        velocityY -= 0.008;
+                                        camera.position.y += velocityY;
+                                    } else {
+                                        velocityY = 0; // Grounded against base of wall
+                                    }
+                                }
+                            } else {
+                                // The Void: Laser hit absolutely nothing (walking off the map)
+                                velocityY -= 0.008; // Free Fall
+                                camera.position.y += velocityY;
+                                // Terminal floor boundary to prevent infinite falling
+                                if (camera.position.y < -50) {
+                                    camera.position.y = -50;
+                                    velocityY = 0;
                                 }
                             }
                         }
@@ -974,11 +995,12 @@
                                 .intersectObject(model, true)
                                 .filter(isSolid);
 
-                            // Knee-level check
-                            const kneeOrigin = camera.position.clone();
-                            kneeOrigin.y -= 1.1;
-                            raycaster.set(kneeOrigin, moveDir);
-                            const kneeHits = raycaster
+                            // Waist-level check (0.8m below eyes, approx 0.8m above ground)
+                            // We purposefully do NOT check knee-level so the player can seamlessly glide horizontally over low stairs!
+                            const waistOrigin = camera.position.clone();
+                            waistOrigin.y -= 0.8;
+                            raycaster.set(waistOrigin, moveDir);
+                            const waistHits = raycaster
                                 .intersectObject(model, true)
                                 .filter(isSolid);
 
@@ -986,14 +1008,14 @@
                                 eyeHits.length > 0
                                     ? eyeHits[0].distance
                                     : Infinity;
-                            const kneeDist =
-                                kneeHits.length > 0
-                                    ? kneeHits[0].distance
+                            const waistDist =
+                                waistHits.length > 0
+                                    ? waistHits[0].distance
                                     : Infinity;
 
                             if (
                                 !ghostMode &&
-                                Math.min(eyeDist, kneeDist) < COLLISION_DISTANCE
+                                Math.min(eyeDist, waistDist) < COLLISION_DISTANCE
                             ) {
                                 transX = 0;
                                 transZ = 0;
