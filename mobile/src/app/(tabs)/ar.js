@@ -688,17 +688,35 @@ export default function ARScreen() {
                     />
                 ) : (
                     isCameraActive && (
-                        <CameraView
-                            style={styles.camera}
-                            facing="back"
-                            ref={cameraRef}
-                            onBarcodeScanned={
-                                isScanningQr ? handleBarCodeScanned : undefined
-                            }
-                            barcodeScannerSettings={{
-                                barcodeTypes: ["qr"],
-                            }}
-                        />
+                        !isScanningQr ? (
+                            <ViroARSceneNavigator
+                                autofocus={true}
+                                initialScene={{
+                                    scene: ARQuestScene,
+                                    passProps: {
+                                        targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
+                                        targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
+                                        userLat: location?.coords?.latitude,
+                                        userLng: location?.coords?.longitude,
+                                        userHeading: heading,
+                                        modelUrl: nearbyBuildingFull?.model_url,
+                                        buildingName: nearbyBuildingFull?.name,
+                                        nextWaypoint: nextWaypoint
+                                    }
+                                }}
+                                style={styles.camera}
+                            />
+                        ) : (
+                            <CameraView
+                                style={styles.camera}
+                                facing="back"
+                                ref={cameraRef}
+                                onBarcodeScanned={handleBarCodeScanned}
+                                barcodeScannerSettings={{
+                                    barcodeTypes: ["qr"],
+                                }}
+                            />
+                        )
                     )
                 )}
 
