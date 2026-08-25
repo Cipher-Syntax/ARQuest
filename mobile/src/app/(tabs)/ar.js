@@ -23,6 +23,9 @@ import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
+import { checkARSupport } from "../../utils/ar-hardware-check";
+import { ViroARSceneNavigator } from "@viro-community/react-viro";
+import ARQuestScene from "../../components/ar/ARQuestScene";
 import BrandedSelfieFrame from "../../components/ar/BrandedSelfieFrame";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
@@ -44,6 +47,8 @@ export default function ARScreen() {
     const [modelReady, setModelReady] = useState(true);
     const [isScanningQr, setIsScanningQr] = useState(false);
     const [scannedData, setScannedData] = useState(null);
+    const [isARSupported, setIsARSupported] = useState(null);
+    const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
     // Trivia & Quest State
     const [activeQuests, setActiveQuests] = useState([]);
@@ -63,7 +68,45 @@ export default function ARScreen() {
     const { canUseAR } = useRoleAccess();
 
     const { targetBuildingId } = useLocalSearchParams();
+
+    useEffect(() => {
+        const fetchRoute = async () => {
+            if (navTargetFull && location) {
+                try {
+                    const startLng = location.coords.longitude;
+                    const startLat = location.coords.latitude;
+                    const endLng = navTargetFull.longitude;
+                    const endLat = navTargetFull.latitude;
+                    const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+                    
+                    const res = await fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&steps=true&access_token=${token}`);
+                    const data = await res.json();
+                    
+                    if (data.routes && data.routes.length > 0) {
+                        const steps = data.routes[0].legs[0].steps;
+                        if (steps.length > 1) {
+                            // First step is just starting point, next step is the immediate direction
+                            const nextStepCoords = steps[1].maneuver.location;
+                            setNextWaypoint({ longitude: nextStepCoords[0], latitude: nextStepCoords[1] });
+                        } else {
+                            // Almost there, point directly to destination
+                            setNextWaypoint({ longitude: endLng, latitude: endLat });
+                        }
+                    }
+                } catch (e) {
+                    console.log("Error fetching AR route:", e);
+                }
+            }
+        };
+        fetchRoute();
+        
+        // Refresh route every 10 seconds if actively navigating
+        const interval = setInterval(fetchRoute, 10000);
+        return () => clearInterval(interval);
+    }, [navTargetFull?.id, location?.coords?.latitude, location?.coords?.longitude]);
+
     const [navTargetFull, setNavTargetFull] = useState(null);
+    const [nextWaypoint, setNextWaypoint] = useState(null);
 
     const { location, heading, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
@@ -75,7 +118,31 @@ export default function ARScreen() {
             setIsCameraActive(true);
             startTracking();
             
-            return () => {
+            
+    const DeviceNotSupportedModal = () => (
+        showUnsupportedModal && (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 999 }]}>
+                <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 16, width: '80%', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.colors.primary, marginBottom: 12 }}>Device Not Supported</Text>
+                    <Text style={{ textAlign: 'center', color: theme.colors.textSecondary, marginBottom: 20, lineHeight: 22 }}>
+                        Your device does not support native Spatial AR (ARCore/ARKit). 
+                        Please use the 2D Map and the standard QR Scanner for your quests.
+                    </Text>
+                    <TouchableOpacity 
+                        style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+                        onPress={() => {
+                            setShowUnsupportedModal(false);
+                            router.push("/maps");
+                        }}
+                    >
+                        <Text style={{ color: 'white', fontWeight: 'bold' }}>Go to 2D Map</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        )
+    );
+
+    return () => {
                 setIsCameraActive(false);
                 stopTracking();
             };
@@ -547,6 +614,7 @@ export default function ARScreen() {
     if (!canUseAR) {
         return (
             <View style={styles.container}>
+              <DeviceNotSupportedModal />
                 <View style={styles.permissionContainer}>
                     <CameraIcon size={64} color={theme.colors.textMuted} />
                     <Text style={styles.permissionTitle}>
@@ -866,7 +934,7 @@ export default function ARScreen() {
             {/* --- Holographic 3D Model Overlay --- */}
             {/* Placed at the root level to guarantee Android WebView rendering and z-index safety */}
             {triviaModalVisible && nearbyBuildingFull?.model_url && (
-                <AR3DModelOverlay
+                {/* <AR3DModelOverlay
                     modelUrl={nearbyBuildingFull.model_url}
                     buildingName={nearbyBuildingFull.name}
                     capturing={false}
