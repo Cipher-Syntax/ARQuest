@@ -64,7 +64,7 @@ export default {
                 },
             ],
             [
-                "@viro-community/react-viro",
+                "@reactvision/react-viro",
                 {
                     "androidRebuilds": true
                 }

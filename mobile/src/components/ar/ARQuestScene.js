@@ -8,7 +8,7 @@ import {
     ViroNode, 
     ViroText, 
     ViroAnimations 
-} from '@viro-community/react-viro';
+} from '@reactvision/react-viro';
 import { gpsToARCoordinates } from '../../utils/geo-ar';
 
 export default function ARQuestScene(props) {

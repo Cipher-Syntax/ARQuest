@@ -1,4 +1,4 @@
-import { ViroUtils } from '@viro-community/react-viro';
+import { ViroUtils } from '@reactvision/react-viro';
 
 /**
  * Checks if the current device supports Native AR (ARCore for Android, ARKit for iOS).

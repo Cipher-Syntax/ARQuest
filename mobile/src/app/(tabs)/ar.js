@@ -24,7 +24,7 @@ import { geofencingService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
 import { checkARSupport } from "../../utils/ar-hardware-check";
-import { ViroARSceneNavigator } from "@viro-community/react-viro";
+import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
 import BrandedSelfieFrame from "../../components/ar/BrandedSelfieFrame";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
