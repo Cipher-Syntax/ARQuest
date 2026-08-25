@@ -369,22 +369,13 @@ export default function CmsPage() {
                                 )}
                             </div>
 
-                            {selectedBuilding.model_url &&
-                            selectedBuilding.model_active ? (
-                                <div className="w-full h-full pt-16 relative z-10">
-                                    <model-viewer
-                                        src={selectedBuilding.model_url}
-                                        auto-rotate
-                                        camera-controls
-                                        shadow-intensity="1"
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            backgroundColor: "transparent",
-                                        }}
-                                        exposure="1.2"
-                                        interaction-prompt="none"
-                                    ></model-viewer>
+                            {selectedBuilding.image_url ? (
+                                <div className="w-full h-full relative z-10 flex items-center justify-center p-8">
+                                    <img
+                                        src={selectedBuilding.image_url}
+                                        alt={selectedBuilding.name}
+                                        className="w-full max-h-full object-contain rounded-xl shadow-2xl"
+                                    />
                                 </div>
                             ) : (
                                 <div className="text-center z-10">

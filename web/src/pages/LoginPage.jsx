@@ -13,9 +13,15 @@ const LoginPage = () => {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [isMaintenance, setIsMaintenance] = useState(false);
-    const { login, logout } = useAuth();
+    const { login, logout, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        if (user) {
+            navigate("/dashboard", { replace: true });
+        }
+    }, [user, navigate]);
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     View,
     Text,
@@ -8,6 +8,8 @@ import {
     Modal,
     TextInput,
     ScrollView,
+    FlatList,
+    Image,
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { WebView } from "react-native-webview";
@@ -45,6 +47,8 @@ export default function BuildingsScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [controlPickerVisible, setControlPickerVisible] = useState(false);
     const [quizModalVisible, setQuizModalVisible] = useState(false);
+    const [viewMode, setViewMode] = useState("map");
+    const [listSearchQuery, setListSearchQuery] = useState("");
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -261,22 +265,45 @@ export default function BuildingsScreen() {
 
     const mapHtml = mapHtmlString;
 
+    const sortedBuildings = useMemo(() => {
+        return allBuildings
+            .filter(b => b.name.toLowerCase().includes(listSearchQuery.toLowerCase()) || (b.slug && b.slug.toLowerCase().includes(listSearchQuery.toLowerCase())))
+            .sort((a, b) => {
+                const aAvail = unlockedBuildings.some(u => u.id === a.id) || role === "visitor" || a.status === "MAINTENANCE";
+                const bAvail = unlockedBuildings.some(u => u.id === b.id) || role === "visitor" || b.status === "MAINTENANCE";
+                if (aAvail && !bAvail) return -1;
+                if (!aAvail && bAvail) return 1;
+                return a.name.localeCompare(b.name);
+            });
+    }, [allBuildings, listSearchQuery, unlockedBuildings, role]);
+
     return (
         <View style={styles.container}>
             {isFocused && <StatusBar style="dark" />}
 
-            {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
-                <View style={styles.loadingOverlay}>
-                    <ActivityIndicator
-                        size="large"
-                        color={theme.colors.primary}
-                    />
-                    <Text style={styles.loadingText}>Loading Map...</Text>
-                </View>
-            )}
+            {/* Toggle Switch */}
+            <View style={{ position: 'absolute', top: 60, alignSelf: 'center', zIndex: 100, flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 20, padding: 4, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+                <TouchableOpacity onPress={() => setViewMode('map')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'map' ? theme.colors.primary : 'transparent' }}>
+                    <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'map' ? '#FFF' : theme.colors.textSecondary }}>Map View</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setViewMode('list')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'list' ? theme.colors.primary : 'transparent' }}>
+                    <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'list' ? '#FFF' : theme.colors.textSecondary }}>List View</Text>
+                </TouchableOpacity>
+            </View>
 
-            <WebView
-                ref={webViewRef}
+            <View style={{ flex: 1 }}>
+                    {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
+                        <View style={styles.loadingOverlay}>
+                            <ActivityIndicator
+                                size="large"
+                                color={theme.colors.primary}
+                            />
+                            <Text style={styles.loadingText}>Loading Map...</Text>
+                        </View>
+                    )}
+
+                    <WebView
+                        ref={webViewRef}
                 source={{ html: mapHtml, baseUrl: 'https://api.mapbox.com/' }}
                 style={styles.webview}
                 onMessage={handleMessage}
@@ -493,6 +520,73 @@ export default function BuildingsScreen() {
                         </ScrollView>
                     </View>
                 )}
+            </View>
+
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: theme.colors.surfaceSoft, display: viewMode === 'list' ? 'flex' : 'none', paddingTop: 110, paddingHorizontal: 16 }}>
+                    <View style={{ marginBottom: 16, backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }}>
+                        <Ionicons name="search" size={20} color={theme.colors.textMuted} style={{ marginRight: 8 }} />
+                        <TextInput
+                            style={{ flex: 1, fontFamily: fonts.body.regular, fontSize: 16, color: theme.colors.textPrimary }}
+                            placeholder="Search buildings..."
+                            placeholderTextColor={theme.colors.textMuted}
+                            value={listSearchQuery}
+                            onChangeText={setListSearchQuery}
+                        />
+                        {listSearchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setListSearchQuery("")}>
+                                <Ionicons name="close-circle" size={20} color={theme.colors.textMuted} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <FlatList 
+                            data={sortedBuildings}
+                            keyExtractor={b => b.id.toString()}
+                            contentContainerStyle={{ paddingBottom: 100 }}
+                            renderItem={({item, index}) => {
+                                const isUnlocked = unlockedBuildings.some(u => u.id === item.id);
+                                const isLast = index === sortedBuildings.length - 1;
+                                return (
+                                    <TouchableOpacity 
+                                        style={{ 
+                                            padding: 12, 
+                                            backgroundColor: '#FFF',
+                                            flexDirection: 'row', 
+                                            alignItems: 'center', 
+                                            borderBottomWidth: isLast ? 0 : 1,
+                                            borderBottomColor: '#E5E7EB'
+                                        }}
+                                        onPress={() => {
+                                            if (isUnlocked || role === "visitor" || (item && item.status === "MAINTENANCE")) {
+                                                const unlockedData = unlockedBuildings.find(b => b.id === item.id) || {};
+                                                setSelectedBuilding({ ...item, ...unlockedData });
+                                                setModalVisible(true);
+                                            } else {
+                                                Alert("ZONE LOCKED", `You must physically deploy to ${item.name} to unlock its AR capabilities.`, [{ text: "ACKNOWLEDGE" }]);
+                                            }
+                                        }}
+                                    >
+                                        <View style={{ width: 60, height: 60, borderRadius: 12, backgroundColor: theme.colors.bgPrimary, overflow: 'hidden', marginRight: 16, justifyContent: 'center', alignItems: 'center' }}>
+                                            {item.image_url ? (
+                                                <Image source={{ uri: item.image_url }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+                                            ) : (
+                                                <Ionicons name="business" size={24} color={theme.colors.textMuted} />
+                                            )}
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ fontFamily: fonts.heading.bold, fontSize: 16, color: theme.colors.textPrimary, marginBottom: 4 }}>{item.name}</Text>
+                                            <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary }}>
+                                                {item.primary_department ? `${item.primary_department.name} • ` : ""} 
+                                                {item.is_active === false ? "CLOSED" : (item.status === "MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE")}
+                                            </Text>
+                                        </View>
+                                        <Ionicons name={isUnlocked || role === "visitor" ? "chevron-forward" : "lock-closed"} size={20} color={isUnlocked || role === "visitor" ? theme.colors.primary : theme.colors.textMuted} />
+                                    </TouchableOpacity>
+                                )
+                            }}
+                        />
+                    </View>
+                </View>
             </View>
 
             {/* AR Gamified Bottom Sheet Modal */}
@@ -830,7 +924,7 @@ export default function BuildingsScreen() {
             </Modal>
 
             {/* Map Legend */}
-            {!modalVisible && (
+            {!modalVisible && viewMode === 'map' && (
                 <View style={styles.mapLegend}>
                     <Text style={styles.legendTitle}>MAP LEGEND</Text>
                     <View style={styles.legendRow}>
