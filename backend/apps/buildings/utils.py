@@ -20,12 +20,17 @@ def optimize_glb(uploaded_file):
             
         temp_out_path = temp_in_path.replace('.glb', '_opt.glb')
         
-        # We only apply Draco compression. We DO NOT flatten, decimate, or join meshes.
-        # This perfectly preserves the original SketchUp bounding boxes, hidden layers, 
-        # and architectural straight lines, while still shrinking the file size drastically.
+        # Option B (Surgical Draw Call Reduction):
+        # We use 'optimize' to perform dedup, instancing, and joining meshes (fixing draw calls).
+        # We EXPLICITLY disable '--simplify' so it never deletes a single polygon (prevents melting).
+        # We disable '--texture-compress' to prevent libvips crashes on SketchUp textures.
+        # We apply Draco compression to ensure tiny file sizes.
         cmd = [
-            'gltf-transform', 'draco', 
-            temp_in_path, temp_out_path
+            'gltf-transform', 'optimize', 
+            temp_in_path, temp_out_path, 
+            '--compress', 'draco', 
+            '--simplify', 'false',
+            '--texture-compress', 'false'
         ]
         
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
