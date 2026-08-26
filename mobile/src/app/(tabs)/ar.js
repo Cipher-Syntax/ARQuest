@@ -388,8 +388,9 @@ export default function ARScreen() {
 
                 // Fetch Trivia Fact
                 try {
+                    const activeBldg = navTargetFull || nearbyBuildingFull;
                     const triviaRes = await api.get(
-                        `/api/buildings/trivias/?building_id=${nearbyBuildingFull.id}`,
+                        `/api/buildings/trivias/?building_id=${activeBldg?.id}`,
                     );
                     if (
                         triviaRes.data.success &&
@@ -430,9 +431,11 @@ export default function ARScreen() {
     };
 
     const handleViewTriviaOnly = async () => {
+        const activeBldg = navTargetFull || nearbyBuildingFull;
+        if (!activeBldg) return;
         try {
             const triviaRes = await api.get(
-                `/api/buildings/trivias/?building_id=${nearbyBuildingFull.id}`,
+                `/api/buildings/trivias/?building_id=${activeBldg.id}`,
             );
             if (triviaRes.data.success && triviaRes.data.data.length > 0) {
                 const trivias = triviaRes.data.data;
@@ -765,59 +768,71 @@ export default function ARScreen() {
                 )}
 
                 {/* --- Top Oval Header (Solid White Curve) --- */}
-                {nearbyBuilding && (
+                {(navTargetFull || nearbyBuilding) && (
                     <View style={styles.topOvalContainer}>
                         <View style={styles.topOvalShape} />
-                        <View style={styles.topOvalContent}>
-                            {/* Left Side: 2D Building Image */}
-                            {isModelVisible && (
-                                <View style={styles.targetCardLeft}>
-                                    <Image
-                                        source={{ uri: (navTargetFull?.image_url || nearbyBuildingFull?.image_url) }}
-                                        style={styles.modelMiniature}
-                                        resizeMode="cover"
-                                    />
+                        {(() => {
+                            const activeBldg = navTargetFull || nearbyBuildingFull || nearbyBuilding;
+                            const isArrived = navTargetFull
+                                ? (distanceToTarget <= 25 || (geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull?.id))
+                                : (geofenceStatus?.status === 'inside');
+                            const dist = Math.round(navTargetFull ? distanceToTarget : (geofenceStatus?.distance_meters || 0));
+
+                            return (
+                                <View style={styles.topOvalContent}>
+                                    {/* Left Side: 2D Building Image */}
+                                    {isModelVisible && (
+                                        <View style={styles.targetCardLeft}>
+                                            <Image
+                                                source={{ uri: activeBldg?.image_url }}
+                                                style={styles.modelMiniature}
+                                                resizeMode="cover"
+                                            />
+                                        </View>
+                                    )}
+
+                                    {/* Right Side: Info & Claim */}
+                                    <View style={styles.targetCardRight}>
+                                        <Text style={styles.targetLabel}>
+                                            {isArrived ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
+                                        </Text>
+                                        <Text style={[styles.buildingLabel, { color: theme.colors.primary }]}>
+                                            {activeBldg?.name || 'Target'}
+                                        </Text>
+                                        
+                                        {isArrived ? (
+                                            <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
+                                                ✓ You have arrived!
+                                            </Text>
+                                        ) : (
+                                            <>
+                                                <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
+                                                    📍 {dist} meters away
+                                                </Text>
+                                                <Text style={[styles.buildingStatus, { fontSize: 10, marginTop: 4, color: theme.colors.textMuted }]}>
+                                                    Keep moving closer to unlock.
+                                                </Text>
+                                            </>
+                                        )}
+
+                                        {/* Gamified Claim / Info Button — ONLY when physically arrived at this target */}
+                                        {!capturing && !triviaModalVisible && isArrived && (
+                                            user?.role === 'student' && matchingQuest ? (
+                                                <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
+                                                    <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                                                    <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
+                                                </TouchableOpacity>
+                                            ) : activeBldg ? (
+                                                <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
+                                                    <Ionicons name="information-circle" size={16} color="#FFFFFF" />
+                                                    <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
+                                                </TouchableOpacity>
+                                            ) : null
+                                        )}
+                                    </View>
                                 </View>
-                            )}
-
-                            {/* Right Side: Info & Claim */}
-                            <View style={styles.targetCardRight}>
-                                <Text style={styles.targetLabel}>
-                                    {((geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull?.id) || (!navTargetFull && geofenceStatus?.status === 'inside')) ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
-                                </Text>
-                                <Text style={[styles.buildingLabel, { color: theme.colors.primary }]}>{(navTargetFull?.name || nearbyBuilding.name)}</Text>
-                                
-                                {geofenceStatus?.status === 'inside' ? (
-                                    <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
-                                        ✓ You have arrived!
-                                    </Text>
-                                ) : (
-                                    <>
-                                        <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
-                                            📍 {Math.round(navTargetFull ? distanceToTarget : (geofenceStatus?.distance_meters || 0))} meters away
-                                        </Text>
-                                        <Text style={[styles.buildingStatus, { fontSize: 10, marginTop: 4, color: theme.colors.textMuted }]}>
-                                            Keep moving closer to unlock.
-                                        </Text>
-                                    </>
-                                )}
-
-                                {/* Gamified Claim Button */}
-                                {!capturing && !triviaModalVisible && geofenceStatus?.status === 'inside' && (
-                                    user?.role === 'student' && matchingQuest ? (
-                                        <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
-                                            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                                            <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
-                                        </TouchableOpacity>
-                                    ) : nearbyBuildingFull ? (
-                                        <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
-                                            <Ionicons name="information-circle" size={16} color="#FFFFFF" />
-                                            <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
-                                        </TouchableOpacity>
-                                    ) : null
-                                )}
-                            </View>
-                        </View>
+                            );
+                        })()}
                     </View>
                 )}
 
@@ -851,7 +866,7 @@ export default function ARScreen() {
                 {/* 4. Top Layer: Absolute Frame */}
                 <BrandedSelfieFrame
                     buildingName={
-                        nearbyBuildingFull?.name || "Unknown Building"
+                        (navTargetFull || nearbyBuildingFull)?.name || "Unknown Building"
                     }
                     visible={capturing}
                 />
@@ -901,12 +916,12 @@ export default function ARScreen() {
 
                         <View style={styles.triviaContentBorder}>
                             <Text style={styles.triviaBuildingName}>
-                                {nearbyBuildingFull?.name || "Unknown Building"}
+                                {(navTargetFull || nearbyBuildingFull)?.name || "Unknown Building"}
                             </Text>
                             <Text style={styles.triviaText}>
                                 {fetchedTrivia ||
                                     claimedQuest?.hint ||
-                                    nearbyBuildingFull?.description ||
+                                    (navTargetFull || nearbyBuildingFull)?.description ||
                                     "No information available for this location."}
                             </Text>
                         </View>
