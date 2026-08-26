@@ -6,8 +6,8 @@ from django.core.files.base import ContentFile
 def optimize_glb(uploaded_file):
     """
     Takes a Django UploadedFile (.glb).
-    Uses gltf-transform to safely read (even if Draco), decimate geometry (20%),
-    join meshes, and re-apply Draco compression in one clean pipeline.
+    Uses gltf-transform to safely read, dedup, and join meshes.
+    Draco and Meshopt compression are EXPLICITLY disabled to support Native AR (ViroReact) engines.
     """
     if not uploaded_file.name.lower().endswith('.glb'):
         return uploaded_file
@@ -24,11 +24,11 @@ def optimize_glb(uploaded_file):
         # We use 'optimize' to perform dedup, instancing, and joining meshes (fixing draw calls).
         # We EXPLICITLY disable '--simplify' so it never deletes a single polygon (prevents melting).
         # We disable '--texture-compress' to prevent libvips crashes on SketchUp textures.
-        # We apply Draco compression to ensure tiny file sizes.
+        # We explicitly pass '--compress false' to disable the default meshopt compression.
         cmd = [
             'gltf-transform', 'optimize', 
             temp_in_path, temp_out_path, 
-            '--compress', 'draco', 
+            '--compress', 'false',
             '--simplify', 'false',
             '--texture-compress', 'false'
         ]
@@ -36,21 +36,21 @@ def optimize_glb(uploaded_file):
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         
         if proc.returncode != 0:
-            print("gltf-transform failed:", proc.stderr.decode('utf-8'))
-            if os.path.exists(temp_in_path): os.remove(temp_in_path)
-            if os.path.exists(temp_out_path): os.remove(temp_out_path)
+            print("GLTF-Transform Error:", proc.stderr.decode('utf-8', errors='ignore'))
+            os.unlink(temp_in_path)
             return uploaded_file
             
         with open(temp_out_path, 'rb') as f:
             optimized_data = f.read()
             
-        if os.path.exists(temp_in_path): os.remove(temp_in_path)
-        if os.path.exists(temp_out_path): os.remove(temp_out_path)
+        new_file = ContentFile(optimized_data)
+        new_file.name = uploaded_file.name
         
-        new_file = ContentFile(optimized_data, name=uploaded_file.name)
-        print(f"GLTF Pipeline Success: {uploaded_file.size / 1024 / 1024:.2f}MB -> {len(optimized_data) / 1024 / 1024:.2f}MB")
+        os.unlink(temp_in_path)
+        os.unlink(temp_out_path)
+        
         return new_file
         
     except Exception as e:
-        print("Error during GLB optimization:", str(e))
+        print(f"Exception during GLB optimization: {e}")
         return uploaded_file

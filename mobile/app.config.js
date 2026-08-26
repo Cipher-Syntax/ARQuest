@@ -63,6 +63,12 @@ export default {
                         "Allow ARQuest to use your camera for AR building views and selfie capture.",
                 },
             ],
+            [
+                "@reactvision/react-viro",
+                {
+                    "androidRebuilds": true
+                }
+            ],
         ],
 
         experiments: {
