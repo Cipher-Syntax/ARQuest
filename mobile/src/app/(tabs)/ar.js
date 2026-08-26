@@ -285,11 +285,14 @@ export default function ARScreen() {
     const curLng = location?.longitude ?? location?.coords?.longitude;
 
     if (navTargetFull && curLat && curLng && heading !== undefined && heading !== null) {
+        const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
+        const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
+
         const bearing = getBearing(
             curLat,
             curLng,
-            navTargetFull.latitude,
-            navTargetFull.longitude
+            targetLat,
+            targetLng
         );
         arrowAngle = (bearing - heading + 360) % 360;
         distanceToTarget = getDistance(
@@ -300,12 +303,15 @@ export default function ARScreen() {
         );
         let diff = (bearing - heading + 360) % 360;
         if (diff > 180) diff -= 360;
-        if (diff < -30) {
+
+        // Camera FOV is ~75° (±37.5°). The 3D arrow is visible within ±45°.
+        // Only show turn indicators when the target is genuinely off-screen (|diff| > 45°).
+        if (diff < -45) {
             turnDirection = 'left';
-        } else if (diff > 30) {
+        } else if (diff > 45) {
             turnDirection = 'right';
         } else {
-            turnDirection = 'ahead';
+            turnDirection = 'ahead'; // Visible inside camera view!
         }
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ViroARScene,
     Viro3DObject,
@@ -42,10 +42,7 @@ function calculateTargetRelative(userLat, userLng, targetLat, targetLng, userHea
         { latitude: targetLat, longitude: targetLng }
     );
 
-    // Relative angle: how many degrees to the left/right of where the user is facing
-    let angle = bearing - userHeading;
-    if (angle > 180) angle -= 360;
-    if (angle < -180) angle += 360;
+    const angle = (bearing - userHeading + 360) % 360;
 
     return { angle, distance, bearing };
 }
@@ -68,6 +65,9 @@ export default function ARQuestScene(props) {
     const [chevronPositions, setChevronPositions] = useState([]);
     const [isNearby, setIsNearby] = useState(false);
 
+    const smoothedAngleRef = useRef(0);
+    const hasInitRef = useRef(false);
+
     // Target to aim at (immediate walking waypoint or destination)
     const effectiveLat = nextWaypoint?.latitude ?? targetLat;
     const effectiveLng = nextWaypoint?.longitude ?? targetLng;
@@ -85,22 +85,41 @@ export default function ARQuestScene(props) {
             setIsNearby(dist < 25);
         }
 
-        // 2. Relative bearing and angle to next waypoint / target
+        // 2. Relative bearing and angle to next waypoint / target with EMA smoothing
         if (effectiveLat && effectiveLng) {
-            const { angle } = calculateTargetRelative(
+            const { angle: rawAngle } = calculateTargetRelative(
                 userLat, userLng,
                 effectiveLat, effectiveLng,
                 userHeading
             );
-            setTargetAngle(angle);
+
+            let chosenAngle = rawAngle;
+            if (!hasInitRef.current) {
+                smoothedAngleRef.current = rawAngle;
+                hasInitRef.current = true;
+                chosenAngle = rawAngle;
+            } else {
+                let diff = (rawAngle - smoothedAngleRef.current + 180) % 360 - 180;
+                if (diff < -180) diff += 360;
+
+                // Deadband: ignore micro-jitters under 1.5 degrees
+                if (Math.abs(diff) >= 1.5) {
+                    chosenAngle = (smoothedAngleRef.current + diff * 0.35 + 360) % 360;
+                    smoothedAngleRef.current = chosenAngle;
+                } else {
+                    chosenAngle = smoothedAngleRef.current;
+                }
+            }
+
+            setTargetAngle(chosenAngle);
 
             // Compute 4 ground arrow positions along the bearing path (proportional spacing)
-            const rad = (angle * Math.PI) / 180;
+            const rad = (chosenAngle * Math.PI) / 180;
             const distances = [1.0, 1.8, 2.6, 3.4];
             const chevrons = distances.map((d) => {
                 const x = d * Math.sin(rad);
                 const z = -(d * Math.cos(rad));
-                return { x, y: -0.9, z, angle };
+                return { x, y: -0.9, z, angle: chosenAngle };
             });
             setChevronPositions(chevrons);
         }
