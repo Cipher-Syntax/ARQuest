@@ -80,7 +80,7 @@ export default function ARQuestScene(props) {
                     <Viro3DObject
                         source={{ uri: modelUrl }}
                         position={[0, -1, 0]} // Sit on the ground
-                        scale={[0.0005, 0.0005, 0.0005]} // Extreme scale down for CAD/Sketchup mm exports
+                        scale={[0.00005, 0.00005, 0.00005]} // Extreme scale down for CAD/Sketchup mm exports
                         type="GLB"
                         onError={(e) => console.log("AR Model Load Error:", e)}
                     />
