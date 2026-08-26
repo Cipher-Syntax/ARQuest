@@ -80,6 +80,8 @@ export default function ARScreen() {
     useEffect(() => {
         const fetchRoute = async () => {
             if (navTargetFull && location) {
+                // Immediately fallback to direct line-of-sight if routing fails
+                setNextWaypoint({ longitude: navTargetFull.longitude, latitude: navTargetFull.latitude });
                 try {
                     const startLng = location.coords.longitude;
                     const startLat = location.coords.latitude;
