@@ -209,15 +209,15 @@ export default function ARQuestScene(props) {
                         materials={['glowArrow']}
                     />
 
-                    {/* Distance Badge - Vibrant Gold/Yellow Glow */}
+                    {/* Distance Badge - Crimson Glow */}
                     <ViroText
                         text={`${Math.round(distanceToTarget)}m AWAY`}
                         width={6}
                         height={1}
                         scale={[0.24, 0.24, 0.24]}
                         position={[0, -0.08, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: '#E8B923', textAlign: 'center', textAlignVertical: 'center' }}
-                        materials={['goldTextMaterial']}
+                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
+                        materials={['glowArrow']}
                     />
                 </ViroNode>
             )}
