@@ -7,7 +7,8 @@ import {
     ViroMaterials, 
     ViroNode, 
     ViroText, 
-    ViroAnimations 
+    ViroAnimations,
+    ViroDirectionalLight 
 } from '@reactvision/react-viro';
 import { gpsToARCoordinates } from '../../utils/geo-ar';
 
