@@ -691,18 +691,16 @@ export default function ARScreen() {
                         !isScanningQr ? (
                             <ViroARSceneNavigator
                                 autofocus={true}
-                                initialScene={{
-                                    scene: ARQuestScene,
-                                    passProps: {
-                                        targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
-                                        targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
-                                        userLat: location?.coords?.latitude,
-                                        userLng: location?.coords?.longitude,
-                                        userHeading: heading,
-                                        modelUrl: nearbyBuildingFull?.model_url,
-                                        buildingName: nearbyBuildingFull?.name,
-                                        nextWaypoint: nextWaypoint
-                                    }
+                                initialScene={{ scene: ARQuestScene }}
+                                viroAppProps={{
+                                    targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
+                                    targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
+                                    userLat: location?.coords?.latitude,
+                                    userLng: location?.coords?.longitude,
+                                    userHeading: heading,
+                                    modelUrl: nearbyBuildingFull?.model_url,
+                                    buildingName: nearbyBuildingFull?.name,
+                                    nextWaypoint: nextWaypoint
                                 }}
                                 style={styles.camera}
                             />
