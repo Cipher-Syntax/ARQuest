@@ -5,6 +5,10 @@ let hasCheckedForUpdateThisSession = false;
 let dismissedBannerThisSession = false;
 
 const isExpoUpdatesAvailable = () => {
+    if (__DEV__) {
+        return false;
+    }
+
     const hasRequiredApi =
         Updates &&
         typeof Updates.checkForUpdateAsync === "function" &&
@@ -15,7 +19,7 @@ const isExpoUpdatesAvailable = () => {
         return false;
     }
 
-    return typeof Updates.isEnabled === "boolean" ? Updates.isEnabled : true;
+    return typeof Updates.isEnabled === "boolean" ? Updates.isEnabled : false;
 };
 
 export default function useAppUpdate() {

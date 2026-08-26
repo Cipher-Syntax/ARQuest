@@ -14,6 +14,7 @@ export const LocationProvider = ({ children }) => {
     const watchSubscription = useRef(null);
     const headingSubscription = useRef(null);
     const lastHeadingRef = useRef(0);
+    const lastHeadingTimeRef = useRef(0);
     const permissionStatusRef = useRef(permissionStatus);
     permissionStatusRef.current = permissionStatus;
 
@@ -54,9 +55,15 @@ export const LocationProvider = ({ children }) => {
     const startTracking = useCallback(async () => {
         let currentPerm = permissionStatusRef.current;
         if (currentPerm !== "granted") {
-            const granted = await requestPermission();
-            if (!granted) {
-                setError("Location permission denied");
+            try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                setPermissionStatus(status);
+                if (status !== "granted") {
+                    setError("Location permission denied");
+                    return;
+                }
+            } catch (err) {
+                setError(err.message);
                 return;
             }
         }
@@ -113,8 +120,10 @@ export const LocationProvider = ({ children }) => {
                         : headingData.magHeading;
                     
                     const rounded = Math.round(rawHeading);
-                    // Threshold: only trigger React re-render if heading changes by at least 2 degrees
-                    if (Math.abs(rounded - lastHeadingRef.current) >= 2) {
+                    const now = Date.now();
+                    // Throttle: Max 8 updates/sec (120ms) AND >= 2 degree delta to prevent render depth overflow
+                    if (now - lastHeadingTimeRef.current >= 120 && Math.abs(rounded - lastHeadingRef.current) >= 2) {
+                        lastHeadingTimeRef.current = now;
                         lastHeadingRef.current = rounded;
                         setHeading(rounded);
                     }
@@ -124,7 +133,7 @@ export const LocationProvider = ({ children }) => {
             setError(err.message);
             setIsTracking(false);
         }
-    }, [requestPermission]);
+    }, []);
 
     useEffect(() => {
         checkPermission();

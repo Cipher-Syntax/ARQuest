@@ -127,8 +127,14 @@ export default function ARScreen() {
         React.useCallback(() => {
             setIsCameraActive(true);
             startTracking();
-            
-            
+
+            return () => {
+                setIsCameraActive(false);
+                stopTracking();
+            };
+        }, [startTracking, stopTracking])
+    );
+
     const DeviceNotSupportedModal = () => (
         showUnsupportedModal && (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 999 }]}>
@@ -150,13 +156,6 @@ export default function ARScreen() {
                 </View>
             </View>
         )
-    );
-
-    return () => {
-                setIsCameraActive(false);
-                stopTracking();
-            };
-        }, [startTracking, stopTracking])
     );
 
     useEffect(() => {
