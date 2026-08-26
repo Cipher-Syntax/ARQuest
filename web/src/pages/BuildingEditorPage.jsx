@@ -6,6 +6,7 @@ import {
     CheckCircle,
     Image as ImageIcon,
     ChevronDown,
+    Target,
 } from "lucide-react";
 import { buildingService } from "../services/buildingService";
 import { departmentService } from "../services/departmentService";
@@ -54,6 +55,10 @@ const BuildingEditorPage = () => {
     const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
     const [showHotspotEditor, setShowHotspotEditor] = useState(false);
     const [isModelLoading, setIsModelLoading] = useState(false);
+    const [thumbnailBlob, setThumbnailBlob] = useState(null);
+    const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState(null);
+    const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
+    
     const deptDropdownRef = useRef(null);
     const modelViewerRef = useRef(null);
     const progressTextRef = useRef(null);
@@ -93,18 +98,60 @@ const BuildingEditorPage = () => {
                 }
             };
 
-            const handleLoad = () => {
+            const handleLoad = async () => {
                 updateProgressUI(100);
                 setIsModelLoading((prev) => {
                     if (prev) {
-                        // Only hide the loading screen when the model has ACTUALLY finished rendering on the GPU
                         setTimeout(() => setIsModelLoading(false), 200);
                     }
                     return prev;
                 });
+                
+                // Capture thumbnail logic
+                if (isGeneratingThumbnail) {
+                    try {
+                        const blob = await viewer.toBlob({ idealAspect: true });
+                        if (blob) {
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement("canvas");
+                                const MAX_WIDTH = 1280;
+                                let width = img.width;
+                                let height = img.height;
+                                if (width > MAX_WIDTH) {
+                                    height = Math.round((height * MAX_WIDTH) / width);
+                                    width = MAX_WIDTH;
+                                }
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext("2d");
+                                ctx.drawImage(img, 0, 0, width, height);
+                                canvas.toBlob((compressedBlob) => {
+                                    setThumbnailBlob(compressedBlob);
+                                    setThumbnailPreviewUrl(URL.createObjectURL(compressedBlob));
+                                    setIsGeneratingThumbnail(false);
+                                    setSuccessMessage("Thumbnail generated successfully!");
+                                    setTimeout(() => setSuccessMessage(""), 3000);
+                                }, "image/jpeg", 0.8);
+                            };
+                            img.src = URL.createObjectURL(blob);
+                        }
+                    } catch (e) {
+                        console.error("Failed to capture thumbnail", e);
+                        setIsGeneratingThumbnail(false);
+                        setErrorMessage("Failed to generate thumbnail.");
+                        setTimeout(() => setErrorMessage(""), 5000);
+                    }
+                }
             };
-            const handleError = () => {
+            const handleError = (event) => {
+                console.error("Model viewer error:", event.detail);
                 setIsModelLoading(false);
+                if (isGeneratingThumbnail) {
+                    setIsGeneratingThumbnail(false);
+                    setErrorMessage("Failed to load 3D model for thumbnail generation. Please check your AWS S3 CORS settings.");
+                    setTimeout(() => setErrorMessage(""), 7000);
+                }
             };
 
             viewer.addEventListener("progress", handleProgress);
@@ -117,7 +164,7 @@ const BuildingEditorPage = () => {
                 viewer.removeEventListener("error", handleError);
             };
         }
-    }, [modelPreviewUrl]);
+    }, [modelPreviewUrl, isGeneratingThumbnail]);
 
     // Listen for messages from the iframe Hotspot Editor
     useEffect(() => {
@@ -316,51 +363,15 @@ const BuildingEditorPage = () => {
 
             if (building.model_file instanceof File) {
                 formData.append("model_file", building.model_file);
+            }
 
-                // Auto-generate 2D thumbnail from the 3D model viewer
-                if (modelViewerRef.current) {
-                    try {
-                        const blob = await modelViewerRef.current.toBlob({
-                            idealAspect: true,
-                        });
-                        if (blob) {
-                            // If it's still a PNG or large blob, we'll just send it, 
-                            // but actually, we should try to get a JPEG if model-viewer supports it.
-                            // However, we can also compress it manually using an offscreen canvas if needed.
-                            // Let's first try just passing it, wait, the user's PNG was 14.28MB.
-                            // Let's just create an Image from the blob and compress it!
-                            const img = new Image();
-                            const compressedBlob = await new Promise((resolve) => {
-                                img.onload = () => {
-                                    const canvas = document.createElement("canvas");
-                                    // Scale it down to a reasonable max width like 1280px to save space
-                                    const MAX_WIDTH = 1280;
-                                    let width = img.width;
-                                    let height = img.height;
-                                    if (width > MAX_WIDTH) {
-                                        height = Math.round((height * MAX_WIDTH) / width);
-                                        width = MAX_WIDTH;
-                                    }
-                                    canvas.width = width;
-                                    canvas.height = height;
-                                    const ctx = canvas.getContext("2d");
-                                    ctx.drawImage(img, 0, 0, width, height);
-                                    // Compress to high quality JPEG
-                                    canvas.toBlob(resolve, "image/jpeg", 0.8);
-                                };
-                                img.src = URL.createObjectURL(blob);
-                            });
-
-                            formData.append(
-                                "image",
-                                compressedBlob,
-                                `${generatedSlug || "building"}_thumbnail.jpg`,
-                            );
-                        }
-                    } catch (e) {
-                        console.error("Failed to generate model thumbnail", e);
-                    }
-                }
+            // Use the manually generated thumbnail blob if it exists
+            if (thumbnailBlob) {
+                formData.append(
+                    "image",
+                    thumbnailBlob,
+                    `${generatedSlug || "building"}_thumbnail.jpg`,
+                );
             }
 
             let formattedGeofenceData = null;
@@ -999,9 +1010,9 @@ const BuildingEditorPage = () => {
                                             ? building.model_file
                                             : null
                                     }
+
                                     onChange={(file) => {
                                         if (file) {
-                                            // Enforce 200 MB limit
                                             if (file.size > 200 * 1024 * 1024) {
                                                 setErrorMessage("The 3D model exceeds the maximum file size limit of 200 MB.");
                                                 setTimeout(() => setErrorMessage(""), 5000);
@@ -1012,14 +1023,27 @@ const BuildingEditorPage = () => {
                                             ...prev,
                                             model_file: file,
                                         }));
+                                        // Reset thumbnail when a new file is uploaded
+                                        setThumbnailBlob(null);
+                                        setThumbnailPreviewUrl(null);
+                                        setIsGeneratingThumbnail(false);
                                     }}
                                     placeholder="Drag & drop 3D model here or click to browse"
                                     previewNode={
-                                        modelPreviewUrl ? (
+                                        ((thumbnailPreviewUrl || building.image_url) && !isGeneratingThumbnail) ? (
+                                            <div style={{ position: "relative", width: "100%", height: "250px" }}>
+                                                <img 
+                                                    src={thumbnailPreviewUrl || building.image_url} 
+                                                    alt="Model Thumbnail" 
+                                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: theme.radius.md }} 
+                                                />
+                                            </div>
+                                        ) : (modelPreviewUrl && isGeneratingThumbnail) ? (
                                             <div style={{ position: "relative", width: "100%", height: "250px" }}>
                                                 <model-viewer
                                                     ref={modelViewerRef}
                                                     src={modelPreviewUrl}
+                                                    crossorigin="anonymous"
                                                     auto-rotate
                                                     style={{
                                                         width: "100%",
@@ -1056,29 +1080,46 @@ const BuildingEditorPage = () => {
                                     }
                                 />
 
-                                {building.model_url &&
-                                    !(building.model_file instanceof File) && (
-                                        <div className="flex flex-col gap-3 mt-1 px-1">
-                                            <span className="text-xs font-semibold text-gray-600">
-                                                Current model uploaded. Drop a
-                                                new file above to replace it.
+                                {(building.model_file instanceof File || building.model_url) && !isGeneratingThumbnail && (
+                                    <div className="flex flex-col gap-3 mt-1 px-1">
+                                        {(building.model_file instanceof File) ? (
+                                            <span className="text-xs font-semibold text-gray-500">
+                                                Required: Click to generate a 2D thumbnail for the mobile app to prevent lag.
                                             </span>
+                                        ) : (
+                                            <span className="text-xs font-semibold text-gray-600">
+                                                Current model uploaded. Drop a new file above to replace it.
+                                            </span>
+                                        )}
+                                        
+                                        <div className="flex gap-2">
                                             <button
                                                 type="button"
-                                                onClick={() =>
-                                                    setShowHotspotEditor(true)
-                                                }
-                                                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8a1538] hover:bg-[#70102b] text-white font-bold transition-colors shadow-sm w-fit"
-                                                style={{
-                                                    borderRadius:
-                                                        theme.radius.sm,
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setIsGeneratingThumbnail(true);
                                                 }}
+                                                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8a1538] hover:bg-[#70102b] text-white font-bold transition-colors shadow-sm w-fit"
+                                                style={{ borderRadius: theme.radius.sm }}
                                             >
                                                 <ImageIcon size={16} />
-                                                Edit 3D Hotspots
+                                                {(thumbnailBlob || building.image_url) ? "Regenerate Thumbnail" : "Generate Thumbnail"}
                                             </button>
+
+                                            {building.model_url && !(building.model_file instanceof File) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowHotspotEditor(true)}
+                                                    className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8a1538] hover:bg-[#70102b] text-white font-bold transition-colors shadow-sm w-fit"
+                                                    style={{ borderRadius: theme.radius.sm }}
+                                                >
+                                                    <Target size={16} />
+                                                    Edit 3D Hotspots
+                                                </button>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
+                                )}
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -1155,20 +1196,46 @@ const BuildingEditorPage = () => {
                 <button
                     type="submit"
                     disabled={saving}
+                    className="relative overflow-hidden"
                     style={{
                         width: "100%",
                         padding: theme.spacing.md,
-                        backgroundColor: theme.colors.primary,
+                        backgroundColor: saving ? "#660e28" : theme.colors.primary,
                         color: theme.colors.text.inverse,
                         border: "none",
                         borderRadius: theme.radius.sm,
                         cursor: saving ? "not-allowed" : "pointer",
                         fontSize: "16px",
                         fontWeight: "600",
-                        opacity: saving ? 0.6 : 1,
                     }}
                 >
-                    {saving ? "Saving..." : "Save All Changes"}
+                    {saving && (
+                        <div 
+                            className="absolute top-0 left-0 h-full bg-white opacity-20" 
+                            style={{ animation: 'fakeProgress 15s cubic-bezier(0.1, 0.7, 0.1, 1) forwards' }} 
+                        />
+                    )}
+                    <style>{`
+                        @keyframes fakeProgress {
+                            0% { width: 0%; }
+                            50% { width: 70%; }
+                            80% { width: 90%; }
+                            100% { width: 95%; }
+                        }
+                    `}</style>
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                        {saving && (
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        )}
+                        {saving 
+                            ? (building.model_file instanceof File 
+                                ? "Optimizing & Compressing 3D Model... (This takes a moment)" 
+                                : "Saving Changes...") 
+                            : "Save All Changes"}
+                    </span>
                 </button>
             </form>
 

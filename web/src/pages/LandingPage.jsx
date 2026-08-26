@@ -4,6 +4,7 @@ import { MapPin, Trophy, Eye, ChevronRight, Smartphone, Camera, Navigation, Laye
 import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@google/model-viewer';
+import { useAuth } from '../hooks/useAuth';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
@@ -100,6 +101,14 @@ const FAQItem = ({ question, answer }) => {
 
 const LandingPage = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    // Auto-redirect to dashboard if token is active
+    useEffect(() => {
+        if (user) {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [user, navigate]);
 
     return (
         <div className="min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden selection:bg-[#8A1538] selection:text-white">

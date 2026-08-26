@@ -24,6 +24,37 @@
                 font-weight: bold;
                 letter-spacing: 2px;
                 pointer-events: none;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+                font-family: system-ui, -apple-system, sans-serif;
+            }
+            .progress-container {
+                width: 250px;
+                height: 8px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                overflow: hidden;
+                box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+            }
+            #progress-bar {
+                width: 0%;
+                height: 100%;
+                background: #00e5ff;
+                border-radius: 4px;
+                transition: width 0.1s ease-out;
+                box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+            }
+            #progress-text {
+                font-size: 14px;
+                color: #aaa;
+                letter-spacing: 1px;
+            }
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.4; }
+                100% { opacity: 1; }
             }
 
             #ui-overlay {
@@ -150,7 +181,13 @@
     </head>
     <body>
         <div id="floating-labels"></div>
-        <div id="loading">LOADING EDITOR...</div>
+        <div id="loading">
+            <div>LOADING 3D ENGINE...</div>
+            <div class="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+            <div id="progress-text">Connecting to server...</div>
+        </div>
 
         <div id="ui-overlay">
             <h3>Hotspot Editor</h3>
@@ -262,10 +299,10 @@
 
                 renderer = new THREE.WebGLRenderer({
                     canvas: document.getElementById("canvas"),
-                    antialias: true,
+                    antialias: false,
                 });
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setPixelRatio(1);
 
                 const ambient = new THREE.AmbientLight(0xffffff, 0.8);
                 scene.add(ambient);
@@ -327,6 +364,7 @@
                 const dracoLoader = new DRACOLoader();
                 dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
                 loader.setDRACOLoader(dracoLoader);
+                loader.setCrossOrigin('anonymous');
                 
                 loader.load(
                     url,
@@ -356,8 +394,28 @@
                             createHotspotMesh(h);
                         });
                     },
-                    undefined,
-                    (err) => console.error(err),
+                    (xhr) => {
+                        const progressBar = document.getElementById('progress-bar');
+                        const progressText = document.getElementById('progress-text');
+                        if (xhr.total > 0) {
+                            const percent = (xhr.loaded / xhr.total) * 100;
+                            if (progressBar) progressBar.style.width = Math.round(percent) + '%';
+                            if (progressText) progressText.innerText = `Downloading Model: ${Math.round(percent)}%`;
+                        } else {
+                            // If lengthComputable is false (e.g. gzip without content-length)
+                            const mbs = (xhr.loaded / (1024 * 1024)).toFixed(2);
+                            if (progressText) progressText.innerText = `Downloading Model: ${mbs} MB loaded...`;
+                            if (progressBar) {
+                                progressBar.style.width = '100%';
+                                progressBar.style.animation = 'pulse 1s infinite';
+                            }
+                        }
+                    },
+                    (err) => {
+                        console.error(err);
+                        const progressText = document.getElementById('progress-text');
+                        if (progressText) progressText.innerText = "Error loading model. Check console.";
+                    },
                 );
             }
 

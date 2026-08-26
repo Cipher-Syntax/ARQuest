@@ -558,17 +558,21 @@ export default function Geofences() {
                                                     closeOnClick={false}
                                                     className="z-50"
                                                 >
-                                                    <div style={{ width: "220px", height: "220px", background: "#f8fafc", position: "relative" }}>
-                                                        <model-viewer
-                                                            src={geo.model_url}
-                                                            auto-rotate
-                                                            rotation-per-second="45deg"
-                                                            camera-controls
-                                                            style={{ width: "100%", height: "100%", backgroundColor: "transparent" }}
-                                                        ></model-viewer>
-                                                        <div className="absolute bottom-2 left-0 w-full text-center pointer-events-none">
-                                                            <span className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-brand uppercase tracking-wider shadow-sm">
-                                                                {geo.name} 3D Model
+                                                    <div style={{ width: "200px", background: "#f8fafc", padding: "8px", borderRadius: "8px" }}>
+                                                        {geo.image_url ? (
+                                                            <img
+                                                                src={geo.image_url}
+                                                                alt={geo.name}
+                                                                style={{ width: "100%", height: "120px", objectFit: "cover", borderRadius: "4px" }}
+                                                            />
+                                                        ) : (
+                                                            <div style={{ width: "100%", height: "120px", display: "flex", alignItems: "center", justifyContent: "center", background: "#e2e8f0", borderRadius: "4px" }}>
+                                                                <span style={{ color: "#64748b", fontSize: "12px" }}>No Thumbnail</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="mt-2 text-center">
+                                                            <span className="text-[12px] font-bold text-brand uppercase tracking-wider">
+                                                                {geo.name}
                                                             </span>
                                                         </div>
                                                     </div>

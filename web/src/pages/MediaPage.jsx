@@ -158,22 +158,21 @@ export default function Media() {
                                 <div className="aspect-video bg-gray-100 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                                     {is3D ? (
                                         hasModel ? (
-                                            <div className="w-full h-full pointer-events-none">
-                                                <model-viewer
-                                                    src={getFullUrl(
-                                                        b.model_url,
-                                                    )}
-                                                    auto-rotate="true"
-                                                    camera-controls="false"
-                                                    interaction-prompt="none"
-                                                    shadow-intensity="1"
-                                                    style={{
-                                                        width: "100%",
-                                                        height: "100%",
-                                                        backgroundColor:
-                                                            "#f3f4f6",
-                                                    }}
-                                                />
+                                            <div className="w-full h-full relative pointer-events-none">
+                                                {b.image_url ? (
+                                                    <img
+                                                        src={getFullUrl(b.image_url)}
+                                                        alt={b.name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-200">
+                                                        <Box size={32} className="mb-2 opacity-50" />
+                                                        <span className="text-xs font-bold uppercase tracking-wider">
+                                                            Model Ready
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="text-gray-400 flex flex-col items-center">

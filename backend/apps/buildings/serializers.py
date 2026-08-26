@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Department
+from .utils import optimize_glb
 from apps.gamification.models import Quest
 from apps.quizzes.models import TriviaFact
 
@@ -146,6 +147,11 @@ class BuildingWriteSerializer(serializers.ModelSerializer):
             max_size = 200 * 1024 * 1024  # 200 MB
             if value.size > max_size:
                 raise serializers.ValidationError(f'The 3D model exceeds the maximum file size limit of 200 MB. Current size is {value.size / (1024*1024):.2f} MB.')
+            
+            # Automatically compress/decimate the .glb file
+            if value.name.lower().endswith('.glb'):
+                optimized_file = optimize_glb(value)
+                return optimized_file
         return value
 
 

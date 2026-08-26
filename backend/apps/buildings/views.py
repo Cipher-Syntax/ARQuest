@@ -96,7 +96,14 @@ def building_list_create(request):
             try:
                 building = serializer.save()
             except BadRequest as e:
-                return error_response(ErrorCodes.UPLOAD_FAILED, str(e), status_code=status.HTTP_400_BAD_REQUEST)
+                error_msg = str(e)
+                import re
+                match = re.search(r"File size too large\. Got (\d+)\. Maximum is (\d+)\.", error_msg)
+                if match:
+                    got_mb = int(match.group(1)) / (1024 * 1024)
+                    max_mb = int(match.group(2)) / (1024 * 1024)
+                    error_msg = f"File size too large. Got {got_mb:.2f} MB. Maximum is {max_mb:.0f} MB."
+                return error_response(ErrorCodes.UPLOAD_FAILED, error_msg, status_code=status.HTTP_400_BAD_REQUEST)
                 
             Notification.objects.create(
                 title="Building Created",
@@ -130,7 +137,14 @@ def building_detail(request, id):
             try:
                 building = serializer.save()
             except BadRequest as e:
-                return error_response(ErrorCodes.UPLOAD_FAILED, str(e), status_code=status.HTTP_400_BAD_REQUEST)
+                error_msg = str(e)
+                import re
+                match = re.search(r"File size too large\. Got (\d+)\. Maximum is (\d+)\.", error_msg)
+                if match:
+                    got_mb = int(match.group(1)) / (1024 * 1024)
+                    max_mb = int(match.group(2)) / (1024 * 1024)
+                    error_msg = f"File size too large. Got {got_mb:.2f} MB. Maximum is {max_mb:.0f} MB."
+                return error_response(ErrorCodes.UPLOAD_FAILED, error_msg, status_code=status.HTTP_400_BAD_REQUEST)
                 
             Notification.objects.create(
                 title="Building Updated",
