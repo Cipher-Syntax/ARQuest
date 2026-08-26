@@ -1,4 +1,4 @@
-import { getDistance, getCompassDirection } from 'geolib';
+import { getDistance, getRhumbLineBearing } from 'geolib';
 
 /**
  * Converts global GPS coordinates into local Cartesian coordinates (X, Y, Z) in meters,
@@ -25,7 +25,7 @@ export const gpsToARCoordinates = (userLat, userLng, targetLat, targetLng, userH
     }
 
     // Calculate raw bearing to target (True North = 0/360)
-    const targetBearing = getCompassDirection(
+    const targetBearing = getRhumbLineBearing(
         { latitude: userLat, longitude: userLng },
         { latitude: targetLat, longitude: targetLng }
     );
