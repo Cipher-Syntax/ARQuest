@@ -52,7 +52,16 @@ export default function ARQuestScene(props) {
                 userHeading
             );
             // Lock the Y axis to the ground for the navigation path
-            setNavArrowPos({ x: arrowPos.x, y: -1.5, z: arrowPos.z });
+            
+            const distance = Math.sqrt(arrowPos.x * arrowPos.x + arrowPos.z * arrowPos.z);
+            let normalizedX = arrowPos.x;
+            let normalizedZ = arrowPos.z;
+            if (distance > 5) {
+                normalizedX = (arrowPos.x / distance) * 5;
+                normalizedZ = (arrowPos.z / distance) * 5;
+            }
+            setNavArrowPos({ x: normalizedX, y: -1.5, z: normalizedZ });
+
         } else {
             setNavArrowPos(null);
         }
