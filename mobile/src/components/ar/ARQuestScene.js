@@ -34,10 +34,10 @@ export default function ARQuestScene(props) {
         if (targetLat && targetLng && userLat && userLng) {
             let pos = gpsToARCoordinates(userLat, userLng, targetLat, targetLng, userHeading);
             
-            // If they are physically standing inside the building (distance is less than 5 meters)
-            // Push it 10 meters in front of them so it doesn't spawn on top of their head!
+            // If they are inside the geofence, override GPS and showcase it as a miniature hologram in the center!
             if (Math.abs(pos.x) < 15 && Math.abs(pos.z) < 15) {
-                pos.z -= 25; // Push it WAY back into the camera view
+                // Place it exactly 2.5 meters in front of the camera, slightly below eye level
+                pos = { x: 0, y: -0.5, z: -2.5 }; 
             }
             
             setBuildingPos(pos);
@@ -68,11 +68,15 @@ export default function ARQuestScene(props) {
             
             {/* Render Building Model anchored in real world */}
             {modelUrl && (
-                <ViroNode position={[buildingPos.x, 0, buildingPos.z]} animation={{ name: "hover", run: true, loop: true }}>
+                <ViroNode 
+                    position={[buildingPos.x, buildingPos.y || 0, buildingPos.z]} 
+                    rotation={[-30, 0, 0]} // Tilt forward 30 degrees for Bird's Eye view
+                    animation={{ name: "spin", run: true, loop: true }}
+                >
                     <ViroText 
                         text={buildingName || "Target"} 
-                        scale={[4, 4, 4]} 
-                        position={[0, 4, 0]} // Lowered text so it doesn't float in space 
+                        scale={[1, 1, 1]} 
+                        position={[0, 3, 0]} // Hover nicely above the spinning model 
                         style={{ fontFamily: "Arial", fontSize: 24, color: "#FFFFFF" }} 
                         extrusionDepth={2}
                         materials={["textMaterial"]}
@@ -106,6 +110,15 @@ export default function ARQuestScene(props) {
 }
 
 // AR Materials and Animations
+ViroAnimations.registerAnimations({
+    spin: {
+        properties: {
+            rotateY: "+=360"
+        },
+        duration: 10000,
+    }
+});
+
 ViroMaterials.createMaterials({
     glowArrow: {
         diffuseColor: "#B21830", // WMSU Crimson
