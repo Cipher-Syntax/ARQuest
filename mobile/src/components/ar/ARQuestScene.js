@@ -203,27 +203,27 @@ export default function ARQuestScene(props) {
                 ============================================================
                 3. ARRIVED MODE: 3D Miniature Building Model
                 Spawns when user arrives within 25m of the target.
-                Positioned at a comfortable 4.2m distance for full overview.
+                Positioned at a balanced 2.6m distance with 0.0055 scale.
                 ============================================================
             */}
             {modelUrl && isNearby && (
                 <ViroNode
-                    position={[0, -0.4, -4.2]}
+                    position={[0, -0.35, -2.6]}
                     dragType="FixedToWorld"
                     onDrag={() => {}}
                 >
                     <ViroText
                         text={buildingName || 'Target'}
-                        scale={[0.7, 0.7, 0.7]}
-                        position={[0, 0.85, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: '#FFFFFF' }}
+                        scale={[0.55, 0.55, 0.55]}
+                        position={[0, 0.8, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' }}
                         extrusionDepth={1}
                         materials={['textMaterial']}
                     />
                     <Viro3DObject
                         source={{ uri: modelUrl }}
                         position={[0, 0, 0]}
-                        scale={[0.0035, 0.0035, 0.0035]}
+                        scale={[0.0055, 0.0055, 0.0055]}
                         type="GLB"
                         onError={(e) => console.log('AR Model Load Error:', e)}
                     />
