@@ -173,31 +173,31 @@ export default function ARQuestScene(props) {
                     {/* Floating Direction Arrow */}
                     <ViroText
                         text="▲"
-                        scale={[0.3, 0.3, 0.3]}
-                        position={[0, 0.32, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', color: '#B21830' }}
+                        scale={[0.35, 0.35, 0.35]}
+                        position={[0, 0.38, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: '#B21830' }}
                         materials={['glowArrow']}
                     />
 
-                    {/* Target Building Name - Single Line */}
+                    {/* Target Building Name - Big Crimson Glow */}
                     <ViroText
                         text={buildingName || 'Destination'}
-                        width={6}
+                        width={8}
                         height={1}
-                        scale={[0.22, 0.22, 0.22]}
-                        position={[0, 0.12, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', color: '#FFFFFF', textAlign: 'center', textAlignVertical: 'center' }}
-                        materials={['textMaterial']}
+                        scale={[0.34, 0.34, 0.34]}
+                        position={[0, 0.14, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
+                        materials={['glowArrow']}
                     />
 
                     {/* Distance Badge - Crimson Glow */}
                     <ViroText
                         text={`${Math.round(distanceToTarget)}m AWAY`}
-                        width={4}
+                        width={6}
                         height={1}
-                        scale={[0.18, 0.18, 0.18]}
-                        position={[0, -0.04, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
+                        scale={[0.24, 0.24, 0.24]}
+                        position={[0, -0.08, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
                         materials={['glowArrow']}
                     />
                 </ViroNode>
