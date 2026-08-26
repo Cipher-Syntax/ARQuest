@@ -799,7 +799,7 @@ export default function ARScreen() {
                 )}
 
                 {/* --- NAVIGATION HUD --- */}
-                {navTargetFull && location && !capturing && !triviaModalVisible && (
+                {navTargetFull && location && !capturing && !triviaModalVisible && !isARSupported && (
                     <View style={styles.navigationHud}>
                         {geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull.id ? (
                             <Animated.View style={{ opacity: pulseAnim, alignItems: 'center' }}>
@@ -845,7 +845,7 @@ export default function ARScreen() {
                 )}
 
                 {/* 3. Reticle and Gamified HUD Overlays */}
-                {!isScanningQr ? (
+                {(!isScanningQr && !isARSupported) ? (
                     <View style={styles.reticleContainer} pointerEvents="none">
                         <View style={styles.reticleTopLeft} />
                         <View style={styles.reticleTopRight} />
