@@ -36,9 +36,8 @@ export default function ARQuestScene(props) {
             
             // If they are inside the geofence, override GPS and showcase it as a miniature hologram in the center!
             if (Math.abs(pos.x) < 15 && Math.abs(pos.z) < 15) {
-                // Place it directly at their feet (1.5 meters down to hit the floor, 1 meter forward)
-                // Since the model is now extremely tiny, this forces them to look straight down at the roof!
-                pos = { x: 0, y: -1.5, z: -1 }; 
+                // Place it directly in front of the camera, slightly below eye level so it's impossible to miss!
+                pos = { x: 0, y: -0.5, z: -2 }; 
             }
             
             setBuildingPos(pos);
@@ -76,8 +75,8 @@ export default function ARQuestScene(props) {
                 >
                     <ViroText 
                         text={buildingName || "Target"} 
-                        scale={[0.2, 0.2, 0.2]} 
-                        position={[0, 0.5, 0]} 
+                        scale={[1, 1, 1]} 
+                        position={[0, 0.8, 0]} 
                         style={{ fontFamily: "Arial", fontSize: 24, color: "#FFFFFF" }} 
                         extrusionDepth={2}
                         materials={["textMaterial"]}
@@ -85,7 +84,7 @@ export default function ARQuestScene(props) {
                     <Viro3DObject
                         source={{ uri: modelUrl }}
                         position={[0, -1, 0]} // Sit on the ground
-                        scale={[0.00001, 0.00001, 0.00001]} // Extreme scale down for CAD/Sketchup mm exports
+                        scale={[0.005, 0.005, 0.005]} // Standard miniature scale
                         type="GLB"
                         onError={(e) => console.log("AR Model Load Error:", e)}
                     />
