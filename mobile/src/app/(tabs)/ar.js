@@ -808,6 +808,24 @@ export default function ARScreen() {
                     </View>
                 )}
 
+                {/* Off-screen Compass Turn Indicators */}
+                {navTargetFull && !isScanningQr && !capturing && !triviaModalVisible && (
+                    <>
+                        {turnDirection === 'left' && (
+                            <View style={styles.turnIndicatorLeft} pointerEvents="none">
+                                <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
+                                <Text style={styles.turnIndicatorText}>TURN LEFT</Text>
+                            </View>
+                        )}
+                        {turnDirection === 'right' && (
+                            <View style={styles.turnIndicatorRight} pointerEvents="none">
+                                <Text style={styles.turnIndicatorText}>TURN RIGHT</Text>
+                                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                            </View>
+                        )}
+                    </>
+                )}
+
                 {/* 3. Reticle Overlays */}
                 {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
                 {isScanningQr && (
@@ -1533,6 +1551,48 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
+        letterSpacing: 1,
+    },
+    turnIndicatorLeft: {
+        position: 'absolute',
+        left: 16,
+        top: '48%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(178, 24, 48, 0.9)',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
+        zIndex: 40,
+    },
+    turnIndicatorRight: {
+        position: 'absolute',
+        right: 16,
+        top: '48%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(178, 24, 48, 0.9)',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
+        zIndex: 40,
+    },
+    turnIndicatorText: {
+        fontFamily: fonts.heading.bold,
+        color: '#FFFFFF',
+        fontSize: 12,
         letterSpacing: 1,
     },
 });
