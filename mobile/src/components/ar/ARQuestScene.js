@@ -153,7 +153,7 @@ export default function ARQuestScene(props) {
                             [0, 0, -0.05]
                         ]}
                         thickness={0.05}
-                        materials={['glowArrowGold']}
+                        materials={['glowArrow']}
                     />
                 </ViroNode>
             ))}
@@ -179,22 +179,26 @@ export default function ARQuestScene(props) {
                         materials={['glowArrow']}
                     />
 
-                    {/* Target Building Name */}
+                    {/* Target Building Name - Single Line */}
                     <ViroText
                         text={buildingName || 'Destination'}
+                        width={6}
+                        height={1}
                         scale={[0.22, 0.22, 0.22]}
                         position={[0, 0.12, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' }}
+                        style={{ fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', color: '#FFFFFF', textAlign: 'center', textAlignVertical: 'center' }}
                         materials={['textMaterial']}
                     />
 
-                    {/* Distance Badge */}
+                    {/* Distance Badge - Crimson Glow */}
                     <ViroText
                         text={`${Math.round(distanceToTarget)}m AWAY`}
+                        width={4}
+                        height={1}
                         scale={[0.18, 0.18, 0.18]}
                         position={[0, -0.04, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', color: '#E8B923' }}
-                        materials={['goldTextMaterial']}
+                        style={{ fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
+                        materials={['glowArrow']}
                     />
                 </ViroNode>
             )}

@@ -796,7 +796,7 @@ export default function ARScreen() {
                                         <Text style={styles.targetLabel}>
                                             {isArrived ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
                                         </Text>
-                                        <Text style={[styles.buildingLabel, { color: theme.colors.primary }]}>
+                                        <Text style={[styles.buildingLabel, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
                                             {activeBldg?.name || 'Target'}
                                         </Text>
                                         
