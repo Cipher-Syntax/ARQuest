@@ -214,11 +214,19 @@ export default function ARQuestScene(props) {
                 >
                     <ViroText
                         text={buildingName || 'Target'}
-                        scale={[0.5, 0.5, 0.5]}
+                        width={4}
+                        height={1}
+                        scale={[0.45, 0.45, 0.45]}
                         position={[0, 0.5, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' }}
-                        extrusionDepth={1}
-                        materials={['textMaterial']}
+                        style={{
+                            fontFamily: 'Arial',
+                            fontSize: 26,
+                            fontWeight: 'bold',
+                            color: '#B21830',
+                            textAlign: 'center',
+                            textAlignVertical: 'center',
+                        }}
+                        materials={['glowArrow']}
                     />
                     <Viro3DObject
                         source={{ uri: modelUrl }}
