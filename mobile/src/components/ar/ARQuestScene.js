@@ -31,11 +31,14 @@ export default function ARQuestScene(props) {
     // Update positions whenever GPS or Compass changes
     useEffect(() => {
         if (targetLat && targetLng && userLat && userLng) {
-            const pos = gpsToARCoordinates(userLat, userLng, targetLat, targetLng, userHeading);
+            let pos = gpsToARCoordinates(userLat, userLng, targetLat, targetLng, userHeading);
             
-            // Limit distance to prevent rendering it miles away if far, 
-            // clamp to max 50 meters for visibility, or allow true scale if desired.
-            // For now, render exactly where it is.
+            // If they are physically standing inside the building (distance is less than 5 meters)
+            // Push it 10 meters in front of them so it doesn't spawn on top of their head!
+            if (Math.abs(pos.x) < 5 && Math.abs(pos.z) < 5) {
+                pos.z -= 10;
+            }
+            
             setBuildingPos(pos);
         }
 
@@ -56,7 +59,8 @@ export default function ARQuestScene(props) {
 
     return (
         <ViroARScene>
-            <ViroAmbientLight color={"#ffffff"} intensity={1000} />
+            <ViroAmbientLight color={"#ffffff"} intensity={800} />
+            <ViroDirectionalLight color="#ffffff" direction={[0, -1, -0.2]} castsShadow={true} shadowOpacity={0.7} />
             
             {/* Render Building Model anchored in real world */}
             {modelUrl && (
@@ -64,15 +68,15 @@ export default function ARQuestScene(props) {
                     <ViroText 
                         text={buildingName || "Target"} 
                         scale={[2, 2, 2]} 
-                        position={[0, 4, 0]} 
+                        position={[0, 1.5, 0]} // Lowered text so it doesn't float in space 
                         style={{ fontFamily: "Arial", fontSize: 24, color: "#FFFFFF" }} 
                         extrusionDepth={2}
                         materials={["textMaterial"]}
                     />
                     <Viro3DObject
                         source={{ uri: modelUrl }}
-                        position={[0, 0, 0]}
-                        scale={[1, 1, 1]} // Use true scale or adjust based on your models
+                        position={[0, -1, 0]} // Sit on the ground
+                        scale={[0.05, 0.05, 0.05]} // Scaled down to 5% miniature
                         type="GLB"
                         onError={(e) => console.log("AR Model Load Error:", e)}
                     />
