@@ -47,7 +47,7 @@ export default function ARScreen() {
     const [modelReady, setModelReady] = useState(true);
     const [isScanningQr, setIsScanningQr] = useState(false);
     const [scannedData, setScannedData] = useState(null);
-    const [isARSupported, setIsARSupported] = useState(null);
+    const [isARSupported, setIsARSupported] = useState(true); // Assume supported; set false if check fails
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
     useEffect(() => {
@@ -809,10 +809,16 @@ export default function ARScreen() {
                 )}
 
                 {/* --- NAVIGATION HUD --- */}
-                
-
                 {/* 3. Reticle and Gamified HUD Overlays */}
-                {(!isScanningQr && !isARSupported) ? (
+                {/* QR Scanner box — only when actively scanning a QR code */}
+                {isScanningQr && (
+                    <View style={styles.scanningReticle} pointerEvents="none">
+                        <Animated.View style={[styles.scannerLine, { opacity: pulseAnim }]} />
+                        <Text style={styles.scanningText}>[ SCANNING QR ]</Text>
+                    </View>
+                )}
+                {/* Legacy corner brackets — only for non-AR (old phone) fallback */}
+                {!isScanningQr && !isARSupported && (
                     <View style={styles.reticleContainer} pointerEvents="none">
                         <View style={styles.reticleTopLeft} />
                         <View style={styles.reticleTopRight} />
@@ -828,12 +834,8 @@ export default function ARScreen() {
                             ]}
                         />
                     </View>
-                ) : (
-                    <View style={styles.scanningReticle} pointerEvents="none">
-                        <Animated.View style={[styles.scannerLine, { opacity: pulseAnim }]} />
-                        <Text style={styles.scanningText}>[ SCANNING QR ]</Text>
-                    </View>
                 )}
+                {/* Native AR mode: NO reticle overlay — the AR scene is the full UI */}
 
                 {/* 4. Top Layer: Absolute Frame */}
                 <BrandedSelfieFrame

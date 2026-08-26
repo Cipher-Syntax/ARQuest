@@ -113,7 +113,9 @@ export default function ARQuestScene(props) {
                 They shrink slightly with distance for a depth-cue effect.
                 ============================================================
             */}
-            {!isNearby && dotPositions.map((pos, i) => (
+            {/* === NAVIGATION: Crimson Breadcrumb Dots === */}
+            {/* Always shown when navigating — even if nearby, dots confirm direction */}
+            {dotPositions.map((pos, i) => (
                 <ViroSphere
                     key={`nav-dot-${i}`}
                     position={pos}
@@ -123,7 +125,7 @@ export default function ARQuestScene(props) {
             ))}
 
             {/* Distance + Name label floating above the 2nd dot */}
-            {!isNearby && distanceToTarget !== null && dotPositions.length > 1 && (
+            {distanceToTarget !== null && dotPositions.length > 1 && (
                 <ViroText
                     position={labelPos}
                     text={`${buildingName || 'Target'} — ${Math.round(distanceToTarget)}m`}
