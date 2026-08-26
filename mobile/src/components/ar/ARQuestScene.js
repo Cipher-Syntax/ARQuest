@@ -164,7 +164,7 @@ export default function ARQuestScene(props) {
                         thickness={0.06}
                         materials={['glowArrow']}
                     />
-                    {/* Central Arrow Shaft */}
+                    {/* Central Arrow Shaft - Gold/Yellow */}
                     <ViroPolyline
                         position={[0, 0, 0]}
                         points={[
@@ -172,7 +172,7 @@ export default function ARQuestScene(props) {
                             [0, 0, -0.05]
                         ]}
                         thickness={0.05}
-                        materials={['glowArrow']}
+                        materials={['glowArrowGold']}
                     />
                 </ViroNode>
             ))}
@@ -209,15 +209,15 @@ export default function ARQuestScene(props) {
                         materials={['glowArrow']}
                     />
 
-                    {/* Distance Badge - Crimson Glow */}
+                    {/* Distance Badge - Vibrant Gold/Yellow Glow */}
                     <ViroText
                         text={`${Math.round(distanceToTarget)}m AWAY`}
                         width={6}
                         height={1}
                         scale={[0.24, 0.24, 0.24]}
                         position={[0, -0.08, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
-                        materials={['glowArrow']}
+                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: '#E8B923', textAlign: 'center', textAlignVertical: 'center' }}
+                        materials={['goldTextMaterial']}
                     />
                 </ViroNode>
             )}
