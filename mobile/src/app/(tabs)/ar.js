@@ -280,20 +280,33 @@ export default function ARScreen() {
 
     let arrowAngle = 0;
     let distanceToTarget = 0;
-    if (navTargetFull && location && heading !== undefined && heading !== null) {
+    let turnDirection = null; // 'left' | 'right' | 'ahead'
+    const curLat = location?.latitude ?? location?.coords?.latitude;
+    const curLng = location?.longitude ?? location?.coords?.longitude;
+
+    if (navTargetFull && curLat && curLng && heading !== undefined && heading !== null) {
         const bearing = getBearing(
-            location.latitude,
-            location.longitude,
+            curLat,
+            curLng,
             navTargetFull.latitude,
             navTargetFull.longitude
         );
         arrowAngle = (bearing - heading + 360) % 360;
         distanceToTarget = getDistance(
-            location.latitude,
-            location.longitude,
+            curLat,
+            curLng,
             navTargetFull.latitude,
             navTargetFull.longitude
         );
+        let diff = (bearing - heading + 360) % 360;
+        if (diff > 180) diff -= 360;
+        if (diff < -30) {
+            turnDirection = 'left';
+        } else if (diff > 30) {
+            turnDirection = 'right';
+        } else {
+            turnDirection = 'ahead';
+        }
     }
 
     const handleClaimQuest = async () => {
