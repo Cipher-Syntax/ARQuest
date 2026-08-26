@@ -50,6 +50,14 @@ export default function ARScreen() {
     const [isARSupported, setIsARSupported] = useState(null);
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
+    useEffect(() => {
+        checkARSupport().then(supported => {
+            setIsARSupported(supported);
+            if (!supported) setShowUnsupportedModal(true);
+        });
+    }, []);
+
+
     // Trivia & Quest State
     const [activeQuests, setActiveQuests] = useState([]);
     const [triviaModalVisible, setTriviaModalVisible] = useState(false);
@@ -698,8 +706,8 @@ export default function ARScreen() {
                                     userLat: location?.coords?.latitude,
                                     userLng: location?.coords?.longitude,
                                     userHeading: heading,
-                                    modelUrl: nearbyBuildingFull?.model_url,
-                                    buildingName: nearbyBuildingFull?.name,
+                                    modelUrl: (navTargetFull || nearbyBuildingFull)?.model_url,
+                                    buildingName: (navTargetFull || nearbyBuildingFull)?.name,
                                     nextWaypoint: nextWaypoint
                                 }}
                                 style={styles.camera}
