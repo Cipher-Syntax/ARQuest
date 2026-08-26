@@ -64,6 +64,15 @@ export default function ARQuestScene(props) {
     const waypointLng = nextWaypoint?.longitude ?? targetLng;
 
     useEffect(() => {
+        // DEBUG: Log all incoming props so we can see what's arriving
+        console.log('ARQuestScene props:', { 
+            targetLat, targetLng, userLat, userLng, userHeading, 
+            modelUrl: modelUrl ? 'SET' : 'NULL', 
+            buildingName, 
+            nextWaypoint: nextWaypoint ? `${nextWaypoint.latitude},${nextWaypoint.longitude}` : 'NULL',
+            waypointLat, waypointLng
+        });
+
         if (!userLat || !userLng) return;
 
         // -- Calculate distance to building --
@@ -87,6 +96,18 @@ export default function ARQuestScene(props) {
                     d
                 );
                 // Y = 0 puts dots at the same height as the camera (eye level)
+                return [offset.x, 0, offset.z];
+            });
+            setDotPositions(newDots);
+        } else if (targetLat && targetLng) {
+            // Fallback: use target directly if no waypoint
+            const newDots = [1, 2, 3, 4, 5].map((d) => {
+                const offset = bearingToAROffset(
+                    userLat, userLng,
+                    targetLat, targetLng,
+                    userHeading,
+                    d
+                );
                 return [offset.x, 0, offset.z];
             });
             setDotPositions(newDots);
