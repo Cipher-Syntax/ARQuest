@@ -808,34 +808,14 @@ export default function ARScreen() {
                     </View>
                 )}
 
-                {/* --- NAVIGATION HUD --- */}
-                {/* 3. Reticle and Gamified HUD Overlays */}
-                {/* QR Scanner box — only when actively scanning a QR code */}
+                {/* 3. Reticle Overlays */}
+                {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
                 {isScanningQr && (
                     <View style={styles.scanningReticle} pointerEvents="none">
                         <Animated.View style={[styles.scannerLine, { opacity: pulseAnim }]} />
                         <Text style={styles.scanningText}>[ SCANNING QR ]</Text>
                     </View>
                 )}
-                {/* Legacy corner brackets — only for non-AR (old phone) fallback */}
-                {!isScanningQr && !isARSupported && (
-                    <View style={styles.reticleContainer} pointerEvents="none">
-                        <View style={styles.reticleTopLeft} />
-                        <View style={styles.reticleTopRight} />
-                        <View style={styles.reticleBottomLeft} />
-                        <View style={styles.reticleBottomRight} />
-                        <Animated.View
-                            style={[
-                                styles.reticleCenterPoint,
-                                {
-                                    opacity: pulseAnim,
-                                    transform: [{ scale: pulseAnim }],
-                                },
-                            ]}
-                        />
-                    </View>
-                )}
-                {/* Native AR mode: NO reticle overlay — the AR scene is the full UI */}
 
                 {/* 4. Top Layer: Absolute Frame */}
                 <BrandedSelfieFrame

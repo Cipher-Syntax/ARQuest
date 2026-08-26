@@ -7,15 +7,14 @@ import {
     ViroMaterials,
     ViroNode,
     ViroText,
-    ViroBox,
     ViroAnimations,
     ViroDirectionalLight,
 } from '@reactvision/react-viro';
 import { getDistance, getRhumbLineBearing } from 'geolib';
 
 /**
- * Calculates the relative angle (in degrees) and Cartesian offset (meters)
- * between the user's GPS + compass heading and the target GPS coordinate.
+ * Calculates relative angle (degrees) and Cartesian offset (meters)
+ * between user's GPS + compass heading and the target coordinate.
  *
  * In ViroReact (WebGL coordinate system):
  * - +X is Right
@@ -43,7 +42,7 @@ function calculateTargetRelative(userLat, userLng, targetLat, targetLng, userHea
         { latitude: targetLat, longitude: targetLng }
     );
 
-    // Relative angle: how many degrees to the left/right of the user's facing direction
+    // Relative angle: how many degrees to the left/right of where the user is facing
     let angle = bearing - userHeading;
     if (angle > 180) angle -= 360;
     if (angle < -180) angle += 360;
@@ -88,29 +87,29 @@ export default function ARQuestScene(props) {
 
         // 2. Relative bearing and angle to next waypoint / target
         if (effectiveLat && effectiveLng) {
-            const { angle, distance } = calculateTargetRelative(
+            const { angle } = calculateTargetRelative(
                 userLat, userLng,
                 effectiveLat, effectiveLng,
                 userHeading
             );
             setTargetAngle(angle);
 
-            // Compute 4 ground arrow positions along the bearing path
+            // Compute 4 ground arrow positions along the bearing path (proportional spacing)
             const rad = (angle * Math.PI) / 180;
-            const distances = [1.2, 2.2, 3.2, 4.2];
+            const distances = [1.0, 1.8, 2.6, 3.4];
             const chevrons = distances.map((d) => {
                 const x = d * Math.sin(rad);
                 const z = -(d * Math.cos(rad));
-                return { x, y: -1.0, z, angle };
+                return { x, y: -0.9, z, angle };
             });
             setChevronPositions(chevrons);
         }
     }, [userLat, userLng, userHeading, targetLat, targetLng, effectiveLat, effectiveLng]);
 
-    // Position for the floating eye-level HUD marker (2.5m ahead in target direction)
+    // Position for the sleek floating HUD marker (2.0m ahead in target direction)
     const hudRad = (targetAngle * Math.PI) / 180;
-    const hudX = 2.2 * Math.sin(hudRad);
-    const hudZ = -(2.2 * Math.cos(hudRad));
+    const hudX = 2.0 * Math.sin(hudRad);
+    const hudZ = -(2.0 * Math.cos(hudRad));
 
     return (
         <ViroARScene>
@@ -123,9 +122,9 @@ export default function ARQuestScene(props) {
 
             {/* 
                 ============================================================
-                1. 3D AR NAVIGATION PATH (Ground Chevrons + Direction Arrows)
-                Renders a glowing 3D arrow path along the ground pointing
-                in the real-world direction of the building / waypoint.
+                1. 3D AR NAVIGATION PATH (Sleek Ground Chevrons)
+                Renders proportional, glowing 3D arrow chevrons along the ground
+                pointing in the real-world direction of the building.
                 ============================================================
             */}
             {chevronPositions.map((chev, index) => (
@@ -133,27 +132,27 @@ export default function ARQuestScene(props) {
                     key={`nav-chevron-${index}`}
                     position={[chev.x, chev.y, chev.z]}
                     rotation={[0, -chev.angle, 0]}
-                    scale={[1 - index * 0.1, 1 - index * 0.1, 1 - index * 0.1]}
+                    scale={[0.7 - index * 0.08, 0.7 - index * 0.08, 0.7 - index * 0.08]}
                 >
-                    {/* Glowing Chevron Arrowhead (Polyline) */}
+                    {/* Glowing Chevron Wings (Polyline) */}
                     <ViroPolyline
                         position={[0, 0, 0]}
                         points={[
-                            [-0.45, 0, 0.4],
-                            [0, 0, -0.1],
-                            [0.45, 0, 0.4]
+                            [-0.22, 0, 0.22],
+                            [0, 0, -0.05],
+                            [0.22, 0, 0.22]
                         ]}
-                        thickness={0.14}
+                        thickness={0.06}
                         materials={['glowArrow']}
                     />
                     {/* Central Arrow Shaft */}
                     <ViroPolyline
                         position={[0, 0, 0]}
                         points={[
-                            [0, 0, 0.55],
-                            [0, 0, -0.1]
+                            [0, 0, 0.3],
+                            [0, 0, -0.05]
                         ]}
-                        thickness={0.12}
+                        thickness={0.05}
                         materials={['glowArrowGold']}
                     />
                 </ViroNode>
@@ -161,41 +160,40 @@ export default function ARQuestScene(props) {
 
             {/*
                 ============================================================
-                2. FLOATING 3D EYE-LEVEL HUD BILLBOARD
-                Hovers in the direction of the target so you can see where 
-                to walk without looking straight down at the ground.
+                2. SLEEK FLOATING 3D DIRECTION HUD BILLBOARD
+                Hovers cleanly in the direction of the destination.
                 ============================================================
             */}
             {distanceToTarget !== null && (
                 <ViroNode
-                    position={[hudX, 0.1, hudZ]}
+                    position={[hudX, -0.1, hudZ]}
                     rotation={[0, -targetAngle, 0]}
                     animation={{ name: 'hover', run: true, loop: true }}
                 >
-                    {/* Floating 3D Directional Indicator Arrow */}
+                    {/* Floating Direction Arrow */}
                     <ViroText
-                        text="▲ ▲ ▲"
-                        scale={[0.6, 0.6, 0.6]}
-                        position={[0, 0.45, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: '#B21830' }}
+                        text="▲"
+                        scale={[0.3, 0.3, 0.3]}
+                        position={[0, 0.32, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', color: '#B21830' }}
                         materials={['glowArrow']}
                     />
 
                     {/* Target Building Name */}
                     <ViroText
                         text={buildingName || 'Destination'}
-                        scale={[0.45, 0.45, 0.45]}
-                        position={[0, 0.18, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' }}
+                        scale={[0.22, 0.22, 0.22]}
+                        position={[0, 0.12, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' }}
                         materials={['textMaterial']}
                     />
 
                     {/* Distance Badge */}
                     <ViroText
                         text={`${Math.round(distanceToTarget)}m AWAY`}
-                        scale={[0.35, 0.35, 0.35]}
-                        position={[0, -0.05, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', color: '#E8B923' }}
+                        scale={[0.18, 0.18, 0.18]}
+                        position={[0, -0.04, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', color: '#E8B923' }}
                         materials={['goldTextMaterial']}
                     />
                 </ViroNode>
@@ -205,7 +203,6 @@ export default function ARQuestScene(props) {
                 ============================================================
                 3. ARRIVED MODE: 3D Miniature Building Model
                 Spawns when user arrives within 25m of the target.
-                Allows the user to view the building model in full 3D AR.
                 ============================================================
             */}
             {modelUrl && isNearby && (
@@ -216,16 +213,16 @@ export default function ARQuestScene(props) {
                 >
                     <ViroText
                         text={buildingName || 'Target'}
-                        scale={[1, 1, 1]}
-                        position={[0, 0.8, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 24, color: '#FFFFFF' }}
-                        extrusionDepth={2}
+                        scale={[0.6, 0.6, 0.6]}
+                        position={[0, 0.6, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 22, color: '#FFFFFF' }}
+                        extrusionDepth={1}
                         materials={['textMaterial']}
                     />
                     <Viro3DObject
                         source={{ uri: modelUrl }}
                         position={[0, -1, 0]}
-                        scale={[0.005, 0.005, 0.005]}
+                        scale={[0.004, 0.004, 0.004]}
                         type="GLB"
                         onError={(e) => console.log('AR Model Load Error:', e)}
                     />
@@ -257,7 +254,7 @@ ViroMaterials.createMaterials({
 ViroAnimations.registerAnimations({
     hover: {
         properties: {
-            positionY: '+=0.08',
+            positionY: '+=0.05',
         },
         duration: 1200,
         easing: 'EaseInEaseOut',

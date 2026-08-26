@@ -13,13 +13,18 @@ export const LocationProvider = ({ children }) => {
 
     const watchSubscription = useRef(null);
     const headingSubscription = useRef(null);
+    const lastHeadingRef = useRef(0);
+    const permissionStatusRef = useRef(permissionStatus);
+    permissionStatusRef.current = permissionStatus;
 
     const checkPermission = useCallback(async () => {
         try {
             const { status } = await Location.getForegroundPermissionsAsync();
             setPermissionStatus(status);
+            return status;
         } catch (err) {
             setError(err.message);
+            return "denied";
         }
     }, []);
 
@@ -47,7 +52,8 @@ export const LocationProvider = ({ children }) => {
     }, []);
 
     const startTracking = useCallback(async () => {
-        if (permissionStatus !== "granted") {
+        let currentPerm = permissionStatusRef.current;
+        if (currentPerm !== "granted") {
             const granted = await requestPermission();
             if (!granted) {
                 setError("Location permission denied");
@@ -59,63 +65,66 @@ export const LocationProvider = ({ children }) => {
             setIsTracking(true);
             setError(null);
 
-            if (watchSubscription.current) {
-                watchSubscription.current.remove();
-            }
+            // Avoid re-subscribing if already active
+            if (!watchSubscription.current) {
+                watchSubscription.current = await Location.watchPositionAsync(
+                    {
+                        accuracy: Location.Accuracy.High,
+                        distanceInterval: 5,
+                        timeInterval: 3000,
+                    },
+                    (newLocation) => {
+                        const accuracy = newLocation.coords.accuracy;
+                        const isWeak = accuracy > 40;
+                        const isMocked = newLocation.mocked === true;
 
-            watchSubscription.current = await Location.watchPositionAsync(
-                {
-                    accuracy: Location.Accuracy.High,
-                    distanceInterval: 10,
-                    timeInterval: 5000,
-                },
-                (newLocation) => {
-                    const accuracy = newLocation.coords.accuracy;
-                    const isWeak = accuracy > 40;
-                    const isMocked = newLocation.mocked === true;
+                        if (isMocked) {
+                            setError("Fake GPS detected! Please disable mock locations to play.");
+                            return;
+                        } else if (isWeak) {
+                            setError("Weak GPS Signal. Please step outside or use QR code fallback.");
+                        } else {
+                            setError(null);
+                        }
 
-                    if (isMocked) {
-                        setError("Fake GPS detected! Please disable mock locations to play.");
-                        return;
-                    } else if (isWeak) {
-                        setError("Weak GPS Signal. Please step outside or use QR code fallback.");
-                    } else {
-                        setError(null);
-                    }
-
-                    setLocation({
-                        latitude: newLocation.coords.latitude,
-                        longitude: newLocation.coords.longitude,
-                        accuracy: accuracy,
-                        timestamp: newLocation.timestamp,
-                        isWeakSignal: isWeak,
-                        coords: {
+                        setLocation({
                             latitude: newLocation.coords.latitude,
                             longitude: newLocation.coords.longitude,
                             accuracy: accuracy,
-                            altitude: newLocation.coords.altitude,
-                            heading: newLocation.coords.heading,
-                            speed: newLocation.coords.speed,
-                        }
-                    });
-                }
-            );
-
-            if (headingSubscription.current) {
-                headingSubscription.current.remove();
+                            timestamp: newLocation.timestamp,
+                            isWeakSignal: isWeak,
+                            coords: {
+                                latitude: newLocation.coords.latitude,
+                                longitude: newLocation.coords.longitude,
+                                accuracy: accuracy,
+                                altitude: newLocation.coords.altitude,
+                                heading: newLocation.coords.heading,
+                                speed: newLocation.coords.speed,
+                            }
+                        });
+                    }
+                );
             }
-            
-            headingSubscription.current = await Location.watchHeadingAsync((headingData) => {
-                const compassHeading = headingData.trueHeading !== -1 && headingData.trueHeading !== undefined
-                    ? headingData.trueHeading
-                    : headingData.magHeading;
-                setHeading(compassHeading);
-            });
+
+            if (!headingSubscription.current) {
+                headingSubscription.current = await Location.watchHeadingAsync((headingData) => {
+                    const rawHeading = headingData.trueHeading !== -1 && headingData.trueHeading !== undefined
+                        ? headingData.trueHeading
+                        : headingData.magHeading;
+                    
+                    const rounded = Math.round(rawHeading);
+                    // Threshold: only trigger React re-render if heading changes by at least 2 degrees
+                    if (Math.abs(rounded - lastHeadingRef.current) >= 2) {
+                        lastHeadingRef.current = rounded;
+                        setHeading(rounded);
+                    }
+                });
+            }
         } catch (err) {
             setError(err.message);
             setIsTracking(false);
         }
-    }, [permissionStatus, requestPermission]);
+    }, [requestPermission]);
 
     useEffect(() => {
         checkPermission();
