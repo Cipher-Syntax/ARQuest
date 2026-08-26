@@ -7,7 +7,7 @@ def optimize_glb(uploaded_file):
     """
     Takes a Django UploadedFile (.glb).
     Uses gltf-transform to safely read, dedup, and join meshes.
-    Draco compression is intentionally omitted to support Native AR (ViroReact) engines.
+    Draco and Meshopt compression are EXPLICITLY disabled to support Native AR (ViroReact) engines.
     """
     if not uploaded_file.name.lower().endswith('.glb'):
         return uploaded_file
@@ -24,10 +24,11 @@ def optimize_glb(uploaded_file):
         # We use 'optimize' to perform dedup, instancing, and joining meshes (fixing draw calls).
         # We EXPLICITLY disable '--simplify' so it never deletes a single polygon (prevents melting).
         # We disable '--texture-compress' to prevent libvips crashes on SketchUp textures.
-        # We DO NOT apply Draco compression because ViroReact C++ engine lacks a Draco decoder.
+        # We explicitly pass '--compress false' to disable the default meshopt compression.
         cmd = [
             'gltf-transform', 'optimize', 
             temp_in_path, temp_out_path, 
+            '--compress', 'false',
             '--simplify', 'false',
             '--texture-compress', 'false'
         ]
