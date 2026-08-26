@@ -3,26 +3,34 @@ import {
     ViroARScene,
     Viro3DObject,
     ViroAmbientLight,
-    ViroSphere,
+    ViroPolyline,
     ViroMaterials,
     ViroNode,
     ViroText,
+    ViroBox,
     ViroAnimations,
     ViroDirectionalLight,
 } from '@reactvision/react-viro';
 import { getDistance, getRhumbLineBearing } from 'geolib';
 
 /**
- * Converts GPS bearing into an AR Cartesian offset (meters) from user's position.
- * In ViroReact: +X is Right, -X is Left, -Z is Forward, +Z is Backward.
+ * Calculates the relative angle (in degrees) and Cartesian offset (meters)
+ * between the user's GPS + compass heading and the target GPS coordinate.
+ *
+ * In ViroReact (WebGL coordinate system):
+ * - +X is Right
+ * - -X is Left
+ * - +Y is Up
+ * - -Y is Down
+ * - -Z is Forward (into screen)
+ * - +Z is Backward
  */
-function bearingToAROffset(userLat, userLng, targetLat, targetLng, userHeading, meters) {
+function calculateTargetRelative(userLat, userLng, targetLat, targetLng, userHeading) {
     if (
         !userLat || !userLng || !targetLat || !targetLng ||
         userHeading === undefined || userHeading === null
     ) {
-        // Fallback: put the dot straight ahead
-        return { x: 0, z: -(meters || 2) };
+        return { angle: 0, distance: 0, bearing: 0 };
     }
 
     const bearing = getRhumbLineBearing(
@@ -30,16 +38,17 @@ function bearingToAROffset(userLat, userLng, targetLat, targetLng, userHeading, 
         { latitude: targetLat, longitude: targetLng }
     );
 
-    // Relative angle: how many degrees left/right of where user is facing
+    const distance = getDistance(
+        { latitude: userLat, longitude: userLng },
+        { latitude: targetLat, longitude: targetLng }
+    );
+
+    // Relative angle: how many degrees to the left/right of the user's facing direction
     let angle = bearing - userHeading;
     if (angle > 180) angle -= 360;
     if (angle < -180) angle += 360;
 
-    const rad = (angle * Math.PI) / 180;
-    return {
-        x: meters * Math.sin(rad),
-        z: -(meters * Math.cos(rad)),
-    };
+    return { angle, distance, bearing };
 }
 
 export default function ARQuestScene(props) {
@@ -53,115 +62,150 @@ export default function ARQuestScene(props) {
         modelUrl,
         nextWaypoint,
         buildingName,
-    } = sceneNavigator.viroAppProps;
+    } = sceneNavigator.viroAppProps || {};
 
-    const [dotPositions, setDotPositions] = useState([]);
     const [distanceToTarget, setDistanceToTarget] = useState(null);
+    const [targetAngle, setTargetAngle] = useState(0);
+    const [chevronPositions, setChevronPositions] = useState([]);
     const [isNearby, setIsNearby] = useState(false);
 
-    // Use the immediate waypoint if available, otherwise aim directly at destination
-    const waypointLat = nextWaypoint?.latitude ?? targetLat;
-    const waypointLng = nextWaypoint?.longitude ?? targetLng;
+    // Target to aim at (immediate walking waypoint or destination)
+    const effectiveLat = nextWaypoint?.latitude ?? targetLat;
+    const effectiveLng = nextWaypoint?.longitude ?? targetLng;
 
     useEffect(() => {
-        // DEBUG: Log all incoming props so we can see what's arriving
-        console.log('ARQuestScene props:', { 
-            targetLat, targetLng, userLat, userLng, userHeading, 
-            modelUrl: modelUrl ? 'SET' : 'NULL', 
-            buildingName, 
-            nextWaypoint: nextWaypoint ? `${nextWaypoint.latitude},${nextWaypoint.longitude}` : 'NULL',
-            waypointLat, waypointLng
-        });
-
         if (!userLat || !userLng) return;
 
-        // -- Calculate distance to building --
+        // 1. Total distance to destination building
         if (targetLat && targetLng) {
             const dist = getDistance(
                 { latitude: userLat, longitude: userLng },
                 { latitude: targetLat, longitude: targetLng }
             );
             setDistanceToTarget(dist);
-            // Show model miniature when within 25 meters
             setIsNearby(dist < 25);
         }
 
-        // -- Compute 5 breadcrumb dot positions at 1m intervals in bearing direction --
-        if (waypointLat && waypointLng) {
-            const newDots = [1, 2, 3, 4, 5].map((d) => {
-                const offset = bearingToAROffset(
-                    userLat, userLng,
-                    waypointLat, waypointLng,
-                    userHeading,
-                    d
-                );
-                // Y = 0 puts dots at the same height as the camera (eye level)
-                return [offset.x, 0, offset.z];
-            });
-            setDotPositions(newDots);
-        } else if (targetLat && targetLng) {
-            // Fallback: use target directly if no waypoint
-            const newDots = [1, 2, 3, 4, 5].map((d) => {
-                const offset = bearingToAROffset(
-                    userLat, userLng,
-                    targetLat, targetLng,
-                    userHeading,
-                    d
-                );
-                return [offset.x, 0, offset.z];
-            });
-            setDotPositions(newDots);
-        }
-    }, [userLat, userLng, userHeading, targetLat, targetLng, waypointLat, waypointLng]);
+        // 2. Relative bearing and angle to next waypoint / target
+        if (effectiveLat && effectiveLng) {
+            const { angle, distance } = calculateTargetRelative(
+                userLat, userLng,
+                effectiveLat, effectiveLng,
+                userHeading
+            );
+            setTargetAngle(angle);
 
-    // Position the distance label just above the 2nd dot (2m ahead)
-    const labelPos = dotPositions[1]
-        ? [dotPositions[1][0], 0.5, dotPositions[1][2]]
-        : [0, 0.5, -2];
+            // Compute 4 ground arrow positions along the bearing path
+            const rad = (angle * Math.PI) / 180;
+            const distances = [1.2, 2.2, 3.2, 4.2];
+            const chevrons = distances.map((d) => {
+                const x = d * Math.sin(rad);
+                const z = -(d * Math.cos(rad));
+                return { x, y: -1.0, z, angle };
+            });
+            setChevronPositions(chevrons);
+        }
+    }, [userLat, userLng, userHeading, targetLat, targetLng, effectiveLat, effectiveLng]);
+
+    // Position for the floating eye-level HUD marker (2.5m ahead in target direction)
+    const hudRad = (targetAngle * Math.PI) / 180;
+    const hudX = 2.2 * Math.sin(hudRad);
+    const hudZ = -(2.2 * Math.cos(hudRad));
 
     return (
         <ViroARScene>
-            <ViroAmbientLight color="#ffffff" intensity={1000} />
+            {/* ── Scene Lighting ── */}
+            <ViroAmbientLight color="#ffffff" intensity={1200} />
             <ViroDirectionalLight color="#ffffff" direction={[0, -1, -1]} castsShadow shadowOpacity={0.4} />
-            <ViroDirectionalLight color="#ffffff" direction={[1, 0, 1]} intensity={500} />
-            <ViroDirectionalLight color="#ffffff" direction={[-1, 0, 1]} intensity={500} />
+            <ViroDirectionalLight color="#ffffff" direction={[1, 0, 1]} intensity={600} />
+            <ViroDirectionalLight color="#ffffff" direction={[-1, 0, 1]} intensity={600} />
+            <ViroDirectionalLight color="#ffffff" direction={[0, 1, 0]} intensity={400} />
+
+            {/* 
+                ============================================================
+                1. 3D AR NAVIGATION PATH (Ground Chevrons + Direction Arrows)
+                Renders a glowing 3D arrow path along the ground pointing
+                in the real-world direction of the building / waypoint.
+                ============================================================
+            */}
+            {chevronPositions.map((chev, index) => (
+                <ViroNode
+                    key={`nav-chevron-${index}`}
+                    position={[chev.x, chev.y, chev.z]}
+                    rotation={[0, -chev.angle, 0]}
+                    scale={[1 - index * 0.1, 1 - index * 0.1, 1 - index * 0.1]}
+                >
+                    {/* Glowing Chevron Arrowhead (Polyline) */}
+                    <ViroPolyline
+                        position={[0, 0, 0]}
+                        points={[
+                            [-0.45, 0, 0.4],
+                            [0, 0, -0.1],
+                            [0.45, 0, 0.4]
+                        ]}
+                        thickness={0.14}
+                        materials={['glowArrow']}
+                    />
+                    {/* Central Arrow Shaft */}
+                    <ViroPolyline
+                        position={[0, 0, 0]}
+                        points={[
+                            [0, 0, 0.55],
+                            [0, 0, -0.1]
+                        ]}
+                        thickness={0.12}
+                        materials={['glowArrowGold']}
+                    />
+                </ViroNode>
+            ))}
 
             {/*
                 ============================================================
-                NAVIGATION MODE: Floating Crimson Breadcrumb Dots
-                Shown when user is > 25m from the target building.
-                Dots float at eye-level (Y=0) in the bearing direction.
-                They shrink slightly with distance for a depth-cue effect.
+                2. FLOATING 3D EYE-LEVEL HUD BILLBOARD
+                Hovers in the direction of the target so you can see where 
+                to walk without looking straight down at the ground.
                 ============================================================
             */}
-            {/* === NAVIGATION: Crimson Breadcrumb Dots === */}
-            {/* Always shown when navigating — even if nearby, dots confirm direction */}
-            {dotPositions.map((pos, i) => (
-                <ViroSphere
-                    key={`nav-dot-${i}`}
-                    position={pos}
-                    radius={0.15 - i * 0.02}
-                    materials={['glowArrow']}
-                />
-            ))}
+            {distanceToTarget !== null && (
+                <ViroNode
+                    position={[hudX, 0.1, hudZ]}
+                    rotation={[0, -targetAngle, 0]}
+                    animation={{ name: 'hover', run: true, loop: true }}
+                >
+                    {/* Floating 3D Directional Indicator Arrow */}
+                    <ViroText
+                        text="▲ ▲ ▲"
+                        scale={[0.6, 0.6, 0.6]}
+                        position={[0, 0.45, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: '#B21830' }}
+                        materials={['glowArrow']}
+                    />
 
-            {/* Distance + Name label floating above the 2nd dot */}
-            {distanceToTarget !== null && dotPositions.length > 1 && (
-                <ViroText
-                    position={labelPos}
-                    text={`${buildingName || 'Target'} — ${Math.round(distanceToTarget)}m`}
-                    scale={[0.5, 0.5, 0.5]}
-                    style={{ fontFamily: 'Arial', fontSize: 20, color: '#FFFFFF' }}
-                    materials={['textMaterial']}
-                />
+                    {/* Target Building Name */}
+                    <ViroText
+                        text={buildingName || 'Destination'}
+                        scale={[0.45, 0.45, 0.45]}
+                        position={[0, 0.18, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' }}
+                        materials={['textMaterial']}
+                    />
+
+                    {/* Distance Badge */}
+                    <ViroText
+                        text={`${Math.round(distanceToTarget)}m AWAY`}
+                        scale={[0.35, 0.35, 0.35]}
+                        position={[0, -0.05, 0]}
+                        style={{ fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', color: '#E8B923' }}
+                        materials={['goldTextMaterial']}
+                    />
+                </ViroNode>
             )}
 
             {/*
                 ============================================================
-                ARRIVED MODE: 3D Miniature Building Model
-                Shown when user is within 25m of the building.
-                Placed 2 meters directly in front of the camera at eye level.
-                User can drag it around the real-world floor.
+                3. ARRIVED MODE: 3D Miniature Building Model
+                Spawns when user arrives within 25m of the target.
+                Allows the user to view the building model in full 3D AR.
                 ============================================================
             */}
             {modelUrl && isNearby && (
@@ -194,18 +238,29 @@ export default function ARQuestScene(props) {
 // ── AR Material Definitions ──────────────────────────────────────────────────
 ViroMaterials.createMaterials({
     glowArrow: {
-        diffuseColor: '#B21830',   // WMSU Crimson
-        lightingModel: 'Constant', // Unaffected by scene lighting = always bright
+        diffuseColor: '#B21830',   // WMSU Crimson Red
+        lightingModel: 'Constant', // Unaffected by dark environments
+    },
+    glowArrowGold: {
+        diffuseColor: '#E8B923',   // WMSU Gold
+        lightingModel: 'Constant',
     },
     textMaterial: {
         diffuseColor: '#FFFFFF',
     },
+    goldTextMaterial: {
+        diffuseColor: '#E8B923',
+    }
 });
 
 // ── AR Animation Definitions ─────────────────────────────────────────────────
 ViroAnimations.registerAnimations({
-    spin: {
-        properties: { rotateY: '+=360' },
-        duration: 10000,
+    hover: {
+        properties: {
+            positionY: '+=0.08',
+        },
+        duration: 1200,
+        easing: 'EaseInEaseOut',
+        direction: 'Alternate',
     },
 });

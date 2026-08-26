@@ -760,22 +760,6 @@ export default function BuildingsScreen() {
                                             </TouchableOpacity>
                                         )}
 
-                                        {/* AR Navigate — switches to AR tab with this building as target */}
-                                        <TouchableOpacity
-                                            style={[styles.tacticalActionBtn, { borderColor: theme.colors.success, backgroundColor: 'rgba(16,185,129,0.05)' }]}
-                                            onPress={() => {
-                                                setModalVisible(false);
-                                                router.push({
-                                                    pathname: "/(tabs)/ar",
-                                                    params: { targetBuildingId: selectedBuilding.id }
-                                                });
-                                            }}
-                                        >
-                                            <Text style={[styles.tacticalActionText, { color: theme.colors.success }]}>
-                                                AR Navigate
-                                            </Text>
-                                        </TouchableOpacity>
-
                                         {role === "student" && (
                                             <TouchableOpacity
                                                 style={[

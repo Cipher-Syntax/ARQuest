@@ -83,8 +83,8 @@ export default function ARScreen() {
                 // Immediately fallback to direct line-of-sight if routing fails
                 setNextWaypoint({ longitude: navTargetFull.longitude, latitude: navTargetFull.latitude });
                 try {
-                    const startLng = location.coords.longitude;
-                    const startLat = location.coords.latitude;
+                    const startLng = location?.longitude ?? location?.coords?.longitude;
+                    const startLat = location?.latitude ?? location?.coords?.latitude;
                     const endLng = navTargetFull.longitude;
                     const endLat = navTargetFull.latitude;
                     const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
@@ -113,7 +113,7 @@ export default function ARScreen() {
         // Refresh route every 10 seconds if actively navigating
         const interval = setInterval(fetchRoute, 10000);
         return () => clearInterval(interval);
-    }, [navTargetFull?.id, location?.coords?.latitude, location?.coords?.longitude]);
+    }, [navTargetFull?.id, location?.latitude, location?.longitude, location?.coords?.latitude, location?.coords?.longitude]);
 
     const [navTargetFull, setNavTargetFull] = useState(null);
     const [nextWaypoint, setNextWaypoint] = useState(null);
@@ -705,8 +705,8 @@ export default function ARScreen() {
                                 viroAppProps={{
                                     targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
                                     targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
-                                    userLat: location?.coords?.latitude,
-                                    userLng: location?.coords?.longitude,
+                                    userLat: location?.latitude ?? location?.coords?.latitude,
+                                    userLng: location?.longitude ?? location?.coords?.longitude,
                                     userHeading: heading,
                                     modelUrl: (navTargetFull || nearbyBuildingFull)?.model_url,
                                     buildingName: (navTargetFull || nearbyBuildingFull)?.name,

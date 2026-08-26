@@ -89,6 +89,14 @@ export const LocationProvider = ({ children }) => {
                         accuracy: accuracy,
                         timestamp: newLocation.timestamp,
                         isWeakSignal: isWeak,
+                        coords: {
+                            latitude: newLocation.coords.latitude,
+                            longitude: newLocation.coords.longitude,
+                            accuracy: accuracy,
+                            altitude: newLocation.coords.altitude,
+                            heading: newLocation.coords.heading,
+                            speed: newLocation.coords.speed,
+                        }
                     });
                 }
             );
