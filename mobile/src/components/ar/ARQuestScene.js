@@ -36,8 +36,8 @@ export default function ARQuestScene(props) {
             
             // If they are inside the geofence, override GPS and showcase it as a miniature hologram in the center!
             if (Math.abs(pos.x) < 15 && Math.abs(pos.z) < 15) {
-                // Place it exactly 2.5 meters in front of the camera, slightly below eye level
-                pos = { x: 0, y: -0.5, z: -2.5 }; 
+                // Place it 3 meters forward and 2 meters DOWN on the floor, so they naturally look down at it
+                pos = { x: 0, y: -2, z: -3 }; 
             }
             
             setBuildingPos(pos);
@@ -69,14 +69,14 @@ export default function ARQuestScene(props) {
             {/* Render Building Model anchored in real world */}
             {modelUrl && (
                 <ViroNode 
-                    position={[buildingPos.x, buildingPos.y || 0, buildingPos.z]} 
-                    rotation={[-30, 0, 0]} // Tilt forward 30 degrees for Bird's Eye view
-                    animation={{ name: "spin", run: true, loop: true }}
+                    position={[buildingPos.x, buildingPos.y || 0, buildingPos.z]}
+                    dragType="FixedToWorld" 
+                    onDrag={() => {}} // Allows the user to drag the miniature around the floor
                 >
                     <ViroText 
                         text={buildingName || "Target"} 
                         scale={[1, 1, 1]} 
-                        position={[0, 3, 0]} // Hover nicely above the spinning model 
+                        position={[0, 3, 0]} 
                         style={{ fontFamily: "Arial", fontSize: 24, color: "#FFFFFF" }} 
                         extrusionDepth={2}
                         materials={["textMaterial"]}
