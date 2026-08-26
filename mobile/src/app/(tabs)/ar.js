@@ -758,7 +758,7 @@ export default function ARScreen() {
                             {isModelVisible && (
                                 <View style={styles.targetCardLeft}>
                                     <Image
-                                        source={{ uri: nearbyBuildingFull?.image_url }}
+                                        source={{ uri: (navTargetFull?.image_url || nearbyBuildingFull?.image_url) }}
                                         style={styles.modelMiniature}
                                         resizeMode="cover"
                                     />
@@ -768,9 +768,9 @@ export default function ARScreen() {
                             {/* Right Side: Info & Claim */}
                             <View style={styles.targetCardRight}>
                                 <Text style={styles.targetLabel}>
-                                    {geofenceStatus?.status === 'inside' ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
+                                    {((geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull?.id) || (!navTargetFull && geofenceStatus?.status === 'inside')) ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
                                 </Text>
-                                <Text style={[styles.buildingLabel, { color: theme.colors.primary }]}>{nearbyBuilding.name}</Text>
+                                <Text style={[styles.buildingLabel, { color: theme.colors.primary }]}>{(navTargetFull?.name || nearbyBuilding.name)}</Text>
                                 
                                 {geofenceStatus?.status === 'inside' ? (
                                     <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
@@ -779,7 +779,7 @@ export default function ARScreen() {
                                 ) : (
                                     <>
                                         <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
-                                            📍 {Math.round(geofenceStatus?.distance_meters || 0)} meters away
+                                            📍 {Math.round(navTargetFull ? distanceToTarget : (geofenceStatus?.distance_meters || 0))} meters away
                                         </Text>
                                         <Text style={[styles.buildingStatus, { fontSize: 10, marginTop: 4, color: theme.colors.textMuted }]}>
                                             Keep moving closer to unlock.
@@ -807,50 +807,7 @@ export default function ARScreen() {
                 )}
 
                 {/* --- NAVIGATION HUD --- */}
-                {navTargetFull && location && !capturing && !triviaModalVisible && !isARSupported && (
-                    <View style={styles.navigationHud}>
-                        {geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull.id ? (
-                            <Animated.View style={{ opacity: pulseAnim, alignItems: 'center' }}>
-                                <Text style={styles.navDistanceText}>🎉 YOU HAVE ARRIVED</Text>
-                                {/* Gamified Claim Button for Navigation Mode */}
-                                {user?.role === 'student' && matchingQuest ? (
-                                    <TouchableOpacity style={[styles.claimQuestBtn, { marginTop: 16 }]} onPress={handleClaimQuest}>
-                                        <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                                        <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
-                                    </TouchableOpacity>
-                                ) : nearbyBuildingFull ? (
-                                    <TouchableOpacity style={[styles.claimQuestBtn, { marginTop: 16 }]} onPress={handleViewTriviaOnly}>
-                                        <Ionicons name="information-circle" size={16} color="#FFFFFF" />
-                                        <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
-                                    </TouchableOpacity>
-                                ) : null}
-                            </Animated.View>
-                        ) : (
-                            <>
-                                <Text style={styles.navTargetText}>WALK TOWARD THE ARROW</Text>
-                                <Animated.View 
-                                    style={[
-                                        styles.navPathContainer, 
-                                        { 
-                                            transform: [
-                                                { perspective: 800 },
-                                                { rotateX: '60deg' }, 
-                                                { rotateZ: `${arrowAngle}deg` }
-                                            ] 
-                                        }
-                                    ]}
-                                >
-                                    <Ionicons name="chevron-up" size={80} color="rgba(16, 185, 129, 0.3)" style={{ marginBottom: -45 }} />
-                                    <Ionicons name="chevron-up" size={80} color="rgba(16, 185, 129, 0.6)" style={{ marginBottom: -45 }} />
-                                    <Ionicons name="chevron-up" size={80} color={theme.colors.success} />
-                                </Animated.View>
-                                <Text style={styles.navDistanceText}>
-                                    📍 {Math.round(distanceToTarget)}m remaining
-                                </Text>
-                            </>
-                        )}
-                    </View>
-                )}
+                
 
                 {/* 3. Reticle and Gamified HUD Overlays */}
                 {(!isScanningQr && !isARSupported) ? (
