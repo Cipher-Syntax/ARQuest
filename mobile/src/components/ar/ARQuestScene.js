@@ -36,8 +36,8 @@ export default function ARQuestScene(props) {
             
             // If they are physically standing inside the building (distance is less than 5 meters)
             // Push it 10 meters in front of them so it doesn't spawn on top of their head!
-            if (Math.abs(pos.x) < 5 && Math.abs(pos.z) < 5) {
-                pos.z -= 10;
+            if (Math.abs(pos.x) < 15 && Math.abs(pos.z) < 15) {
+                pos.z -= 25; // Push it WAY back into the camera view
             }
             
             setBuildingPos(pos);
@@ -60,16 +60,19 @@ export default function ARQuestScene(props) {
 
     return (
         <ViroARScene>
-            <ViroAmbientLight color={"#ffffff"} intensity={800} />
-            <ViroDirectionalLight color="#ffffff" direction={[0, -1, -0.2]} castsShadow={true} shadowOpacity={0.7} />
+            <ViroAmbientLight color={"#ffffff"} intensity={1000} />
+            <ViroDirectionalLight color="#ffffff" direction={[0, -1, -1]} castsShadow={true} shadowOpacity={0.4} />
+            <ViroDirectionalLight color="#ffffff" direction={[1, 0, 1]} intensity={500} />
+            <ViroDirectionalLight color="#ffffff" direction={[-1, 0, 1]} intensity={500} />
+            <ViroDirectionalLight color="#ffffff" direction={[0, 1, 0]} intensity={500} />
             
             {/* Render Building Model anchored in real world */}
             {modelUrl && (
                 <ViroNode position={[buildingPos.x, 0, buildingPos.z]} animation={{ name: "hover", run: true, loop: true }}>
                     <ViroText 
                         text={buildingName || "Target"} 
-                        scale={[2, 2, 2]} 
-                        position={[0, 1.5, 0]} // Lowered text so it doesn't float in space 
+                        scale={[4, 4, 4]} 
+                        position={[0, 4, 0]} // Lowered text so it doesn't float in space 
                         style={{ fontFamily: "Arial", fontSize: 24, color: "#FFFFFF" }} 
                         extrusionDepth={2}
                         materials={["textMaterial"]}
@@ -77,7 +80,7 @@ export default function ARQuestScene(props) {
                     <Viro3DObject
                         source={{ uri: modelUrl }}
                         position={[0, -1, 0]} // Sit on the ground
-                        scale={[0.05, 0.05, 0.05]} // Scaled down to 5% miniature
+                        scale={[0.0005, 0.0005, 0.0005]} // Extreme scale down for CAD/Sketchup mm exports
                         type="GLB"
                         onError={(e) => console.log("AR Model Load Error:", e)}
                     />
