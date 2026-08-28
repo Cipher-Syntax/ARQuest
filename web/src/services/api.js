@@ -57,10 +57,12 @@ api.interceptors.response.use(
                             refresh: refreshToken,
                         },
                     );
-                    const { access } = response.data;
-                    localStorage.setItem("access_token", access);
-                    originalRequest.headers.Authorization = `Bearer ${access}`;
-                    return api(originalRequest);
+                    const access = response.data?.data?.access || response.data?.access;
+                    if (access) {
+                        localStorage.setItem("access_token", access);
+                        originalRequest.headers.Authorization = `Bearer ${access}`;
+                        return api(originalRequest);
+                    }
                 } catch (refreshError) {
                     localStorage.removeItem("access_token");
                     localStorage.removeItem("refresh_token");

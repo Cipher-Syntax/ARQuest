@@ -12,15 +12,14 @@ import {
     Plus,
     Activity,
     Shield,
-    CheckCircle2,
     AlertCircle,
     ArrowRight,
-    MapPin,
     Layers,
-    Clock,
-    Sparkles,
+    FileVideo,
+    Briefcase,
+    ArchiveRestore,
 } from "lucide-react";
-import { Card, Badge, Button } from "../components/ui";
+import { Card } from "../components/ui";
 import { dashboardService } from "../services/dashboardService";
 import { Link } from "react-router-dom";
 import {
@@ -38,6 +37,7 @@ export default function Dashboard() {
     const [chartType, setChartType] = useState("area");
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [error, setError] = useState(null);
     const [lastUpdated, setLastUpdated] = useState(new Date());
 
     const [stats, setStats] = useState({
@@ -78,12 +78,26 @@ export default function Dashboard() {
 
     const fetchStats = async () => {
         setIsRefreshing(true);
+        setError(null);
         try {
             const data = await dashboardService.getStats();
-            setStats(data);
-            setLastUpdated(new Date());
-        } catch (error) {
-            console.error("Failed to load dashboard stats", error);
+            if (data) {
+                setStats((prev) => ({
+                    ...prev,
+                    ...data,
+                    gps_unlocks: data.gps_unlocks || prev.gps_unlocks,
+                    most_visited: data.most_visited || [],
+                    least_visited: data.least_visited || [],
+                    role_distribution: data.role_distribution || prev.role_distribution,
+                    content_coverage: data.content_coverage || prev.content_coverage,
+                    recent_activity: data.recent_activity || [],
+                    recent_feedbacks: data.recent_feedbacks || [],
+                }));
+                setLastUpdated(new Date());
+            }
+        } catch (err) {
+            console.error("Failed to load dashboard stats", err);
+            setError(err?.response?.data?.error?.message || err?.message || "Failed to load dashboard data from backend");
         } finally {
             setLoading(false);
             setIsRefreshing(false);
@@ -99,7 +113,7 @@ export default function Dashboard() {
             label: "Total Buildings",
             value: stats.total_buildings,
             icon: Building2,
-            trend: "Campus Facilities",
+            sublabel: "Campus Facilities",
             color: "bg-brand/10 text-brand",
             link: "/buildings",
         },
@@ -107,7 +121,7 @@ export default function Dashboard() {
             label: "Active Students",
             value: stats.active_students,
             icon: Users,
-            trend: `${stats.role_distribution?.students || 0} Registered`,
+            sublabel: `${stats.role_distribution?.students || stats.active_students || 0} Registered`,
             color: "bg-blue-50 text-blue-700",
             link: "/users",
         },
@@ -115,69 +129,76 @@ export default function Dashboard() {
             label: "GPS Unlocks Today",
             value: stats.gps_unlocks_today,
             icon: Navigation,
-            trend: "Live Foot Traffic",
+            sublabel: "Building Check-ins",
             color: "bg-emerald-50 text-emerald-700",
             link: "/geofences",
+        },
+        {
+            label: "Trivia Facts",
+            value: stats.trivia_facts,
+            icon: HelpCircle,
+            sublabel: "Learning Content",
+            color: "bg-amber-50 text-amber-700",
+            link: "/cms",
         },
         {
             label: "Quests Completed",
             value: stats.total_quests_completed,
             icon: Target,
-            trend: `${stats.quest_completion_rate}% Rate`,
+            sublabel: `${stats.quest_completion_rate}% Completion Rate`,
             color: "bg-purple-50 text-purple-700",
             link: "/cms",
-        },
-        {
-            label: "Unresolved Issues",
-            value: stats.content_coverage?.open_feedbacks || 0,
-            icon: AlertCircle,
-            trend: stats.content_coverage?.open_feedbacks > 0 ? "Requires Review" : "All Clean",
-            color: stats.content_coverage?.open_feedbacks > 0 ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-700",
-            link: "/feedback",
         },
     ];
 
     const panoramaPercent = stats.total_buildings > 0
-        ? Math.round((stats.content_coverage?.buildings_with_panoramas / stats.total_buildings) * 100)
+        ? Math.round(((stats.content_coverage?.buildings_with_panoramas || 0) / stats.total_buildings) * 100)
         : 0;
 
-    const totalUsers = stats.role_distribution?.total || 1;
-    const studentPercent = Math.round(((stats.role_distribution?.students || 0) / totalUsers) * 100);
-    const profPercent = Math.round(((stats.role_distribution?.professionals || 0) / totalUsers) * 100);
-    const visitorPercent = Math.round(((stats.role_distribution?.visitors || 0) / totalUsers) * 100);
+    const totalUsers = stats.role_distribution?.total || (stats.active_students || 1);
+    const studentCount = stats.role_distribution?.students ?? stats.active_students ?? 0;
+    const profCount = stats.role_distribution?.professionals ?? 0;
+    const visitorCount = stats.role_distribution?.visitors ?? 0;
+    const adminCount = stats.role_distribution?.admins ?? 1;
+
+    const studentPercent = Math.round((studentCount / (totalUsers || 1)) * 100);
+    const profPercent = Math.round((profCount / (totalUsers || 1)) * 100);
+    const visitorPercent = Math.round((visitorCount / (totalUsers || 1)) * 100);
     const adminPercent = Math.max(0, 100 - studentPercent - profPercent - visitorPercent);
+
+    if (loading && !isRefreshing) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+                <div className="w-8 h-8 border-3 border-brand border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-semibold text-gray-500">Loading Dashboard Data...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 pb-12">
-            {/* Hero Header */}
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-gray-200/80 rounded-md p-6 shadow-sm">
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Live System Operational
-                        </span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs font-medium text-gray-500">
-                            Last synced {lastUpdated.toLocaleTimeString()}
-                        </span>
-                    </div>
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                        Campus Operational Overview
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight font-display">
+                        Dashboard
                     </h1>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                        Real-time analytics for ARQuest campus exploration, foot traffic, and user engagement.
+                    <p className="text-sm text-gray-500 mt-1">
+                        Real-time overview of campus buildings, student activity, and exploration stats.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 mr-2 hidden sm:inline">
+                        Synced {lastUpdated.toLocaleTimeString()}
+                    </span>
                     <button
                         onClick={fetchStats}
                         disabled={isRefreshing}
                         className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition-colors disabled:opacity-50"
                     >
                         <RefreshCw size={13} className={isRefreshing ? "animate-spin text-brand" : "text-gray-500"} />
-                        Refresh Data
+                        Refresh
                     </button>
                     <Link
                         to="/buildings"
@@ -189,7 +210,23 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Quick Actions Bar */}
+            {/* Error Alert if backend unreachable */}
+            {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-red-700 text-sm">
+                        <AlertCircle size={18} />
+                        <span>{error}</span>
+                    </div>
+                    <button
+                        onClick={fetchStats}
+                        className="text-xs font-bold text-red-700 underline hover:no-underline"
+                    >
+                        Retry Connection
+                    </button>
+                </div>
+            )}
+
+            {/* Quick Navigation Shortcuts */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Link
                     to="/buildings"
@@ -200,8 +237,8 @@ export default function Dashboard() {
                             <Building2 size={16} />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-gray-900">Manage Buildings</p>
-                            <p className="text-[11px] text-gray-500">{stats.total_buildings} active facilities</p>
+                            <p className="text-xs font-bold text-gray-900">Buildings</p>
+                            <p className="text-[11px] text-gray-500">{stats.total_buildings} Facilities</p>
                         </div>
                     </div>
                     <ArrowRight size={14} className="text-gray-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
@@ -216,8 +253,8 @@ export default function Dashboard() {
                             <Camera size={16} />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-gray-900">360° Panoramas</p>
-                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.total_panoramas || 0} scenes live</p>
+                            <p className="text-xs font-bold text-gray-900">Manage Panorama</p>
+                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.total_panoramas || 0} Scenes</p>
                         </div>
                     </div>
                     <ArrowRight size={14} className="text-gray-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
@@ -232,8 +269,8 @@ export default function Dashboard() {
                             <Target size={16} />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-gray-900">Quests & Quizzes</p>
-                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.total_quests || 0} active quests</p>
+                            <p className="text-xs font-bold text-gray-900">Quests/Trivias/Quizzes</p>
+                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.total_quests || 0} Quests</p>
                         </div>
                     </div>
                     <ArrowRight size={14} className="text-gray-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
@@ -248,8 +285,8 @@ export default function Dashboard() {
                             <AlertCircle size={16} />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-gray-900">User Feedback</p>
-                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.open_feedbacks || 0} pending review</p>
+                            <p className="text-xs font-bold text-gray-900">Feedback & Issues</p>
+                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.open_feedbacks || 0} Pending</p>
                         </div>
                     </div>
                     <ArrowRight size={14} className="text-gray-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
@@ -265,8 +302,8 @@ export default function Dashboard() {
                                 <div className={`p-2 rounded-md ${stat.color}`}>
                                     <stat.icon size={16} />
                                 </div>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700">
-                                    {stat.trend}
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 truncate max-w-[100px]">
+                                    {stat.sublabel}
                                 </span>
                             </div>
                             <div className="mt-3">
@@ -284,17 +321,17 @@ export default function Dashboard() {
 
             {/* Main Charts & Coverage Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Foot Traffic & GPS Unlocks (7 Columns) */}
+                {/* GPS Unlocks (8 Columns) */}
                 <div className="lg:col-span-8">
                     <Card className="rounded-md">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                             <div>
                                 <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
                                     <Navigation size={18} className="text-brand" />
-                                    Campus Foot Traffic & GPS Unlocks
+                                    GPS Unlocks
                                 </h3>
                                 <p className="text-xs text-gray-500 mt-0.5">
-                                    Physical geofence check-ins recorded across campus facilities
+                                    Geofence building unlocks recorded across campus
                                 </p>
                             </div>
 
@@ -363,7 +400,7 @@ export default function Dashboard() {
                                             }}
                                             labelStyle={{ fontWeight: "bold", color: "#111827", marginBottom: "4px" }}
                                         />
-                                        <Bar dataKey="value" fill="#9b1b30" radius={[4, 4, 0, 0]} barSize={28} />
+                                        <Bar dataKey="value" fill="#8A1538" radius={[4, 4, 0, 0]} barSize={28} />
                                     </BarChart>
                                 ) : (
                                     <AreaChart
@@ -372,8 +409,8 @@ export default function Dashboard() {
                                     >
                                         <defs>
                                             <linearGradient id="unlockGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#9b1b30" stopOpacity={0.25} />
-                                                <stop offset="95%" stopColor="#9b1b30" stopOpacity={0.0} />
+                                                <stop offset="5%" stopColor="#8A1538" stopOpacity={0.25} />
+                                                <stop offset="95%" stopColor="#8A1538" stopOpacity={0.0} />
                                             </linearGradient>
                                         </defs>
                                         <XAxis
@@ -394,7 +431,7 @@ export default function Dashboard() {
                                         <Area
                                             type="monotone"
                                             dataKey="value"
-                                            stroke="#9b1b30"
+                                            stroke="#8A1538"
                                             strokeWidth={2.5}
                                             fillOpacity={1}
                                             fill="url(#unlockGrad)"
@@ -406,7 +443,7 @@ export default function Dashboard() {
                     </Card>
                 </div>
 
-                {/* Campus Content & Coverage (4 Columns) */}
+                {/* Content & Media Coverage (4 Columns) */}
                 <div className="lg:col-span-4">
                     <Card className="rounded-md h-full flex flex-col justify-between">
                         <div>
@@ -426,7 +463,7 @@ export default function Dashboard() {
                                     <div className="flex justify-between text-xs font-semibold text-gray-700 mb-1.5">
                                         <span className="flex items-center gap-1.5">
                                             <Camera size={13} className="text-purple-600" />
-                                            360° Virtual Walkthroughs
+                                            360° Panoramas
                                         </span>
                                         <span className="font-bold text-gray-900">
                                             {stats.content_coverage?.buildings_with_panoramas || 0}/{stats.total_buildings} ({panoramaPercent}%)
@@ -445,10 +482,10 @@ export default function Dashboard() {
                                     <div className="flex justify-between text-xs font-semibold text-gray-700 mb-1.5">
                                         <span className="flex items-center gap-1.5">
                                             <Target size={13} className="text-brand" />
-                                            Active Quests & Missions
+                                            Quests & Challenges
                                         </span>
                                         <span className="font-bold text-gray-900">
-                                            {stats.content_coverage?.total_quests || 0} Live Quests
+                                            {stats.content_coverage?.total_quests || 0} Quests
                                         </span>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -467,13 +504,13 @@ export default function Dashboard() {
                                             Trivia & Quizzes Pool
                                         </span>
                                         <span className="font-bold text-gray-900">
-                                            {stats.content_coverage?.total_quizzes || 0} Questions
+                                            {stats.content_coverage?.total_quizzes || stats.trivia_facts || 0} Questions
                                         </span>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                                         <div
                                             className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
-                                            style={{ width: `${Math.min(100, (stats.content_coverage?.total_quizzes || 0) * 5)}%` }}
+                                            style={{ width: `${Math.min(100, (stats.content_coverage?.total_quizzes || stats.trivia_facts || 0) * 5)}%` }}
                                         />
                                     </div>
                                 </div>
@@ -483,7 +520,7 @@ export default function Dashboard() {
                         <div className="pt-5 mt-4 border-t border-gray-100 flex items-center justify-between">
                             <span className="text-xs text-gray-500 font-medium">Manage all AR assets</span>
                             <Link to="/cms" className="text-xs font-bold text-brand hover:underline flex items-center gap-1">
-                                Open CMS Hub <ArrowRight size={12} />
+                                Open CMS <ArrowRight size={12} />
                             </Link>
                         </div>
                     </Card>
@@ -492,11 +529,11 @@ export default function Dashboard() {
 
             {/* 3-Column Detailed Matrix */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Column 1: Most & Least Visited Buildings */}
+                {/* Column 1: Most Visited Buildings */}
                 <Card className="rounded-md">
                     <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-1">
                         <TrendingUp size={16} className="text-emerald-600" />
-                        Top Visited Facilities
+                        Most Visited Buildings
                     </h3>
                     <p className="text-[11px] text-gray-500 mb-4">Ranked by physical check-ins</p>
 
@@ -532,13 +569,13 @@ export default function Dashboard() {
                     </div>
                 </Card>
 
-                {/* Column 2: User Role Composition */}
+                {/* Column 2: User Roles */}
                 <Card className="rounded-md">
                     <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-1">
                         <Shield size={16} className="text-blue-600" />
-                        User Role Composition
+                        User Roles
                     </h3>
-                    <p className="text-[11px] text-gray-500 mb-4">{stats.role_distribution?.total || 0} Total registered accounts</p>
+                    <p className="text-[11px] text-gray-500 mb-4">{totalUsers} Registered Accounts</p>
 
                     <div className="space-y-3.5">
                         {/* Students */}
@@ -546,7 +583,7 @@ export default function Dashboard() {
                             <div className="flex justify-between text-xs mb-1">
                                 <span className="font-medium text-gray-700">Students</span>
                                 <span className="font-bold text-gray-900">
-                                    {stats.role_distribution?.students || 0} ({studentPercent}%)
+                                    {studentCount} ({studentPercent}%)
                                 </span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -554,12 +591,12 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {/* Accreditors / Professionals */}
+                        {/* Professionals */}
                         <div>
                             <div className="flex justify-between text-xs mb-1">
-                                <span className="font-medium text-gray-700">Accreditors & Faculty</span>
+                                <span className="font-medium text-gray-700">Professionals</span>
                                 <span className="font-bold text-gray-900">
-                                    {stats.role_distribution?.professionals || 0} ({profPercent}%)
+                                    {profCount} ({profPercent}%)
                                 </span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -570,9 +607,9 @@ export default function Dashboard() {
                         {/* Visitors */}
                         <div>
                             <div className="flex justify-between text-xs mb-1">
-                                <span className="font-medium text-gray-700">Guests & Visitors</span>
+                                <span className="font-medium text-gray-700">Visitors</span>
                                 <span className="font-bold text-gray-900">
-                                    {stats.role_distribution?.visitors || 0} ({visitorPercent}%)
+                                    {visitorCount} ({visitorPercent}%)
                                 </span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -585,7 +622,7 @@ export default function Dashboard() {
                             <div className="flex justify-between text-xs mb-1">
                                 <span className="font-medium text-gray-700">Administrators</span>
                                 <span className="font-bold text-gray-900">
-                                    {stats.role_distribution?.admins || 0} ({adminPercent}%)
+                                    {adminCount} ({adminPercent}%)
                                 </span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -595,18 +632,18 @@ export default function Dashboard() {
                     </div>
                 </Card>
 
-                {/* Column 3: Recent Activity & Open Feedback */}
+                {/* Column 3: History & Logs */}
                 <Card className="rounded-md">
                     <div className="flex items-center justify-between mb-1">
                         <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
                             <Activity size={16} className="text-brand" />
-                            Live System Events
+                            History & Logs
                         </h3>
                         <Link to="/history" className="text-[11px] font-bold text-brand hover:underline">
                             View All
                         </Link>
                     </div>
-                    <p className="text-[11px] text-gray-500 mb-3">Audit trail and mobile alerts</p>
+                    <p className="text-[11px] text-gray-500 mb-3">System notifications and events</p>
 
                     <div className="space-y-2.5">
                         {stats.recent_activity.map((item, i) => (
@@ -619,7 +656,7 @@ export default function Dashboard() {
                             </div>
                         ))}
                         {stats.recent_activity.length === 0 && (
-                            <p className="text-xs text-gray-400 text-center py-4">No recent system events</p>
+                            <p className="text-xs text-gray-400 text-center py-4">No recent history events</p>
                         )}
                     </div>
                 </Card>
