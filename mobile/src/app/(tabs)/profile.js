@@ -511,8 +511,8 @@ export default function ProfileScreen() {
                         />
                         <SettingsRow
                             icon={HelpCircle}
-                            title="Replay Tutorial"
-                            subtitle="View the onboarding guide again"
+                            title="User Manual & Tutorial"
+                            subtitle="View the role-based system guide"
                             onPress={() =>
                                 DeviceEventEmitter.emit("show_tutorial")
                             }
