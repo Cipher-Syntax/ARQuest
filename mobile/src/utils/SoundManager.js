@@ -1,9 +1,11 @@
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 class SoundManager {
     constructor() {
         this.players = {};
         this.isLoaded = false;
+        this.isMuted = false;
 
         // Map sound names to asset paths
         this.soundFiles = {
@@ -19,6 +21,11 @@ class SoundManager {
         if (this.isLoaded) return;
 
         try {
+            const savedPref = await AsyncStorage.getItem("@pref_sound_effects");
+            if (savedPref !== null) {
+                this.isMuted = savedPref === "false";
+            }
+
             await setAudioModeAsync({
                 playsInSilentMode: true,
                 shouldPlayInBackground: false,
@@ -37,7 +44,12 @@ class SoundManager {
         }
     }
 
+    setMuted(muted) {
+        this.isMuted = !!muted;
+    }
+
     play(soundName) {
+        if (this.isMuted) return;
         if (!this.isLoaded) this.init();
 
         const player = this.players[soundName];

@@ -511,8 +511,8 @@ export default function ProfileScreen() {
                         <SettingsRow
                             icon={Settings}
                             title="App Preferences"
-                            subtitle="Permissions and notifications"
-                            onPress={() => {}}
+                            subtitle="Audio, notifications & permissions"
+                            onPress={() => router.push("/preferences")}
                             showBorder={false}
                         />
                     </View>
