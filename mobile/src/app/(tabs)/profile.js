@@ -74,21 +74,21 @@ export default function ProfileScreen() {
                     );
                     setMyStats(stats);
                 }
-            }
 
-            const resBadges = await api.get("/api/gamification/badges/");
-            if (resBadges.data.success) {
-                const allBadges = resBadges.data.data;
-                const earnedBadges = allBadges.filter((b) => b.earned);
-                setBadgeCount(`${earnedBadges.length}/${allBadges.length}`);
-                setMyBadges(allBadges);
-            }
+                const resBadges = await api.get("/api/gamification/badges/");
+                if (resBadges.data.success) {
+                    const allBadges = resBadges.data.data;
+                    const earnedBadges = allBadges.filter((b) => b.earned);
+                    setBadgeCount(`${earnedBadges.length}/${allBadges.length}`);
+                    setMyBadges(allBadges);
+                }
 
-            const resHistory = await api.get(
-                "/api/gamification/quests/history/",
-            );
-            if (resHistory.data.success) {
-                setQuestHistory(resHistory.data.data);
+                const resHistory = await api.get(
+                    "/api/gamification/quests/history/",
+                );
+                if (resHistory.data.success) {
+                    setQuestHistory(resHistory.data.data);
+                }
             }
         } catch (error) {
             console.error("Failed to fetch profile data:", error);

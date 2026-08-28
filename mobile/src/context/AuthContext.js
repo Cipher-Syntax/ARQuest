@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
                 const payload = response.data.data || response.data;
                 const restoredUser = payload.user;
                 setUser((prev) => {
-                    if (prev?.rank_info && restoredUser?.rank_info) {
+                    if (restoredUser?.role === "student" && prev?.rank_info && restoredUser?.rank_info) {
                         if (restoredUser.rank_info.level > prev.rank_info.level) {
                             setTimeout(() => {
                                 Alert(
@@ -36,41 +36,44 @@ export const AuthProvider = ({ children }) => {
                 });
 
                 let streakBonusExp = 0;
-                try {
-                    const checkinRes = await api.post("/api/auth/checkin/");
-                    const checkinData = checkinRes.data.data || checkinRes.data;
-                    streakBonusExp = checkinData.streak_bonus_exp || 0;
+                // Only students participate in daily checkins & streak EXP rewards
+                if (restoredUser?.role === "student") {
+                    try {
+                        const checkinRes = await api.post("/api/auth/checkin/");
+                        const checkinData = checkinRes.data.data || checkinRes.data;
+                        streakBonusExp = checkinData.streak_bonus_exp || 0;
 
-                    let newStreak = checkinData.streak_count !== undefined
-                            ? checkinData.streak_count
-                            : restoredUser.streak_count;
-                            
-                    if (checkinData.streak_count !== undefined) {
-                        setUser((prev) => ({
-                            ...prev,
-                            streak_count: checkinData.streak_count,
-                        }));
-                    }
+                        let newStreak = checkinData.streak_count !== undefined
+                                ? checkinData.streak_count
+                                : restoredUser.streak_count;
+                                
+                        if (checkinData.streak_count !== undefined) {
+                            setUser((prev) => ({
+                                ...prev,
+                                streak_count: checkinData.streak_count,
+                            }));
+                        }
 
-                    if (streakBonusExp > 0) {
-                        setTimeout(() => {
-                            if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
-                                Alert(
-                                    `🔥 ${newStreak}-Day Streak!`,
-                                    `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
-                                    [{ text: "Awesome!", style: "default" }],
-                                );
-                            } else {
-                                Alert(
-                                    `✅ Daily Check-in`,
-                                    `You earned +${streakBonusExp} EXP for logging in today. Keep your streak going!`,
-                                    [{ text: "Okay", style: "default" }],
-                                );
-                            }
-                        }, 500);
+                        if (streakBonusExp > 0) {
+                            setTimeout(() => {
+                                if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
+                                    Alert(
+                                        `🔥 ${newStreak}-Day Streak!`,
+                                        `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
+                                        [{ text: "Awesome!", style: "default" }],
+                                    );
+                                } else {
+                                    Alert(
+                                        `✅ Daily Check-in`,
+                                        `You earned +${streakBonusExp} EXP for logging in today. Keep your streak going!`,
+                                        [{ text: "Okay", style: "default" }],
+                                    );
+                                }
+                            }, 500);
+                        }
+                    } catch (checkinErr) {
+                        console.log("Checkin failed (non-fatal):", checkinErr);
                     }
-                } catch (checkinErr) {
-                    console.log("Checkin failed (non-fatal):", checkinErr);
                 }
 
                 return { user: restoredUser, streakBonusExp };

@@ -14,9 +14,11 @@ import { ArrowLeft, Award } from "lucide-react-native";
 import { router } from "expo-router";
 import { api } from "../services";
 import theme from "../theme/tokens";
+import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
 
 export default function BadgesScreen() {
+    const { user } = useAuth();
     const [badges, setBadges] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(null);
@@ -39,8 +41,12 @@ export default function BadgesScreen() {
     };
 
     useEffect(() => {
+        if (user && user.role !== "student") {
+            router.replace("/(tabs)/explore");
+            return;
+        }
         loadData();
-    }, []);
+    }, [user]);
 
     const onRefresh = React.useCallback(() => {
         setRefreshing(true);

@@ -45,8 +45,12 @@ export default function LeaderboardScreen() {
     };
 
     useEffect(() => {
+        if (user && user.role !== "student") {
+            router.replace("/(tabs)/explore");
+            return;
+        }
         fetchData();
-    }, []);
+    }, [user]);
 
     const onRefresh = () => {
         setRefreshing(true);

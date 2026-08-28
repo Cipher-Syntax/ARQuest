@@ -63,6 +63,14 @@ export default function PassportScreen() {
     const totalCount = buildings.length;
     const progress = totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0;
 
+    const sortedBuildings = [...buildings].sort((a, b) => {
+        const aUnlocked = unlockedIds.has(a.id);
+        const bUnlocked = unlockedIds.has(b.id);
+        if (aUnlocked && !bUnlocked) return -1;
+        if (!aUnlocked && bUnlocked) return 1;
+        return (a.name || "").localeCompare(b.name || "");
+    });
+
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             {/* Header */}
@@ -132,7 +140,7 @@ export default function PassportScreen() {
                     </View>
                 ) : (
                     <View style={styles.grid}>
-                        {buildings.map((building) => {
+                        {sortedBuildings.map((building) => {
                             const isUnlocked = unlockedIds.has(building.id);
                             return (
                                 <View

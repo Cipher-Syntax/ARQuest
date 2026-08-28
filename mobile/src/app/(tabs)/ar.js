@@ -160,6 +160,7 @@ export default function ARScreen() {
 
     useEffect(() => {
         const fetchQuests = async () => {
+            if (user?.role !== "student") return;
             try {
                 const res = await api.get("/api/gamification/quests/active/");
                 if (res.data.success) {
@@ -170,7 +171,7 @@ export default function ARScreen() {
             }
         };
         fetchQuests();
-    }, []);
+    }, [user?.role]);
 
     useEffect(() => {
         Animated.loop(
@@ -515,7 +516,9 @@ export default function ARScreen() {
                 lng: location?.longitude
             });
             if (res.data.success) {
-                SoundManager.play("building_unlock");
+                if (user?.role === "student") {
+                    SoundManager.play("building_unlock");
+                }
                 Alert("Unlocked!", `Successfully unlocked via QR code!`);
                 if (
                     nearbyBuildingFull &&
@@ -526,9 +529,9 @@ export default function ARScreen() {
                         is_unlocked: true,
                     });
                 }
-                // Show badge toast if earned
+                // Show badge toast if earned (students only)
                 const earned = res.data.data?.newly_earned_badges || [];
-                if (earned.length > 0) {
+                if (user?.role === "student" && earned.length > 0) {
                     setTimeout(() => {
                         SoundManager.play("badge_earned");
                     }, 1200);
@@ -761,7 +764,7 @@ export default function ARScreen() {
                         
                         
                         {/* Active Missions Pill */}
-                        {Array.isArray(activeQuests) && activeQuests.length > 0 && !triviaModalVisible && (
+                        {user?.role === "student" && Array.isArray(activeQuests) && activeQuests.length > 0 && !triviaModalVisible && (
                             <TouchableOpacity style={styles.missionsPill}>
                                 <Ionicons name="list" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
                                 <Text style={styles.missionsPillText}>

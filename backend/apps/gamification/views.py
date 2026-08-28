@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
+from apps.authentication.permissions import IsStudentRole
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -17,6 +18,8 @@ User = get_user_model()
 
 def check_and_award_badges(user):
 	"""Check all badge triggers for a user and award any newly earned badges."""
+	if not user or getattr(user, 'role', '') != 'student':
+		return []
 	newly_earned = []
 	active_badges = Badge.objects.filter(is_active=True)
 	already_earned_ids = set(UserBadge.objects.filter(user=user).values_list('badge_id', flat=True))
@@ -78,7 +81,7 @@ from datetime import date
 
 
 class ActiveQuestsView(views.APIView):
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsAuthenticated, IsStudentRole]
 
 	def get(self, request):
 		user = request.user
@@ -155,7 +158,7 @@ class ActiveQuestsView(views.APIView):
 
 
 class ChallengesView(views.APIView):
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsAuthenticated, IsStudentRole]
 
 	def get(self, request):
 		user = request.user
@@ -183,7 +186,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CompleteQuestView(views.APIView):
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsAuthenticated, IsStudentRole]
 
 	def post(self, request, pk):
 		try:
@@ -273,7 +276,7 @@ class RecentActivityView(views.APIView):
 
 
 class MyBadgesView(views.APIView):
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsAuthenticated, IsStudentRole]
 
 	def get(self, request):
 		user_badges = UserBadge.objects.filter(user=request.user).select_related('badge')
@@ -295,7 +298,7 @@ class AllBadgesView(views.APIView):
 		return Response({'success': True, 'data': data})
 
 class MyQuestHistoryView(views.APIView):
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsAuthenticated, IsStudentRole]
 
 	def get(self, request):
 		recent = UserQuestProgress.objects.filter(

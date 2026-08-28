@@ -33,6 +33,8 @@ import {
     Box,
     Activity,
     Timer,
+    Building,
+    CheckCircle2,
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
@@ -88,26 +90,29 @@ export default function HomeScreen() {
                     );
                     setStats(myStats);
                 }
-            }
 
-            const resQuest = await api.get("/api/gamification/quests/active/");
-            if (resQuest.data.success) {
-                const quests = resQuest.data.data.quests || resQuest.data.data;
-                if (quests && quests.length > 0) {
-                    const incompleteQuests = quests.filter(q => !q.is_completed);
-                    setActiveQuests(incompleteQuests);
+                const resQuest = await api.get("/api/gamification/quests/active/");
+                if (resQuest.data.success) {
+                    const quests = resQuest.data.data.quests || resQuest.data.data;
+                    if (quests && quests.length > 0) {
+                        const incompleteQuests = quests.filter(q => !q.is_completed);
+                        setActiveQuests(incompleteQuests);
+                    } else {
+                        setActiveQuests([]);
+                    }
                 } else {
                     setActiveQuests([]);
                 }
+
+                const resChallenges = await api.get(
+                    "/api/gamification/challenges/",
+                );
+                if (resChallenges.data.success) {
+                    setChallenges(resChallenges.data.data);
+                }
             } else {
                 setActiveQuests([]);
-            }
-
-            const resChallenges = await api.get(
-                "/api/gamification/challenges/",
-            );
-            if (resChallenges.data.success) {
-                setChallenges(resChallenges.data.data);
+                setChallenges([]);
             }
         } catch (error) {
             console.error("Failed to fetch gamification data:", error);
@@ -191,16 +196,45 @@ export default function HomeScreen() {
                 >
                     <View style={styles.headerTopRow}>
                         <View style={styles.userInfo}>
-                            <Text style={styles.greeting}>CAMPUS EXPLORER</Text>
+                            <Text style={styles.greeting}>
+                                {user?.role === "student"
+                                    ? "CAMPUS EXPLORER"
+                                    : "ACCREDITATION PORTAL"}
+                            </Text>
                             <Text style={styles.username}>
                                 {user?.username || "Guest"}
                             </Text>
-                            {user?.role === "student" && user?.rank_info && (
+                            {user?.role === "student" && user?.rank_info ? (
                                 <Text style={styles.userLevel}>
                                     {user.rank_info.icon || "🎒"} Lv.
                                     {user.rank_info.level}{" "}
                                     {user.rank_info.title}
                                 </Text>
+                            ) : (
+                                <View
+                                    style={{
+                                        backgroundColor:
+                                            "rgba(255, 255, 255, 0.2)",
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 2,
+                                        borderRadius: 10,
+                                        alignSelf: "flex-start",
+                                        marginTop: 4,
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            fontFamily:
+                                                fonts.heading.semiBold,
+                                            fontSize: 10,
+                                            color: "#FFFFFF",
+                                            letterSpacing: 0.5,
+                                        }}
+                                    >
+                                        {user?.role?.toUpperCase() ||
+                                            "PROFESSIONAL"}
+                                    </Text>
+                                </View>
                             )}
                         </View>
                         <View style={styles.headerRight}>
@@ -626,7 +660,25 @@ export default function HomeScreen() {
                                         size={14}
                                     />
                                     <Text style={styles.heroChipText}>
-                                        ACCREDITOR PORTAL
+                                        EVALUATION READY
+                                    </Text>
+                                </View>
+                                <View
+                                    style={[
+                                        styles.heroExpBadge,
+                                        {
+                                            backgroundColor:
+                                                "rgba(34, 197, 94, 0.12)",
+                                        },
+                                    ]}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.heroExpText,
+                                            { color: "#16a34a" },
+                                        ]}
+                                    >
+                                        Full Access
                                     </Text>
                                 </View>
                             </View>
@@ -635,13 +687,13 @@ export default function HomeScreen() {
                                 style={styles.heroQuestTitle}
                                 numberOfLines={2}
                             >
-                                Welcome to the Campus AR Tour
+                                Campus Facility Evaluation & 360° Tours
                             </Text>
 
                             <View style={styles.heroBottomRow}>
                                 <View style={styles.heroTargetInfo}>
                                     <Text style={styles.heroTargetLabel}>
-                                        Access Level
+                                        ACCESS LEVEL
                                     </Text>
                                     <Text
                                         style={styles.heroTargetValue}
@@ -650,12 +702,26 @@ export default function HomeScreen() {
                                         All Facilities Unlocked
                                     </Text>
                                 </View>
+                                <TouchableOpacity
+                                    style={styles.heroDeployBtn}
+                                    onPress={() =>
+                                        router.push("/(tabs)/buildings")
+                                    }
+                                >
+                                    <Text style={styles.heroDeployText}>
+                                        Start Tour
+                                    </Text>
+                                    <ChevronRight
+                                        color="#FFFFFF"
+                                        size={18}
+                                    />
+                                </TouchableOpacity>
                             </View>
                         </View>
                     )}
 
                     {/* Quick Stats Split Row */}
-                    {user?.role === "student" && (
+                    {user?.role === "student" ? (
                         <View style={styles.splitRow}>
                             <View style={styles.splitCard}>
                                 <View style={styles.splitIconWrap}>
@@ -686,6 +752,42 @@ export default function HomeScreen() {
                                 </Text>
                                 <Text style={styles.splitLabel}>
                                     NEAREST HUB
+                                </Text>
+                            </View>
+                        </View>
+                    ) : (
+                        <View style={styles.splitRow}>
+                            <View style={styles.splitCard}>
+                                <View style={styles.splitIconWrap}>
+                                    <Building
+                                        color={theme.colors.primary}
+                                        size={24}
+                                    />
+                                </View>
+                                <Text style={styles.splitValue}>
+                                    {buildings.length > 0
+                                        ? `${buildings.length}`
+                                        : "--"}
+                                </Text>
+                                <Text style={styles.splitLabel}>
+                                    CAMPUS FACILITIES
+                                </Text>
+                            </View>
+
+                            <View style={styles.splitCard}>
+                                <View style={styles.splitIconWrap}>
+                                    <MapPin
+                                        color={theme.colors.primary}
+                                        size={24}
+                                    />
+                                </View>
+                                <Text style={styles.splitValue}>
+                                    {distanceToNearest !== null
+                                        ? `${(distanceToNearest / 1000).toFixed(2)}km`
+                                        : "--"}
+                                </Text>
+                                <Text style={styles.splitLabel}>
+                                    NEAREST FACILITY
                                 </Text>
                             </View>
                         </View>
@@ -727,7 +829,7 @@ export default function HomeScreen() {
                                 </Text>
                             </TouchableOpacity>
 
-                            {user?.role === "student" && (
+                            {user?.role === "student" ? (
                                 <>
                                     <TouchableOpacity
                                         style={styles.actionCard}
@@ -761,6 +863,21 @@ export default function HomeScreen() {
                                         </Text>
                                     </TouchableOpacity>
                                 </>
+                            ) : (
+                                <TouchableOpacity
+                                    style={styles.actionCard}
+                                    onPress={() => router.push("/passport")}
+                                >
+                                    <View style={styles.actionIconWrap}>
+                                        <CheckCircle2
+                                            color={theme.colors.primary}
+                                            size={24}
+                                        />
+                                    </View>
+                                    <Text style={styles.actionText}>
+                                        Visited Buildings
+                                    </Text>
+                                </TouchableOpacity>
                             )}
                         </ScrollView>
                     </View>

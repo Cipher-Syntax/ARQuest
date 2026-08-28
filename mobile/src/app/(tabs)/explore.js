@@ -69,16 +69,18 @@ export default function ExploreScreen() {
                 setBuildingsList(res.data.data);
                 setTotalBuildings(res.data.data.length);
             }
-            const questRes = await api.get("/api/gamification/quests/active/");
-            if (questRes.data.success) {
-                const quests = questRes.data.data.quests || questRes.data.data;
-                setActiveQuests(quests);
-                if (questRes.data.data.weekly_progress) {
-                    setWeeklyProgress(questRes.data.data.weekly_progress);
+            if (role === "student") {
+                const questRes = await api.get("/api/gamification/quests/active/");
+                if (questRes.data.success) {
+                    const quests = questRes.data.data.quests || questRes.data.data;
+                    setActiveQuests(quests);
+                    if (questRes.data.data.weekly_progress) {
+                        setWeeklyProgress(questRes.data.data.weekly_progress);
+                    }
                 }
             }
         } catch (err) {
-            console.error("Failed to fetch gamification data", err);
+            console.error("Failed to fetch explore data", err);
         } finally {
             setRefreshing(false);
         }
@@ -249,33 +251,35 @@ export default function ExploreScreen() {
                         );
                         setLastUnlockAttempt(buildingId);
 
-                        SoundManager.play("building_unlock");
-                        if (checkToken) await checkToken(); // Refresh global EXP immediately!
+                        if (role === "student") {
+                            SoundManager.play("building_unlock");
+                            if (checkToken) await checkToken(); // Refresh global EXP immediately!
 
-                        const badges = unlockResult?.newly_earned_badges || [];
-                        if (badges.length > 0) {
-                            setTimeout(() => {
-                                SoundManager.play("badge_earned");
-                            }, 1500);
-
-                            setEarnedBadges(badges);
-                            badgeAnim.setValue(0);
-                            Animated.sequence([
-                                Animated.spring(badgeAnim, {
-                                    toValue: 1,
-                                    tension: 60,
-                                    friction: 8,
-                                    useNativeDriver: true,
-                                }),
-                            ]).start(() => {
+                            const badges = unlockResult?.newly_earned_badges || [];
+                            if (badges.length > 0) {
                                 setTimeout(() => {
-                                    Animated.timing(badgeAnim, {
-                                        toValue: 0,
-                                        duration: 300,
+                                    SoundManager.play("badge_earned");
+                                }, 1500);
+
+                                setEarnedBadges(badges);
+                                badgeAnim.setValue(0);
+                                Animated.sequence([
+                                    Animated.spring(badgeAnim, {
+                                        toValue: 1,
+                                        tension: 60,
+                                        friction: 8,
                                         useNativeDriver: true,
-                                    }).start(() => setEarnedBadges([]));
-                                }, 3500);
-                            });
+                                    }),
+                                ]).start(() => {
+                                    setTimeout(() => {
+                                        Animated.timing(badgeAnim, {
+                                            toValue: 0,
+                                            duration: 300,
+                                            useNativeDriver: true,
+                                        }).start(() => setEarnedBadges([]));
+                                    }, 3500);
+                                });
+                            }
                         }
                     } catch (err) {
                         console.log("Unlock attempt:", err);
@@ -592,14 +596,12 @@ export default function ExploreScreen() {
                         </View>
 
                         {nearbyBuildings.map((building, index) => {
-                            const unlockedRecord = unlockedBuildings.find(
-                                (ub) => ub.id === building.id,
-                            );
-                            const hasVisited = unlockedRecord
-                                ? role === "professional"
-                                    ? unlockedRecord.visited
-                                    : true
-                                : false;
+                            const isUnlocked =
+                                role === "professional" ||
+                                role === "admin" ||
+                                unlockedBuildings.some(
+                                    (ub) => ub.id === building.id,
+                                );
                             return (
                                 <View
                                     key={building.id}
@@ -612,19 +614,19 @@ export default function ExploreScreen() {
                                     <View
                                         style={[
                                             styles.nearbyIconWrapper,
-                                            hasVisited &&
+                                            isUnlocked &&
                                                 styles.nearbyIconWrapperActive,
                                         ]}
                                     >
                                         <Ionicons
                                             name={
-                                                hasVisited
+                                                isUnlocked
                                                     ? "checkmark"
                                                     : "lock-closed"
                                             }
                                             size={18}
                                             color={
-                                                hasVisited
+                                                isUnlocked
                                                     ? theme.colors.white
                                                     : theme.colors.primary
                                             }

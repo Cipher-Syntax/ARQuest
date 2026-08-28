@@ -11,7 +11,7 @@ import {
     Download,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
     Card,
     Badge,
@@ -95,10 +95,45 @@ export default function BuildingsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [visibilityFilter, setVisibilityFilter] = useState("all");
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const getInitialPage = () => {
+        const urlPage = searchParams.get("page");
+        if (urlPage) {
+            const parsed = parseInt(urlPage, 10);
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+        const savedPage = sessionStorage.getItem("buildings_page");
+        if (savedPage) {
+            const parsed = parseInt(savedPage, 10);
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+        return 1;
+    };
+
     const [openMenu, setOpenMenu] = useState(null);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(getInitialPage);
     const itemsPerPage = 5;
     const menuRef = useRef(null);
+    const isFirstRender = useRef(true);
+    const prevFiltersRef = useRef({ searchTerm, statusFilter, visibilityFilter });
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        sessionStorage.setItem("buildings_page", page.toString());
+        setSearchParams(
+            (prev) => {
+                const next = new URLSearchParams(prev);
+                if (page === 1) {
+                    next.delete("page");
+                } else {
+                    next.set("page", page.toString());
+                }
+                return next;
+            },
+            { replace: true }
+        );
+    };
 
     const [formData, setFormData] = useState({
         name: "",
@@ -197,8 +232,37 @@ export default function BuildingsPage() {
     );
 
     useEffect(() => {
-        setCurrentPage(1);
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        const prev = prevFiltersRef.current;
+        if (
+            prev.searchTerm !== searchTerm ||
+            prev.statusFilter !== statusFilter ||
+            prev.visibilityFilter !== visibilityFilter
+        ) {
+            prevFiltersRef.current = { searchTerm, statusFilter, visibilityFilter };
+            handlePageChange(1);
+        }
     }, [searchTerm, statusFilter, visibilityFilter]);
+
+    useEffect(() => {
+        if (!loading && totalPages > 0 && currentPage > totalPages) {
+            handlePageChange(totalPages);
+        }
+    }, [loading, totalPages, currentPage]);
+
+    useEffect(() => {
+        const urlPage = searchParams.get("page");
+        if (urlPage) {
+            const parsed = parseInt(urlPage, 10);
+            if (!isNaN(parsed) && parsed > 0 && parsed !== currentPage) {
+                setCurrentPage(parsed);
+                sessionStorage.setItem("buildings_page", parsed.toString());
+            }
+        }
+    }, [searchParams]);
 
     return (
         <div className="space-y-6">
@@ -461,7 +525,7 @@ export default function BuildingsPage() {
                             <Pagination
                                 currentPage={currentPage}
                                 totalPages={totalPages}
-                                onPageChange={setCurrentPage}
+                                onPageChange={handlePageChange}
                             />
                         )}
                     </>

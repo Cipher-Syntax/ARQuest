@@ -5,12 +5,13 @@ from django.db import transaction
 
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
+from apps.authentication.permissions import IsStudentRole
 from apps.buildings.models import Building
 from .models import QuizQuestion, UserQuizProgress
 from .serializers import QuizQuestionSerializer
 
 class BuildingQuizView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStudentRole]
     
     def get(self, request, id):
         try:
@@ -31,7 +32,7 @@ class BuildingQuizView(APIView):
 
 
 class AnswerQuizView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStudentRole]
     
     def post(self, request):
         question_id = request.data.get('question_id')
@@ -85,6 +86,8 @@ class QuizQuestionListView(APIView):
         return success_response(QuizQuestionSerializer(questions, many=True).data)
 
     def post(self, request):
+        if not request.user.is_admin_role:
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         serializer = QuizQuestionSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -103,6 +106,8 @@ class QuizQuestionDetailView(APIView):
         return success_response(QuizQuestionSerializer(question).data)
 
     def put(self, request, pk):
+        if not request.user.is_admin_role:
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         try:
             question = QuizQuestion.objects.get(id=pk)
         except QuizQuestion.DoesNotExist:
@@ -115,6 +120,8 @@ class QuizQuestionDetailView(APIView):
         return error_response(ErrorCodes.INVALID_INPUT, 'Invalid data', details=serializer.errors)
 
     def delete(self, request, pk):
+        if not request.user.is_admin_role:
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         try:
             question = QuizQuestion.objects.get(id=pk)
             question.delete()
