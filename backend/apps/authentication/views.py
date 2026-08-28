@@ -11,7 +11,11 @@ from django.conf import settings
 from rest_framework.throttling import AnonRateThrottle
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
-from .serializers import LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer, ResendOTPSerializer, CreateProfessionalSerializer
+from .serializers import (
+    LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer,
+    ResendOTPSerializer, CreateProfessionalSerializer, ChangePasswordSerializer,
+    DeactivateAccountSerializer
+)
 from .models import User, EmailOTP
 
 class OTPRateThrottle(AnonRateThrottle):
@@ -165,12 +169,33 @@ def login(request):
     serializer = LoginSerializer(data=request.data)
     
     if not serializer.is_valid():
-        error_message = serializer.errors
-        if 'non_field_errors' in error_message:
-            error_message = error_message['non_field_errors'][0]
+        errors = serializer.errors
+        if 'account_deactivated' in errors:
+            detail = errors.get('detail')
+            if isinstance(detail, list):
+                detail = detail[0]
+            return error_response(
+                code='account_deactivated',
+                message=str(detail or 'Your account is deactivated.'),
+                status_code=status.HTTP_403_FORBIDDEN,
+                details={'account_deactivated': True}
+            )
+        if 'non_field_errors' in errors:
+            non_field = errors['non_field_errors'][0]
+            if isinstance(non_field, dict) and non_field.get('account_deactivated'):
+                return error_response(
+                    code='account_deactivated',
+                    message=non_field.get('detail', 'Your account is deactivated.'),
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    details={'account_deactivated': True}
+                )
+            error_message = str(non_field)
+        else:
+            error_message = str(errors)
+            
         return error_response(
             code='invalid_credentials',
-            message=str(error_message),
+            message=error_message,
             status_code=status.HTTP_400_BAD_REQUEST
         )
     
@@ -182,12 +207,14 @@ def login(request):
     streak_bonus = user.update_streak()
 
     refresh = RefreshToken.for_user(user)
+    reactivated = serializer.validated_data.get('reactivated', False)
 
     return success_response({
         'access': str(refresh.access_token),
         'refresh': str(refresh),
         'user': UserSerializer(user).data,
         'streak_bonus_exp': streak_bonus,
+        'reactivated': reactivated,
     })
 
 
@@ -354,3 +381,67 @@ def register_push_token(request):
         defaults={'user': request.user}
     )
     return success_response({'message': 'Token registered successfully'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    serializer = ChangePasswordSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(
+            code='validation_error',
+            message='Password change failed.',
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=serializer.errors
+        )
+    
+    user = request.user
+    if not user.check_password(serializer.validated_data['old_password']):
+        return error_response(
+            code='invalid_current_password',
+            message='Current password is incorrect.',
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+    
+    user.set_password(serializer.validated_data['new_password'])
+    user.save()
+    
+    return success_response({
+        'message': 'Password changed successfully.'
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def deactivate_account(request):
+    serializer = DeactivateAccountSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(
+            code='validation_error',
+            message='Password is required to deactivate account.',
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=serializer.errors
+        )
+    
+    user = request.user
+    if not user.check_password(serializer.validated_data['password']):
+        return error_response(
+            code='invalid_password',
+            message='Incorrect password. Cannot deactivate account.',
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+    
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+    
+    refresh_token = request.data.get('refresh')
+    if refresh_token:
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except Exception:
+            pass
+            
+    return success_response({
+        'message': 'Your account has been deactivated successfully. You can reactivate it at any time by logging in again.'
+    })

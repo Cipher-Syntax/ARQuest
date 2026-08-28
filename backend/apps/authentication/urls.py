@@ -15,4 +15,6 @@ urlpatterns = [
     path('leaderboard/', views.leaderboard, name='leaderboard'),
     path('checkin/', views.daily_checkin, name='daily_checkin'),
     path('push-token/', views.register_push_token, name='register_push_token'),
+    path('change-password/', views.change_password, name='change_password'),
+    path('deactivate/', views.deactivate_account, name='deactivate_account'),
 ]

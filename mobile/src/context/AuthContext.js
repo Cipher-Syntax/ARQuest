@@ -87,14 +87,15 @@ export const AuthProvider = ({ children }) => {
         return null;
     }, []);
 
-    const login = useCallback(async (username, password) => {
+    const login = useCallback(async (username, password, reactivate = false) => {
         setIsLoading(true);
         try {
-            const response = await api.post("/api/auth/login/", { username, password });
+            const response = await api.post("/api/auth/login/", { username, password, reactivate });
             const payload = response.data.data || response.data;
-            const { access, refresh } = payload;
+            const { access, refresh, reactivated } = payload;
             await authService.setTokens(access, refresh);
-            return await checkToken();
+            const result = await checkToken();
+            return { ...result, reactivated };
         } finally {
             setIsLoading(false);
         }

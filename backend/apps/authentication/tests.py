@@ -340,3 +340,85 @@ class FeatureToggleTests(TestCase):
         res = self.client.get('/api/auth/leaderboard/')
         self.assertEqual(res.status_code, 403)
         self.assertFalse(res.data['success'])
+
+
+class ChangePasswordTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='pwd_user',
+            password='oldPassword123!',
+            email='pwd_user@test.com',
+            role='student',
+            email_verified=True,
+            is_active=True
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_change_password_success(self):
+        res = self.client.post('/api/auth/change-password/', {
+            'old_password': 'oldPassword123!',
+            'new_password': 'NewPassword123!@#',
+            'new_password_confirm': 'NewPassword123!@#',
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data['success'])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('NewPassword123!@#'))
+
+    def test_change_password_wrong_current_password(self):
+        res = self.client.post('/api/auth/change-password/', {
+            'old_password': 'WrongPassword123!',
+            'new_password': 'NewPassword123!@#',
+            'new_password_confirm': 'NewPassword123!@#',
+        })
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(res.data['success'])
+
+
+class DeactivationAndReactivationTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='deact_user',
+            password='Password123!',
+            email='deact@test.com',
+            role='student',
+            email_verified=True,
+            is_active=True
+        )
+
+    def test_deactivate_account_success(self):
+        self.client.force_authenticate(user=self.user)
+        res = self.client.post('/api/auth/deactivate/', {
+            'password': 'Password123!'
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data['success'])
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
+
+    def test_deactivated_login_prompts_reactivation(self):
+        self.user.is_active = False
+        self.user.save()
+
+        # Attempt normal login
+        res = self.client.post('/api/auth/login/', {
+            'username': 'deact_user',
+            'password': 'Password123!'
+        })
+        self.assertEqual(res.status_code, 403)
+        self.assertEqual(res.data['error']['code'], 'account_deactivated')
+
+        # Attempt login with reactivate=True
+        res_reactivate = self.client.post('/api/auth/login/', {
+            'username': 'deact_user',
+            'password': 'Password123!',
+            'reactivate': True
+        })
+        self.assertEqual(res_reactivate.status_code, 200)
+        self.assertTrue(res_reactivate.data['success'])
+        self.assertTrue(res_reactivate.data['data']['reactivated'])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_active)
+

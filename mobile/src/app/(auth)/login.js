@@ -57,6 +57,52 @@ export default function LoginScreen() {
             }
         } catch (err) {
             console.log("Login error:", err);
+
+            // Handle deactivated account with interactive self-service prompt
+            if (
+                err?.data?.code === "account_deactivated" ||
+                err?.data?.details?.account_deactivated ||
+                err?.data?.message?.includes?.("account is currently deactivated")
+            ) {
+                Alert(
+                    "Account Deactivated",
+                    "Your account is currently deactivated. Would you like to reactivate your account and log in now?",
+                    [
+                        {
+                            text: "Cancel",
+                            style: "cancel",
+                        },
+                        {
+                            text: "Reactivate & Log In",
+                            style: "default",
+                            onPress: async () => {
+                                try {
+                                    const result = await login(username, password, true);
+                                    const loggedInUser = result?.user || result;
+                                    Alert(
+                                        "Welcome Back!",
+                                        "Your account has been reactivated successfully.",
+                                        [{ text: "Continue" }]
+                                    );
+                                    if (
+                                        loggedInUser &&
+                                        !loggedInUser.avatar_id &&
+                                        username !== "visitor"
+                                    ) {
+                                        router.replace("/(auth)/avatar-selection");
+                                    } else {
+                                        router.replace("/(tabs)");
+                                    }
+                                } catch (reactivateErr) {
+                                    setError("Failed to reactivate account. Please try again.");
+                                }
+                            },
+                        },
+                    ]
+                );
+                return;
+            }
+
             let serverMessage =
                 err?.data?.error || err?.data?.message || err?.data?.detail;
 
