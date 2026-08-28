@@ -53,18 +53,16 @@ export default function AboutScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* 1. Official App Branding Hero Card */}
+                {/* Official App Branding Hero Card */}
                 <LinearGradient
                     colors={["#9b1b30", "#6b101f"]}
                     style={styles.heroCard}
                 >
-                    <View style={styles.logoBox}>
-                        <Image
-                            source={require("../../assets/images/logo.png")}
-                            style={styles.logoImage}
-                            resizeMode="contain"
-                        />
-                    </View>
+                    <Image
+                        source={require("../../assets/images/logo.png")}
+                        style={styles.logoImage}
+                        resizeMode="contain"
+                    />
                     <Text style={styles.heroTitle}>ARQuest</Text>
                     <Text style={styles.heroTagline}>
                         Campus Navigation & Accreditation System
@@ -344,21 +342,10 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
-    logoBox: {
-        width: 90,
-        height: 90,
-        borderRadius: 6,
-        backgroundColor: "rgba(255, 255, 255, 0.15)",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.25)",
-        padding: 8,
-    },
     logoImage: {
-        width: "100%",
-        height: "100%",
+        width: 140,
+        height: 140,
+        marginBottom: 8,
     },
     heroTitle: {
         fontFamily: fonts.heading.bold,
