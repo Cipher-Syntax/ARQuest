@@ -24,6 +24,7 @@ import {
     Crosshair,
     Map,
     MessageSquare,
+    Info,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -518,10 +519,10 @@ export default function ProfileScreen() {
                             }
                         />
                         <SettingsRow
-                            icon={HelpCircle}
+                            icon={Info}
                             title="About ARQuest"
-                            subtitle="Version 1.0.0"
-                            onPress={() => {}}
+                            subtitle="App overview, purpose & team"
+                            onPress={() => router.push("/about")}
                         />
                         <SettingsRow
                             icon={ShieldAlert}
