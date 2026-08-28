@@ -23,6 +23,9 @@ import {
     Eye,
     CheckCircle2,
     BookOpen,
+    Briefcase,
+    Palette,
+    Code2,
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -260,14 +263,58 @@ export default function AboutScreen() {
                         </View>
                         <Text style={styles.sectionTitle}>Meet the Team</Text>
                     </View>
-                    <View style={styles.teamBox}>
-                        <Text style={styles.teamGroup}>Team Spiral</Text>
-                        <Text style={styles.teamRole}>
-                            BSIT Capstone Development & Research Group
-                        </Text>
+
+                    <View style={styles.teamHeaderBox}>
+                        <View style={styles.teamTitleRow}>
+                            <Text style={styles.teamGroup}>Team Spiral</Text>
+                            <View style={styles.teamPill}>
+                                <Text style={styles.teamPillText}>BSIT 2026–2027</Text>
+                            </View>
+                        </View>
                         <Text style={styles.teamDesc}>
-                            Dedicated to designing smart campus solutions that merge geospatial intelligence, Augmented Reality, and mobile technology.
+                            College of Computer Studies • Capstone Research & Development
                         </Text>
+                    </View>
+
+                    <View style={styles.memberList}>
+                        {/* Member 1: Hannah Jean T. Balimbingan */}
+                        <View style={styles.memberCard}>
+                            <View style={[styles.memberIconWrap, { backgroundColor: "rgba(155, 27, 48, 0.08)" }]}>
+                                <Briefcase size={16} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.memberInfo}>
+                                <Text style={styles.memberName}>Balimbingan, Hannah Jean T.</Text>
+                                <View style={styles.roleBadge}>
+                                    <Text style={styles.roleBadgeText}>Project Manager</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Member 2: Paolo A. Eijansantos */}
+                        <View style={styles.memberCard}>
+                            <View style={[styles.memberIconWrap, { backgroundColor: "rgba(59, 130, 246, 0.08)" }]}>
+                                <Palette size={16} color="#2563EB" />
+                            </View>
+                            <View style={styles.memberInfo}>
+                                <Text style={styles.memberName}>Eijansantos, Paolo A.</Text>
+                                <View style={[styles.roleBadge, { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
+                                    <Text style={[styles.roleBadgeText, { color: "#1D4ED8" }]}>UI/UX</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Member 3: Justine A. Toong */}
+                        <View style={styles.memberCard}>
+                            <View style={[styles.memberIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.08)" }]}>
+                                <Code2 size={16} color="#059669" />
+                            </View>
+                            <View style={styles.memberInfo}>
+                                <Text style={styles.memberName}>Toong, Justine A.</Text>
+                                <View style={[styles.roleBadge, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
+                                    <Text style={[styles.roleBadgeText, { color: "#047857" }]}>Lead Developer</Text>
+                                </View>
+                            </View>
+                        </View>
                     </View>
                 </View>
 
@@ -481,32 +528,86 @@ const styles = StyleSheet.create({
         color: theme.colors.textSecondary,
         lineHeight: 18,
     },
-    teamBox: {
+    teamHeaderBox: {
         backgroundColor: "#F9FAFB",
         borderRadius: 6,
-        padding: 14,
+        padding: 12,
         borderWidth: 1,
         borderColor: "#E5E7EB",
+    },
+    teamTitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 4,
     },
     teamGroup: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
         color: theme.colors.primary,
-        marginBottom: 2,
     },
-    teamRole: {
-        fontFamily: fonts.heading.semiBold,
-        fontSize: 11.5,
-        color: theme.colors.textMuted,
-        textTransform: "uppercase",
+    teamPill: {
+        backgroundColor: "rgba(155, 27, 48, 0.08)",
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderWidth: 1,
+        borderColor: "rgba(155, 27, 48, 0.15)",
+    },
+    teamPillText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 10,
+        color: theme.colors.primary,
         letterSpacing: 0.4,
-        marginBottom: 6,
     },
     teamDesc: {
         fontFamily: fonts.body.regular,
-        fontSize: 12.5,
+        fontSize: 12,
         color: theme.colors.textSecondary,
-        lineHeight: 18,
+        lineHeight: 16,
+    },
+    memberList: {
+        marginTop: 10,
+        gap: 8,
+    },
+    memberCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 6,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+    },
+    memberIconWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: 6,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 10,
+    },
+    memberInfo: {
+        flex: 1,
+    },
+    memberName: {
+        fontFamily: fonts.heading.semiBold,
+        fontSize: 13,
+        color: theme.colors.textPrimary,
+        marginBottom: 3,
+    },
+    roleBadge: {
+        alignSelf: "flex-start",
+        backgroundColor: "rgba(155, 27, 48, 0.08)",
+        borderRadius: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+    },
+    roleBadgeText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 10,
+        color: theme.colors.primary,
+        letterSpacing: 0.2,
     },
     emailButton: {
         flexDirection: "row",
