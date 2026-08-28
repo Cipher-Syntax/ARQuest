@@ -15,7 +15,7 @@ import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
 import { Link, useRouter } from "expo-router";
-import { Eye, EyeOff } from "lucide-react-native";
+import { Eye, EyeOff, AlertTriangle } from "lucide-react-native";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 import { validateString } from "../../utils/validation";
@@ -27,9 +27,10 @@ export default function LoginScreen() {
     const { login, isLoading } = useAuth();
     const [error, setError] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
+    const [isDeactivated, setIsDeactivated] = useState(false);
     const router = useRouter();
 
-    const handleLogin = async () => {
+    const handleLogin = async (forceReactivate = false) => {
         const usernameError = validateString(username, 1);
         const passwordError = validateString(password, 1);
 
@@ -43,8 +44,16 @@ export default function LoginScreen() {
         setFieldErrors({});
         setError("");
         try {
-            const result = await login(username, password);
+            const result = await login(username, password, forceReactivate);
             const loggedInUser = result?.user || result;
+
+            if (forceReactivate || result?.reactivated) {
+                Alert(
+                    "Welcome Back!",
+                    "Your account has been reactivated successfully.",
+                    [{ text: "Continue" }]
+                );
+            }
 
             if (
                 loggedInUser &&
@@ -58,12 +67,18 @@ export default function LoginScreen() {
         } catch (err) {
             console.log("Login error:", err);
 
-            // Handle deactivated account with interactive self-service prompt
-            if (
+            // Handle deactivated account with interactive self-service prompt & inline button
+            const isDeact =
+                err?.data?.error?.code === "account_deactivated" ||
                 err?.data?.code === "account_deactivated" ||
+                err?.data?.error?.details?.account_deactivated ||
                 err?.data?.details?.account_deactivated ||
-                err?.data?.message?.includes?.("account is currently deactivated")
-            ) {
+                err?.data?.error?.message?.includes?.("deactivated") ||
+                err?.data?.message?.includes?.("deactivated") ||
+                err?.data?.detail?.includes?.("deactivated");
+
+            if (isDeact) {
+                setIsDeactivated(true);
                 Alert(
                     "Account Deactivated",
                     "Your account is currently deactivated. Would you like to reactivate your account and log in now?",
@@ -75,36 +90,19 @@ export default function LoginScreen() {
                         {
                             text: "Reactivate & Log In",
                             style: "default",
-                            onPress: async () => {
-                                try {
-                                    const result = await login(username, password, true);
-                                    const loggedInUser = result?.user || result;
-                                    Alert(
-                                        "Welcome Back!",
-                                        "Your account has been reactivated successfully.",
-                                        [{ text: "Continue" }]
-                                    );
-                                    if (
-                                        loggedInUser &&
-                                        !loggedInUser.avatar_id &&
-                                        username !== "visitor"
-                                    ) {
-                                        router.replace("/(auth)/avatar-selection");
-                                    } else {
-                                        router.replace("/(tabs)");
-                                    }
-                                } catch (reactivateErr) {
-                                    setError("Failed to reactivate account. Please try again.");
-                                }
-                            },
+                            onPress: () => handleLogin(true),
                         },
                     ]
                 );
                 return;
             }
 
+            setIsDeactivated(false);
             let serverMessage =
-                err?.data?.error || err?.data?.message || err?.data?.detail;
+                err?.data?.error?.message ||
+                err?.data?.error ||
+                err?.data?.message ||
+                err?.data?.detail;
 
             if (typeof serverMessage === "object" && serverMessage !== null) {
                 serverMessage =
@@ -147,7 +145,19 @@ export default function LoginScreen() {
                         </View>
 
                         <View style={styles.formCard}>
-                            {error ? <Text style={styles.error}>{error}</Text> : null}
+                            {error && !isDeactivated ? <Text style={styles.error}>{error}</Text> : null}
+
+                            {isDeactivated ? (
+                                <View style={styles.deactivatedBanner}>
+                                    <AlertTriangle size={18} color="#D97706" style={{ marginTop: 2, marginRight: 8 }} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.deactivatedBannerTitle}>Account Deactivated</Text>
+                                        <Text style={styles.deactivatedBannerText}>
+                                            This account is deactivated. Tap the button below to restore your access and saved progress.
+                                        </Text>
+                                    </View>
+                                </View>
+                            ) : null}
 
                             <View style={styles.inputWrapper}>
                                 <View style={[styles.inputContainer, fieldErrors.username && styles.inputError]}>
@@ -158,6 +168,7 @@ export default function LoginScreen() {
                                         value={username}
                                         onChangeText={(text) => {
                                             setUsername(text);
+                                            setIsDeactivated(false);
                                             if (fieldErrors.username)
                                                 setFieldErrors((prev) => ({
                                                     ...prev,
@@ -183,6 +194,7 @@ export default function LoginScreen() {
                                         value={password}
                                         onChangeText={(text) => {
                                             setPassword(text);
+                                            setIsDeactivated(false);
                                             if (fieldErrors.password)
                                                 setFieldErrors((prev) => ({
                                                     ...prev,
@@ -213,13 +225,23 @@ export default function LoginScreen() {
                                 <Text style={styles.forgotText}>Forgot Password?</Text>
                             </TouchableOpacity>
 
-                            <ARButton
-                                title="Login"
-                                onPress={handleLogin}
-                                isLoading={isLoading}
-                                variant="primary"
-                                style={styles.mainButton}
-                            />
+                            {isDeactivated ? (
+                                <ARButton
+                                    title="Reactivate & Log In"
+                                    onPress={() => handleLogin(true)}
+                                    isLoading={isLoading}
+                                    variant="primary"
+                                    style={styles.reactivateButton}
+                                />
+                            ) : (
+                                <ARButton
+                                    title="Login"
+                                    onPress={() => handleLogin(false)}
+                                    isLoading={isLoading}
+                                    variant="primary"
+                                    style={styles.mainButton}
+                                />
+                            )}
 
                             <View style={styles.switchContainer}>
                                 <Text style={styles.switchText}>Don't have an account? </Text>
@@ -368,6 +390,28 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         overflow: 'hidden',
     },
+    deactivatedBanner: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        backgroundColor: "#FFFBEB",
+        borderWidth: 1,
+        borderColor: "#FCD34D",
+        padding: 12,
+        borderRadius: 6,
+        marginBottom: 16,
+    },
+    deactivatedBannerTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 13,
+        color: "#B45309",
+        marginBottom: 2,
+    },
+    deactivatedBannerText: {
+        fontFamily: fonts.body.regular,
+        fontSize: 12,
+        color: "#92400E",
+        lineHeight: 16,
+    },
     forgotPassword: {
         alignItems: 'flex-end',
         marginBottom: 25,
@@ -382,6 +426,12 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         height: 56,
         marginBottom: 20,
+    },
+    reactivateButton: {
+        borderRadius: 6,
+        height: 56,
+        marginBottom: 20,
+        backgroundColor: "#059669",
     },
     switchContainer: {
         flexDirection: 'row',
