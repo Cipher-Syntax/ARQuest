@@ -34,63 +34,63 @@ const getTutorialSteps = (role) => {
     if (role === "professional" || role === "admin") {
         return [
             {
-                badge: "PORTAL OVERVIEW",
-                title: "ACCREDITATION PORTAL",
+                badge: "WELCOME",
+                title: "Accreditor Portal",
                 description:
-                    "Welcome to ARQuest for Accreditors. You have unrestricted, bypass access to all campus facilities, 3D architectural models, and 360° virtual walkthroughs without geofence locks.",
+                    "You have full access to all campus buildings, 3D models, and 360° virtual tours for facility evaluation without any lock restrictions.",
                 icon: Building,
                 position: "center",
-                actionLabel: "START EVALUATION",
+                actionLabel: "START TOUR",
             },
             {
-                badge: "EVALUATION SUMMARY",
-                title: "HOME DASHBOARD",
+                badge: "HOME",
+                title: "Home Screen",
                 description:
-                    "Monitor total active campus facilities and view real-time GPS proximity to the nearest building. Access quick shortcuts to deploy into campus tools.",
+                    "See total campus buildings, check how close you are to the nearest building, and quickly open your evaluation tools.",
                 icon: Activity,
                 position: "bottom",
                 pointerLeft: "10%",
                 actionLabel: "NEXT",
             },
             {
-                badge: "CAMPUS DIRECTORY",
-                title: "CAMPUS 2D/3D MAP",
+                badge: "MAP",
+                title: "Campus Map & 3D Views",
                 description:
-                    "Inspect campus buildings with live GPS tracking. Tap any building marker to examine interactive 3D GLTF structural models, or toggle to the high-performance 2D List View.",
+                    "View the campus map with your live GPS location. Tap any building pin to view its 3D model, or switch to List View.",
                 icon: Map,
                 position: "bottom",
                 pointerLeft: "30%",
                 actionLabel: "NEXT",
             },
             {
-                badge: "SPATIAL AR LENS",
-                title: "CAMERA AR INSPECTION",
+                badge: "AR CAMERA",
+                title: "AR Camera View",
                 description:
-                    "Deploy the AR Lens on-site to visually locate facilities in your live camera feed, check directional bearings, and inspect spatial waypoints.",
+                    "Point your phone camera to see building names and directions floating right in front of you while walking on campus.",
                 icon: ScanLine,
                 position: "bottom",
                 pointerLeft: "50%",
                 actionLabel: "NEXT",
             },
             {
-                badge: "FACILITY RADAR",
-                title: "EXPLORE DIRECTORY",
+                badge: "EXPLORE",
+                title: "Nearby Buildings",
                 description:
-                    "View all campus facilities with their operational hours, department directories, and real-time distance calculations from your current location.",
+                    "Browse the full list of campus buildings, view department offices, and see exact walking distances from where you are standing.",
                 icon: MapPin,
                 position: "bottom",
                 pointerLeft: "70%",
                 actionLabel: "NEXT",
             },
             {
-                badge: "EVALUATION LOG",
-                title: "VISITED BUILDINGS",
+                badge: "CHECKLIST",
+                title: "Visited Buildings",
                 description:
-                    "Track your campus inspection coverage. Visited buildings are automatically stamped and sorted to the top of your evaluation checklist.",
+                    "Keep track of the buildings you have visited and evaluated. Checked buildings automatically appear at the top of your list.",
                 icon: CheckCircle2,
                 position: "bottom",
                 pointerLeft: "90%",
-                actionLabel: "START EVALUATION",
+                actionLabel: "FINISH TUTORIAL",
             },
         ];
     }
@@ -98,49 +98,49 @@ const getTutorialSteps = (role) => {
     if (role === "visitor") {
         return [
             {
-                badge: "CAMPUS GUIDE",
-                title: "WELCOME TO CAMPUS",
+                badge: "WELCOME",
+                title: "Campus Visitor Guide",
                 description:
-                    "Welcome to our university campus! ARQuest helps you navigate campus facilities, find department offices, and learn about our university history.",
+                    "Welcome to our university! Use this app to find buildings, locate department offices, and easily navigate campus grounds.",
                 icon: Compass,
                 position: "center",
                 actionLabel: "GET STARTED",
             },
             {
-                badge: "CAMPUS OVERVIEW",
-                title: "HOME OVERVIEW",
+                badge: "HOME",
+                title: "Home Screen",
                 description:
-                    "Get quick campus stats, see your closest campus landmark, and access essential navigation tools from the Home screen.",
+                    "Quickly see the nearest campus building and access the map and camera navigation shortcuts.",
                 icon: Building,
                 position: "bottom",
                 pointerLeft: "10%",
                 actionLabel: "NEXT",
             },
             {
-                badge: "INTERACTIVE MAP",
-                title: "MAP & BUILDINGS",
+                badge: "MAP",
+                title: "Campus Map",
                 description:
-                    "Explore the 2D campus map with real-time GPS positioning. Tap building markers or switch to the List View to locate offices and amenities.",
+                    "View the full 2D map with your live GPS location to find departments, rooms, and facilities.",
                 icon: Map,
                 position: "bottom",
                 pointerLeft: "30%",
                 actionLabel: "NEXT",
             },
             {
-                badge: "CAMERA VIEW",
-                title: "AR SPATIAL LENS",
+                badge: "AR CAMERA",
+                title: "AR Camera View",
                 description:
-                    "Point your camera across campus to view directional waypoints and discover building locations directly in your field of view.",
+                    "Look through your camera to see building names and directions floating in real-time as you walk.",
                 icon: ScanLine,
                 position: "bottom",
                 pointerLeft: "50%",
                 actionLabel: "NEXT",
             },
             {
-                badge: "FACILITY DIRECTORY",
-                title: "EXPLORE NEARBY",
+                badge: "EXPLORE",
+                title: "Building Directory",
                 description:
-                    "Find what buildings are closest to you, view facility photos, department rosters, and campus operational schedules.",
+                    "Browse photos, department information, and operating hours for all buildings across campus.",
                 icon: MapPin,
                 position: "bottom",
                 pointerLeft: "70%",
@@ -152,63 +152,63 @@ const getTutorialSteps = (role) => {
     // Default: Student Role
     return [
         {
-            badge: "EXPLORATION ARENA",
-            title: "WELCOME TO ARQUEST",
+            badge: "WELCOME",
+            title: "Welcome to ARQuest",
             description:
-                "Your campus is transformed into an interactive exploration arena! Discover buildings, solve daily objectives, inspect 3D models, and climb the player leaderboard.",
+                "Explore your campus, unlock buildings as you walk, complete daily quests, answer quizzes, and level up your rank!",
             icon: Compass,
             position: "center",
-            actionLabel: "BEGIN TOUR",
+            actionLabel: "GET STARTED",
         },
         {
-            badge: "DAILY OBJECTIVES",
-            title: "HOME & MISSIONS",
+            badge: "MISSIONS",
+            title: "Daily Missions",
             description:
-                "Check here every day for your 3 tailored objectives (Easy, Medium, Hard) and time-limited flash challenges to earn bonus EXP and level up.",
+                "Check here every day for 3 daily missions and limited-time quests to earn EXP and increase your player level.",
             icon: Target,
             position: "bottom",
             pointerLeft: "10%",
             actionLabel: "NEXT",
         },
         {
-            badge: "CAMPUS MAP",
-            title: "MAP & 3D MODELS",
+            badge: "MAP",
+            title: "Campus Map & 3D Models",
             description:
-                "Navigate the 2D campus map with real-time GPS. Tap building pins to inspect interactive 3D structural models or switch to List View for quick searching.",
+                "See where you are on campus. Tap any building pin to inspect its 3D model or switch to List View for quick searching.",
             icon: Map,
             position: "bottom",
             pointerLeft: "30%",
             actionLabel: "NEXT",
         },
         {
-            badge: "AUGMENTED REALITY",
-            title: "AR LENS & QR SCANNER",
+            badge: "AR CAMERA",
+            title: "AR Scanner & QR Codes",
             description:
-                "Deploy your camera to track spatial waypoints. Scan entrance QR codes to instantly unlock buildings, answer trivia, and take branded campus selfies.",
+                "Use your camera to find buildings around you. Scan building QR codes at the entrance to unlock them and take campus selfies!",
             icon: ScanLine,
             position: "bottom",
             pointerLeft: "50%",
             actionLabel: "NEXT",
         },
         {
-            badge: "GEOFENCE RADAR",
-            title: "EXPLORE & UNLOCK",
+            badge: "EXPLORE",
+            title: "Nearby Radar & Quizzes",
             description:
-                "Walk inside building geofences to automatically unlock them on your radar. Test your knowledge with building quizzes to earn EXP rewards.",
+                "Walk close to a building to automatically unlock it. Take quick building quizzes to earn bonus EXP points.",
             icon: MapPin,
             position: "bottom",
             pointerLeft: "70%",
             actionLabel: "NEXT",
         },
         {
-            badge: "RANKS & BADGES",
-            title: "PROFILE & PASSPORT",
+            badge: "PROFILE",
+            title: "Rank, Streaks & Badges",
             description:
-                "Track your rank progression from Freshman to Campus Legend, maintain daily check-in streaks, collect milestone badges, and view your stamp passport.",
+                "Track your rank from Freshman to Campus Legend, maintain daily check-in streaks, and collect achievement badges.",
             icon: Trophy,
             position: "bottom",
             pointerLeft: "90%",
-            actionLabel: "START QUEST",
+            actionLabel: "START PLAYING",
         },
     ];
 };
