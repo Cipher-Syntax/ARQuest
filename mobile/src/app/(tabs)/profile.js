@@ -115,16 +115,24 @@ export default function ProfileScreen() {
         subtitle,
         onPress,
         destructive,
+        showBorder = true,
     }) => (
-        <TouchableOpacity style={styles.settingsRow} onPress={onPress}>
+        <TouchableOpacity
+            style={[
+                styles.settingsRow,
+                !showBorder && { borderBottomWidth: 0 },
+            ]}
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
             <View
                 style={[
                     styles.settingsIconWrapper,
-                    destructive && { backgroundColor: "rgba(255, 0, 0, 0.1)" },
+                    destructive && { backgroundColor: "rgba(211, 47, 47, 0.08)" },
                 ]}
             >
                 <Icon
-                    size={22}
+                    size={20}
                     color={
                         destructive ? theme.colors.error : theme.colors.primary
                     }
@@ -143,7 +151,14 @@ export default function ProfileScreen() {
                     <Text style={styles.settingsSubtitle}>{subtitle}</Text>
                 )}
             </View>
-            <ChevronRight size={20} color={theme.colors.textMuted} />
+            <ChevronRight
+                size={18}
+                color={
+                    destructive
+                        ? "rgba(211, 47, 47, 0.4)"
+                        : theme.colors.textMuted
+                }
+            />
         </TouchableOpacity>
     );
 
@@ -498,6 +513,7 @@ export default function ProfileScreen() {
                             title="App Preferences"
                             subtitle="Permissions and notifications"
                             onPress={() => {}}
+                            showBorder={false}
                         />
                     </View>
                 </View>
@@ -534,38 +550,44 @@ export default function ProfileScreen() {
                             icon={FileText}
                             title="Terms and Conditions"
                             onPress={() => router.push("/terms")}
+                            showBorder={false}
                         />
                     </View>
                 </View>
 
-                {/* Logout Button */}
-                <TouchableOpacity style={styles.logoutButton} onPress={() => {
-                    Alert(
-                        "Log Out",
-                        "Are you sure you want to log out?",
-                        [
-                            {
-                                text: "Cancel",
-                                style: "cancel"
-                            },
-                            {
-                                text: "Log Out",
-                                style: "destructive",
-                                onPress: () => {
-                                    if (stopTracking) stopTracking();
-                                    logout();
-                                }
-                            }
-                        ]
-                    );
-                }}>
-                    <LogOut
-                        size={20}
-                        color={theme.colors.primary}
-                        style={{ marginRight: 8 }}
-                    />
-                    <Text style={styles.logoutButtonText}>Log Out</Text>
-                </TouchableOpacity>
+                {/* Account Actions / Log Out */}
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>ACCOUNT</Text>
+                    <View style={styles.settingsCard}>
+                        <SettingsRow
+                            icon={LogOut}
+                            title="Log Out"
+                            subtitle="Sign out of your account on this device"
+                            destructive
+                            showBorder={false}
+                            onPress={() => {
+                                Alert(
+                                    "Log Out",
+                                    "Are you sure you want to log out?",
+                                    [
+                                        {
+                                            text: "Cancel",
+                                            style: "cancel",
+                                        },
+                                        {
+                                            text: "Log Out",
+                                            style: "destructive",
+                                            onPress: () => {
+                                                if (stopTracking) stopTracking();
+                                                logout();
+                                            },
+                                        },
+                                    ]
+                                );
+                            }}
+                        />
+                    </View>
+                </View>
             </ScrollView>
 
             <FeedbackModal
@@ -1015,48 +1037,27 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.colors.border,
     },
     settingsIconWrapper: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "rgba(178, 24, 48, 0.1)",
+        width: 38,
+        height: 38,
+        borderRadius: theme.radius.md,
+        backgroundColor: "rgba(178, 24, 48, 0.08)",
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 16,
+        marginRight: 14,
     },
     settingsTextWrapper: {
         flex: 1,
     },
     settingsTitle: {
         fontFamily: fonts.body.bold || fonts.body.medium,
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "600",
         color: theme.colors.textPrimary,
     },
     settingsSubtitle: {
-        fontSize: 13,
+        fontSize: 12.5,
         color: theme.colors.textSecondary,
         marginTop: 2,
-    },
-    logoutButton: {
-        flexDirection: "row",
-        backgroundColor: "#ffffff",
-        padding: 16,
-        borderRadius: 16,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: 10,
-        borderColor: theme.colors.primary,
-        borderWidth: 1,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    logoutButtonText: {
-        color: theme.colors.primary,
-        fontSize: 20,
-        fontFamily: fonts.heading.medium,
     },
     missionLogCard: {
         backgroundColor: theme.colors.surfaceSoft,
