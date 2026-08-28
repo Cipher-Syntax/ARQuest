@@ -149,14 +149,14 @@ def dashboard_stats(request):
 
     # Content & System Coverage
     from apps.panorama.models import PanoramaScene
-    from apps.gamification.models import Quest, LimitedChallenge
+    from apps.gamification.models import Quest
     from apps.quizzes.models import QuizQuestion
     from .models import Feedback, Notification
 
     total_panoramas = PanoramaScene.objects.filter(is_active=True).count()
     buildings_with_panoramas = PanoramaScene.objects.filter(is_active=True).values('building_id').distinct().count()
     total_quests = Quest.objects.filter(is_active=True).count()
-    total_challenges = LimitedChallenge.objects.filter(is_active=True).count()
+    total_challenges = Quest.objects.filter(is_active=True, expires_at__isnull=False).count()
     total_quizzes = QuizQuestion.objects.filter(is_active=True).count()
     open_feedbacks = Feedback.objects.filter(status='open').count()
 

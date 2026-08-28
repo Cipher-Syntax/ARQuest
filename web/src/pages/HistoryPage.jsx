@@ -43,6 +43,15 @@ export default function HistoryPage() {
         }
     };
 
+    const handleMarkAllAsRead = async () => {
+        try {
+            await api.post('/api/notifications/read-all/');
+            fetchHistory();
+        } catch (error) {
+            console.error("Failed to mark all as read:", error);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -54,6 +63,12 @@ export default function HistoryPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-xs font-bold text-brand hover:text-brand-dark px-3.5 py-2 bg-brand/10 hover:bg-brand/20 rounded-md transition-colors mr-1"
+                    >
+                        Mark All as Read
+                    </button>
                     <select
                         value={filter}
                         onChange={(e) => {

@@ -527,8 +527,8 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* 3-Column Detailed Matrix */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 2-Column Detailed Matrix */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Column 1: Most Visited Buildings */}
                 <Card className="rounded-md">
                     <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-1">
@@ -566,69 +566,6 @@ export default function Dashboard() {
                         {stats.most_visited.length === 0 && (
                             <p className="text-xs text-gray-400 text-center py-4">No visits recorded yet</p>
                         )}
-                    </div>
-                </Card>
-
-                {/* Column 2: User Roles */}
-                <Card className="rounded-md">
-                    <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-1">
-                        <Shield size={16} className="text-blue-600" />
-                        User Roles
-                    </h3>
-                    <p className="text-[11px] text-gray-500 mb-4">{totalUsers} Registered Accounts</p>
-
-                    <div className="space-y-3.5">
-                        {/* Students */}
-                        <div>
-                            <div className="flex justify-between text-xs mb-1">
-                                <span className="font-medium text-gray-700">Students</span>
-                                <span className="font-bold text-gray-900">
-                                    {studentCount} ({studentPercent}%)
-                                </span>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${studentPercent}%` }} />
-                            </div>
-                        </div>
-
-                        {/* Professionals */}
-                        <div>
-                            <div className="flex justify-between text-xs mb-1">
-                                <span className="font-medium text-gray-700">Professionals</span>
-                                <span className="font-bold text-gray-900">
-                                    {profCount} ({profPercent}%)
-                                </span>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                <div className="bg-emerald-600 h-2 rounded-full" style={{ width: `${profPercent}%` }} />
-                            </div>
-                        </div>
-
-                        {/* Visitors */}
-                        <div>
-                            <div className="flex justify-between text-xs mb-1">
-                                <span className="font-medium text-gray-700">Visitors</span>
-                                <span className="font-bold text-gray-900">
-                                    {visitorCount} ({visitorPercent}%)
-                                </span>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${visitorPercent}%` }} />
-                            </div>
-                        </div>
-
-                        {/* Administrators */}
-                        <div>
-                            <div className="flex justify-between text-xs mb-1">
-                                <span className="font-medium text-gray-700">Administrators</span>
-                                <span className="font-bold text-gray-900">
-                                    {adminCount} ({adminPercent}%)
-                                </span>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                <div className="bg-brand h-2 rounded-full" style={{ width: `${adminPercent}%` }} />
-                            </div>
-                        </div>
                     </div>
                 </Card>
 
