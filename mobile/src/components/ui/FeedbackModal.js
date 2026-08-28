@@ -12,7 +12,14 @@ import {
     ScrollView,
 } from "react-native";
 import { customAlert as Alert } from "./CustomAlert";
-import { X, MessageSquare, AlertCircle, Lightbulb } from "lucide-react-native";
+import {
+    X,
+    MessageSquare,
+    AlertCircle,
+    Lightbulb,
+    Send,
+    HelpCircle,
+} from "lucide-react-native";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
 import { api } from "../../services";
@@ -22,15 +29,15 @@ export default function FeedbackModal({ visible, onClose }) {
     const [type, setType] = useState("bug");
     const [message, setMessage] = useState("");
     const [submitting, setSubmitting] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [error, setError] = useState("");
 
     const handleSubmit = async () => {
-        const messageError = validateString(message, 1);
+        const messageError = validateString(message, 3);
         if (messageError) {
-            setErrors({ message: messageError });
+            setError("Please provide a brief description (at least 3 characters).");
             return;
         }
-        setErrors({});
+        setError("");
 
         setSubmitting(true);
         try {
@@ -41,54 +48,60 @@ export default function FeedbackModal({ visible, onClose }) {
 
             if (res.data) {
                 Alert(
-                    "Thank You!",
-                    "Your feedback has been submitted successfully. We appreciate your help in making ARQuest better!",
+                    "Feedback Submitted",
+                    "Thank you for your report! Your feedback helps us improve ARQuest for everyone.",
                     [
                         {
                             text: "OK",
                             onPress: () => {
                                 setMessage("");
                                 setType("bug");
+                                setError("");
                                 onClose();
                             },
                         },
-                    ],
+                    ]
                 );
             }
-        } catch (error) {
-            console.error("Failed to submit feedback", error);
+        } catch (err) {
+            console.error("Failed to submit feedback", err);
             Alert(
                 "Submission Failed",
-                "There was an error submitting your feedback. Please try again later.",
+                "There was an error sending your feedback. Please check your connection and try again."
             );
         } finally {
             setSubmitting(false);
         }
     };
 
-    const TypeOption = ({ value, label, icon: Icon, color }) => {
+    const TypeOption = ({ value, label, icon: Icon, activeColor, activeBg }) => {
         const isSelected = type === value;
         return (
             <TouchableOpacity
                 style={[
                     styles.typeOption,
-                    isSelected && [
-                        styles.typeOptionSelected,
-                        { borderColor: color, backgroundColor: `${color}15` },
-                    ],
+                    isSelected && {
+                        borderColor: activeColor,
+                        backgroundColor: activeBg,
+                    },
                 ]}
-                onPress={() => setType(value)}
+                onPress={() => {
+                    setType(value);
+                    if (error) setError("");
+                }}
+                activeOpacity={0.8}
             >
                 <Icon
-                    size={20}
-                    color={isSelected ? color : theme.colors.textMuted}
+                    size={16}
+                    color={isSelected ? activeColor : theme.colors.textMuted}
+                    style={{ marginRight: 6 }}
                 />
                 <Text
                     style={[
                         styles.typeOptionText,
                         isSelected && {
-                            color: color,
-                            fontFamily: fonts.body.bold,
+                            color: activeColor,
+                            fontFamily: fonts.heading.bold,
                         },
                     ]}
                 >
@@ -102,23 +115,28 @@ export default function FeedbackModal({ visible, onClose }) {
         <Modal
             visible={visible}
             transparent
-            animationType="slide"
+            animationType="fade"
             onRequestClose={onClose}
         >
             <KeyboardAvoidingView
                 style={styles.modalOverlay}
-                behavior={Platform.OS === "ios" ? "padding" : "padding"}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
                 <View style={styles.modalContent}>
+                    {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>
-                            Report an Issue / Feedback
-                        </Text>
+                        <View>
+                            <Text style={styles.title}>Report Issue / Feedback</Text>
+                            <Text style={styles.subtitle}>
+                                Help our development team improve the app
+                            </Text>
+                        </View>
                         <TouchableOpacity
                             style={styles.closeButton}
                             onPress={onClose}
+                            activeOpacity={0.8}
                         >
-                            <X size={24} color={theme.colors.textPrimary} />
+                            <X size={18} color={theme.colors.textPrimary} />
                         </TouchableOpacity>
                     </View>
 
@@ -127,79 +145,93 @@ export default function FeedbackModal({ visible, onClose }) {
                         contentContainerStyle={styles.scrollContent}
                         keyboardShouldPersistTaps="handled"
                     >
-                        <Text style={styles.label}>
-                            What kind of feedback do you have?
-                        </Text>
+                        {/* Type Selection */}
+                        <Text style={styles.inputLabel}>CATEGORY</Text>
                         <View style={styles.typeSelector}>
                             <TypeOption
                                 value="bug"
                                 label="Bug Report"
                                 icon={AlertCircle}
-                                color={theme.colors.error}
+                                activeColor={theme.colors.error}
+                                activeBg="rgba(211, 47, 47, 0.08)"
                             />
                             <TypeOption
                                 value="feature"
                                 label="Feature Request"
                                 icon={Lightbulb}
-                                color={theme.colors.success}
+                                activeColor="#059669"
+                                activeBg="rgba(16, 185, 129, 0.08)"
                             />
                             <TypeOption
                                 value="other"
-                                label="Other Feedback"
+                                label="General Feedback"
                                 icon={MessageSquare}
-                                color={theme.colors.primary}
+                                activeColor={theme.colors.primary}
+                                activeBg="rgba(155, 27, 48, 0.08)"
                             />
                         </View>
 
-                        <Text style={styles.label}>
-                            Please describe your feedback:
-                        </Text>
+                        {/* Description Input */}
+                        <Text style={styles.inputLabel}>DESCRIPTION</Text>
                         <TextInput
                             style={[
                                 styles.input,
-                                errors.message && { borderColor: "red" },
+                                error ? styles.inputError : null,
                             ]}
-                            placeholder="Tell us what happened or what you'd like to see..."
+                            placeholder={
+                                type === "bug"
+                                    ? "Describe the issue or error you encountered (e.g. AR camera frozen, building not unlocking)..."
+                                    : type === "feature"
+                                      ? "What new feature or improvement would you like to see in ARQuest?..."
+                                      : "Share your thoughts, suggestions, or general campus feedback..."
+                            }
                             placeholderTextColor={theme.colors.textMuted}
                             multiline
-                            numberOfLines={6}
+                            numberOfLines={5}
                             value={message}
                             onChangeText={(text) => {
                                 setMessage(text);
-                                if (errors.message) setErrors({});
+                                if (error) setError("");
                             }}
                             textAlignVertical="top"
                         />
-                        {errors.message && (
-                            <Text
-                                style={{
-                                    color: "red",
-                                    fontSize: 12,
-                                    marginTop: -20,
-                                    marginBottom: 20,
-                                }}
-                            >
-                                {errors.message}
-                            </Text>
-                        )}
 
-                        <TouchableOpacity
-                            style={[
-                                styles.submitButton,
-                                (!message.trim() || submitting) &&
-                                    styles.submitButtonDisabled,
-                            ]}
-                            onPress={handleSubmit}
-                            disabled={!message.trim() || submitting}
-                        >
-                            {submitting ? (
-                                <ActivityIndicator color="#FFF" size="small" />
-                            ) : (
-                                <Text style={styles.submitButtonText}>
-                                    Submit Feedback
-                                </Text>
-                            )}
-                        </TouchableOpacity>
+                        {error ? (
+                            <View style={styles.errorBox}>
+                                <Text style={styles.errorText}>{error}</Text>
+                            </View>
+                        ) : null}
+
+                        {/* Actions */}
+                        <View style={styles.actionsRow}>
+                            <TouchableOpacity
+                                style={styles.cancelBtn}
+                                onPress={onClose}
+                                disabled={submitting}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.submitBtn,
+                                    (!message.trim() || submitting) && styles.submitBtnDisabled,
+                                ]}
+                                onPress={handleSubmit}
+                                disabled={!message.trim() || submitting}
+                                activeOpacity={0.9}
+                            >
+                                {submitting ? (
+                                    <ActivityIndicator color="#FFFFFF" size="small" />
+                                ) : (
+                                    <>
+                                        <Send size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                        <Text style={styles.submitBtnText}>Submit Feedback</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     </ScrollView>
                 </View>
             </KeyboardAvoidingView>
@@ -211,97 +243,152 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.5)",
-        justifyContent: "flex-end",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 16,
     },
     modalContent: {
-        backgroundColor: theme.colors.surface,
-        borderTopLeftRadius: theme.radius.xl,
-        borderTopRightRadius: theme.radius.xl,
-        maxHeight: "90%",
-        paddingBottom: Platform.OS === "ios" ? 40 : 20,
+        width: "100%",
+        maxWidth: 420,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 6,
+        padding: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 8,
     },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "center",
-        padding: 20,
+        alignItems: "flex-start",
+        marginBottom: 16,
+        paddingBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: "#E5E7EB",
     },
     title: {
         fontFamily: fonts.heading.bold,
-        fontSize: 18,
+        fontSize: 16,
         color: theme.colors.textPrimary,
+        letterSpacing: 0.2,
+    },
+    subtitle: {
+        fontFamily: fonts.body.regular,
+        fontSize: 12,
+        color: theme.colors.textSecondary,
+        marginTop: 2,
     },
     closeButton: {
-        padding: 5,
+        width: 32,
+        height: 32,
+        borderRadius: 6,
+        backgroundColor: "#F3F4F6",
+        justifyContent: "center",
+        alignItems: "center",
     },
     scrollContent: {
-        padding: 20,
+        paddingTop: 2,
     },
-    label: {
-        fontFamily: fonts.body.bold,
-        fontSize: 14,
-        color: theme.colors.textPrimary,
-        marginBottom: 10,
+    inputLabel: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 11,
+        color: "#594040",
+        letterSpacing: 0.6,
+        marginBottom: 8,
     },
     typeSelector: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 10,
-        marginBottom: 20,
+        gap: 8,
+        marginBottom: 16,
     },
     typeOption: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 10,
+        paddingVertical: 8,
         paddingHorizontal: 12,
-        borderRadius: theme.radius.md,
+        borderRadius: 6,
         borderWidth: 1,
-        borderColor: theme.colors.border,
-        backgroundColor: theme.colors.bgPrimary,
-        flexGrow: 1,
-        justifyContent: "center",
-        gap: 8,
-    },
-    typeOptionSelected: {
-        borderWidth: 2,
+        borderColor: "#E5E7EB",
+        backgroundColor: "#F9FAFB",
     },
     typeOptionText: {
-        fontFamily: fonts.body.medium,
-        fontSize: 13,
+        fontFamily: fonts.heading.semiBold,
+        fontSize: 12,
         color: theme.colors.textSecondary,
     },
     input: {
-        backgroundColor: theme.colors.bgPrimary,
+        backgroundColor: "#F9FAFB",
         borderWidth: 1,
-        borderColor: theme.colors.border,
-        borderRadius: theme.radius.md,
-        padding: 15,
-        minHeight: 150,
+        borderColor: "#E5E7EB",
+        borderRadius: 6,
+        padding: 12,
+        minHeight: 120,
         fontFamily: fonts.body.regular,
-        fontSize: 14,
+        fontSize: 13,
         color: theme.colors.textPrimary,
-        marginBottom: 25,
+        marginBottom: 16,
     },
-    submitButton: {
-        backgroundColor: theme.colors.primary,
-        borderRadius: theme.radius.full,
-        paddingVertical: 16,
+    inputError: {
+        borderColor: theme.colors.error,
+        backgroundColor: "rgba(211, 47, 47, 0.02)",
+    },
+    errorBox: {
+        backgroundColor: "rgba(211, 47, 47, 0.08)",
+        borderRadius: 6,
+        padding: 8,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: "rgba(211, 47, 47, 0.2)",
+    },
+    errorText: {
+        fontFamily: fonts.body.medium,
+        fontSize: 11.5,
+        color: theme.colors.error,
+    },
+    actionsRow: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 10,
+    },
+    cancelBtn: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        backgroundColor: "#F3F4F6",
         alignItems: "center",
+        justifyContent: "center",
+    },
+    cancelBtnText: {
+        fontFamily: fonts.heading.semiBold,
+        fontSize: 12.5,
+        color: theme.colors.textSecondary,
+    },
+    submitBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.colors.primary,
+        paddingVertical: 10,
+        paddingHorizontal: 18,
+        borderRadius: 6,
         shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    submitButtonDisabled: {
-        opacity: 0.6,
+    submitBtnDisabled: {
+        backgroundColor: theme.colors.border,
+        shadowOpacity: 0,
+        elevation: 0,
     },
-    submitButtonText: {
-        fontFamily: fonts.hud.bold,
-        color: "#FFF",
-        fontSize: 16,
-        letterSpacing: 1,
+    submitBtnText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 12.5,
+        color: "#FFFFFF",
+        letterSpacing: 0.3,
     },
 });
