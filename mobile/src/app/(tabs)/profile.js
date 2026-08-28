@@ -25,6 +25,7 @@ import {
     Map,
     MessageSquare,
     Info,
+    FileText,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -527,6 +528,11 @@ export default function ProfileScreen() {
                         <SettingsRow
                             icon={ShieldAlert}
                             title="Privacy Policy"
+                            onPress={() => {}}
+                        />
+                        <SettingsRow
+                            icon={FileText}
+                            title="Terms and Conditions"
                             onPress={() => {}}
                         />
                     </View>

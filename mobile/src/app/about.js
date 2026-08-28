@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
     Linking,
+    Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -42,23 +43,27 @@ export default function AboutScreen() {
                     style={styles.backButton}
                     activeOpacity={0.8}
                 >
-                    <ArrowLeft size={24} color={theme.colors.textPrimary} />
+                    <ArrowLeft size={22} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>About ARQuest</Text>
-                <View style={{ width: 40 }} />
+                <View style={{ width: 36 }} />
             </View>
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Brand Hero Card */}
+                {/* 1. Official App Branding Hero Card */}
                 <LinearGradient
                     colors={["#9b1b30", "#6b101f"]}
                     style={styles.heroCard}
                 >
-                    <View style={styles.logoBadge}>
-                        <Compass size={40} color="#FFFFFF" />
+                    <View style={styles.logoBox}>
+                        <Image
+                            source={require("../../assets/images/logo.png")}
+                            style={styles.logoImage}
+                            resizeMode="contain"
+                        />
                     </View>
                     <Text style={styles.heroTitle}>ARQuest</Text>
                     <Text style={styles.heroTagline}>
@@ -70,12 +75,12 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Compass size={20} color={theme.colors.primary} />
+                            <Compass size={18} color={theme.colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>What is ARQuest?</Text>
                     </View>
                     <Text style={styles.bodyText}>
-                        ARQuest is an interactive campus navigation and evaluation application. It uses GPS geofencing, Augmented Reality (AR), 3D building models, and 360° virtual tours to help students, accreditors, and visitors explore and understand the university campus.
+                        ARQuest is an interactive campus navigation and evaluation system. It blends GPS geofencing, Augmented Reality (AR), 3D building models, and 360° virtual walkthroughs to help students, accreditors, and visitors discover and explore campus facilities.
                     </Text>
                 </View>
 
@@ -83,12 +88,12 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Target size={20} color={theme.colors.primary} />
+                            <Target size={18} color={theme.colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>Our Purpose</Text>
                     </View>
                     <Text style={styles.bodyText}>
-                        Traditional printed campus maps can be confusing and static. ARQuest was created to solve everyday navigation friction, provide interactive location-based learning, and give accreditors a seamless way to inspect university facilities remotely or on-site.
+                        Traditional static maps can be confusing and hard to navigate. ARQuest was created to eliminate campus wayfinding confusion, provide interactive student missions, and offer accreditors a comprehensive tool to evaluate physical facilities remotely or in-person.
                     </Text>
                 </View>
 
@@ -96,57 +101,67 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Layers size={20} color={theme.colors.primary} />
+                            <Layers size={18} color={theme.colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>What You Can Do</Text>
                     </View>
                     <View style={styles.featureList}>
                         <View style={styles.featureItem}>
-                            <MapPin size={18} color={theme.colors.primary} style={styles.featureIcon} />
+                            <View style={styles.featureIconWrap}>
+                                <MapPin size={16} color={theme.colors.primary} />
+                            </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Explore the Campus</Text>
                                 <Text style={styles.featureItemDesc}>
-                                    Navigate with a live 2D GPS map, find department offices, and check walking distances.
+                                    View your live GPS position on the 2D map, locate department offices, and calculate walking distances.
                                 </Text>
                             </View>
                         </View>
 
                         <View style={styles.featureItem}>
-                            <ScanLine size={18} color={theme.colors.primary} style={styles.featureIcon} />
+                            <View style={styles.featureIconWrap}>
+                                <ScanLine size={16} color={theme.colors.primary} />
+                            </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Use the AR Camera</Text>
                                 <Text style={styles.featureItemDesc}>
-                                    Look through your camera to see floating building labels, waypoints, and scan entrance QR codes.
+                                    Spot floating building names, distance waypoints, and scan entrance QR codes for verification.
                                 </Text>
                             </View>
                         </View>
 
                         <View style={styles.featureItem}>
-                            <Eye size={18} color={theme.colors.primary} style={styles.featureIcon} />
+                            <View style={styles.featureIconWrap}>
+                                <Eye size={16} color={theme.colors.primary} />
+                            </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Inspect 3D & 360° Tours</Text>
                                 <Text style={styles.featureItemDesc}>
-                                    Examine interactive 3D building architecture models and navigate high-resolution 360° virtual rooms.
+                                    Rotate 3D structural models and step inside panoramic 360° virtual rooms for remote inspection.
                                 </Text>
                             </View>
                         </View>
 
                         <View style={styles.featureItem}>
-                            <Sparkles size={18} color={theme.colors.primary} style={styles.featureIcon} />
+                            <View style={styles.featureIconWrap}>
+                                <Sparkles size={16} color={theme.colors.primary} />
+                            </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Complete Missions & Quizzes</Text>
                                 <Text style={styles.featureItemDesc}>
-                                    Solve daily objectives, take campus trivia quizzes, maintain streaks, and earn player badges.
+                                    Solve daily objectives, take building quizzes, maintain daily streaks, and earn player badges.
                                 </Text>
                             </View>
                         </View>
 
                         <View style={styles.featureItem}>
-                            <CheckCircle2 size={18} color={theme.colors.primary} style={styles.featureIcon} />
+                            <View style={styles.featureIconWrap}>
+                                <CheckCircle2 size={16} color={theme.colors.primary} />
+                            </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Track Visited Buildings</Text>
                                 <Text style={styles.featureItemDesc}>
-                                    Keep an organized checklist of all campus facilities you have discovered or evaluated.
+                                    Keep an organized stamp checklist of every campus facility you have explored or evaluated.
                                 </Text>
                             </View>
                         </View>
@@ -157,25 +172,25 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <ShieldCheck size={20} color={theme.colors.primary} />
+                            <ShieldCheck size={18} color={theme.colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>Key Features</Text>
                     </View>
                     <View style={styles.bulletList}>
                         <Text style={styles.bulletText}>
-                            • <Text style={styles.boldText}>GPS Geofencing:</Text> Automatically unlocks nearby building content as you walk into facility zones.
+                            • <Text style={styles.boldText}>GPS Geofencing:</Text> Automatically unlocks building content when you enter facility boundaries.
                         </Text>
                         <Text style={styles.bulletText}>
-                            • <Text style={styles.boldText}>3D Model Viewer:</Text> Interactive 3D structural models with smooth rotation and zoom inspection.
+                            • <Text style={styles.boldText}>3D Model Viewer:</Text> Smooth 3D structural models with rotation and zoom inspection.
                         </Text>
                         <Text style={styles.bulletText}>
-                            • <Text style={styles.boldText}>360° Virtual Walkthroughs:</Text> Panorama navigation between rooms for remote facility evaluation.
+                            • <Text style={styles.boldText}>360° Virtual Walkthroughs:</Text> High-resolution panoramic room tours with scene hotspots.
                         </Text>
                         <Text style={styles.bulletText}>
-                            • <Text style={styles.boldText}>Role-Based Access Control (RBAC):</Text> Tailored experiences for Students, Accreditors, Visitors, and Admins.
+                            • <Text style={styles.boldText}>Role-Based Access Control (RBAC):</Text> Custom interfaces for Students, Accreditors, Visitors, and Admins.
                         </Text>
                         <Text style={styles.bulletText}>
-                            • <Text style={styles.boldText}>QR Code Verification:</Text> Physical entrance marker scanning for instant checkpoint validation.
+                            • <Text style={styles.boldText}>QR Code Verification:</Text> Quick entrance verification to unlock facility checkpoints.
                         </Text>
                     </View>
                 </View>
@@ -184,7 +199,7 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <BookOpen size={20} color={theme.colors.primary} />
+                            <BookOpen size={18} color={theme.colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>How It Works</Text>
                     </View>
@@ -196,7 +211,7 @@ export default function AboutScreen() {
                             <View style={styles.stepTextWrap}>
                                 <Text style={styles.stepTitle}>Sign In or Enter as Guest</Text>
                                 <Text style={styles.stepDesc}>
-                                    Log in to your account or explore as a Visitor. The app sets up features matching your role.
+                                    Log in to your account or explore as a Visitor to access features tailored to your role.
                                 </Text>
                             </View>
                         </View>
@@ -208,7 +223,7 @@ export default function AboutScreen() {
                             <View style={styles.stepTextWrap}>
                                 <Text style={styles.stepTitle}>Walk Around Campus</Text>
                                 <Text style={styles.stepDesc}>
-                                    Your phone GPS tracks your location on the map and calculates distances to all campus buildings.
+                                    GPS tracks your position and calculates real-time distances to all campus buildings.
                                 </Text>
                             </View>
                         </View>
@@ -220,7 +235,7 @@ export default function AboutScreen() {
                             <View style={styles.stepTextWrap}>
                                 <Text style={styles.stepTitle}>Discover & Unlock</Text>
                                 <Text style={styles.stepDesc}>
-                                    Walking near a building triggers automatic unlocking, giving you access to 3D models and trivia.
+                                    Walking near a building triggers automatic unlocking, displaying 3D models and trivia.
                                 </Text>
                             </View>
                         </View>
@@ -232,7 +247,7 @@ export default function AboutScreen() {
                             <View style={styles.stepTextWrap}>
                                 <Text style={styles.stepTitle}>Interact & Complete</Text>
                                 <Text style={styles.stepDesc}>
-                                    Point your AR camera, answer quizzes for EXP, or conduct structured accreditation reviews.
+                                    Point your AR camera, answer quizzes for EXP, or conduct structured facility evaluations.
                                 </Text>
                             </View>
                         </View>
@@ -243,7 +258,7 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Users size={20} color={theme.colors.primary} />
+                            <Users size={18} color={theme.colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>Meet the Team</Text>
                     </View>
@@ -253,7 +268,7 @@ export default function AboutScreen() {
                             BSIT Capstone Development & Research Group
                         </Text>
                         <Text style={styles.teamDesc}>
-                            Dedicated to designing modern mobile experiences that merge geospatial intelligence, Augmented Reality, and educational technology.
+                            Dedicated to designing smart campus solutions that merge geospatial intelligence, Augmented Reality, and mobile technology.
                         </Text>
                     </View>
                 </View>
@@ -262,24 +277,24 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Mail size={20} color={theme.colors.primary} />
+                            <Mail size={18} color={theme.colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>Contact & Support</Text>
                     </View>
                     <Text style={styles.bodyText}>
-                        Have questions, suggestions, or encountered an issue? Feel free to reach out to our team:
+                        Have questions, suggestions, or need assistance? Feel free to reach out to our team:
                     </Text>
                     <TouchableOpacity
                         style={styles.emailButton}
                         onPress={handleEmail}
-                        activeOpacity={0.8}
+                        activeOpacity={0.85}
                     >
-                        <Mail size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Mail size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
                         <Text style={styles.emailButtonText}>support@arquest.com</Text>
                     </TouchableOpacity>
                 </View>
 
-                <View style={{ height: 40 }} />
+                <View style={{ height: 32 }} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -294,162 +309,174 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingVertical: 14,
         backgroundColor: "#FFFFFF",
         borderBottomWidth: 1,
         borderBottomColor: "#E5E7EB",
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 36,
+        height: 36,
+        borderRadius: 6,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: "#F3F4F6",
     },
     headerTitle: {
         fontFamily: fonts.heading.bold,
-        fontSize: 18,
+        fontSize: 17,
         color: theme.colors.textPrimary,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
     },
     scrollContent: {
-        padding: 20,
+        padding: 16,
     },
     heroCard: {
-        borderRadius: 24,
-        paddingVertical: 32,
-        paddingHorizontal: 20,
+        borderRadius: 6,
+        paddingVertical: 28,
+        paddingHorizontal: 16,
         alignItems: "center",
-        marginBottom: 20,
+        marginBottom: 16,
         shadowColor: "#9b1b30",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
-        shadowRadius: 16,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    logoBadge: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
+    logoBox: {
+        width: 90,
+        height: 90,
+        borderRadius: 6,
+        backgroundColor: "rgba(255, 255, 255, 0.15)",
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 14,
+        marginBottom: 12,
         borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.3)",
+        borderColor: "rgba(255, 255, 255, 0.25)",
+        padding: 8,
+    },
+    logoImage: {
+        width: "100%",
+        height: "100%",
     },
     heroTitle: {
         fontFamily: fonts.heading.bold,
-        fontSize: 26,
+        fontSize: 24,
         color: "#FFFFFF",
-        letterSpacing: 1,
+        letterSpacing: 0.8,
         marginBottom: 4,
     },
     heroTagline: {
         fontFamily: fonts.body.medium,
         fontSize: 13,
-        color: "rgba(255, 255, 255, 0.85)",
+        color: "rgba(255, 255, 255, 0.9)",
         textAlign: "center",
     },
     sectionCard: {
         backgroundColor: "#FFFFFF",
-        borderRadius: 18,
-        padding: 20,
-        marginBottom: 16,
+        borderRadius: 6,
+        padding: 16,
+        marginBottom: 14,
         borderWidth: 1,
         borderColor: "#E5E7EB",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.03,
+        shadowRadius: 4,
+        elevation: 1,
     },
     sectionHeader: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 12,
+        marginBottom: 10,
     },
     sectionIconWrap: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 32,
+        height: 32,
+        borderRadius: 6,
         backgroundColor: "rgba(155, 27, 48, 0.08)",
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 12,
+        marginRight: 10,
     },
     sectionTitle: {
         fontFamily: fonts.heading.bold,
-        fontSize: 16,
+        fontSize: 15,
         color: theme.colors.textPrimary,
-        letterSpacing: 0.3,
+        letterSpacing: 0.2,
     },
     bodyText: {
         fontFamily: fonts.body.regular,
-        fontSize: 14,
+        fontSize: 13.5,
         color: theme.colors.textSecondary,
-        lineHeight: 22,
+        lineHeight: 21,
     },
     featureList: {
-        gap: 14,
+        gap: 12,
     },
     featureItem: {
         flexDirection: "row",
         alignItems: "flex-start",
     },
-    featureIcon: {
-        marginTop: 2,
+    featureIconWrap: {
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+        backgroundColor: "rgba(155, 27, 48, 0.06)",
+        justifyContent: "center",
+        alignItems: "center",
         marginRight: 10,
+        marginTop: 2,
     },
     featureTextWrap: {
         flex: 1,
     },
     featureItemTitle: {
         fontFamily: fonts.heading.semiBold,
-        fontSize: 14,
+        fontSize: 13.5,
         color: theme.colors.textPrimary,
         marginBottom: 2,
     },
     featureItemDesc: {
         fontFamily: fonts.body.regular,
-        fontSize: 13,
+        fontSize: 12.5,
         color: theme.colors.textSecondary,
         lineHeight: 18,
     },
     bulletList: {
-        gap: 10,
+        gap: 8,
     },
     bulletText: {
         fontFamily: fonts.body.regular,
-        fontSize: 13.5,
+        fontSize: 13,
         color: theme.colors.textSecondary,
-        lineHeight: 20,
+        lineHeight: 19,
     },
     boldText: {
         fontFamily: fonts.heading.semiBold,
         color: theme.colors.textPrimary,
     },
     stepList: {
-        gap: 16,
+        gap: 14,
     },
     stepItem: {
         flexDirection: "row",
         alignItems: "flex-start",
     },
     stepNumberBadge: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: 24,
+        height: 24,
+        borderRadius: 6,
         backgroundColor: theme.colors.primary,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 12,
+        marginRight: 10,
         marginTop: 2,
     },
     stepNumberText: {
         fontFamily: fonts.heading.bold,
-        fontSize: 13,
+        fontSize: 12,
         color: "#FFFFFF",
     },
     stepTextWrap: {
@@ -457,42 +484,42 @@ const styles = StyleSheet.create({
     },
     stepTitle: {
         fontFamily: fonts.heading.semiBold,
-        fontSize: 14,
+        fontSize: 13.5,
         color: theme.colors.textPrimary,
         marginBottom: 2,
     },
     stepDesc: {
         fontFamily: fonts.body.regular,
-        fontSize: 13,
+        fontSize: 12.5,
         color: theme.colors.textSecondary,
         lineHeight: 18,
     },
     teamBox: {
         backgroundColor: "#F9FAFB",
-        borderRadius: 14,
-        padding: 16,
+        borderRadius: 6,
+        padding: 14,
         borderWidth: 1,
         borderColor: "#E5E7EB",
     },
     teamGroup: {
         fontFamily: fonts.heading.bold,
-        fontSize: 17,
+        fontSize: 16,
         color: theme.colors.primary,
         marginBottom: 2,
     },
     teamRole: {
         fontFamily: fonts.heading.semiBold,
-        fontSize: 12,
+        fontSize: 11.5,
         color: theme.colors.textMuted,
         textTransform: "uppercase",
-        letterSpacing: 0.5,
-        marginBottom: 8,
+        letterSpacing: 0.4,
+        marginBottom: 6,
     },
     teamDesc: {
         fontFamily: fonts.body.regular,
-        fontSize: 13,
+        fontSize: 12.5,
         color: theme.colors.textSecondary,
-        lineHeight: 19,
+        lineHeight: 18,
     },
     emailButton: {
         flexDirection: "row",
@@ -500,18 +527,18 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: theme.colors.primary,
         paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 14,
-        marginTop: 14,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        marginTop: 12,
         shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 2,
     },
     emailButtonText: {
         fontFamily: fonts.heading.bold,
-        fontSize: 14,
+        fontSize: 13.5,
         color: "#FFFFFF",
         letterSpacing: 0.3,
     },
