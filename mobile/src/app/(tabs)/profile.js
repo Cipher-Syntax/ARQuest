@@ -528,12 +528,12 @@ export default function ProfileScreen() {
                         <SettingsRow
                             icon={ShieldAlert}
                             title="Privacy Policy"
-                            onPress={() => {}}
+                            onPress={() => router.push("/privacy")}
                         />
                         <SettingsRow
                             icon={FileText}
                             title="Terms and Conditions"
-                            onPress={() => {}}
+                            onPress={() => router.push("/terms")}
                         />
                     </View>
                 </View>

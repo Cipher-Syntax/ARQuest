@@ -23,7 +23,11 @@ import {
     Eye,
     ChevronLeft,
     ChevronRight,
+    ShieldAlert,
+    Square,
+    CheckSquare,
 } from "lucide-react-native";
+import { router } from "expo-router";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
 import { useAuth } from "../../hooks/useAuth";
@@ -31,8 +35,10 @@ import { useAuth } from "../../hooks/useAuth";
 const { width } = Dimensions.get("window");
 
 const getTutorialSteps = (role) => {
+    let steps = [];
+
     if (role === "professional" || role === "admin") {
-        return [
+        steps = [
             {
                 badge: "WELCOME",
                 title: "Accreditor Portal",
@@ -40,7 +46,6 @@ const getTutorialSteps = (role) => {
                     "You have full access to all campus buildings, 3D models, and 360° virtual tours for facility evaluation without any lock restrictions.",
                 icon: Building,
                 position: "center",
-                actionLabel: "START TOUR",
             },
             {
                 badge: "HOME",
@@ -50,7 +55,6 @@ const getTutorialSteps = (role) => {
                 icon: Activity,
                 position: "bottom",
                 pointerLeft: "10%",
-                actionLabel: "NEXT",
             },
             {
                 badge: "MAP",
@@ -60,7 +64,6 @@ const getTutorialSteps = (role) => {
                 icon: Map,
                 position: "bottom",
                 pointerLeft: "30%",
-                actionLabel: "NEXT",
             },
             {
                 badge: "AR CAMERA",
@@ -70,7 +73,6 @@ const getTutorialSteps = (role) => {
                 icon: ScanLine,
                 position: "bottom",
                 pointerLeft: "50%",
-                actionLabel: "NEXT",
             },
             {
                 badge: "EXPLORE",
@@ -80,7 +82,6 @@ const getTutorialSteps = (role) => {
                 icon: MapPin,
                 position: "bottom",
                 pointerLeft: "70%",
-                actionLabel: "NEXT",
             },
             {
                 badge: "CHECKLIST",
@@ -90,13 +91,10 @@ const getTutorialSteps = (role) => {
                 icon: CheckCircle2,
                 position: "bottom",
                 pointerLeft: "90%",
-                actionLabel: "FINISH TUTORIAL",
             },
         ];
-    }
-
-    if (role === "visitor") {
-        return [
+    } else if (role === "visitor") {
+        steps = [
             {
                 badge: "WELCOME",
                 title: "Campus Visitor Guide",
@@ -104,7 +102,6 @@ const getTutorialSteps = (role) => {
                     "Welcome to our university! Use this app to find buildings, locate department offices, and easily navigate campus grounds.",
                 icon: Compass,
                 position: "center",
-                actionLabel: "GET STARTED",
             },
             {
                 badge: "HOME",
@@ -114,7 +111,6 @@ const getTutorialSteps = (role) => {
                 icon: Building,
                 position: "bottom",
                 pointerLeft: "10%",
-                actionLabel: "NEXT",
             },
             {
                 badge: "MAP",
@@ -124,7 +120,6 @@ const getTutorialSteps = (role) => {
                 icon: Map,
                 position: "bottom",
                 pointerLeft: "30%",
-                actionLabel: "NEXT",
             },
             {
                 badge: "AR CAMERA",
@@ -134,7 +129,6 @@ const getTutorialSteps = (role) => {
                 icon: ScanLine,
                 position: "bottom",
                 pointerLeft: "50%",
-                actionLabel: "NEXT",
             },
             {
                 badge: "EXPLORE",
@@ -144,79 +138,90 @@ const getTutorialSteps = (role) => {
                 icon: MapPin,
                 position: "bottom",
                 pointerLeft: "70%",
-                actionLabel: "EXPLORE CAMPUS",
+            },
+        ];
+    } else {
+        // Default: Student Role
+        steps = [
+            {
+                badge: "WELCOME",
+                title: "Welcome to ARQuest",
+                description:
+                    "Explore your campus, unlock buildings as you walk, complete daily quests, answer quizzes, and level up your rank!",
+                icon: Compass,
+                position: "center",
+            },
+            {
+                badge: "MISSIONS",
+                title: "Daily Missions",
+                description:
+                    "Check here every day for 3 daily missions and limited-time quests to earn EXP and increase your player level.",
+                icon: Target,
+                position: "bottom",
+                pointerLeft: "10%",
+            },
+            {
+                badge: "MAP",
+                title: "Campus Map & 3D Models",
+                description:
+                    "See where you are on campus. Tap any building pin to inspect its 3D model or switch to List View for quick searching.",
+                icon: Map,
+                position: "bottom",
+                pointerLeft: "30%",
+            },
+            {
+                badge: "AR CAMERA",
+                title: "AR Scanner & QR Codes",
+                description:
+                    "Use your camera to find buildings around you. Scan building QR codes at the entrance to unlock them and take campus selfies!",
+                icon: ScanLine,
+                position: "bottom",
+                pointerLeft: "50%",
+            },
+            {
+                badge: "EXPLORE",
+                title: "Nearby Radar & Quizzes",
+                description:
+                    "Walk close to a building to automatically unlock it. Take quick building quizzes to earn bonus EXP points.",
+                icon: MapPin,
+                position: "bottom",
+                pointerLeft: "70%",
+            },
+            {
+                badge: "PROFILE",
+                title: "Rank, Streaks & Badges",
+                description:
+                    "Track your rank from Freshman to Campus Legend, maintain daily check-in streaks, and collect achievement badges.",
+                icon: Trophy,
+                position: "bottom",
+                pointerLeft: "90%",
             },
         ];
     }
 
-    // Default: Student Role
-    return [
-        {
-            badge: "WELCOME",
-            title: "Welcome to ARQuest",
-            description:
-                "Explore your campus, unlock buildings as you walk, complete daily quests, answer quizzes, and level up your rank!",
-            icon: Compass,
-            position: "center",
-            actionLabel: "GET STARTED",
-        },
-        {
-            badge: "MISSIONS",
-            title: "Daily Missions",
-            description:
-                "Check here every day for 3 daily missions and limited-time quests to earn EXP and increase your player level.",
-            icon: Target,
-            position: "bottom",
-            pointerLeft: "10%",
-            actionLabel: "NEXT",
-        },
-        {
-            badge: "MAP",
-            title: "Campus Map & 3D Models",
-            description:
-                "See where you are on campus. Tap any building pin to inspect its 3D model or switch to List View for quick searching.",
-            icon: Map,
-            position: "bottom",
-            pointerLeft: "30%",
-            actionLabel: "NEXT",
-        },
-        {
-            badge: "AR CAMERA",
-            title: "AR Scanner & QR Codes",
-            description:
-                "Use your camera to find buildings around you. Scan building QR codes at the entrance to unlock them and take campus selfies!",
-            icon: ScanLine,
-            position: "bottom",
-            pointerLeft: "50%",
-            actionLabel: "NEXT",
-        },
-        {
-            badge: "EXPLORE",
-            title: "Nearby Radar & Quizzes",
-            description:
-                "Walk close to a building to automatically unlock it. Take quick building quizzes to earn bonus EXP points.",
-            icon: MapPin,
-            position: "bottom",
-            pointerLeft: "70%",
-            actionLabel: "NEXT",
-        },
-        {
-            badge: "PROFILE",
-            title: "Rank, Streaks & Badges",
-            description:
-                "Track your rank from Freshman to Campus Legend, maintain daily check-in streaks, and collect achievement badges.",
-            icon: Trophy,
-            position: "bottom",
-            pointerLeft: "90%",
-            actionLabel: "START PLAYING",
-        },
-    ];
+    // Add actionLabel 'NEXT' to all steps
+    steps = steps.map(s => ({ ...s, actionLabel: "NEXT" }));
+
+    // Append the mandatory Legal step at the very end
+    steps.push({
+        badge: "AGREEMENT",
+        title: "Terms & Privacy",
+        description:
+            "Please review the app's Terms and Conditions and Privacy Policy before continuing.",
+        icon: ShieldAlert,
+        position: "center",
+        actionLabel: "I ACCEPT",
+        isLegalStep: true,
+    });
+
+    return steps;
 };
 
 export default function OnboardingTutorial() {
     const { user } = useAuth();
     const [isVisible, setIsVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
+    const [isAgreed, setIsAgreed] = useState(false);
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
     const steps = getTutorialSteps(user?.role);
@@ -302,14 +307,21 @@ export default function OnboardingTutorial() {
     };
 
     const handleSkip = async () => {
-        Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 250,
-            useNativeDriver: true,
-        }).start(async () => {
-            setIsVisible(false);
-            await AsyncStorage.setItem("@tutorial_completed", "true");
-        });
+        if (currentStep < steps.length - 1) {
+            Animated.sequence([
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 150,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+            setTimeout(() => setCurrentStep(steps.length - 1), 150);
+        }
     };
 
     if (!isVisible) return null;
@@ -367,6 +379,29 @@ export default function OnboardingTutorial() {
                             ))}
                         </View>
 
+                        {/* Legal Checkbox */}
+                        {step.isLegalStep && (
+                            <TouchableOpacity
+                                style={styles.legalCheckRow}
+                                activeOpacity={0.8}
+                                onPress={() => setIsAgreed(!isAgreed)}
+                            >
+                                <View style={[styles.checkbox, isAgreed && styles.checkboxActive]}>
+                                    {isAgreed ? (
+                                        <CheckSquare size={20} color={theme.colors.primary} />
+                                    ) : (
+                                        <Square size={20} color={theme.colors.textMuted} />
+                                    )}
+                                </View>
+                                <Text style={styles.legalCheckText}>
+                                    I agree to the{" "}
+                                    <Text style={styles.legalLink} onPress={() => router.push("/terms")}>Terms and Conditions</Text>
+                                    {" "}and acknowledge that I have read the{" "}
+                                    <Text style={styles.legalLink} onPress={() => router.push("/privacy")}>Privacy Policy</Text>.
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
                         {/* Actions Row */}
                         <View style={styles.buttonRow}>
                             {currentStep > 0 ? (
@@ -393,13 +428,15 @@ export default function OnboardingTutorial() {
 
                             <TouchableOpacity
                                 onPress={handleNext}
-                                style={styles.nextBtn}
+                                style={[
+                                    styles.nextBtn,
+                                    (step.isLegalStep && !isAgreed) && styles.nextBtnDisabled
+                                ]}
                                 activeOpacity={0.9}
+                                disabled={step.isLegalStep && !isAgreed}
                             >
                                 <Text style={styles.nextText}>
-                                    {currentStep === steps.length - 1
-                                        ? step.actionLabel || "FINISH"
-                                        : "NEXT"}
+                                    {step.actionLabel || (currentStep === steps.length - 1 ? "FINISH" : "NEXT")}
                                 </Text>
                                 {currentStep < steps.length - 1 && (
                                     <ChevronRight
@@ -626,5 +663,40 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.primary,
         backgroundColor: "rgba(178, 24, 48, 0.25)",
         marginLeft: -28,
+    },
+    legalCheckRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        backgroundColor: "rgba(0,0,0,0.02)",
+        padding: 12,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        marginTop: 6,
+        marginBottom: 16,
+    },
+    checkbox: {
+        marginRight: 12,
+        marginTop: 2,
+    },
+    checkboxActive: {
+        opacity: 1,
+    },
+    legalCheckText: {
+        flex: 1,
+        fontFamily: fonts.body.regular,
+        fontSize: 12,
+        color: theme.colors.textSecondary,
+        lineHeight: 18,
+    },
+    legalLink: {
+        fontFamily: fonts.heading.semiBold,
+        color: theme.colors.primary,
+        textDecorationLine: "underline",
+    },
+    nextBtnDisabled: {
+        backgroundColor: theme.colors.border,
+        shadowOpacity: 0,
+        elevation: 0,
     },
 });
