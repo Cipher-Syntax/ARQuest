@@ -1,11 +1,11 @@
 <div align="center">
   
-<img src="web/public/logo.png" alt="ARQuest Logo" width="500" />
+<img src="web/public/logo.png" alt="ARQuest Logo" width="180" />
 
 # ARQuest
 
 **A Sensor-Assisted Campus Exploration and Accreditation Support System**  
-*Featuring GPS Geofencing, 3D Building Visualization, Gamification, and 360° Virtual Walkthroughs.*
+*Featuring Native Spatial AR, GPS Geofencing, 3D Building Visualization, Gamification, and 360° Virtual Walkthroughs.*
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Expo](https://img.shields.io/badge/Expo-1B1F23?style=for-the-badge&logo=expo&logoColor=white)
@@ -22,135 +22,79 @@
 
 ## 📌 Project Overview
 
-**ARQuest** is a mobile-based campus exploration and accreditation support system designed to enhance spatial learning, navigation, and institutional evaluation through location-aware and visual technologies. 
+**ARQuest** is a mobile-based campus exploration and accreditation support system designed to enhance spatial learning, navigation, and institutional evaluation across Western Mindanao State University (WMSU) through location-aware, augmented reality, and 3D visual technologies.
 
-The system integrates GPS geofencing, 3D building visualization, gamified exploration, and 360° panoramic walkthroughs into a unified Android-compatible application. It is built using **React Native (Expo)** on the frontend and powered by a robust **Django REST Framework (DRF)** backend. 
+The system integrates **Native Spatial AR (ViroReact)** with real-time ground chevrons, GPS geofencing, 3D building inspection, gamified quests, and 360° panoramic virtual walkthroughs into a unified cross-platform mobile application, supported by a React 19 administrative web dashboard and a Django REST Framework backend.
 
-It supports four distinct user roles: **Admin**, **Students**, **Professionals (Accreditors/Personnel)**, and **Visitors**, providing tailored experiences for each.
+It enforces strict Role-Based Access Control (RBAC) across four distinct user roles: **Student**, **Professional (Accreditor / Faculty)**, **Visitor (Guest)**, and **Administrator**.
 
 ---
 
 ## ✨ Core Features
 
-### 📍 GPS Geofencing & Campus Navigation (Mapbox)
-- Detects user location in real-time to trigger automated building unlocks.
-- Defines campus zones per building using precise latitude/longitude radiuses.
-- Powered by the **Mapbox API** for robust point-to-point visual routing and highly accurate map tiles.
+### 📍 GPS Geofencing & Campus Map Navigation
+- Real-time location detection with automated campus building discoveries.
+- Defines precise polygon and circular geofence boundaries per campus facility.
+- Powered by the **Mapbox API** for interactive 2D maps, building search, and walking routes.
 
-### 🎮 Gamification & Quest System
-- **Daily Login Streaks:** Rewards consistent daily engagement with bonus exploration points.
-- **Dynamic Quests:** Directs students to specific buildings to complete objectives.
-- **Trivia & Learning:** Displays building-specific quizzes, flashcards, and trivia facts to reinforce contextual learning.
-- **Leaderboard & Ranks:** Global student rankings with Gold/Silver/Bronze tiers based on total exploration points.
+### 🧭 Native Spatial AR Navigation (ViroReact)
+- **3D Ground Chevrons**: Projects glowing crimson and gold ground chevrons guiding users to their destination.
+- **Off-Screen Turn HUD**: 2D edge indicators (`◀ TURN LEFT` / `TURN RIGHT ▶`) active when the destination is outside the camera's 45° field of view.
+- **Sensor Smoothing**: Exponential Moving Average (EMA) and deadband azimuth filtering eliminate compass micro-jitter and drift.
+- **PBR glTF Enhancements**: Double-sided, solid opaque PBR shaders for high-fidelity 3D miniature rendering.
 
-### 🏢 3D Building Visualization
-- Displays interactive, pre-created `.glb/.gltf` 3D building models.
-- Accessible immediately after a building is unlocked via geofencing.
-- Supports touch-based rotation, zoom, and spatial inspection of campus layouts.
+### 🎮 Gamification & Quest Arena (Student Role)
+- **Daily Login Streaks**: Consecutive login tracking with daily EXP rewards and streak bonus milestones.
+- **Missions & Limited Challenges**: Directs students to explore campus facilities and complete objectives.
+- **Interactive Quizzes & Trivia**: Contextual trivia facts and building quizzes reinforcing institutional knowledge.
+- **Global Leaderboard & Badges**: Real-time student rankings with tiered badges and level titles.
 
-### 📸 AR-Style Camera Interface & Branded Selfies
-- Immersive camera-based UI that overlays 3D models and floating labels onto the live camera feed.
-- **Branded Selfies:** Users can capture composite photos featuring the camera feed, the 3D model, and a custom WMSU campus frame, instantly saving it to their device gallery.
+### 🏢 3D Building Inspection & 360° Virtual Walkthroughs
+- **Interactive 3D Models**: Touch-based rotation, zoom, and spatial inspection of `.glb/.gltf` campus structures.
+- **360° Panoramic Walkthroughs**: Indoor exploration via interactive spatial hotspots (Entrance → Hallway → Office → Labs).
+- **Magic Window VR (Accreditor Mode)**: Gyroscope-enabled first-person virtual tour for remote institutional evaluation.
 
-### 🌐 360° Virtual Walkthroughs & Magic Window VR
-- **Panorama-based Navigation:** Allows users to virtually explore campus spaces (e.g., Entrance → Hallway → Classroom → Office) via clickable hotspots.
-- **Magic Window VR (Accreditor Mode):** Exclusive to professional accounts, this mode utilizes the device's gyroscope to create a first-person virtual reality experience for remote building inspection and evaluation.
+### 🛡️ Account Settings, Preferences & Self-Service Deactivation
+- **Account Settings**: Real-time avatar picker gallery, editable profile name, locked system credentials, and password management.
+- **Self-Service Deactivation & Reactivation**: Enables users to soft-deactivate their account (`is_active = False`) while safely preserving all EXP, badges, and passport stamps. Reactivates seamlessly upon next login.
+- **App Preferences**: Mute/unmute SFX audio via `SoundManager`, toggle haptic vibrations, switch distance units (Meters vs Feet), compass map rotation, and 3D cache cleaner.
+- **Legal Compliance Onboarding**: Mandatory Terms and Conditions & Privacy Policy agreement step before app access.
 
-### 🛡️ Robust Admin Management System (React Web Dashboard)
-- **Draft Workflows & Soft-Deletes:** Safe content management allowing admins to save incomplete drafts and archive buildings without permanent data loss.
-- **Interactive Geofence Editor:** Visual map interface for defining campus boundaries.
-- **System Feature Toggles:** Admins can instantly enable or disable modules (GPS, QR, Trivia, Maintenance Mode) on the fly without requiring mobile app updates.
-
----
-
-## 👥 Users and Their Needs
-
-### 🎓 Students
-- Need guided, engaging, and gamified campus exploration.
-- Benefit from automatic building discovery, daily streak incentives, and interactive trivia.
-- Require visual understanding of campus structures via 3D models and customized profiles (avatars).
-
-### 👔 Professionals (Accreditors / Personnel)
-- Need remote or assisted facility evaluation without physical geofence restrictions.
-- Require structured 360° walkthroughs and Gyroscope-enabled VR tours for immersive inspections.
-- Need organized documentation per department and building.
-
-### 🛠️ Administrators
-- Manage the entire platform via a dedicated web dashboard.
-- Upload images, 360° panoramas, 3D models, and define geofence zones.
-- Control gamification content, quests, system settings, and professional account provisioning.
-
-### 🚶 Visitors
-- Need simplified, read-only campus information access.
-- Benefit from visual and location-based navigation support before deciding to register.
+### 📊 Real-Time Admin Web Dashboard (React 19 & Vite)
+- **Live Operational Status**: Real-time campus health, total facilities, active students, and daily foot traffic.
+- **Interactive Recharts Visualizations**: Daily, weekly, monthly, and yearly foot traffic trends with Bar/Area graph toggles.
+- **Content Coverage Matrix**: Real-time deployment tracking for 360° panoramas, geofences, quests, and quizzes.
+- **User Role Composition**: Real-time distribution breakdown across Students, Accreditors, Visitors, and Admins.
+- **Issue & Feedback Radar**: Centralized hub for reviewing and resolving bug reports and feature requests submitted from the mobile app.
 
 ---
 
-## 🚀 Core User Flows
+## 👥 User Roles
 
-### 1️⃣ Student Flow
-1. **Open App:** Launch ARQuest; session is restored via secure JWT tokens.
-2. **Explore:** System continuously tracks GPS location via the campus map.
-3. **Discover:** User enters a predefined campus zone.
-4. **Unlock:** System automatically unlocks the building and awards points.
-5. **Interact:** User views the 3D model, completes quests, reads trivia, or takes a branded AR selfie.
-6. **Progress:** Points, streaks, and ranks are updated on the global leaderboard.
-
-### 2️⃣ Accreditor Flow
-1. **Login:** Access the system via an admin-provisioned professional account.
-2. **Select:** Choose any campus building (bypassing geofence requirements).
-3. **Inspect:** Enter the **360° Virtual Walkthrough** or activate **Magic Window VR** (Gyroscope mode).
-4. **Evaluate:** Navigate hotspot-based views to review building layouts and documentation remotely.
-
-### 3️⃣ Admin Flow
-1. **Dashboard:** Log into the React 19 web admin dashboard.
-2. **Draft & Create:** Add a new building, saving it as a draft until all assets are ready.
-3. **Configure:** Define geofences via the interactive map, upload `.glb` models, and set up 360° panorama hotspots.
-4. **Publish:** Change the building status to `VISIBLE`, instantly pushing the content to all mobile users.
+| Role | Access Scope |
+| :--- | :--- |
+| **Student** | Full gamification arena, quests, building quizzes, leaderboard rankings, Campus Passport discoveries, Spatial AR wayfinding, 3D models, custom avatars. |
+| **Professional / Accreditor** | Evaluation portal bypass, full campus directory, visited buildings evaluation checklist, 360° virtual tours, Magic Window VR walkthroughs (gamification popups hidden). |
+| **Visitor / Guest** | Public 2D campus directory, public facility info, guest AR navigation, read-only exploration without mandatory account registration. |
+| **Administrator** | Full Web Dashboard access: campus building authoring, geofence calibration, 360° panorama hotspots, quest/trivia CMS, user provisioning, system feature flags, and live analytics. |
 
 ---
 
-## 💻 Technology Stack
+## 👥 Development Team
 
-### 📱 Mobile Application
-- **Framework:** React Native (Expo Managed Workflow)
-- **Mapping:** Mapbox API & Expo Location (GPS/Geofencing)
-- **Camera/Media:** Expo Camera API, react-native-view-shot, Expo Media Library
-- **3D/Rendering:** WebView, Three.js (for GLB rendering and panoramic spheres)
+**Team Spiral** — BSIT Capstone 2026–2027  
+*College of Computer Studies, Western Mindanao State University (WMSU)*
 
-### ⚙️ Backend API
-- **Framework:** Django 5 & Django REST Framework (DRF)
-- **Authentication:** SimpleJWT (Access/Refresh Tokens), Brevo SMTP (OTP Emails)
-- **Database:** PostgreSQL (with custom Soft-Delete architecture)
+- **Hannah Jean T. Balimbingan** — Project Manager
+- **Paolo A. Eijansantos** — UI/UX Designer
+- **Justine A. Toong** — Lead Developer
 
-### 🖥️ Admin Web Dashboard
-- **Framework:** React 19, Vite, React Router DOM
-- **HTTP Client:** Axios (with interceptors)
-- **Mapping/UI:** Mapbox GL JS (for geofence configuration and mobile map), TailwindCSS / Vanilla CSS
-
-### 🎨 3D Modeling & Visualization
-- **Creation:** SketchUp, Blender
-- **Format:** Optimized `.glb` / `.gltf`
-- **Engine:** Three.js
+**Support & Inquiries**: `support@arquest.com`
 
 ---
 
-## 🎯 Scope & Design Principles
+## 📄 License
 
-### **Included in Scope**
-- GPS-based automatic building unlocking (geofencing).
-- 3D building visualization and 360° virtual accreditation walkthroughs.
-- Gamified learning (Trivia, Quests, Streaks, Leaderboards).
-- AR-style camera-based UI experience (non-ARCore).
-- Admin dashboard for comprehensive content, asset, and system management.
-
-### **Out of Scope**
-- Full ARCore world-anchored augmented reality (real-time spatial tracking).
-- Indoor centimeter-level positioning systems.
-- Unity-based immersive VR headset simulation.
-- LiDAR / RoomPlan-based automatic 3D reconstruction.
-
-### **Key Design Principle**
-ARQuest is a **location-triggered** system, not a real-time world-tracking AR application. GPS geofencing is the primary mechanism for unlocking campus content. The architecture prioritizes lightweight deployability on standard Android devices using Expo React Native, relying on pre-created 3D models and 360° media for robust visualization without the overhead of heavy native game engines.
+This project is developed as part of the academic capstone curriculum at Western Mindanao State University. All rights reserved.
 
 </div>

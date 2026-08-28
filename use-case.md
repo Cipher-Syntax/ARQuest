@@ -1,6 +1,6 @@
 # ARQuest — Use Case Diagram
 
-> Last updated: 2026-06-22
+> Last updated: 2026-08-28
 
 ---
 
@@ -10,64 +10,81 @@
 flowchart TB
     %% Actors
     Student(("Student"))
-    Professional(("Professional"))
+    Visitor(("Visitor / Guest"))
+    Professional(("Professional / Accreditor"))
     Admin(("Administrator"))
 
     %% System Boundary
     subgraph System ["ARQuest System"]
         
-        subgraph App ["Mobile App"]
-            UC1(["Register & Verify OTP"])
-            UC2(["Explore Campus via GPS"])
-            UC3(["Unlock Building (Geofence/QR)"])
-            UC5(["Complete Quest & Claim Points"])
-            UC5B(["Take Building Quiz"])
-            UC6(["Take Branded AR Selfie"])
-            UC4(["View 3D Model & Walkthrough"])
-            UC14(["Manage Account Settings & Avatar"])
-            UC7(["Access VR Virtual Tour"])
-            
-            %% Force vertical list to prevent horizontal spread
-            UC1 ~~~ UC2 ~~~ UC3 ~~~ UC5 ~~~ UC5B ~~~ UC6 ~~~ UC4 ~~~ UC14 ~~~ UC7
+        subgraph MobileApp ["Mobile Application"]
+            UC1(["Register, Accept Terms & Verify OTP"])
+            UC2(["Explore Campus via GPS & 2D Map"])
+            UC3(["Navigate via Spatial AR Ground Chevrons"])
+            UC4(["Unlock Facility via Geofence / QR"])
+            UC5(["View 3D Model & 360° Walkthrough"])
+            UC6(["Complete Quests, Challenges & Earn Badges"])
+            UC7(["Take Building Trivia Quiz"])
+            UC8(["View Campus Passport / Visited Checklist"])
+            UC9(["Manage Account, Password & Deactivation"])
+            UC10(["Configure App Preferences (SFX/Units/Map)"])
+            UC11(["Submit In-App Bug Report / Feedback"])
+            UC12(["Access Magic Window VR Virtual Tour"])
+            UC13(["Replay Role-Based Interactive User Manual"])
         end
 
-        subgraph Web ["Web Dashboard"]
-            UC8(["Manage Buildings & Departments"])
-            UC9(["Configure Map Geofences"])
-            UC10(["Manage Building Assets (3D/Pano)"])
-            UC11(["Create Quests, Quizzes & Trivia"])
-            UC12(["Manage Users & Professionals"])
-            UC13(["Toggle System Feature Flags"])
-            UC15(["View History, Logs & Notifications"])
-            
-            %% Force vertical list to prevent horizontal spread
-            UC8 ~~~ UC9 ~~~ UC10 ~~~ UC11 ~~~ UC12 ~~~ UC13 ~~~ UC15
+        subgraph WebApp ["Admin Web Dashboard"]
+            UC14(["View Real-Time Dashboard & Foot Traffic"])
+            UC15(["Manage Campus Facilities & Departments"])
+            UC16(["Calibrate Geofence Boundaries"])
+            UC17(["Manage 360° Panoramas & Hotspots"])
+            UC18(["Author Quests, Trivia & Quizzes (CMS)"])
+            UC19(["Manage User Accounts & Accreditors"])
+            UC20(["Review & Resolve Mobile Feedback/Issues"])
+            UC21(["Configure System Flags & Audit Logs"])
         end
     end
 
-    %% Student Connections (Top)
+    %% Student Connections
     Student --- UC1
     Student --- UC2
     Student --- UC3
     Student --- UC4
     Student --- UC5
-    Student --- UC5B
     Student --- UC6
-    Student --- UC14
+    Student --- UC7
+    Student --- UC8
+    Student --- UC9
+    Student --- UC10
+    Student --- UC11
+    Student --- UC13
 
-    %% Professional Connections (Middle)
-    Professional --- UC4
-    Professional --- UC14
-    Professional --- UC7
+    %% Visitor Connections
+    Visitor --- UC2
+    Visitor --- UC3
+    Visitor --- UC5
+    Visitor --- UC10
+    Visitor --- UC13
 
-    %% Admin Connections (Right)
-    Admin --- UC8
-    Admin --- UC9
-    Admin --- UC10
-    Admin --- UC11
-    Admin --- UC12
-    Admin --- UC13
+    %% Professional Connections
+    Professional --- UC2
+    Professional --- UC5
+    Professional --- UC8
+    Professional --- UC9
+    Professional --- UC10
+    Professional --- UC11
+    Professional --- UC12
+    Professional --- UC13
+
+    %% Admin Connections
+    Admin --- UC14
     Admin --- UC15
+    Admin --- UC16
+    Admin --- UC17
+    Admin --- UC18
+    Admin --- UC19
+    Admin --- UC20
+    Admin --- UC21
 ```
 
 ---
@@ -76,32 +93,25 @@ flowchart TB
 
 ### Overview
 
-The Use Case Diagram defines the functional requirements of the ARQuest system from the perspective of its primary actors. It outlines what each user role is permitted to do within the mobile application and the administrative web dashboard.
+The Use Case Diagram defines the functional scope of ARQuest across its four distinct user roles within the mobile client and the administrative web dashboard.
 
-### Actor: Student / Visitor
+### Actor: Student
+- **Registration & Legal Acceptance**: Creates an account, reviews and accepts the Terms & Conditions and Privacy Policy, and verifies email via 6-digit OTP.
+- **Campus Exploration & Spatial AR**: Explores campus using 2D Mapbox maps and follows 3D glowing ground chevrons with off-screen turn indicators to reach facilities.
+- **Building Unlocks & Passport**: Automatically unlocks buildings upon entering geofence perimeters and records stamp milestones in their Campus Passport.
+- **Gamification Arena**: Completes daily missions, maintains login streaks, passes building quizzes, earns tiered badges, and checks leaderboard rankings.
+- **Account & Preferences**: Customizes WMSU avatars, updates profile name, updates passwords, toggles SFX audio and haptics, submits bug reports, or deactivates their account with self-service reactivation on next login.
 
-The Student (or Visitor) interacts exclusively with the mobile application to explore the campus and engage with the gamification system.
-- **Register & Verify OTP**: Students create accounts and verify their identity using a One-Time Password sent to their email.
-- **Explore Campus via GPS**: Students view their real-time location on the campus map and see nearby building geofences.
-- **Unlock Building**: By physically entering a geofence or scanning a fallback QR code, students unlock access to a building's digital content.
-- **View 3D Model & 360° Walkthrough**: Once unlocked, students can manipulate 3D architectural models and navigate through panoramic indoor walkthroughs.
-- **Complete Quest & Claim Points**: Students receive directions to specific buildings. Upon arrival, they use the AR camera to claim exploration points and maintain their daily login streaks.
-- **Take Branded AR Selfie**: Students can overlay the 3D model onto their live camera feed, take a picture with a branded frame, and save it to their device.
-- **Manage Account Settings & Avatar**: Students can customize their profile by choosing from a set of generated WMSU-themed avatars.
+### Actor: Visitor / Guest
+- **Public Navigation**: Accesses public campus directories, 2D exploration maps, and AR wayfinding without mandatory registration.
+- **Interactive Manual**: Replays the dedicated Visitor Campus Guide tutorial on demand.
 
-### Actor: Professional
-
-The Professional is a specialized role, typically an accreditor, who requires remote access to building layouts for inspection purposes.
-- **Access VR Virtual Tour**: Professionals bypass the geofence restrictions. They can directly access any building's "Magic Window VR" mode, utilizing their device's gyroscope to look around the virtual space as if they were physically present.
-- **View 3D Model & 360° Walkthrough**: Like students, professionals can view all standard 3D and 360° content without needing to unlock the building via GPS.
+### Actor: Professional / Accreditor
+- **Institutional Evaluation**: Bypasses student gamification constraints to inspect all campus facilities without physical geofencing locks.
+- **360° Virtual Tours & Magic Window VR**: Conducts remote room-to-room inspections utilizing the device's gyroscope in full first-person VR mode.
+- **Visited Facilities Checklist**: Tracks evaluation inspection status across academic buildings.
 
 ### Actor: Administrator
-
-The Administrator manages the entire platform through the secure web dashboard.
-- **Manage Buildings & Departments**: Admins create, edit, soft-delete, and publish building records, assigning them to specific campus departments.
-- **Configure Map Geofences**: Admins visually draw and size circular geofence boundaries on a map for each building.
-- **Upload 3D Models & Panoramas**: Admins upload the raw `.glb` files and equirectangular images that power the mobile visualizers.
-- **Manage Quests & Trivia**: Admins author the gamification content, setting quest targets, hints, reward values, and educational trivia facts.
-- **Manage Users & Professionals**: Admins view the user base, manage roles, and manually provision accounts for Professional users.
-- **Toggle System Feature Flags**: Admins can instantly enable or disable system-wide features (like GPS requirements, QR scanning, or Maintenance Mode) without requiring a mobile app update.
-- **View History, Logs & Notifications**: Admins can view system, professional, building, and feedback notifications, managing read statuses and staying updated on system events.
+- **Operational Dashboard**: Monitors real-time KPIs, daily foot traffic graphs (Recharts), content coverage matrix, role composition, and live activity feeds.
+- **Content Management**: Manages campus facilities, geofence polygons, 3D glTF models, 360° panoramic scenes, hotspot links, and quest/trivia CMS.
+- **User & Security Management**: Provisions Accreditor accounts, monitors user roles, resolves user bug reports, and configures global feature flags.

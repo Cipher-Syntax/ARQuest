@@ -1,6 +1,6 @@
 # ARQuest — System Architecture
 
-> Last updated: 2026-06-20
+> Last updated: 2026-08-28
 
 ---
 
@@ -11,112 +11,107 @@ of truth. No critical decisions are made on the client.
 
 ```mermaid
 graph LR
-    subgraph MOBILE ["Mobile App\nReact Native · Expo · Android"]
-        M1["Auth + JWT\n(SecureStore)"]
-        M2["GPS Tracking\n(Expo Location)"]
-        M3["Geofencing\n(Haversine + API)"]
-        M4["Building Unlock\n(geofence / QR)"]
-        M5["Asset Cache\n(3D models / panoramas)"]
-        M6["Gamification\n(quests / points)"]
-        M7["WebView Rendering\n(Three.js / 360° / VR)"]
+    subgraph MOBILE ["Mobile App\nReact Native · Expo · ViroReact"]
+        M1["Auth & Self-Service Lifecycle\n(SecureStore / Token Refresh)"]
+        M2["GPS & Sensor Telemetry\n(Location · Heading · Gyro)"]
+        M3["Geofencing Engine\n(Haversine + Backend Validation)"]
+        M4["Spatial AR Navigation\n(ViroReact 3D Chevrons + HUD)"]
+        M5["Asset & 3D Cache\n(Three.js · 360° VR Tours)"]
+        M6["Gamification Arena\n(Quests · Badges · EXP · Streaks)"]
+        M7["Settings, Preferences & Feedback\n(SoundManager · CustomAlert)"]
     end
 
     subgraph BACKEND ["Django Backend\nDjango 5 · DRF · SimpleJWT"]
-        B1["/api/auth/\nauthentication"]
-        B2["/api/buildings/\nbuildings + geofences"]
-        B3["/api/geofencing/\nlocation validation"]
-        B4["/api/panorama/\nscenes + hotspots"]
-        B5["/api/gamification/\nquests + leaderboard"]
-        B6["/api/\nhealth · settings · dashboard"]
-        B7["RBAC Permission Classes"]
-        B8["Django Admin\n(/admin/)"]
+        B1["/api/auth/\nauth · profile · password · deactivation"]
+        B2["/api/buildings/\nfacilities · geofences · unlocks"]
+        B3["/api/geofencing/\nlocation proximity validation"]
+        B4["/api/panorama/\n360 scenes · hotspots"]
+        B5["/api/gamification/\nquests · challenges · leaderboard · badges"]
+        B6["/api/quizzes/\ntrivia · building quizzes"]
+        B7["/api/feedback/ & /api/notifications/\nuser issues · audit stream"]
+        B8["/api/dashboard/\nreal-time stats & foot traffic aggregations"]
+        B9["RBAC Permission Engine\nIsStudent · IsAdmin · IsProfessional"]
     end
 
     subgraph DATA ["Data Layer"]
-        DB[("PostgreSQL\n12 models · 5 apps")]
+        DB[("PostgreSQL\n18 models · 7 domain apps")]
         MEDIA["Media Storage\nmodels/ · panoramas/ · assets/"]
     end
 
-    subgraph WEB ["Admin Web Dashboard\nReact 19 · Vite · Axios"]
-        W1["Auth + JWT\n(localStorage)"]
-        W2["Buildings · Departments\nGeofences · Archive"]
-        W3["Panorama Manager\n(scenes + hotspots)"]
-        W4["Quests · Trivia · Media"]
-        W5["Professionals · Users\nLeaderboard"]
-        W6["CMS · Settings\n(feature toggles)"]
-        W7["History & Logs\n(Notifications)"]
+    subgraph WEB ["Admin Web Dashboard\nReact 19 · Vite · Tailwind · Recharts"]
+        W1["Auth + JWT State\n(localStorage / useAuth)"]
+        W2["Real-Time Dashboard Overview\n(KPIs · Foot Traffic Charts · Coverage)"]
+        W3["Buildings · Departments · Geofences\nArchive & Soft-Delete"]
+        W4["Panorama Manager\n(360° scenes · interactive hotspots)"]
+        W5["CMS Gamification\n(quests · trivia · quizzes · badges)"]
+        W6["User Management & Role Provisioning\n(Students · Accreditors · Admins)"]
+        W7["Feedback Radar & System History Logs\n(mobile bug reports · audit trail)"]
+        W8["System Settings & Feature Toggles"]
     end
 
     MOBILE -->|"REST API\n(JWT Bearer)"| BACKEND
     WEB    -->|"REST API\n(JWT Bearer)"| BACKEND
     BACKEND --> DATA
-    B8      --> DATA
 ```
 
 ---
 
 ## Diagram 2 — Mobile Application Layer
 
-Internal structure of the React Native Expo app — services, hooks, screens, and WebView renderers.
+Internal structure of the React Native Expo app — services, contexts, hooks, screens, spatial AR, and WebView renderers.
 
 ```mermaid
 graph TD
-    subgraph CONTEXT ["App Context & State"]
-        AUTH_CTX["AuthContext\nJWT tokens · user object · role"]
-        ROLE_SVC["roleAccess.js\nclient-side RBAC gate"]
+    subgraph CONTEXT ["App Context & Global State"]
+        AUTH_CTX["AuthContext\nJWT tokens · user object · role\nlogin/reactivate/logout"]
+        LOC_CTX["LocationContext\nGPS coords · smoothed heading\nbattery optimization"]
+        UNLOCK_CTX["UnlockedBuildingsContext\ncached building unlock status"]
+        SOUND_MGR["SoundManager.js\npreloaded SFX audio player\nAsyncStorage preference sync"]
     end
 
-    subgraph SERVICES ["Services  (src/services/)"]
-        API_JS["core/api.js\nAxios instance + JWT interceptors\n+ 401 auto-refresh\nCentralized Error Handling"]
+    subgraph SERVICES ["Services (src/services/)"]
+        API_JS["core/api.js\nAxios instance + JWT interceptors\n401 token auto-refresh\nCentralized Error Handling"]
         AUTH_SVC["auth/authService.js\nlogin · register · logout · me"]
-        GEO_SVC["geofencing/geofencingService.js\nfetchGeofences · validateLocation\nHaversine distance calc"]
+        GEO_SVC["geofencing/geofencingService.js\nfetchGeofences · validateLocation"]
         UNLOCK_SVC["core/unlockService.js\nunlockBuilding · unlockByQR"]
-        ASSET_SVC["assets/assetService.js\nfetch versioned asset URLs"]
-        GAME_SVC["gamification/gamificationService.js\nfetchQuests · submitQuiz"]
-        BARREL["index.js\nBarrel Exports"]
+        GAME_SVC["gamification/gamificationService.js\nfetchQuests · submitQuiz · checkin"]
     end
 
-    subgraph HOOKS ["Hooks  (src/hooks/)"]
-        USE_AUTH["useAuth.js\ncontext consumer"]
-        USE_GPS["useLocationTracking.js\nExpo Location API\n5s interval · 10m threshold"]
-        USE_UNLOCK["useUnlockedBuildings.js\naggregates user unlocked list"]
-        USE_CACHE["useAssetCache.js\nlocal model + panorama cache"]
-        USE_ROLE["useRoleAccess.js\nrole-aware feature flags"]
+    subgraph HOOKS ["Hooks (src/hooks/)"]
+        USE_AUTH["useAuth.js\nauth consumer"]
+        USE_LOC["useLocationTracking.js\nlocation telemetry consumer"]
+        USE_UNLOCK["useUnlockedBuildings.js\nunlock state consumer"]
+        USE_ROLE["useRoleAccess.js\nclient RBAC feature guards"]
     end
 
-    subgraph AUTH_SCREENS ["Auth Screens  (app/(auth)/)"]
-        SCR_LOGIN["Login Screen"]
-        SCR_REG["Register Screen"]
-        SCR_OTP["OTP Verify Screen"]
+    subgraph SCREENS ["Application Screens"]
+        SCR_AUTH["app/(auth)/\nLogin (Reactivation) · Register · OTP · Avatar"]
+        SCR_TABS["app/(tabs)/\nHome · Explore (Mapbox) · Spatial AR · Directory · Profile"]
+        SCR_SETTINGS["app/\nAccount Settings · App Preferences · Visited Buildings (Passport)\nAbout ARQuest · Terms · Privacy"]
+        MODALS["components/ui/\nFeedbackModal · CustomAlert · OnboardingTutorial"]
     end
 
-    subgraph TAB_SCREENS ["Tab Screens  (app/(tabs)/)"]
-        SCR_HOME["Home\nQuest Dashboard"]
-        SCR_EXPLORE["Explore Map\nMapbox (WebView)"]
-        SCR_AR["AR View\nCamera + 3D overlay"]
-        SCR_BLDG["Buildings List\nunlocked buildings"]
-        SCR_PROF["Profile\nstats + settings"]
+    subgraph AR_AND_3D ["Spatial AR & 3D Visualizers"]
+        VIRO_AR["Spatial AR (ViroReact)\n3D Ground Chevrons · Heading EMA\n2D Off-Screen Turn Indicators"]
+        WV_3D["Building3DViewer (Three.js)\nGLTFLoader · OrbitControls · PBR"]
+        WV_PANO["PanoramaViewer (Three.js)\nEquirectangular 360° Sphere · Hotspots"]
+        WV_VR["VirtualTourViewer (Three.js)\nMagic Window VR · Gyroscope Control"]
     end
 
-    subgraph FULLSCREEN ["Full-screen Screens  (app/)"]
-        SCR_3D["Building3DViewer"]
-        SCR_PANO["PanoramaViewer"]
-        SCR_VT["VirtualTourViewer"]
-        SCR_LEAD["Leaderboard"]
-    end
-
-    subgraph WEBVIEW ["WebView Rendering Layer  (Three.js)"]
-        WV_3D["viewer3d.html\nGLTFLoader · OrbitControls\nauto-fit · zoom"]
-        WV_PANO["panorama.html\nThree.js sphere/cylinder\nhotspot raycasting"]
-        WV_VR["virtual-tour.html\nMagic Window VR\nGyroscope first-person"]
-    end
-
-    AUTH_CTX --> ROLE_SVC
     AUTH_CTX --> API_JS
     API_JS --> AUTH_SVC
     API_JS --> GEO_SVC
     API_JS --> UNLOCK_SVC
-    API_JS --> ASSET_SVC
+    API_JS --> GAME_SVC
+
+    LOC_CTX --> GEO_SVC
+    UNLOCK_CTX --> UNLOCK_SVC
+
+    SCREENS --> USE_AUTH
+    SCREENS --> USE_LOC
+    SCREENS --> USE_UNLOCK
+    SCREENS --> SOUND_MGR
+    SCREENS --> AR_AND_3D
 
     USE_GPS --> GEO_SVC
     USE_UNLOCK --> UNLOCK_SVC

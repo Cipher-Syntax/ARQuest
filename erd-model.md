@@ -1,6 +1,6 @@
 # ARQuest — Conceptual ERD Model (Chen's Notation)
 
-> Last updated: 2026-07-07
+> Last updated: 2026-08-28
 
 This document illustrates the database schema using classic **Chen's Entity-Relationship notation**, where:
 - **Rectangles** represent Entities (Tables)

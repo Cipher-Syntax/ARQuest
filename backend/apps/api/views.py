@@ -132,6 +132,68 @@ def dashboard_stats(request):
     completed_quests = UserQuestProgress.objects.filter(is_completed=True).count()
     quest_completion_rate = round((completed_quests / total_quest_progress * 100), 1) if total_quest_progress > 0 else 0
 
+    # User Role Distribution
+    students_count = User.objects.filter(role='student', is_active=True).count()
+    professionals_count = User.objects.filter(role='professional', is_active=True).count()
+    visitors_count = User.objects.filter(role='visitor', is_active=True).count()
+    admins_count = User.objects.filter(role='admin', is_active=True).count()
+    total_users_count = students_count + professionals_count + visitors_count + admins_count
+
+    role_distribution = {
+        'students': students_count,
+        'professionals': professionals_count,
+        'visitors': visitors_count,
+        'admins': admins_count,
+        'total': total_users_count
+    }
+
+    # Content & System Coverage
+    from apps.panorama.models import PanoramaScene
+    from apps.gamification.models import Quest, LimitedChallenge
+    from apps.quizzes.models import QuizQuestion
+    from .models import Feedback, Notification
+
+    total_panoramas = PanoramaScene.objects.filter(is_active=True).count()
+    buildings_with_panoramas = PanoramaScene.objects.filter(is_active=True).values('building_id').distinct().count()
+    total_quests = Quest.objects.filter(is_active=True).count()
+    total_challenges = LimitedChallenge.objects.filter(is_active=True).count()
+    total_quizzes = QuizQuestion.objects.filter(is_active=True).count()
+    open_feedbacks = Feedback.objects.filter(status='open').count()
+
+    content_coverage = {
+        'total_buildings': total_buildings,
+        'buildings_with_panoramas': buildings_with_panoramas,
+        'total_panoramas': total_panoramas,
+        'total_quests': total_quests,
+        'total_challenges': total_challenges,
+        'total_quizzes': total_quizzes,
+        'open_feedbacks': open_feedbacks,
+    }
+
+    # Recent Real-Time Activity & Notifications
+    recent_notifications = Notification.objects.all().order_by('-created_at')[:5]
+    activity_list = []
+    for n in recent_notifications:
+        activity_list.append({
+            'id': str(n.id),
+            'title': n.title,
+            'message': n.message,
+            'type': n.type,
+            'created_at': n.created_at.isoformat(),
+        })
+
+    # Recent Open Feedbacks
+    recent_feedbacks = Feedback.objects.filter(status='open').order_by('-created_at')[:4]
+    feedback_list = []
+    for f in recent_feedbacks:
+        feedback_list.append({
+            'id': f.id,
+            'type': f.type,
+            'user': f.user.username if f.user else 'Anonymous',
+            'message': f.message[:90] + ('...' if len(f.message) > 90 else ''),
+            'created_at': f.created_at.isoformat(),
+        })
+
     return success_response({
         'total_buildings': total_buildings,
         'active_students': active_students,
@@ -142,7 +204,11 @@ def dashboard_stats(request):
         'most_visited': most_visited,
         'least_visited': least_visited,
         'quest_completion_rate': quest_completion_rate,
-        'total_quests_completed': completed_quests
+        'total_quests_completed': completed_quests,
+        'role_distribution': role_distribution,
+        'content_coverage': content_coverage,
+        'recent_activity': activity_list,
+        'recent_feedbacks': feedback_list
     })
 
 from .models import SystemSetting

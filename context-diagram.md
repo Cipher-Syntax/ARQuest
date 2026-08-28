@@ -1,38 +1,49 @@
 # ARQuest — Context Diagram
 
-> Last updated: 2026-06-22
+> Last updated: 2026-08-28
 
 ---
 
 ## 1. System Context Diagram
 
-This diagram shows ARQuest as a central system and its interactions with external users and external systems.
+This diagram shows ARQuest as a central system and its interactions with external users, device hardware, and external services.
 
 ```mermaid
 graph TD
     %% Actors
-    Student["Student / Visitor<br/>(Mobile App User)"]
+    Student["Student<br/>(Mobile App User)"]
+    Visitor["Visitor / Guest<br/>(Mobile App User)"]
     Prof["Professional / Accreditor<br/>(Mobile App User)"]
     Admin["Administrator<br/>(Web Dashboard User)"]
 
     %% Core System
-    ARQuest(("ARQuest System<br/>(Mobile App, Admin Web, API, Database)"))
+    ARQuest(("ARQuest System<br/>(Mobile App, Admin Web Dashboard, Django REST API, PostgreSQL)"))
 
-    %% External Systems
-    EmailSvc["Email Provider<br/>(Brevo)"]
-    GPSSvc["Location Services<br/>(Device GPS)"]
-    MediaSvc["Media Storage<br/>(File System / Cloud)"]
-    MapsSvc["Google Maps API<br/>(Map Tiles & Geocoding)"]
+    %% External Systems & Device Services
+    EmailSvc["Email Service<br/>(Brevo SMTP / OTP)"]
+    GPSSvc["Device GPS & Compass<br/>(Expo Location / Sensor Telemetry)"]
+    CamSvc["Device Camera & AR Sensors<br/>(Expo Camera & ViroReact AR)"]
+    MediaSvc["Media Storage<br/>(File System / Cloud Assets)"]
+    MapsSvc["Mapbox API<br/>(Vector Tiles & Campus Routing)"]
 
-    %% Interactions
-    Student -- "Explores campus, unlocks buildings, completes quests, views 3D/AR content" --> ARQuest
-    Prof -- "Accesses Magic Window VR virtual tours for accreditation" --> ARQuest
-    Admin -- "Manages content, buildings, geofences, quests, settings, and views history/notifications" --> ARQuest
+    %% Student Interactions
+    Student -- "Explores campus, unlocks buildings via GPS/QR, navigates via Spatial AR, earns EXP & streaks, customizes profile" --> ARQuest
+    
+    %% Visitor Interactions
+    Visitor -- "Views 2D campus map, explores public building directory, uses guest wayfinding" --> ARQuest
+    
+    %% Professional Interactions
+    Prof -- "Performs facility evaluations, conducts 360° virtual tours & Magic Window VR walkthroughs" --> ARQuest
+    
+    %% Admin Interactions
+    Admin -- "Manages campus facilities, geofences, 3D/360° assets, quests/trivia, user accounts, and monitors real-time dashboard analytics" --> ARQuest
 
-    ARQuest -- "Sends OTP verification emails" --> EmailSvc
-    ARQuest -- "Requests location data for geofence validation" --> GPSSvc
-    ARQuest -- "Stores and retrieves 3D models, panoramas, and images" --> MediaSvc
-    ARQuest -- "Fetches map tiles for campus routing and UI" --> MapsSvc
+    %% System to External Interactions
+    ARQuest -- "Sends OTP verification & security emails" --> EmailSvc
+    ARQuest -- "Reads GPS coordinates & compass azimuth for geofencing and AR chevrons" --> GPSSvc
+    ARQuest -- "Streams camera frames for live AR overlay and QR code detection" --> CamSvc
+    ARQuest -- "Stores and serves .glb 3D models, 360° panoramas, and thumbnails" --> MediaSvc
+    ARQuest -- "Fetches vector map tiles and visual campus navigation paths" --> MapsSvc
 ```
 
 ---
@@ -41,22 +52,19 @@ graph TD
 
 ### Overview
 
-The Context Diagram provides a high-level view of the ARQuest system boundaries. It illustrates who uses the system (the actors) and which external services the system relies on to function. The central node represents the entire ARQuest ecosystem, encapsulating the mobile application, web dashboard, Django backend, and database.
+The Context Diagram establishes the operational boundaries of the ARQuest platform. It captures how distinct user roles interact with the system and how the platform leverages device hardware sensors and external cloud services.
 
 ### Actors
 
-**Student / Visitor**: The primary end-users of the mobile application. They interact with the system by physically navigating the campus, triggering geofence unlocks, completing AR quests for gamification points (maintaining daily login streaks), choosing custom WMSU avatars, and exploring 3D building models and 360° panoramas.
+- **Student**: Primary mobile users who physically explore the campus. They unlock buildings via geofences or QR codes, follow native Spatial AR ground arrows, complete academic quests, maintain daily login streaks, participate in building quizzes, review their Campus Passport, and manage their avatars and account preferences.
+- **Visitor / Guest**: Prospective students and campus guests who access public facility information, interactive 2D maps, and basic wayfinding without mandatory registration.
+- **Professional / Accreditor**: Evaluators and faculty who utilize the mobile app for institutional accreditation. They bypass student gamification constraints, accessing full campus facility directories, visited building evaluation checklists, 360° panoramic virtual walkthroughs, and gyroscope-assisted Magic Window VR tours.
+- **Administrator**: Institutional managers who operate the React 19 Web Dashboard to provision campus departments, publish 3D building models, calibrate geofence boundaries, author quests and quiz trivia, resolve user bug reports, configure system feature flags, and analyze real-time foot traffic and operational KPIs.
 
-**Professional / Accreditor**: Specialized users who use the mobile application for remote building inspection. They are granted access to Magic Window VR virtual tours without needing to physically unlock buildings via geofencing.
+### External Services & Device Hardware
 
-**Administrator**: Staff members who manage the platform through the React-based Web Dashboard. They are responsible for adding new buildings, uploading 3D models, defining geofences on the map, creating quests and trivia, toggling system-wide feature flags, and viewing system notifications, history, and logs.
-
-### External Systems
-
-**Email Provider (Brevo)**: Used by the backend to send One-Time Password (OTP) emails during the student registration and verification process.
-
-**Location Services (Device GPS)**: The mobile application relies on the device's native GPS capabilities (accessed via Expo Location) to determine the user's coordinates for geofence validation.
-
-**Media Storage**: The system stores heavy media assets like `.glb` 3D models and equirectangular panorama images. While currently managed by Django, it represents an externalized storage dependency that could be backed by a cloud provider like S3.
-
-**Mapbox API**: Replaces default mapping services to provide highly accurate map tiles, styling, and robust point-to-point visual routing on the campus explore map.
+- **Email Service (Brevo)**: Dispatches automated 6-digit One-Time Password (OTP) verification emails for student registration.
+- **Device GPS & Sensor Telemetry**: Provides real-time geolocation coordinates, location accuracy estimates, and compass heading (azimuth) for geofence validation and AR waypoint projection.
+- **Device Camera & AR Framework (ViroReact)**: Captures live optical feeds for Spatial AR ground chevron rendering and fallback QR code scanning.
+- **Media Storage**: Serves optimized 3D building models (`.glb`), high-resolution equirectangular panorama scenes, and department thumbnail images.
+- **Mapbox API**: Powers high-performance vector map rendering, campus boundary layers, and walking route geometry.
