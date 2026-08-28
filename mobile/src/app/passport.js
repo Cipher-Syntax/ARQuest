@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     View,
     Text,
@@ -10,7 +10,15 @@ import {
     RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, CheckCircle2, MapPin } from "lucide-react-native";
+import {
+    ArrowLeft,
+    CheckCircle2,
+    MapPin,
+    Lock,
+    Building2,
+    Check,
+    Search,
+} from "lucide-react-native";
 import { router } from "expo-router";
 import { api } from "../services";
 import theme from "../theme/tokens";
@@ -23,6 +31,7 @@ export default function PassportScreen() {
     const [unlockedIds, setUnlockedIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [filter, setFilter] = useState("all"); // 'all' | 'visited' | 'unvisited'
 
     const fetchData = async () => {
         try {
@@ -63,13 +72,25 @@ export default function PassportScreen() {
     const totalCount = buildings.length;
     const progress = totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0;
 
-    const sortedBuildings = [...buildings].sort((a, b) => {
-        const aUnlocked = unlockedIds.has(a.id);
-        const bUnlocked = unlockedIds.has(b.id);
-        if (aUnlocked && !bUnlocked) return -1;
-        if (!aUnlocked && bUnlocked) return 1;
-        return (a.name || "").localeCompare(b.name || "");
-    });
+    const filteredBuildings = useMemo(() => {
+        const sorted = [...buildings].sort((a, b) => {
+            const aUnlocked = unlockedIds.has(a.id);
+            const bUnlocked = unlockedIds.has(b.id);
+            if (aUnlocked && !bUnlocked) return -1;
+            if (!aUnlocked && bUnlocked) return 1;
+            return (a.name || "").localeCompare(b.name || "");
+        });
+
+        if (filter === "visited") {
+            return sorted.filter((b) => unlockedIds.has(b.id));
+        }
+        if (filter === "unvisited") {
+            return sorted.filter((b) => !unlockedIds.has(b.id));
+        }
+        return sorted;
+    }, [buildings, unlockedIds, filter]);
+
+    const isProfessional = user?.role === "professional" || user?.role === "admin";
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
@@ -78,15 +99,14 @@ export default function PassportScreen() {
                 <TouchableOpacity
                     onPress={() => router.back()}
                     style={styles.backButton}
+                    activeOpacity={0.8}
                 >
-                    <ArrowLeft size={24} color={theme.colors.textPrimary} />
+                    <ArrowLeft size={22} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>
-                    {user?.role === "professional"
-                        ? "Visited Buildings"
-                        : "Building Discoveries"}
+                    {isProfessional ? "Visited Buildings" : "Campus Passport"}
                 </Text>
-                <View style={{ width: 40 }} />
+                <View style={{ width: 36 }} />
             </View>
 
             <ScrollView
@@ -104,14 +124,13 @@ export default function PassportScreen() {
                 <View style={styles.progressCard}>
                     <View style={styles.progressHeader}>
                         <Text style={styles.progressTitle}>
-                            {user?.role === "professional"
-                                ? "EVALUATION PROGRESS"
-                                : "EXPLORATION PROGRESS"}
+                            {isProfessional ? "EVALUATION SUMMARY" : "EXPLORATION PROGRESS"}
                         </Text>
                         <Text style={styles.progressCount}>
-                            {unlockedCount} / {totalCount}
+                            {unlockedCount} / {totalCount} ({Math.round(progress)}%)
                         </Text>
                     </View>
+
                     <View style={styles.progressBarContainer}>
                         <View
                             style={[
@@ -120,17 +139,76 @@ export default function PassportScreen() {
                             ]}
                         />
                     </View>
+
                     <Text style={styles.progressSubtext}>
                         {unlockedCount === totalCount && totalCount > 0
-                            ? user?.role === "professional"
-                                ? "All active buildings have been visited!"
-                                : "All campus locations discovered!"
-                            : user?.role === "professional"
-                              ? "Visit more buildings to complete your evaluation."
-                              : "Explore the campus to collect more stamps."}
+                            ? isProfessional
+                                ? "All campus facilities have been visited & evaluated!"
+                                : "Congratulations! You have discovered all campus buildings!"
+                            : isProfessional
+                              ? `${totalCount - unlockedCount} remaining building(s) left to inspect.`
+                              : `Walk near ${totalCount - unlockedCount} more building(s) to complete your passport.`}
                     </Text>
                 </View>
 
+                {/* Filter Pills */}
+                <View style={styles.filterRow}>
+                    <TouchableOpacity
+                        style={[
+                            styles.filterPill,
+                            filter === "all" && styles.filterPillActive,
+                        ]}
+                        onPress={() => setFilter("all")}
+                        activeOpacity={0.8}
+                    >
+                        <Text
+                            style={[
+                                styles.filterPillText,
+                                filter === "all" && styles.filterPillTextActive,
+                            ]}
+                        >
+                            All ({totalCount})
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.filterPill,
+                            filter === "visited" && styles.filterPillActive,
+                        ]}
+                        onPress={() => setFilter("visited")}
+                        activeOpacity={0.8}
+                    >
+                        <Text
+                            style={[
+                                styles.filterPillText,
+                                filter === "visited" && styles.filterPillTextActive,
+                            ]}
+                        >
+                            Visited ({unlockedCount})
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.filterPill,
+                            filter === "unvisited" && styles.filterPillActive,
+                        ]}
+                        onPress={() => setFilter("unvisited")}
+                        activeOpacity={0.8}
+                    >
+                        <Text
+                            style={[
+                                styles.filterPillText,
+                                filter === "unvisited" && styles.filterPillTextActive,
+                            ]}
+                        >
+                            Unvisited ({totalCount - unlockedCount})
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Grid */}
                 {loading ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator
@@ -138,9 +216,19 @@ export default function PassportScreen() {
                             color={theme.colors.primary}
                         />
                     </View>
+                ) : filteredBuildings.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Building2 size={40} color={theme.colors.textMuted} style={{ marginBottom: 8 }} />
+                        <Text style={styles.emptyTitle}>No Buildings Found</Text>
+                        <Text style={styles.emptySubtext}>
+                            {filter === "visited"
+                                ? "You have not visited any buildings yet."
+                                : "All buildings have been visited!"}
+                        </Text>
+                    </View>
                 ) : (
                     <View style={styles.grid}>
-                        {sortedBuildings.map((building) => {
+                        {filteredBuildings.map((building) => {
                             const isUnlocked = unlockedIds.has(building.id);
                             return (
                                 <View
@@ -160,75 +248,70 @@ export default function PassportScreen() {
                                                 }}
                                                 style={[
                                                     styles.buildingImage,
-                                                    !isUnlocked &&
-                                                        styles.buildingImageLocked,
+                                                    !isUnlocked && styles.buildingImageLocked,
                                                 ]}
                                                 resizeMode="cover"
                                             />
                                         ) : (
-                                            <View
-                                                style={[
-                                                    styles.placeholderImage,
-                                                    !isUnlocked && {
-                                                        opacity: 0.5,
-                                                    },
-                                                ]}
-                                            >
-                                                {!isUnlocked && (
-                                                    <MapPin
-                                                        size={32}
-                                                        color={
-                                                            theme.colors
-                                                                .textMuted
-                                                        }
-                                                    />
-                                                )}
-                                            </View>
-                                        )}
-                                        {/* Stamp Overlay */}
-                                        {isUnlocked && (
-                                            <View style={styles.stampOverlay}>
-                                                <CheckCircle2
-                                                    size={50}
-                                                    color={
-                                                        theme.colors.arHighlight
-                                                    }
-                                                    strokeWidth={3}
-                                                    style={styles.stampIcon}
+                                            <View style={styles.placeholderImage}>
+                                                <Building2
+                                                    size={28}
+                                                    color={isUnlocked ? theme.colors.primary : theme.colors.textMuted}
                                                 />
                                             </View>
                                         )}
+
+                                        {/* Status Badge */}
+                                        <View
+                                            style={[
+                                                styles.statusBadge,
+                                                isUnlocked
+                                                    ? styles.statusBadgeUnlocked
+                                                    : styles.statusBadgeLocked,
+                                            ]}
+                                        >
+                                            {isUnlocked ? (
+                                                <>
+                                                    <Check size={10} color="#059669" style={{ marginRight: 2 }} />
+                                                    <Text style={styles.statusBadgeTextUnlocked}>VISITED</Text>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Lock size={10} color={theme.colors.textMuted} style={{ marginRight: 2 }} />
+                                                    <Text style={styles.statusBadgeTextLocked}>LOCKED</Text>
+                                                </>
+                                            )}
+                                        </View>
                                     </View>
+
                                     <View style={styles.cardFooter}>
                                         <Text
                                             style={[
                                                 styles.buildingName,
-                                                !isUnlocked && {
-                                                    color: theme.colors
-                                                        .textMuted,
-                                                },
+                                                !isUnlocked && styles.buildingNameLocked,
                                             ]}
                                             numberOfLines={2}
                                         >
                                             {building.name}
                                         </Text>
-                                        <Text
-                                            style={[
-                                                styles.buildingCode,
-                                                !isUnlocked && {
-                                                    color: theme.colors
-                                                        .textMuted,
-                                                },
-                                            ]}
-                                        >
-                                            {building.code || "BLDG"}
-                                        </Text>
+                                        <View style={styles.codeRow}>
+                                            <Text
+                                                style={[
+                                                    styles.buildingCode,
+                                                    !isUnlocked && styles.buildingCodeLocked,
+                                                ]}
+                                            >
+                                                {building.code || "CAMPUS"}
+                                            </Text>
+                                        </View>
                                     </View>
                                 </View>
                             );
                         })}
                     </View>
                 )}
+
+                <View style={{ height: 32 }} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -237,105 +320,159 @@ export default function PassportScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.bgPrimary,
+        backgroundColor: "#F9FAFB",
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        backgroundColor: theme.colors.surface,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: "#FFFFFF",
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: "#E5E7EB",
     },
     backButton: {
-        padding: 8,
-        marginLeft: -8,
+        width: 36,
+        height: 36,
+        borderRadius: 6,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#F3F4F6",
     },
     headerTitle: {
         fontFamily: fonts.heading.bold,
-        fontSize: 20,
+        fontSize: 17,
         color: theme.colors.textPrimary,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
     },
     scrollContent: {
         padding: 16,
-        paddingBottom: 40,
     },
     progressCard: {
-        backgroundColor: theme.colors.surfaceSoft,
-        borderRadius: theme.radius.lg,
-        padding: theme.spacing.lg,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 6,
+        padding: 16,
+        marginBottom: 14,
         borderWidth: 1,
-        borderColor: theme.colors.border,
-        marginBottom: 24,
+        borderColor: "#E5E7EB",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.03,
+        shadowRadius: 4,
+        elevation: 1,
     },
     progressHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "flex-end",
-        marginBottom: 12,
+        alignItems: "center",
+        marginBottom: 10,
     },
     progressTitle: {
-        fontFamily: fonts.hud.bold,
-        color: theme.colors.textSecondary,
-        fontSize: 12,
-        letterSpacing: 1,
+        fontFamily: fonts.heading.bold,
+        color: "#594040",
+        fontSize: 11.5,
+        letterSpacing: 0.8,
     },
     progressCount: {
-        fontFamily: fonts.hud.bold,
+        fontFamily: fonts.heading.bold,
         color: theme.colors.primary,
-        fontSize: 16,
+        fontSize: 13.5,
     },
     progressBarContainer: {
-        height: 12,
-        backgroundColor: theme.colors.surface,
+        height: 8,
+        backgroundColor: "#F3F4F6",
         borderRadius: 6,
         overflow: "hidden",
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        marginBottom: 12,
+        marginBottom: 10,
     },
     progressBarFill: {
         height: "100%",
         backgroundColor: theme.colors.primary,
+        borderRadius: 6,
     },
     progressSubtext: {
         fontFamily: fonts.body.regular,
-        color: theme.colors.textMuted,
+        color: theme.colors.textSecondary,
         fontSize: 12,
-        textAlign: "center",
+        lineHeight: 16,
+    },
+    filterRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginBottom: 16,
+    },
+    filterPill: {
+        paddingVertical: 7,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+    },
+    filterPillActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    filterPillText: {
+        fontFamily: fonts.heading.semiBold,
+        fontSize: 12,
+        color: theme.colors.textSecondary,
+    },
+    filterPillTextActive: {
+        color: "#FFFFFF",
     },
     loadingContainer: {
         padding: 40,
         alignItems: "center",
     },
+    emptyContainer: {
+        padding: 40,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    emptyTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 15,
+        color: theme.colors.textPrimary,
+        marginBottom: 4,
+    },
+    emptySubtext: {
+        fontFamily: fonts.body.regular,
+        fontSize: 12.5,
+        color: theme.colors.textMuted,
+        textAlign: "center",
+    },
     grid: {
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        gap: 16,
     },
     stampCard: {
-        width: "47%",
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
+        width: "48.5%",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 6,
         borderWidth: 1,
+        borderColor: "#E5E7EB",
         overflow: "hidden",
-        marginBottom: 8,
+        marginBottom: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.02,
+        shadowRadius: 3,
+        elevation: 1,
     },
     stampCardUnlocked: {
-        borderColor: theme.colors.primarySoft,
+        borderColor: "#E5E7EB",
     },
     stampCardLocked: {
-        borderColor: theme.colors.border,
-        opacity: 0.7,
+        borderColor: "#E5E7EB",
+        opacity: 0.75,
     },
     imageContainer: {
         width: "100%",
-        aspectRatio: 1,
-        backgroundColor: theme.colors.surfaceSoft,
+        height: 100,
+        backgroundColor: "#F3F4F6",
         justifyContent: "center",
         alignItems: "center",
         position: "relative",
@@ -345,45 +482,73 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     buildingImageLocked: {
-        tintColor: "gray",
-        opacity: 0.4,
+        opacity: 0.35,
     },
     placeholderImage: {
         width: "100%",
         height: "100%",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: theme.colors.bgSecondary,
+        backgroundColor: "#F3F4F6",
     },
-    stampOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: "center",
+    statusBadge: {
+        position: "absolute",
+        top: 6,
+        right: 6,
+        flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.2)",
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 6,
     },
-    stampIcon: {
-        transform: [{ rotate: "-15deg" }],
-        shadowColor: theme.colors.arHighlight,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 4,
-        elevation: 5,
+    statusBadgeUnlocked: {
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        borderWidth: 1,
+        borderColor: "rgba(16, 185, 129, 0.3)",
+    },
+    statusBadgeLocked: {
+        backgroundColor: "rgba(255, 255, 255, 0.9)",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+    },
+    statusBadgeTextUnlocked: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 9,
+        color: "#059669",
+        letterSpacing: 0.4,
+    },
+    statusBadgeTextLocked: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 9,
+        color: theme.colors.textMuted,
+        letterSpacing: 0.4,
     },
     cardFooter: {
-        padding: 12,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.border,
+        padding: 10,
+        backgroundColor: "#FFFFFF",
     },
     buildingName: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
+        fontFamily: fonts.heading.semiBold,
+        fontSize: 12.5,
         color: theme.colors.textPrimary,
+        lineHeight: 16,
         marginBottom: 4,
+        minHeight: 32,
+    },
+    buildingNameLocked: {
+        color: theme.colors.textSecondary,
+    },
+    codeRow: {
+        flexDirection: "row",
+        alignItems: "center",
     },
     buildingCode: {
-        fontFamily: fonts.hud.medium,
+        fontFamily: fonts.heading.bold,
         fontSize: 10,
         color: theme.colors.primary,
-        letterSpacing: 1,
+        letterSpacing: 0.5,
+    },
+    buildingCodeLocked: {
+        color: theme.colors.textMuted,
     },
 });
