@@ -33,7 +33,6 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
-import { useLocationTracking } from "../hooks/useLocationTracking";
 import { api } from "../services";
 import theme from "../theme/tokens";
 import { fonts } from "../constants/typography";
@@ -42,7 +41,6 @@ import { customAlert as Alert } from "../components/ui/CustomAlert";
 
 export default function AccountSettingsScreen() {
     const { user, checkToken, logout } = useAuth();
-    const { stopTracking } = useLocationTracking();
 
     // Modals
     const [avatarModalVisible, setAvatarModalVisible] = useState(false);
@@ -182,7 +180,6 @@ export default function AccountSettingsScreen() {
             });
             if (res.data.success) {
                 setDeactivateModalVisible(false);
-                if (stopTracking) stopTracking();
                 await logout();
                 Alert(
                     "Account Deactivated",
