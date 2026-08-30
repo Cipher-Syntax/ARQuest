@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     
     'cloudinary_storage',
     'cloudinary',
+    'storages',
     
     # OWN APPS
     'apps.authentication',
@@ -230,6 +231,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # MEDIA_URL = '/media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
@@ -311,3 +313,8 @@ LOGGING = {
         },
     },
 }
+
+# Support for 3D model uploads and optimization up to 2GB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024 * 1024  # 2 GB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB (streams large files to disk)
+

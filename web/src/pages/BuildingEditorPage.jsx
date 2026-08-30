@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "@google/model-viewer";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import {
     ArrowLeft,
     CheckCircle,
     Image as ImageIcon,
     ChevronDown,
     Target,
+    Zap,
 } from "lucide-react";
 import { buildingService } from "../services/buildingService";
 import { departmentService } from "../services/departmentService";
@@ -18,6 +19,8 @@ import { validateForm, validateString } from "../utils/validation";
 const BuildingEditorPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const preloadedModelFile = location.state?.preloadedModelFile;
     const isNew = id === "new";
     const [existingBuildings, setExistingBuildings] = useState([]);
     const [departments, setDepartments] = useState([]);
@@ -29,9 +32,9 @@ const BuildingEditorPage = () => {
         longitude: "",
         status: "DRAFT",
         is_active: true,
-        model_file: null,
+        model_file: preloadedModelFile || null,
         model_version: "",
-        model_active: false,
+        model_active: !!preloadedModelFile,
         hotspots: [],
         primary_department_id: null,
         department_ids: [],
@@ -73,85 +76,31 @@ const BuildingEditorPage = () => {
 
     useEffect(() => {
         const viewer = modelViewerRef.current;
-        if (viewer) {
+        if (viewer && isGeneratingThumbnail) {
             setIsModelLoading(true);
 
-            // Direct DOM manipulation to avoid React re-renders freezing the page
             const updateProgressUI = (progress) => {
                 if (progressBarRef.current) {
                     progressBarRef.current.style.width = `${progress}%`;
                 }
                 if (progressTextRef.current) {
-                    progressTextRef.current.innerText = `Downloading / Rendering Model... ${progress}%`;
+                    progressTextRef.current.innerText = `Capturing Thumbnail... ${progress}%`;
                 }
             };
 
             const handleProgress = (event) => {
                 const progress = Math.round(event.detail.totalProgress * 100);
                 updateProgressUI(progress);
-
-                // When download is done, the browser starts the heavy CPU freeze to decompress
-                if (progress === 100) {
-                    if (progressTextRef.current) {
-                        progressTextRef.current.innerText = "Unpacking Geometry... (This may take a moment to unfreeze)";
-                    }
-                }
             };
 
-            const handleLoad = async () => {
+            const handleLoad = () => {
                 updateProgressUI(100);
-                setIsModelLoading((prev) => {
-                    if (prev) {
-                        setTimeout(() => setIsModelLoading(false), 200);
-                    }
-                    return prev;
-                });
-                
-                // Capture thumbnail logic
-                if (isGeneratingThumbnail) {
-                    try {
-                        const blob = await viewer.toBlob({ idealAspect: true });
-                        if (blob) {
-                            const img = new Image();
-                            img.onload = () => {
-                                const canvas = document.createElement("canvas");
-                                const MAX_WIDTH = 1280;
-                                let width = img.width;
-                                let height = img.height;
-                                if (width > MAX_WIDTH) {
-                                    height = Math.round((height * MAX_WIDTH) / width);
-                                    width = MAX_WIDTH;
-                                }
-                                canvas.width = width;
-                                canvas.height = height;
-                                const ctx = canvas.getContext("2d");
-                                ctx.drawImage(img, 0, 0, width, height);
-                                canvas.toBlob((compressedBlob) => {
-                                    setThumbnailBlob(compressedBlob);
-                                    setThumbnailPreviewUrl(URL.createObjectURL(compressedBlob));
-                                    setIsGeneratingThumbnail(false);
-                                    setSuccessMessage("Thumbnail generated successfully!");
-                                    setTimeout(() => setSuccessMessage(""), 3000);
-                                }, "image/jpeg", 0.8);
-                            };
-                            img.src = URL.createObjectURL(blob);
-                        }
-                    } catch (e) {
-                        console.error("Failed to capture thumbnail", e);
-                        setIsGeneratingThumbnail(false);
-                        setErrorMessage("Failed to generate thumbnail.");
-                        setTimeout(() => setErrorMessage(""), 5000);
-                    }
-                }
-            };
-            const handleError = (event) => {
-                console.error("Model viewer error:", event.detail);
                 setIsModelLoading(false);
-                if (isGeneratingThumbnail) {
-                    setIsGeneratingThumbnail(false);
-                    setErrorMessage("Failed to load 3D model for thumbnail generation. Please check your AWS S3 CORS settings.");
-                    setTimeout(() => setErrorMessage(""), 7000);
-                }
+            };
+
+            const handleError = (event) => {
+                console.error("Model viewer load error:", event.detail);
+                setIsModelLoading(false);
             };
 
             viewer.addEventListener("progress", handleProgress);
@@ -165,6 +114,91 @@ const BuildingEditorPage = () => {
             };
         }
     }, [modelPreviewUrl, isGeneratingThumbnail]);
+
+    const handleCaptureThumbnail = async () => {
+        setIsGeneratingThumbnail(true);
+        setIsModelLoading(true);
+        setErrorMessage("");
+
+        // Allow React to mount <model-viewer>
+        await new Promise((r) => setTimeout(r, 150));
+
+        const viewer = modelViewerRef.current;
+        if (!viewer) {
+            setIsGeneratingThumbnail(false);
+            setIsModelLoading(false);
+            setErrorMessage("Could not initialize 3D viewer for thumbnail capture.");
+            return;
+        }
+
+        try {
+            if (!viewer.loaded) {
+                await new Promise((resolve, reject) => {
+                    const onLoad = () => {
+                        viewer.removeEventListener("load", onLoad);
+                        viewer.removeEventListener("error", onError);
+                        resolve();
+                    };
+                    const onError = (e) => {
+                        viewer.removeEventListener("load", onLoad);
+                        viewer.removeEventListener("error", onError);
+                        reject(new Error("Failed to load 3D model."));
+                    };
+                    viewer.addEventListener("load", onLoad);
+                    viewer.addEventListener("error", onError);
+                    setTimeout(() => resolve(), 12000);
+                });
+            }
+
+            // Brief delay for the WebGL render buffer to paint
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            const blob = await viewer.toBlob({ idealAspect: true });
+            if (!blob) {
+                throw new Error("Canvas snapshot returned empty.");
+            }
+
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const MAX_WIDTH = 1280;
+                let width = img.width;
+                let height = img.height;
+                if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(
+                    (compressedBlob) => {
+                        setThumbnailBlob(compressedBlob);
+                        setThumbnailPreviewUrl(URL.createObjectURL(compressedBlob));
+                        setIsGeneratingThumbnail(false);
+                        setIsModelLoading(false);
+                        setSuccessMessage("✓ 2D Thumbnail generated successfully!");
+                        setTimeout(() => setSuccessMessage(""), 4000);
+                    },
+                    "image/jpeg",
+                    0.85
+                );
+            };
+            img.onerror = () => {
+                setIsGeneratingThumbnail(false);
+                setIsModelLoading(false);
+                setErrorMessage("Failed to process thumbnail canvas image.");
+            };
+            img.src = URL.createObjectURL(blob);
+        } catch (e) {
+            console.error("Failed to capture thumbnail", e);
+            setIsGeneratingThumbnail(false);
+            setIsModelLoading(false);
+            setErrorMessage("Failed to generate thumbnail: " + (e.message || "Please check 3D model"));
+            setTimeout(() => setErrorMessage(""), 6000);
+        }
+    };
 
     // Listen for messages from the iframe Hotspot Editor
     useEffect(() => {
@@ -200,6 +234,34 @@ const BuildingEditorPage = () => {
     }, []);
 
     useEffect(() => {
+        const fetchCompressedModel = async () => {
+            const url = location.state?.compressedModelUrl;
+            const filename = location.state?.compressedModelFilename;
+            if (url && filename) {
+                try {
+                    setIsModelLoading(true);
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error("Could not retrieve model from server");
+                    const blob = await res.blob();
+                    const fileObj = new File([blob], filename, { type: "model/gltf-binary" });
+                    setBuilding((prev) => ({
+                        ...prev,
+                        model_file: fileObj,
+                        model_active: true,
+                    }));
+                    setSuccessMessage("⚡ Optimized 3D model loaded from compressor! Click 'Generate Thumbnail' to capture the preview.");
+                } catch (e) {
+                    console.error("Failed to load preloaded model:", e);
+                    setErrorMessage("Failed to stage model from compressor: " + e.message);
+                } finally {
+                    setIsModelLoading(false);
+                }
+            }
+        };
+        fetchCompressedModel();
+    }, [location.state?.compressedModelUrl, location.state?.compressedModelFilename]);
+
+    useEffect(() => {
         if (!isNew) {
             loadBuilding();
         }
@@ -228,11 +290,13 @@ const BuildingEditorPage = () => {
     const loadBuilding = async () => {
         try {
             const data = await buildingService.getBuilding(id);
-            setBuilding({
+            setBuilding((prev) => ({
                 ...data,
                 primary_department_id: data.primary_department?.id ?? null,
                 department_ids: data.departments?.map((d) => d.id) ?? [],
-            });
+                model_file: prev.model_file instanceof File ? prev.model_file : null,
+                model_active: prev.model_file instanceof File ? true : (data.model_active ?? false),
+            }));
             try {
                 const geofenceData = await buildingService.getGeofence(id);
                 if (geofenceData) {
@@ -971,6 +1035,14 @@ const BuildingEditorPage = () => {
                                     <p className="text-xs font-semibold text-[#8a1538] mt-1">
                                         Max File Size Limit: 200 MB
                                     </p>
+                                    <div className="mt-2">
+                                        <Link
+                                            to="/compressor"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
+                                        >
+                                            <Zap size={13} /> Heavy 300MB - 1GB Model? Open 3D Compressor →
+                                        </Link>
+                                    </div>
                                     {(() => {
                                         let sizeInBytes = 0;
                                         if (building.model_file instanceof File) {
@@ -1013,8 +1085,8 @@ const BuildingEditorPage = () => {
 
                                     onChange={(file) => {
                                         if (file) {
-                                            if (file.size > 200 * 1024 * 1024) {
-                                                setErrorMessage("The 3D model exceeds the maximum file size limit of 200 MB.");
+                                            if (file.size > 500 * 1024 * 1024) {
+                                                setErrorMessage("The 3D model exceeds the maximum file size limit of 500 MB.");
                                                 setTimeout(() => setErrorMessage(""), 5000);
                                                 return;
                                             }
@@ -1028,7 +1100,6 @@ const BuildingEditorPage = () => {
                                         setThumbnailPreviewUrl(null);
                                         setIsGeneratingThumbnail(false);
                                     }}
-                                    placeholder="Drag & drop 3D model here or click to browse"
                                     previewNode={
                                         ((thumbnailPreviewUrl || building.image_url) && !isGeneratingThumbnail) ? (
                                             <div style={{ position: "relative", width: "100%", height: "250px" }}>
@@ -1043,12 +1114,12 @@ const BuildingEditorPage = () => {
                                                 <model-viewer
                                                     ref={modelViewerRef}
                                                     src={modelPreviewUrl}
-                                                    crossorigin="anonymous"
+                                                    {...(!modelPreviewUrl.startsWith("blob:") && !modelPreviewUrl.startsWith("http://localhost") ? { crossorigin: "anonymous" } : {})}
                                                     auto-rotate
                                                     style={{
                                                         width: "100%",
                                                         height: "100%",
-                                                        backgroundColor: "transparent",
+                                                        backgroundColor: "#111827",
                                                         borderRadius: theme.radius.md,
                                                     }}
                                                 ></model-viewer>
@@ -1059,19 +1130,19 @@ const BuildingEditorPage = () => {
                                                         left: 0,
                                                         width: "100%",
                                                         height: "100%",
-                                                        backgroundColor: "rgba(255, 255, 255, 0.9)",
+                                                        backgroundColor: "rgba(17, 24, 39, 0.85)",
                                                         display: "flex",
                                                         flexDirection: "column",
                                                         alignItems: "center",
                                                         justifyContent: "center",
                                                         borderRadius: theme.radius.md,
-                                                        zIndex: 10,
+                                                        zIndex: 20,
                                                     }}>
-                                                        <div style={{ width: "80%", height: "8px", backgroundColor: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
+                                                        <div style={{ width: "70%", height: "6px", backgroundColor: "#374151", borderRadius: "3px", overflow: "hidden" }}>
                                                             <div ref={progressBarRef} style={{ width: "0%", height: "100%", backgroundColor: "#8a1538", transition: "width 0.2s ease-out" }} />
                                                         </div>
-                                                        <span ref={progressTextRef} style={{ marginTop: "12px", fontSize: "14px", fontWeight: "600", color: "#374151" }}>
-                                                            Downloading Model... 0%
+                                                        <span ref={progressTextRef} style={{ marginTop: "10px", fontSize: "12px", fontWeight: "600", color: "#f3f4f6" }}>
+                                                            Capturing 2D Thumbnail...
                                                         </span>
                                                     </div>
                                                 )}
@@ -1097,7 +1168,7 @@ const BuildingEditorPage = () => {
                                                 type="button"
                                                 onClick={(e) => {
                                                     e.preventDefault();
-                                                    setIsGeneratingThumbnail(true);
+                                                    handleCaptureThumbnail();
                                                 }}
                                                 className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8a1538] hover:bg-[#70102b] text-white font-bold transition-colors shadow-sm w-fit"
                                                 style={{ borderRadius: theme.radius.sm }}

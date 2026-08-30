@@ -29,4 +29,7 @@ urlpatterns = [
     path('quiz-questions/<uuid:pk>/', quizzes_views.QuizQuestionDetailView.as_view(), name='quiz_question_detail'),
     path('<uuid:id>/quiz/', quizzes_views.BuildingQuizView.as_view(), name='building_quiz'),
     path('quiz/answer/', quizzes_views.AnswerQuizView.as_view(), name='submit_quiz_answer'),
+    path('compress-model/', views.compress_model_view, name='compress_model'),
+    path('compressed-models/<str:filename>/', views.serve_compressed_model, name='serve_compressed_model'),
+    path('<uuid:id>/assign-compressed-model/', views.assign_compressed_model, name='assign_compressed_model'),
 ]

@@ -22,6 +22,7 @@ import DepartmentsPage from "../pages/DepartmentsPage";
 import ArchivePage from "../pages/ArchivePage";
 import FeedbackPage from "../pages/FeedbackPage";
 import HistoryPage from "../pages/HistoryPage";
+import ModelCompressorPage from "../pages/ModelCompressorPage";
 
 const App = () => {
     return (
@@ -48,6 +49,10 @@ const App = () => {
                             path="buildings/:id"
                             element={<BuildingEditorPage />}
                         />
+                        <Route
+                            path="buildings/:id/edit"
+                            element={<BuildingEditorPage />}
+                        />
                         <Route path="geofences" element={<GeofencesPage />} />
                         <Route path="media" element={<MediaPage />} />
                         <Route path="panoramas" element={<PanoramasPage />} />
@@ -65,6 +70,7 @@ const App = () => {
                         <Route path="archives" element={<ArchivePage />} />
                         <Route path="feedback" element={<FeedbackPage />} />
                         <Route path="history" element={<HistoryPage />} />
+                        <Route path="compressor" element={<ModelCompressorPage />} />
                     </Route>
                 </Routes>
             </AuthProvider>

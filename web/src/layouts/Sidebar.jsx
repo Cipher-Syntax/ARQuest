@@ -21,6 +21,7 @@ import {
     Activity,
     ChevronDown,
     ChevronUp,
+    Box,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -44,6 +45,7 @@ const NAV_GROUPS = [
         items: [
             { to: "/panoramas", icon: Camera, label: "Manage Panorama" },
             { to: "/media", icon: FileVideo, label: "Content & Media Viewer" },
+            { to: "/compressor", icon: Box, label: "3D Model Compressor" },
         ],
     },
     {

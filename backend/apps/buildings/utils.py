@@ -53,13 +53,17 @@ def clean_and_enhance_gltf_json(glb_bytes):
         else:
             mat['alphaMode'] = 'BLEND'
             
-        # Strip legacy/non-standard extensions from individual materials so Viro uses standard PBR
-        if 'extensions' in mat:
-            del mat['extensions']
+        # Strip legacy specular-glossiness extension from individual materials
+        if 'extensions' in mat and 'KHR_materials_pbrSpecularGlossiness' in mat.get('extensions', {}):
+            del mat['extensions']['KHR_materials_pbrSpecularGlossiness']
+            if not mat['extensions']:
+                del mat['extensions']
             
-    # Clean extensionsUsed
-    gltf['extensionsUsed'] = []
-    gltf['extensionsRequired'] = []
+    # Clean only legacy extensions from extensionsUsed/extensionsRequired, keeping Draco and standard extensions
+    if 'extensionsUsed' in gltf:
+        gltf['extensionsUsed'] = [ext for ext in gltf['extensionsUsed'] if ext != 'KHR_materials_pbrSpecularGlossiness']
+    if 'extensionsRequired' in gltf:
+        gltf['extensionsRequired'] = [ext for ext in gltf['extensionsRequired'] if ext != 'KHR_materials_pbrSpecularGlossiness']
             
     new_json_str = json.dumps(gltf, separators=(',', ':'))
     new_json_bytes = new_json_str.encode('utf-8')
@@ -92,6 +96,18 @@ def optimize_glb(uploaded_file):
                 temp_in.write(chunk)
             temp_in_path = temp_in.name
             
+        with open(temp_in_path, 'rb') as f:
+            raw_data = f.read()
+            
+        # If the model is already Draco compressed or an optimized export, skip metalrough to prevent corrupting Draco stream
+        if b'KHR_draco_mesh_compression' in raw_data or 'optimized' in uploaded_file.name.lower():
+            enhanced_data = clean_and_enhance_gltf_json(raw_data)
+            new_file = ContentFile(enhanced_data)
+            new_file.name = uploaded_file.name
+            if os.path.exists(temp_in_path):
+                os.unlink(temp_in_path)
+            return new_file
+
         temp_pbr_path = temp_in_path.replace('.glb', '_pbr.glb')
         
         # Step 1: Convert legacy specular-glossiness materials to standard glTF PBR

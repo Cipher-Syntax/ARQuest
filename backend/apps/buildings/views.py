@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.http import FileResponse, Http404
 from rest_framework import status
 from django.utils import timezone
 from apps.authentication.permissions import IsAdminRole
@@ -595,3 +596,110 @@ def cron_cleanup(request):
         b.hard_delete()
         
     return Response({"success": True, "deleted": count}, status=200)
+
+
+import os
+from .compressor import compress_3d_model, COMPRESSED_MODELS_DIR
+from django.core.files import File as DjangoFile
+
+@api_view(['POST'])
+@permission_classes([IsAdminRole])
+def compress_model_view(request):
+    """
+    Accepts a 3D model file (.glb / .gltf) and compression parameters.
+    Executes multi-stage optimization and returns before/after analytics.
+    """
+    file_obj = request.FILES.get('file') or request.FILES.get('model_file')
+    if not file_obj:
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'No 3D model file uploaded', status_code=status.HTTP_400_BAD_REQUEST)
+        
+    raw_simplify = request.data.get('simplify_ratio')
+    simplify_ratio = float(raw_simplify) if raw_simplify not in [None, ''] else 0.5
+
+    raw_texture = request.data.get('max_texture_size')
+    max_texture_size = int(raw_texture) if raw_texture not in [None, '', '0', 'null'] else 1024
+
+    def parse_bool(val, default=True):
+        if val is None:
+            return default
+        if isinstance(val, bool):
+            return val
+        return str(val).lower() in ['true', '1', 'yes']
+
+    options = {
+        'preset': request.data.get('preset', 'balanced'),
+        'simplify_ratio': simplify_ratio,
+        'max_texture_size': max_texture_size,
+        'use_draco': parse_bool(request.data.get('use_draco'), True),
+        'force_double_sided': parse_bool(request.data.get('force_double_sided'), True),
+        'force_opaque': parse_bool(request.data.get('force_opaque'), True),
+    }
+    
+    try:
+        result = compress_3d_model(file_obj, options=options)
+        return success_response(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return error_response(ErrorCodes.INTERNAL_ERROR, f"3D Model Compression failed: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminRole])
+def assign_compressed_model(request, id):
+    """
+    Directly assigns an already compressed model from the compressor session
+    to an existing building facility.
+    """
+    try:
+        building = Building.objects.get(id=id)
+    except Building.DoesNotExist:
+        return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
+        
+    output_filename = request.data.get('output_filename')
+    if not output_filename:
+        return error_response(ErrorCodes.VALIDATION_ERROR, 'output_filename is required', status_code=status.HTTP_400_BAD_REQUEST)
+        
+    safe_filename = os.path.basename(output_filename)
+    file_path = os.path.join(COMPRESSED_MODELS_DIR, safe_filename)
+    
+    if not os.path.exists(file_path):
+        return error_response(ErrorCodes.NOT_FOUND, 'Compressed model file expired or not found', status_code=status.HTTP_404_NOT_FOUND)
+        
+    with open(file_path, 'rb') as f:
+        django_file = DjangoFile(f, name=safe_filename)
+        building.model_file.save(safe_filename, django_file, save=False)
+        building.model_active = True
+        building.model_file_size = os.path.getsize(file_path)
+        building.save()
+        
+    serializer = BuildingSerializer(building, context={'request': request})
+    return success_response({
+        'message': f'Model successfully assigned to {building.name}',
+        'building': serializer.data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def serve_compressed_model(request, filename):
+    """
+    Serves temporary compressed models for 3D preview and direct browser download
+    with proper GLTF binary MIME type and attachment headers.
+    """
+    safe_filename = os.path.basename(filename)
+    file_path = os.path.join(COMPRESSED_MODELS_DIR, safe_filename)
+    
+    if not os.path.exists(file_path):
+        raise Http404("Compressed model file not found or expired")
+        
+    as_attachment = request.GET.get('download', 'false').lower() in ['true', '1', 'yes']
+    response = FileResponse(
+        open(file_path, 'rb'),
+        content_type='model/gltf-binary',
+        as_attachment=as_attachment,
+        filename=safe_filename
+    )
+    response["Access-Control-Allow-Origin"] = "*"
+    return response
+
