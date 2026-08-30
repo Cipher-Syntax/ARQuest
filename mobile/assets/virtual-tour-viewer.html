@@ -606,14 +606,58 @@
                         worldBounds.min.y -= 10;
                         worldBounds.max.y += 10;
 
-                        // Spawn near the edge INSIDE the model's bounds at eye height
-                        const startX = center.x;
-                        const startY = box.min.y + 1.6;
-                        const startZ = box.max.z - 2.0;
+                        // ── Smart Spawn Point Detection ──────────────────────────
+                        let spawnX = center.x;
+                        let spawnY = box.min.y + 1.6;
+                        let spawnZ = center.z;
 
-                        camera.position.set(startX, startY, startZ);
-                        controls.target.set(startX, startY, startZ - 0.01);
+                        // 1. If building has hotspots, prefer the first hotspot as spawn location
+                        if (window.buildingHotspots && window.buildingHotspots.length > 0) {
+                            const firstSpot = window.buildingHotspots[0];
+                            spawnX = Number(firstSpot.x);
+                            spawnY = Number(firstSpot.y) + 1.6;
+                            spawnZ = Number(firstSpot.z);
+                        } else {
+                            // 2. Otherwise raycast downwards from above to find the real floor
+                            const spawnRaycaster = new THREE.Raycaster();
+                            const topOrigin = new THREE.Vector3(center.x, box.max.y + 5, center.z);
+                            spawnRaycaster.set(topOrigin, new THREE.Vector3(0, -1, 0));
+                            const hits = spawnRaycaster.intersectObject(model, true);
+                            if (hits.length > 0) {
+                                spawnX = hits[0].point.x;
+                                spawnY = hits[0].point.y + 1.6;
+                                spawnZ = hits[0].point.z;
+                            } else {
+                                // Try small offsets around the center
+                                const offsets = [[0, 0], [2, 2], [-2, -2], [5, -5], [-5, 5]];
+                                for (const [dx, dz] of offsets) {
+                                    topOrigin.set(center.x + dx, box.max.y + 5, center.z + dz);
+                                    spawnRaycaster.set(topOrigin, new THREE.Vector3(0, -1, 0));
+                                    const offHits = spawnRaycaster.intersectObject(model, true);
+                                    if (offHits.length > 0) {
+                                        spawnX = offHits[0].point.x;
+                                        spawnY = offHits[0].point.y + 1.6;
+                                        spawnZ = offHits[0].point.z;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Store default safe spawn position for void recovery
+                        window.safeSpawnPos = new THREE.Vector3(spawnX, spawnY, spawnZ);
+
+                        camera.position.set(spawnX, spawnY, spawnZ);
+                        controls.target.set(spawnX, spawnY, spawnZ - 0.01);
                         controls.update();
+
+                        // Safety ground plane under model so the player never falls into the void
+                        const groundGeom = new THREE.PlaneGeometry(Math.max(2000, size.x * 10), Math.max(2000, size.z * 10));
+                        const groundMat = new THREE.MeshBasicMaterial({ color: 0x5a6a72, depthWrite: true });
+                        const groundPlane = new THREE.Mesh(groundGeom, groundMat);
+                        groundPlane.rotation.x = -Math.PI / 2;
+                        groundPlane.position.set(center.x, box.min.y, center.z);
+                        scene.add(groundPlane);
 
                         // ── Create Interactive Hotspots (NPC) ──────────────────────
                         const createHotspot = (x, y, z, title, desc, color, category) => {
@@ -938,12 +982,20 @@
                                     }
                                 }
                             } else {
-                                // The Void: Laser hit absolutely nothing (walking off the map)
-                                velocityY -= 0.008; // Free Fall
-                                camera.position.y += velocityY;
-                                // Terminal floor boundary to prevent infinite falling
-                                if (camera.position.y < -50) {
-                                    camera.position.y = -50;
+                                // Laser missed interior geometry: stay grounded on the campus base plane
+                                const baseGroundY = box.min.y + 1.6;
+                                if (camera.position.y < box.min.y - 1.0) {
+                                    // Player fell into the void -> Auto-respawn to safe location!
+                                    if (window.safeSpawnPos) {
+                                        camera.position.copy(window.safeSpawnPos);
+                                        velocityY = 0;
+                                    }
+                                } else if (camera.position.y > baseGroundY) {
+                                    velocityY -= 0.008;
+                                    camera.position.y = Math.max(baseGroundY, camera.position.y + velocityY);
+                                    if (camera.position.y === baseGroundY) velocityY = 0;
+                                } else {
+                                    camera.position.y = baseGroundY;
                                     velocityY = 0;
                                 }
                             }
