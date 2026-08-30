@@ -169,6 +169,7 @@ export default function Geofences() {
                                 : "20m",
                         active: b.is_active !== undefined ? b.is_active : false,
                         status: b.status,
+                        image_url: b.image_url || b.image || null,
                         model_url: b.model_url,
                     };
                 }),
@@ -614,20 +615,28 @@ export default function Geofences() {
                                         <div className="flex justify-between items-start relative z-10">
                                             <div className="space-y-4 flex-1">
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <div
-                                                            className={`w-8 h-8 rounded-md flex items-center justify-center ${geo.active ? "bg-brand text-white" : "bg-gray-100 text-gray-400"}`}
-                                                        >
-                                                            {geo.active ? (
-                                                                <Unlock
-                                                                    size={16}
-                                                                />
-                                                            ) : (
-                                                                <Lock
-                                                                    size={16}
-                                                                />
-                                                            )}
-                                                        </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {geo.image_url ? (
+                                                            <img
+                                                                src={geo.image_url}
+                                                                alt={geo.name}
+                                                                className="w-10 h-10 object-cover rounded-md border border-gray-200 shadow-sm"
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                className={`w-8 h-8 rounded-md flex items-center justify-center ${geo.active ? "bg-brand text-white" : "bg-gray-100 text-gray-400"}`}
+                                                            >
+                                                                {geo.active ? (
+                                                                    <Unlock
+                                                                        size={16}
+                                                                    />
+                                                                ) : (
+                                                                    <Lock
+                                                                        size={16}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        )}
                                                         <div>
                                                             <h3 className="font-bold text-gray-900 text-sm">
                                                                 {geo.name}
