@@ -1022,56 +1022,56 @@ const BuildingEditorPage = () => {
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-gray-100 flex flex-col gap-5">
-                            <div className="flex items-center justify-between">
+                        <div className="pt-6 border-t border-gray-100 flex flex-col gap-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-800">
-                                        3D Model Configuration
-                                    </h2>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Upload a GLTF/GLB file to enable the 3D
-                                        Viewer.
-                                    </p>
-                                    <p className="text-xs font-semibold text-[#8a1538] mt-1">
-                                        Max File Size Limit: 500 MB
-                                    </p>
-                                    <div className="mt-2">
-                                        <Link
-                                            to="/compressor"
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
-                                        >
-                                            <Zap size={13} /> Large 3D Model (up to 2 GB+)? Open 3D Compressor →
-                                        </Link>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-lg font-bold text-gray-800">
+                                            3D Model Configuration
+                                        </h2>
+                                        {(() => {
+                                            let sizeInBytes = 0;
+                                            if (building.model_file instanceof File) {
+                                                sizeInBytes = building.model_file.size;
+                                            } else if (building.model_file_size) {
+                                                sizeInBytes = building.model_file_size;
+                                            } else if (building.model_size) {
+                                                sizeInBytes = building.model_size;
+                                            }
+                                            return sizeInBytes > 0 ? (
+                                                <span className="text-[11px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-700 rounded border border-gray-200">
+                                                    {(sizeInBytes / (1024 * 1024)).toFixed(2)} MB
+                                                </span>
+                                            ) : null;
+                                        })()}
                                     </div>
-                                    {(() => {
-                                        let sizeInBytes = 0;
-                                        if (building.model_file instanceof File) {
-                                            sizeInBytes = building.model_file.size;
-                                        } else if (building.model_file_size) {
-                                            sizeInBytes = building.model_file_size;
-                                        } else if (building.model_size) {
-                                            sizeInBytes = building.model_size;
-                                        }
-                                        return sizeInBytes > 0 ? (
-                                            <p className="text-xs font-medium text-gray-600 mt-1">
-                                                Current File: {(sizeInBytes / (1024 * 1024)).toFixed(2)} MB
-                                            </p>
-                                        ) : null;
-                                    })()}
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Upload a GLTF/GLB file (max 500 MB) to enable the 3D Viewer.
+                                    </p>
                                 </div>
-                                <label
-                                    className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors"
-                                    style={{ borderRadius: theme.radius.sm }}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        name="model_active"
-                                        checked={building.model_active}
-                                        onChange={handleChange}
-                                        className="w-4 h-4 rounded text-[#8a1538] focus:ring-[#8a1538] cursor-pointer"
-                                    />
-                                    <span>Model Active</span>
-                                </label>
+
+                                <div className="flex items-center gap-2.5 shrink-0">
+                                    <Link
+                                        to="/compressor"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20 shadow-sm"
+                                        title="Compress large CAD/SketchUp models up to 2GB+"
+                                    >
+                                        <Zap size={13} /> 3D Compressor
+                                    </Link>
+
+                                    <label
+                                        className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors rounded-md"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            name="model_active"
+                                            checked={building.model_active}
+                                            onChange={handleChange}
+                                            className="w-4 h-4 rounded text-[#8a1538] focus:ring-[#8a1538] cursor-pointer"
+                                        />
+                                        <span>Model Active</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <div className="flex flex-col gap-4">
