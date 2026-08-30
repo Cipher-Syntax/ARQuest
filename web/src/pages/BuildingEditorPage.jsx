@@ -1033,14 +1033,14 @@ const BuildingEditorPage = () => {
                                         Viewer.
                                     </p>
                                     <p className="text-xs font-semibold text-[#8a1538] mt-1">
-                                        Max File Size Limit: 200 MB
+                                        Max File Size Limit: 500 MB
                                     </p>
                                     <div className="mt-2">
                                         <Link
                                             to="/compressor"
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
                                         >
-                                            <Zap size={13} /> Heavy 300MB - 1GB Model? Open 3D Compressor →
+                                            <Zap size={13} /> Large 3D Model (up to 2 GB+)? Open 3D Compressor →
                                         </Link>
                                     </div>
                                     {(() => {

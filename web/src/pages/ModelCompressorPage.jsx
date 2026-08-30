@@ -229,7 +229,7 @@ export default function ModelCompressorPage() {
                         </h1>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                        Optimize 300MB – 1GB raw CAD and SketchUp models into high-performance, mobile-ready .GLB files for spatial AR.
+                        Optimize heavy CAD and SketchUp models (up to 2 GB+) into high-performance, mobile-ready .GLB files for spatial AR.
                     </p>
                 </div>
 
