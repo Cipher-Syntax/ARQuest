@@ -1023,44 +1023,27 @@ const BuildingEditorPage = () => {
                         </div>
 
                         <div className="pt-6 border-t border-gray-100 flex flex-col gap-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <div className="flex items-center gap-2">
-                                        <h2 className="text-lg font-bold text-gray-800">
-                                            3D Model Configuration
-                                        </h2>
-                                        {(() => {
-                                            let sizeInBytes = 0;
-                                            if (building.model_file instanceof File) {
-                                                sizeInBytes = building.model_file.size;
-                                            } else if (building.model_file_size) {
-                                                sizeInBytes = building.model_file_size;
-                                            } else if (building.model_size) {
-                                                sizeInBytes = building.model_size;
-                                            }
-                                            return sizeInBytes > 0 ? (
-                                                <span className="text-[11px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-700 rounded border border-gray-200">
-                                                    {(sizeInBytes / (1024 * 1024)).toFixed(2)} MB
-                                                </span>
-                                            ) : null;
-                                        })()}
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                        Upload a GLTF/GLB file (max 500 MB) to enable the 3D Viewer.
+                                    <h2 className="text-lg font-bold text-gray-800">
+                                        3D Model Configuration
+                                    </h2>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Upload a GLTF/GLB file to enable the 3D Viewer.
                                     </p>
                                 </div>
 
-                                <div className="flex items-center gap-2.5 shrink-0">
+                                <div className="flex items-center gap-3">
                                     <Link
                                         to="/compressor"
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20 shadow-sm"
-                                        title="Compress large CAD/SketchUp models up to 2GB+"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
                                     >
                                         <Zap size={13} /> 3D Compressor
                                     </Link>
 
                                     <label
-                                        className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors rounded-md"
+                                        className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors"
+                                        style={{ borderRadius: theme.radius.sm }}
                                     >
                                         <input
                                             type="checkbox"
