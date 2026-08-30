@@ -1022,39 +1022,37 @@ const BuildingEditorPage = () => {
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-gray-100 flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-lg font-bold text-gray-800">
-                                        3D Model Configuration
-                                    </h2>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Upload a GLTF/GLB file to enable the 3D Viewer.
-                                    </p>
-                                </div>
+                        <div className="pt-6 border-t border-gray-100 flex flex-col gap-3">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-800">
+                                    3D Model Configuration
+                                </h2>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Upload a GLTF/GLB file to enable the 3D Viewer.
+                                </p>
+                            </div>
 
-                                <div className="flex items-center gap-3">
-                                    <Link
-                                        to="/compressor"
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
-                                    >
-                                        <Zap size={13} /> 3D Compressor
-                                    </Link>
+                            <div className="flex items-center gap-3">
+                                <Link
+                                    to="/compressor"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
+                                >
+                                    <Zap size={13} /> 3D Compressor
+                                </Link>
 
-                                    <label
-                                        className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors"
-                                        style={{ borderRadius: theme.radius.sm }}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            name="model_active"
-                                            checked={building.model_active}
-                                            onChange={handleChange}
-                                            className="w-4 h-4 rounded text-[#8a1538] focus:ring-[#8a1538] cursor-pointer"
-                                        />
-                                        <span>Model Active</span>
-                                    </label>
-                                </div>
+                                <label
+                                    className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors"
+                                    style={{ borderRadius: theme.radius.sm }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="model_active"
+                                        checked={building.model_active}
+                                        onChange={handleChange}
+                                        className="w-4 h-4 rounded text-[#8a1538] focus:ring-[#8a1538] cursor-pointer"
+                                    />
+                                    <span>Model Active</span>
+                                </label>
                             </div>
 
                             <div className="flex flex-col gap-4">
