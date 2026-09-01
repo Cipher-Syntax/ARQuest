@@ -271,30 +271,47 @@ def compress_3d_model(input_file, options=None):
         except Exception as e:
             logs.append(f"[partition] notice: {str(e)[:150]}")
 
-        # ── Step 6: resize textures (mobile resolution) ──────────────────────
+        # ── Step 6: simplify (polygon decimation) ────────────────────────────
+        # Reduce triangle count using Meshoptimizer on the safe partitioned chunks.
+        # Skip for high-fidelity or when ratio >= 0.99 (no decimation requested).
+        if simplify_ratio > 0 and simplify_ratio < 0.99:
+            step6_simplified = os.path.join(temp_dir, "s6_simplified.glb")
+            rc = _run(
+                ['gltf-transform', 'simplify',
+                 '--ratio', str(simplify_ratio),
+                 '--error', '1',
+                 current_path, step6_simplified],
+                env, 'simplify', logs, timeout=600
+            )
+            if rc == 0 and os.path.exists(step6_simplified) and os.path.getsize(step6_simplified) > 0:
+                current_path = step6_simplified
+                pct_removed = int((1 - simplify_ratio) * 100)
+                logs.append(f"✓ Decimated geometry ({pct_removed}% triangles removed)")
+
+        # ── Step 7: resize textures (mobile resolution) ──────────────────────
         if max_texture_size and max_texture_size < 4096:
-            step6_tex = os.path.join(temp_dir, "s6_resized.glb")
-            rc = _run(['gltf-transform', 'resize', '--width', str(max_texture_size), '--height', str(max_texture_size), current_path, step6_tex], env, 'resize', logs, timeout=180)
-            if rc == 0 and os.path.exists(step6_tex) and os.path.getsize(step6_tex) > 0:
-                current_path = step6_tex
+            step7_tex = os.path.join(temp_dir, "s7_resized.glb")
+            rc = _run(['gltf-transform', 'resize', '--width', str(max_texture_size), '--height', str(max_texture_size), current_path, step7_tex], env, 'resize', logs, timeout=180)
+            if rc == 0 and os.path.exists(step7_tex) and os.path.getsize(step7_tex) > 0:
+                current_path = step7_tex
                 logs.append(f"✓ Resized textures to max {max_texture_size}x{max_texture_size} px")
 
-        # ── Step 7: draco (geometry quantization) ────────────────────────────
+        # ── Step 8: draco (geometry quantization) ────────────────────────────
         if use_draco:
-            step7_draco = os.path.join(temp_dir, "s7_draco.glb")
-            rc = _run(['gltf-transform', 'draco', current_path, step7_draco], env, 'draco', logs, timeout=600)
-            if rc == 0 and os.path.exists(step7_draco) and os.path.getsize(step7_draco) > 0:
-                current_path = step7_draco
+            step8_draco = os.path.join(temp_dir, "s8_draco.glb")
+            rc = _run(['gltf-transform', 'draco', current_path, step8_draco], env, 'draco', logs, timeout=600)
+            if rc == 0 and os.path.exists(step8_draco) and os.path.getsize(step8_draco) > 0:
+                current_path = step8_draco
                 logs.append("✓ Compressed geometry with Google Draco quantization")
             else:
                 # Fallback to gltf-pipeline for large models
-                step7_pipeline = os.path.join(temp_dir, "s7_pipeline.glb")
-                rc_pipe = _run(['gltf-pipeline', '-i', current_path, '-o', step7_pipeline, '-d', '-b'], env, 'gltf-pipeline', logs, timeout=600)
-                if rc_pipe == 0 and os.path.exists(step7_pipeline) and os.path.getsize(step7_pipeline) > 0:
-                    current_path = step7_pipeline
+                step8_pipeline = os.path.join(temp_dir, "s8_pipeline.glb")
+                rc_pipe = _run(['gltf-pipeline', '-i', current_path, '-o', step8_pipeline, '-d', '-b'], env, 'gltf-pipeline', logs, timeout=600)
+                if rc_pipe == 0 and os.path.exists(step8_pipeline) and os.path.getsize(step8_pipeline) > 0:
+                    current_path = step8_pipeline
                     logs.append("✓ Compressed geometry with streaming Draco pipeline")
 
-        # ── Step 8: Mobile AR sanitation ─────────────────────────────────────
+        # ── Step 9: Mobile AR sanitation ─────────────────────────────────────
         # Enforce double-sided walls and opaque materials for correct rendering
         # in Android/iOS AR viewers.
         if force_double_sided or force_opaque:
@@ -302,11 +319,11 @@ def compress_3d_model(input_file, options=None):
                 with open(current_path, 'rb') as f:
                     raw_bytes = f.read()
                 enhanced_bytes = clean_and_enhance_gltf_json(raw_bytes)
-                step8 = os.path.join(temp_dir, "s8_enhanced.glb")
-                with open(step8, 'wb') as f:
+                step9 = os.path.join(temp_dir, "s9_enhanced.glb")
+                with open(step9, 'wb') as f:
                     f.write(enhanced_bytes)
-                if os.path.exists(step8) and os.path.getsize(step8) > 0:
-                    current_path = step8
+                if os.path.exists(step9) and os.path.getsize(step9) > 0:
+                    current_path = step9
                     logs.append("✓ Enforced double-sided walls and solid AR opacity")
             except Exception as e:
                 logs.append(f"Material sanitation skipped: {str(e)}")
