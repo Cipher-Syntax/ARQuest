@@ -1,6 +1,6 @@
 # ARQuest — Context Diagram
 
-> Last updated: 2026-08-28
+> Last updated: 2026-09-01
 
 ---
 
@@ -17,7 +17,7 @@ graph TD
     Admin["Administrator<br/>(Web Dashboard User)"]
 
     %% Core System
-    ARQuest(("ARQuest System<br/>(Mobile App, Admin Web Dashboard, Django REST API, PostgreSQL)"))
+    ARQuest(("ARQuest System<br/>(React Native / ViroReact Mobile, Web Dashboard, Django / Node.js 3D Compressor, PostgreSQL, AWS S3)"))
 
     %% External Systems & Device Services
     EmailSvc["Email Service<br/>(Brevo SMTP / OTP)"]

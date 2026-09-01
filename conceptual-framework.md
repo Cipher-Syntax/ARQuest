@@ -1,6 +1,6 @@
 # ARQuest — Conceptual Framework
 
-> Last updated: 2026-08-28
+> Last updated: 2026-09-01
 
 ---
 

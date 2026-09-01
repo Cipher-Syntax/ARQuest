@@ -1,6 +1,6 @@
 # ARQuest — System Architecture
 
-> Last updated: 2026-08-28
+> Last updated: 2026-09-01
 
 ---
 
@@ -15,7 +15,7 @@ graph LR
         M1["Auth & Self-Service Lifecycle\n(SecureStore / Token Refresh)"]
         M2["GPS & Sensor Telemetry\n(Location · Heading · Gyro)"]
         M3["Geofencing Engine\n(Haversine + Backend Validation)"]
-        M4["Spatial AR Navigation\n(ViroReact 3D Chevrons + HUD)"]
+        M4["Spatial AR Navigation\n(ViroReact Chevrons + Off-Screen Turn Indicators)"]
         M5["Asset & 3D Cache\n(Three.js · 360° VR Tours)"]
         M6["Gamification Arena\n(Quests · Badges · EXP · Streaks)"]
         M7["Settings, Preferences & Feedback\n(SoundManager · CustomAlert)"]

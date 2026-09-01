@@ -1,6 +1,6 @@
 # ARQuest — Conceptual ERD Model (Chen's Notation)
 
-> Last updated: 2026-08-28
+> Last updated: 2026-09-01
 
 This document illustrates the database schema using classic **Chen's Entity-Relationship notation**, where:
 - **Rectangles** represent Entities (Tables)
@@ -71,7 +71,7 @@ flowchart TD
 
 ---
 
-## 2. Buildings & Geofencing Domain
+## 2. Buildings (Now tracking model_size and model_active toggles for the 3D compressor) (Now tracking model_size and model_active toggles for the 3D compressor) & Geofencing Domain
 
 This domain handles the core physical mapping and access control features.
 - **DEPARTMENT**: Groups buildings by academic unit and dictates map pin colors.

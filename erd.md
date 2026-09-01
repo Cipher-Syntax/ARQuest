@@ -1,6 +1,6 @@
 # ARQuest — Entity Relationship Diagram (ERD)
 
-> Last updated: 2026-08-28
+> Last updated: 2026-09-01
 > Reflects all Django models across `authentication`, `buildings`, `panorama`, `geofencing`, and `api` apps.
 
 ---

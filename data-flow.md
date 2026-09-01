@@ -1,6 +1,6 @@
 # ARQuest — Data Flow
 
-> Last updated: 2026-08-28
+> Last updated: 2026-09-01
 > Comprehensive sequence diagrams covering all major user, admin, and sensor data flows.
 
 ---

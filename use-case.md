@@ -1,6 +1,6 @@
 # ARQuest — Use Case Diagram
 
-> Last updated: 2026-08-28
+> Last updated: 2026-09-01
 
 ---
 
@@ -20,9 +20,9 @@ flowchart TB
         subgraph MobileApp ["Mobile Application"]
             UC1(["Register, Accept Terms & Verify OTP"])
             UC2(["Explore Campus via GPS & 2D Map"])
-            UC3(["Navigate via Spatial AR Ground Chevrons"])
+            UC3(["Navigate via Spatial AR Ground Chevrons (60FPS)"])
             UC4(["Unlock Facility via Geofence / QR"])
-            UC5(["View 3D Model & 360° Walkthrough"])
+            UC5(["View 3D Model (Smart Spawn) & 360° Walkthrough"])
             UC6(["Complete Quests, Challenges & Earn Badges"])
             UC7(["Take Building Trivia Quiz"])
             UC8(["View Campus Passport / Visited Checklist"])
@@ -36,6 +36,7 @@ flowchart TB
         subgraph WebApp ["Admin Web Dashboard"]
             UC14(["View Real-Time Dashboard & Foot Traffic"])
             UC15(["Manage Campus Facilities & Departments"])
+            UC22(["Run 3D Compressor Pipeline (Meshoptimizer, Draco)"])
             UC16(["Calibrate Geofence Boundaries"])
             UC17(["Manage 360° Panoramas & Hotspots"])
             UC18(["Author Quests, Trivia & Quizzes (CMS)"])
@@ -79,6 +80,7 @@ flowchart TB
     %% Admin Connections
     Admin --- UC14
     Admin --- UC15
+    Admin --- UC22
     Admin --- UC16
     Admin --- UC17
     Admin --- UC18

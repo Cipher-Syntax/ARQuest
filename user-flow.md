@@ -1,6 +1,6 @@
 # ARQuest — User Flow
 
-> Last updated: 2026-08-28
+> Last updated: 2026-09-01
 > Covers all four user roles: Student, Professional (Accreditor), Admin, and Visitor.
 
 ---
