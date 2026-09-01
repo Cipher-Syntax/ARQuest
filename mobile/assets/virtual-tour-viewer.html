@@ -283,8 +283,10 @@
             let ghostMode = false;
             const MOVE_SPEED = 0.18;
             const COLLISION_DISTANCE = 0.38;
-            const raycaster = new THREE.Raycaster();
-            const centerRaycaster = new THREE.Raycaster();
+            const floorRaycaster = new THREE.Raycaster();
+            floorRaycaster.far = 4.0;
+            const wallRaycaster = new THREE.Raycaster();
+            wallRaycaster.far = 1.0;
             const downVector = new THREE.Vector3(0, -1, 0);
             let worldBounds;
 
@@ -516,9 +518,13 @@
                 renderer = new THREE.WebGLRenderer({
                     canvas: document.getElementById("canvas"),
                     antialias: true,
+                    powerPreference: "high-performance",
+                    precision: "mediump",
+                    depth: true,
+                    stencil: false,
                 });
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
                 scene.add(ambientLight);
@@ -536,7 +542,8 @@
                     document.getElementById("camera-zone"),
                 );
                 controls.enableDamping = true;
-                controls.dampingFactor = 0.05;
+                controls.dampingFactor = 0.25; // Snappy, instant finger response without floaty drag
+                controls.rotateSpeed = 0.85;  // Responsive head turning
                 controls.enableZoom = false;
                 controls.enablePan = false;
 
@@ -945,15 +952,16 @@
                             }
                         }
                     } else {
-                        // Downward Raycast for Floor Height (Stairs / Gravity)
-                        const origin = camera.position.clone();
-                        origin.y += 1.0; // Cast from slightly above eye level to detect stairs
-                        raycaster.set(origin, downVector);
-                        const floorHits = raycaster.intersectObject(model, true);
+                        // Downward Raycast for Floor Height (Stairs / Gravity - only runs when moving or airborne)
+                        const isMoving = (moveForward !== 0 || moveRight !== 0 || velocityY !== 0);
+                        if (!ghostMode && isMoving) {
+                            const origin = camera.position.clone();
+                            origin.y += 0.8; // Cast from eye level downwards
+                            floorRaycaster.set(origin, downVector);
+                            const floorHits = floorRaycaster.intersectObject(model, true);
 
-                        const validHit = floorHits.find(hit => hit.point.y < camera.position.y + 0.5);
+                            const validHit = floorHits.find(hit => hit.point.y < camera.position.y + 0.5);
 
-                        if (!ghostMode) {
                             if (validHit) {
                                 const floorY = validHit.point.y;
                                 const targetY = floorY + 1.6;
@@ -961,11 +969,11 @@
                                 
                                 if (diff > 0 && diff <= 0.6) {
                                     // Step Up: Only snap up if the obstacle is a real stair (< 0.6m)
-                                    camera.position.y += diff * 0.2;
+                                    camera.position.y += diff * 0.25;
                                     velocityY = 0; // Grounded
                                 } else if (diff < 0 && diff >= -0.6) {
                                     // Step Down: Small drop like walking down stairs
-                                    camera.position.y += diff * 0.2;
+                                    camera.position.y += diff * 0.25;
                                     velocityY = 0; // Grounded
                                 } else if (diff < -0.6) {
                                     // Free Fall: The floor is far below us
@@ -973,7 +981,6 @@
                                     camera.position.y += Math.max(diff, velocityY); // Fall but do not clip through floor
                                 } else {
                                     // Hitting a Wall/Ladder: obstacle is > 0.6m high (too tall to step up)
-                                    // Do NOT snap to top. Just apply gravity if we are in mid-air.
                                     if (camera.position.y > targetY + 0.1) {
                                         velocityY -= 0.008;
                                         camera.position.y += velocityY;
@@ -1027,9 +1034,9 @@
                             forwardVector.z * moveForward +
                             rightVector.z * moveRight;
 
-                        // Horizontal wall collision raycasts
+                        // Horizontal wall collision raycasts (only when actively moving)
                         const moveVector = new THREE.Vector3(transX, 0, transZ);
-                        if (moveVector.lengthSq() > 0) {
+                        if (moveVector.lengthSq() > 0.0001) {
                             const moveDir = moveVector.clone().normalize();
 
                             const isSolid = (hit) => {
@@ -1041,18 +1048,17 @@
                                 return true;
                             };
 
-                            // Eye-level check
-                            raycaster.set(camera.position, moveDir);
-                            const eyeHits = raycaster
+                            // Eye-level check (bounded to 1.0m)
+                            wallRaycaster.set(camera.position, moveDir);
+                            const eyeHits = wallRaycaster
                                 .intersectObject(model, true)
                                 .filter(isSolid);
 
-                            // Waist-level check (0.8m below eyes, approx 0.8m above ground)
-                            // We purposefully do NOT check knee-level so the player can seamlessly glide horizontally over low stairs!
+                            // Waist-level check (bounded to 1.0m)
                             const waistOrigin = camera.position.clone();
                             waistOrigin.y -= 0.8;
-                            raycaster.set(waistOrigin, moveDir);
-                            const waistHits = raycaster
+                            wallRaycaster.set(waistOrigin, moveDir);
+                            const waistHits = wallRaycaster
                                 .intersectObject(model, true)
                                 .filter(isSolid);
 
