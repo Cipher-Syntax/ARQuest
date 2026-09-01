@@ -281,8 +281,8 @@
             let moveRight = 0;
             let joystickManager;
             let ghostMode = false;
-            const MOVE_SPEED = 0.28;
-            const COLLISION_DISTANCE = 0.45;
+            const MOVE_SPEED = 0.18;
+            const COLLISION_DISTANCE = 0.38;
             const raycaster = new THREE.Raycaster();
             const centerRaycaster = new THREE.Raycaster();
             const downVector = new THREE.Vector3(0, -1, 0);
@@ -296,7 +296,7 @@
             let teleportTarget = null;
             let teleportProgress = 0;
             let teleportStartPos = new THREE.Vector3();
-            const TELEPORT_SPEED = 0.08;
+            const TELEPORT_SPEED = 0.06;
             let teleportMarker = null;
 
             // ── Gyroscope state (Native Bridge — expo-sensors → postMessage) ──
