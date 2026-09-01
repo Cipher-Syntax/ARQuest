@@ -613,7 +613,7 @@
                         worldBounds.min.y -= 10;
                         worldBounds.max.y += 10;
 
-                        // ── Smart Spawn Point Detection ──────────────────────────
+                        // ── Smart Ground Floor Spawn Point Detection ──────────────────────────
                         let spawnX = center.x;
                         let spawnY = box.min.y + 1.6;
                         let spawnZ = center.z;
@@ -625,26 +625,32 @@
                             spawnY = Number(firstSpot.y) + 1.6;
                             spawnZ = Number(firstSpot.z);
                         } else {
-                            // 2. Otherwise raycast downwards from above to find the real floor
+                            // 2. Otherwise raycast downwards from above and select the LOWEST floor (Ground Floor)
                             const spawnRaycaster = new THREE.Raycaster();
                             const topOrigin = new THREE.Vector3(center.x, box.max.y + 5, center.z);
                             spawnRaycaster.set(topOrigin, new THREE.Vector3(0, -1, 0));
                             const hits = spawnRaycaster.intersectObject(model, true);
+                            
                             if (hits.length > 0) {
-                                spawnX = hits[0].point.x;
-                                spawnY = hits[0].point.y + 1.6;
-                                spawnZ = hits[0].point.z;
+                                // Sort by lowest Y to find the Ground Floor surface instead of the rooftop
+                                const sortedByLowestY = hits.slice().sort((a, b) => a.point.y - b.point.y);
+                                const groundHit = sortedByLowestY.find(hit => hit.point.y >= box.min.y - 0.2) || sortedByLowestY[0];
+                                spawnX = groundHit.point.x;
+                                spawnY = groundHit.point.y + 1.6; // Human eye height on ground floor
+                                spawnZ = groundHit.point.z;
                             } else {
-                                // Try small offsets around the center
-                                const offsets = [[0, 0], [2, 2], [-2, -2], [5, -5], [-5, 5]];
+                                // Try offsets around the building entrance
+                                const offsets = [[0, 0], [0, size.z * 0.3], [size.x * 0.2, 0], [-size.x * 0.2, 0]];
                                 for (const [dx, dz] of offsets) {
                                     topOrigin.set(center.x + dx, box.max.y + 5, center.z + dz);
                                     spawnRaycaster.set(topOrigin, new THREE.Vector3(0, -1, 0));
                                     const offHits = spawnRaycaster.intersectObject(model, true);
                                     if (offHits.length > 0) {
-                                        spawnX = offHits[0].point.x;
-                                        spawnY = offHits[0].point.y + 1.6;
-                                        spawnZ = offHits[0].point.z;
+                                        const sorted = offHits.slice().sort((a, b) => a.point.y - b.point.y);
+                                        const ground = sorted.find(h => h.point.y >= box.min.y - 0.2) || sorted[0];
+                                        spawnX = ground.point.x;
+                                        spawnY = ground.point.y + 1.6;
+                                        spawnZ = ground.point.z;
                                         break;
                                     }
                                 }
