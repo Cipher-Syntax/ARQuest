@@ -282,7 +282,7 @@ export default function BuildingsScreen() {
             {isFocused && <StatusBar style="dark" />}
 
             {/* Toggle Switch */}
-            <View style={{ position: 'absolute', top: 60, alignSelf: 'center', zIndex: 100, flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 20, padding: 4, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+            <View style={{ position: 'absolute', top: 45, right:16, alignSelf: 'center', zIndex: 100, flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 20, padding: 4, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
                 <TouchableOpacity onPress={() => setViewMode('map')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'map' ? theme.colors.primary : 'transparent' }}>
                     <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'map' ? '#FFF' : theme.colors.textSecondary }}>Map View</Text>
                 </TouchableOpacity>
@@ -1024,13 +1024,15 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.primary,
         letterSpacing: 1,
-        marginBottom: 16,
+        // marginBottom: 16,
+        marginTop: 10
     },
     terminalInputContainer: {
         borderLeftWidth: 2,
         borderLeftColor: theme.colors.primary,
         paddingLeft: 12,
         gap: 12,
+        marginTop: 10,
     },
     terminalInputRow: {
         flexDirection: "row",
