@@ -284,7 +284,20 @@ export default function ARScreen() {
     const curLat = location?.latitude ?? location?.coords?.latitude;
     const curLng = location?.longitude ?? location?.coords?.longitude;
 
-    if (navTargetFull && curLat && curLng && heading !== undefined && heading !== null) {
+    if (navTargetFull && curLat && curLng) {
+        distanceToTarget = getDistance(
+            curLat,
+            curLng,
+            navTargetFull.latitude,
+            navTargetFull.longitude
+        );
+    }
+
+    const isArrived = navTargetFull
+        ? (distanceToTarget <= 25 || (geofenceStatus?.status === 'inside' && (nearbyBuildingFull?.id === navTargetFull?.id || nearbyBuilding?.id === navTargetFull?.id)))
+        : (geofenceStatus?.status === 'inside');
+
+    if (navTargetFull && curLat && curLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
         const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
 
@@ -295,12 +308,6 @@ export default function ARScreen() {
             targetLng
         );
         arrowAngle = (bearing - heading + 360) % 360;
-        distanceToTarget = getDistance(
-            curLat,
-            curLng,
-            navTargetFull.latitude,
-            navTargetFull.longitude
-        );
         let diff = (bearing - heading + 360) % 360;
         if (diff > 180) diff -= 360;
 
@@ -734,7 +741,8 @@ export default function ARScreen() {
                                     userHeading: heading,
                                     modelUrl: (navTargetFull || nearbyBuildingFull)?.model_url,
                                     buildingName: (navTargetFull || nearbyBuildingFull)?.name,
-                                    nextWaypoint: nextWaypoint
+                                    nextWaypoint: nextWaypoint,
+                                    isArrived: isArrived,
                                 }}
                                 style={styles.camera}
                             />
@@ -781,9 +789,6 @@ export default function ARScreen() {
                         <View style={styles.topOvalShape} />
                         {(() => {
                             const activeBldg = navTargetFull || nearbyBuildingFull || nearbyBuilding;
-                            const isArrived = navTargetFull
-                                ? (distanceToTarget <= 25 || (geofenceStatus?.status === 'inside' && nearbyBuildingFull?.id === navTargetFull?.id))
-                                : (geofenceStatus?.status === 'inside');
                             const dist = Math.round(navTargetFull ? distanceToTarget : (geofenceStatus?.distance_meters || 0));
 
                             return (
@@ -845,7 +850,7 @@ export default function ARScreen() {
                 )}
 
                 {/* Off-screen Compass Turn Indicators */}
-                {navTargetFull && !isScanningQr && !capturing && !triviaModalVisible && (
+                {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
                     <>
                         {turnDirection === 'left' && (
                             <View style={styles.turnIndicatorLeft} pointerEvents="none">

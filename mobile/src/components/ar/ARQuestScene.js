@@ -58,6 +58,7 @@ export default function ARQuestScene(props) {
         modelUrl,
         nextWaypoint,
         buildingName,
+        isArrived = false,
     } = sceneNavigator.viroAppProps || {};
 
     const [distanceToTarget, setDistanceToTarget] = useState(null);
@@ -82,7 +83,9 @@ export default function ARQuestScene(props) {
                 { latitude: targetLat, longitude: targetLng }
             );
             setDistanceToTarget(dist);
-            setIsNearby(dist < 25);
+            setIsNearby(dist <= 25 || isArrived);
+        } else if (isArrived) {
+            setIsNearby(true);
         }
 
         // 2. Relative bearing and angle to next waypoint / target with EMA smoothing
@@ -123,7 +126,9 @@ export default function ARQuestScene(props) {
             });
             setChevronPositions(chevrons);
         }
-    }, [userLat, userLng, userHeading, targetLat, targetLng, effectiveLat, effectiveLng]);
+    }, [userLat, userLng, userHeading, targetLat, targetLng, effectiveLat, effectiveLng, isArrived]);
+
+    const hasArrived = isArrived || isNearby;
 
     // Position for the sleek floating HUD marker (2.0m ahead in target direction)
     const hudRad = (targetAngle * Math.PI) / 180;
@@ -144,9 +149,10 @@ export default function ARQuestScene(props) {
                 1. 3D AR NAVIGATION PATH (Sleek Ground Chevrons)
                 Renders proportional, glowing 3D arrow chevrons along the ground
                 pointing in the real-world direction of the building.
+                Hidden when arrived at the destination.
                 ============================================================
             */}
-            {chevronPositions.map((chev, index) => (
+            {!hasArrived && chevronPositions.map((chev, index) => (
                 <ViroNode
                     key={`nav-chevron-${index}`}
                     position={[chev.x, chev.y, chev.z]}
@@ -181,9 +187,10 @@ export default function ARQuestScene(props) {
                 ============================================================
                 2. SLEEK FLOATING 3D DIRECTION HUD BILLBOARD
                 Hovers cleanly in the direction of the destination.
+                Hidden when arrived at the destination.
                 ============================================================
             */}
-            {distanceToTarget !== null && (
+            {!hasArrived && distanceToTarget !== null && (
                 <ViroNode
                     position={[hudX, -0.1, hudZ]}
                     rotation={[0, -targetAngle, 0]}
@@ -225,11 +232,11 @@ export default function ARQuestScene(props) {
             {/*
                 ============================================================
                 3. ARRIVED MODE: 3D Miniature Building Model
-                Spawns when user arrives within 25m of the target.
+                Spawns when user arrives within 25m or inside geofence.
                 Positioned at 2.6m distance with 0.038 scale.
                 ============================================================
             */}
-            {modelUrl && isNearby && (
+            {modelUrl && hasArrived && (
                 <ViroNode
                     position={[0, -0.65, -2.6]}
                     dragType="FixedToWorld"

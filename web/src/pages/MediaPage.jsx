@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Image as ImageIcon, X } from "lucide-react";
 import { Card } from "../components/ui";
 import { buildingService } from "../services/buildingService";
@@ -25,12 +25,48 @@ export default function Media() {
     const [loading, setLoading] = useState(true);
 
     const [activeModel, setActiveModel] = useState(null);
+    const [isModelLoading, setIsModelLoading] = useState(true);
+    const [modelProgress, setModelProgress] = useState(0);
+    const [modelError, setModelError] = useState(null);
+    const modelViewerRef = useRef(null);
+
     const [activePanorama, setActivePanorama] = useState(null);
     const [panoScenes, setPanoScenes] = useState([]);
 
     useEffect(() => {
         loadData();
     }, []);
+
+    useEffect(() => {
+        const viewer = modelViewerRef.current;
+        if (!viewer || !activeModel) return;
+
+        const handleProgress = (event) => {
+            const p = Math.round((event.detail.totalProgress || 0) * 100);
+            setModelProgress(p);
+        };
+
+        const handleLoad = () => {
+            setIsModelLoading(false);
+            setModelError(null);
+        };
+
+        const handleError = (error) => {
+            console.error("3D Model load error:", error);
+            setIsModelLoading(false);
+            setModelError("Failed to render 3D model. The file may be corrupt or inaccessible.");
+        };
+
+        viewer.addEventListener("progress", handleProgress);
+        viewer.addEventListener("load", handleLoad);
+        viewer.addEventListener("error", handleError);
+
+        return () => {
+            viewer.removeEventListener("progress", handleProgress);
+            viewer.removeEventListener("load", handleLoad);
+            viewer.removeEventListener("error", handleError);
+        };
+    }, [activeModel]);
 
     const loadData = async () => {
         try {
@@ -56,6 +92,9 @@ export default function Media() {
     };
 
     const open3DViewer = (building) => {
+        setIsModelLoading(true);
+        setModelProgress(0);
+        setModelError(null);
         setActiveModel(building);
     };
 
@@ -70,6 +109,9 @@ export default function Media() {
         setActiveModel(null);
         setActivePanorama(null);
         setPanoScenes([]);
+        setIsModelLoading(true);
+        setModelProgress(0);
+        setModelError(null);
     };
 
     const has3DModel = (b) => !!b.model_url;
@@ -254,18 +296,75 @@ export default function Media() {
                         </div>
                         <div className="flex-1 w-full h-full relative">
                             {activeModel && (
-                                <model-viewer
-                                    src={getFullUrl(activeModel.model_url)}
-                                    auto-rotate="true"
-                                    camera-controls="true"
-                                    ar="true"
-                                    shadow-intensity="1"
-                                    style={{
-                                        width: "100%",
-                                        height: "100%",
-                                        backgroundColor: "#111",
-                                    }}
-                                />
+                                <div className="w-full h-full relative flex items-center justify-center">
+                                    <model-viewer
+                                        ref={modelViewerRef}
+                                        src={getFullUrl(activeModel.model_url)}
+                                        alt={activeModel.name || "3D Building Model"}
+                                        crossorigin="anonymous"
+                                        camera-controls
+                                        auto-rotate
+                                        shadow-intensity="1"
+                                        exposure="1"
+                                        bounds="tight"
+                                        style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            backgroundColor: "#0B132B",
+                                        }}
+                                    ></model-viewer>
+
+                                    {isModelLoading && (
+                                        <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-md flex flex-col items-center justify-center z-20">
+                                            <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4" />
+                                            <p className="text-white font-bold text-sm">
+                                                Loading 3D Model... {modelProgress > 0 ? `${modelProgress}%` : ''}
+                                            </p>
+                                            <div className="w-48 h-1.5 bg-gray-800 rounded-full mt-3 overflow-hidden">
+                                                <div
+                                                    className="h-full bg-brand transition-all duration-200"
+                                                    style={{ width: `${modelProgress}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-xs text-gray-400 mt-2">
+                                                {activeModel.name}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {modelError && (
+                                        <div className="absolute inset-0 bg-gray-950/90 flex flex-col items-center justify-center z-20 p-6 text-center">
+                                            <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mb-3">
+                                                <Box size={24} />
+                                            </div>
+                                            <h4 className="text-white font-bold text-base mb-1">Unable to Load 3D Model</h4>
+                                            <p className="text-xs text-gray-400 max-w-sm mb-4">{modelError}</p>
+                                            <button
+                                                onClick={() => {
+                                                    setIsModelLoading(true);
+                                                    setModelError(null);
+                                                    if (modelViewerRef.current) {
+                                                        modelViewerRef.current.src = getFullUrl(activeModel.model_url);
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold hover:bg-brand-dark transition-colors"
+                                            >
+                                                Retry Loading
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* 3D Interaction Control Hint */}
+                                    {!isModelLoading && !modelError && (
+                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md text-white/90 text-xs px-4 py-1.5 rounded-full border border-white/10 pointer-events-none flex items-center gap-2">
+                                            <span>🖱️ Drag to rotate</span>
+                                            <span>•</span>
+                                            <span>🔍 Scroll to zoom</span>
+                                            <span>•</span>
+                                            <span>✋ Right-click to pan</span>
+                                        </div>
+                                    )}
+                                </div>
                             )}
 
                             {activePanorama && panoScenes.length > 0 && (

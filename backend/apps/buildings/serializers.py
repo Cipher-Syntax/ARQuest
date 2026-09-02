@@ -75,6 +75,7 @@ class BuildingSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.model_file.url)
+            return obj.model_file.url
         return None
 
     def get_image_url(self, obj):
@@ -82,11 +83,13 @@ class BuildingSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
         return None
 
     def get_qr_code_secret(self, obj):
         request = self.context.get('request')
-        if request and getattr(request.user, 'is_admin_role', False):
+        user = getattr(request, 'user', None) if request else None
+        if user and getattr(user, 'is_admin_role', False):
             return str(obj.qr_code_secret)
         return None
 
@@ -184,6 +187,7 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.model_file.url)
+            return obj.model_file.url
         return None
 
     def get_image_url(self, obj):
@@ -191,6 +195,7 @@ class UnlockedBuildingSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
         return None
 
 class BuildingAssetSerializer(serializers.ModelSerializer):
