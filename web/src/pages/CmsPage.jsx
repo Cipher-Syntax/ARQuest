@@ -345,7 +345,7 @@ export default function CmsPage() {
                         <div className="hidden md:flex w-1/2 bg-gray-900 relative flex-col items-center justify-center p-8 overflow-hidden">
                             <div className="absolute top-8 left-8 right-16 z-20">
                                 <div className="inline-block px-3 py-1 bg-white/10 text-white text-[10px] font-bold tracking-widest uppercase rounded-full mb-2 backdrop-blur-md border border-white/20">
-                                    3D PREVIEW
+                                    2D PREVIEW
                                 </div>
                                 <h2 className="text-3xl font-extrabold text-white leading-tight drop-shadow-lg">
                                     {selectedBuilding.name}
