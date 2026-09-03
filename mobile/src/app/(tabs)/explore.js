@@ -25,6 +25,7 @@ import SoundManager from "../../utils/SoundManager";
 import { useAuth } from "../../context/AuthContext";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { StatusBar } from "expo-status-bar";
+import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
 
 export default function ExploreScreen() {
     const isFocused = useIsFocused();
@@ -401,29 +402,17 @@ export default function ExploreScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Error States */}
-                {permissionStatus === "denied" && (
-                    <View style={styles.alertBox}>
-                        <Ionicons
-                            name="warning"
-                            size={28}
-                            color={theme.colors.error}
-                        />
-                        <Text style={styles.alertText}>
-                            Location access denied. Please enable in settings.
-                        </Text>
-                    </View>
-                )}
-                {error && (
-                    <View style={styles.alertBox}>
-                        <Ionicons
-                            name="alert-circle"
-                            size={28}
-                            color={theme.colors.error}
-                        />
-                        <Text style={styles.alertText}>{error}</Text>
-                    </View>
-                )}
+                {/* GPS Status — permission denied, fake GPS, weak signal, inside, nearby */}
+                <GeoStatusIndicator
+                    status={validationResult?.status}
+                    buildingName={validationResult?.building?.name}
+                    permissionDenied={permissionStatus === "denied"}
+                    mockedGPS={!!error && error.includes("Fake GPS")}
+                    onRetry={() => {
+                        stopTracking();
+                        setTimeout(() => startTracking(), 300);
+                    }}
+                />
 
                 {/* Active Scanning Status HUD */}
                 {isTracking && (
@@ -932,24 +921,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         marginTop: 8,
         letterSpacing: 1,
-    },
-    alertBox: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#FFF0F0",
-        padding: theme.spacing.lg,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: "#FFCACA",
-        marginBottom: theme.spacing.lg,
-    },
-    alertText: {
-        flex: 1,
-        color: theme.colors.error,
-        marginLeft: theme.spacing.md,
-        fontSize: 16,
-        fontFamily: fonts.body.medium,
-        lineHeight: 22,
     },
     card: {
         backgroundColor: theme.colors.white,

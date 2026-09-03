@@ -31,6 +31,7 @@ import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
+import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
 
 export default function ARScreen() {
     const isFocused = useIsFocused();
@@ -118,7 +119,7 @@ export default function ARScreen() {
     const [navTargetFull, setNavTargetFull] = useState(null);
     const [nextWaypoint, setNextWaypoint] = useState(null);
 
-    const { location, heading, startTracking, stopTracking } = useLocationTracking();
+    const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
 
     const [isCameraActive, setIsCameraActive] = useState(false);
@@ -780,6 +781,21 @@ export default function ARScreen() {
                                 </Text>
                             </TouchableOpacity>
                         )}
+                    </View>
+                )}
+
+
+                {/* --- GPS Signal Banner --- */}
+                {!capturing && locationError && (
+                    <View style={styles.gpsBanner} pointerEvents="box-none">
+                        <GeoStatusIndicator
+                            mockedGPS={locationError.includes("Fake GPS")}
+                            status={locationError && !locationError.includes("Fake GPS") ? "weak_signal" : undefined}
+                            onRetry={() => {
+                                stopTracking();
+                                setTimeout(() => startTracking(), 300);
+                            }}
+                        />
                     </View>
                 )}
 
@@ -1635,5 +1651,13 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 12,
         letterSpacing: 1,
+    },
+    gpsBanner: {
+        position: 'absolute',
+        top: 90,
+        left: 16,
+        right: 16,
+        zIndex: 50,
+        alignItems: 'center',
     },
 });

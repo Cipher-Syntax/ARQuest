@@ -82,7 +82,7 @@ export const LocationProvider = ({ children }) => {
                     },
                     (newLocation) => {
                         const accuracy = newLocation.coords.accuracy;
-                        const isWeak = accuracy > 40;
+                        const isWeak = accuracy > 50; // Aligned with backend weak_signal threshold (>50m)
                         const isMocked = newLocation.mocked === true;
 
                         if (isMocked) {
