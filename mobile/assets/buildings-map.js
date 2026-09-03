@@ -189,8 +189,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                     },
                     paint: {
                         'line-color': '#B21830',
-                        'line-width': 5,
-                        'line-dasharray': [2, 1]
+                        'line-width': 6,
                     }
                 });
 
@@ -342,26 +341,35 @@ export const mapHtmlString = `<!DOCTYPE html>
             let sourceLng = null;
 
             if (sourceBuildingId) {
-                const sourceBuilding = buildings.find(b => b.id === sourceBuildingId);
+                const sourceBuilding = buildings.find(b => b.id == sourceBuildingId);
                 if (sourceBuilding) {
                     sourceLat = parseFloat(sourceBuilding.latitude);
                     sourceLng = parseFloat(sourceBuilding.longitude);
                 }
             } else if (userLocation) {
-                sourceLat = userLocation.latitude;
-                sourceLng = userLocation.longitude;
+                sourceLat = (userLocation.latitude !== undefined && userLocation.latitude !== null)
+                    ? parseFloat(userLocation.latitude)
+                    : (userLocation.coords && parseFloat(userLocation.coords.latitude));
+                sourceLng = (userLocation.longitude !== undefined && userLocation.longitude !== null)
+                    ? parseFloat(userLocation.longitude)
+                    : (userLocation.coords && parseFloat(userLocation.coords.longitude));
             }
 
-            if (targetBuildingId && sourceLat !== null && sourceLng !== null) {
-                const targetBuilding = buildings.find(b => b.id === targetBuildingId);
+            // Fallback: If userLocation is not locked yet, default to campus center so route is ALWAYS visible
+            if ((sourceLat === null || isNaN(sourceLat)) && targetBuildingId) {
+                sourceLng = WMSU_CENTER[0];
+                sourceLat = WMSU_CENTER[1];
+            }
+
+            if (targetBuildingId && sourceLat !== null && sourceLng !== null && !isNaN(sourceLat) && !isNaN(sourceLng)) {
+                const targetBuilding = buildings.find(b => b.id == targetBuildingId);
                 if (targetBuilding) {
                     const targetLat = parseFloat(targetBuilding.latitude);
                     const targetLng = parseFloat(targetBuilding.longitude);
-
                     boundsCoords.push([sourceLng, sourceLat]);
                     boundsCoords.push([targetLng, targetLat]);
 
-                    fetch(\`https://api.mapbox.com/directions/v5/mapbox/walking/\${sourceLng},\${sourceLat};\${targetLng},\${targetLat}?geometries=geojson&access_token=\${mapboxgl.accessToken}\`)
+                    fetch('https://api.mapbox.com/directions/v5/mapbox/walking/' + sourceLng + ',' + sourceLat + ';' + targetLng + ',' + targetLat + '?geometries=geojson&access_token=' + mapboxgl.accessToken)
                         .then(res => res.json())
                         .then(routeData => {
                             let geojson = { type: 'FeatureCollection', features: [] };
@@ -379,23 +387,30 @@ export const mapHtmlString = `<!DOCTYPE html>
                                     }
                                 });
                             }
-                            map.getSource('route').setData(geojson);
+                            if (map.getSource('route')) {
+                                map.getSource('route').setData(geojson);
+                            }
                         })
                         .catch(err => {
-                            map.getSource('route').setData({
-                                type: 'FeatureCollection',
-                                features: [{
-                                    type: 'Feature',
-                                    geometry: {
-                                        type: 'LineString',
-                                        coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
-                                    }
-                                }]
-                            });
+                            console.error('Route fetch error:', err);
+                            if (map.getSource('route')) {
+                                map.getSource('route').setData({
+                                    type: 'FeatureCollection',
+                                    features: [{
+                                        type: 'Feature',
+                                        geometry: {
+                                            type: 'LineString',
+                                            coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
+                                        }
+                                    }]
+                                });
+                            }
                         });
                 }
             } else {
-                map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
+                if (map.getSource('route')) {
+                    map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
+                }
             }
 
             if (boundsCoords.length > 0) {

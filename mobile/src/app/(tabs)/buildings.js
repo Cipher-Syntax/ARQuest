@@ -15,7 +15,7 @@ import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { WebView } from "react-native-webview";
 import { INJECTED_BRIDGE_SCRIPT, createBridgeMessage, parseBridgeMessage } from "../../utils/WebViewBridge";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -33,13 +33,20 @@ export default function BuildingsScreen() {
     const isFocused = useIsFocused();
     const { unlockedBuildings, isLoading: isUnlockedLoading } =
         useUnlockedBuildings();
-    const { location } = useLocationTracking();
+    const { location, startTracking, stopTracking } = useLocationTracking();
     const { canAccessBuildingFeatures, canView3D, canViewPanorama, role } =
         useRoleAccess();
     const router = useRouter();
+    const { targetBuildingId } = useLocalSearchParams();
 
-    useEffect(() => {
-    }, []);
+    useFocusEffect(
+        React.useCallback(() => {
+            startTracking();
+            return () => {
+                stopTracking();
+            };
+        }, [startTracking, stopTracking])
+    );
 
     const [allBuildings, setAllBuildings] = useState([]);
     const [isLoadingAll, setIsLoadingAll] = useState(true);
@@ -57,8 +64,6 @@ export default function BuildingsScreen() {
     const [originQuery, setOriginQuery] = useState("");
     const [isOriginFocused, setIsOriginFocused] = useState(false);
     const [routeOrigin, setRouteOrigin] = useState(null);
-
-    const [routeDistance, setRouteDistance] = useState(null);
 
     const webViewRef = useRef(null);
     const [webViewReady, setWebViewReady] = useState(false);
@@ -91,6 +96,37 @@ export default function BuildingsScreen() {
             webViewRef.current.postMessage(message);
         }
     }, [webViewReady, allBuildings, unlockedBuildings, location]);
+
+    const lastTargetBuildingIdRef = useRef(null);
+
+    useEffect(() => {
+        if (targetBuildingId && allBuildings.length > 0) {
+            const target = allBuildings.find(
+                (b) => b.id.toString() === targetBuildingId.toString()
+            );
+            if (target && lastTargetBuildingIdRef.current !== targetBuildingId) {
+                lastTargetBuildingIdRef.current = targetBuildingId;
+                setTimeout(() => {
+                    setViewMode("map");
+                    setRouteTarget(target);
+                    setSearchQuery(target.name);
+                    setRouteOrigin(null);
+                    setOriginQuery("");
+                }, 0);
+            }
+        }
+    }, [targetBuildingId, allBuildings]);
+
+    // Reliably send draw_route whenever routeTarget is active, when webView becomes ready, or when GPS updates
+    useEffect(() => {
+        if (routeTarget && webViewReady && webViewRef.current) {
+            const message = createBridgeMessage("draw_route", {
+                buildingId: routeTarget.id,
+                sourceBuildingId: routeOrigin ? routeOrigin.id : null,
+            });
+            webViewRef.current.postMessage(message);
+        }
+    }, [routeTarget, routeOrigin, webViewReady, location]);
 
     const handleMessage = (event) => {
         const result = parseBridgeMessage(event.nativeEvent.data);
@@ -183,33 +219,29 @@ export default function BuildingsScreen() {
                 b.slug.toLowerCase().includes(originQuery.toLowerCase())),
     );
 
-    useEffect(() => {
-        if (routeTarget) {
-            let lat1, lon1;
-            if (routeOrigin) {
-                lat1 = parseFloat(routeOrigin.latitude);
-                lon1 = parseFloat(routeOrigin.longitude);
-            } else if (location) {
-                lat1 = location.latitude;
-                lon1 = location.longitude;
-            }
-
-            if (lat1 && lon1) {
-                const lat2 = parseFloat(routeTarget.latitude);
-                const lon2 = parseFloat(routeTarget.longitude);
-                const dist = geofencingService.calculateDistance(
-                    lat1,
-                    lon1,
-                    lat2,
-                    lon2,
-                );
-                setRouteDistance(Math.round(dist));
-            } else {
-                setRouteDistance(null);
-            }
-        } else {
-            setRouteDistance(null);
+    const routeDistance = useMemo(() => {
+        if (!routeTarget) return null;
+        let lat1, lon1;
+        if (routeOrigin) {
+            lat1 = parseFloat(routeOrigin.latitude);
+            lon1 = parseFloat(routeOrigin.longitude);
+        } else if (location) {
+            lat1 = location.latitude;
+            lon1 = location.longitude;
         }
+
+        if (lat1 && lon1) {
+            const lat2 = parseFloat(routeTarget.latitude);
+            const lon2 = parseFloat(routeTarget.longitude);
+            const dist = geofencingService.calculateDistance(
+                lat1,
+                lon1,
+                lat2,
+                lon2,
+            );
+            return Math.round(dist);
+        }
+        return null;
     }, [routeTarget, routeOrigin, location]);
 
     const handleSelectRouteTarget = (building) => {
@@ -393,12 +425,21 @@ export default function BuildingsScreen() {
                             }
                         />
                         {routeTarget && (
-                            <TouchableOpacity
-                                onPress={handleClearRoute}
-                                style={styles.clearRouteBtn}
-                            >
-                                <X color={theme.colors.textMuted} size={18} />
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                {routeDistance !== null && (
+                                    <View style={{ backgroundColor: "#FFF0F0", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                                        <Text style={{ fontSize: 11, fontFamily: fonts.body.bold, color: theme.colors.primary }}>
+                                            {routeDistance}m
+                                        </Text>
+                                    </View>
+                                )}
+                                <TouchableOpacity
+                                    onPress={handleClearRoute}
+                                    style={styles.clearRouteBtn}
+                                >
+                                    <X color={theme.colors.textMuted} size={18} />
+                                </TouchableOpacity>
+                            </View>
                         )}
                     </View>
                 </View>

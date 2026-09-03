@@ -656,9 +656,17 @@ export default function ExploreScreen() {
                                         <TouchableOpacity
                                             style={[styles.navigateBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.primary }]}
                                             onPress={() =>
-                                                router.push("/buildings")
+                                                router.push({
+                                                    pathname: "/(tabs)/buildings",
+                                                    params: { targetBuildingId: building.id }
+                                                })
                                             }
                                         >
+                                            <Ionicons
+                                                name="map-outline"
+                                                size={16}
+                                                color={theme.colors.primary}
+                                            />
                                             <Text style={[styles.navigateText, { color: theme.colors.primary }]}>
                                                 Map
                                             </Text>
