@@ -12,10 +12,49 @@ export const mapHtmlString = `<!DOCTYPE html>
         #map { width: 100vw; height: 100vh; background: #f5f5f5; }
         
         .custom-dept-marker { background: transparent; border: none; }
-        .user-marker {
-            background-color: #4285f4; border-radius: 50%;
-            border: 2px solid #ffffff; box-shadow: 0 0 15px 5px rgba(66, 133, 244, 0.4);
-            width: 16px; height: 16px;
+        .user-marker-container {
+            position: relative;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.4s ease-out;
+            pointer-events: none;
+        }
+        .user-marker-pulse {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(66, 133, 244, 0.3);
+            animation: userPulse 2s infinite ease-out;
+        }
+        .user-marker-dot {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #1A73E8;
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            z-index: 2;
+        }
+        .user-marker-heading {
+            position: absolute;
+            top: -6px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 8px solid #1A73E8;
+            z-index: 1;
+            transition: transform 0.2s ease-out;
+        }
+        @keyframes userPulse {
+            0% { transform: scale(0.6); opacity: 0.9; }
+            70% { transform: scale(1.6); opacity: 0; }
+            100% { transform: scale(1.6); opacity: 0; }
         }
 
         @keyframes pulse {
@@ -111,9 +150,54 @@ export const mapHtmlString = `<!DOCTYPE html>
         let markers = [];
         let userMarkerObj = null;
         let mapInitialized = false;
+        let hasInitialCentered = false;
         
         let targetBuildingId = null;
         let sourceBuildingId = null;
+        let activeFullRouteCoords = null;
+        let activeTargetId = null;
+
+        function sliceRouteFromUser(coords, userCoords) {
+            if (!coords || coords.length < 2) return coords;
+            var px = userCoords[0], py = userCoords[1];
+            var bestDist2 = Infinity;
+            var bestIdx = 0;
+            var bestQ = coords[0];
+            var bestT = 0;
+
+            for (var i = 0; i < coords.length - 1; i++) {
+                var ax = coords[i][0], ay = coords[i][1];
+                var bx = coords[i + 1][0], by = coords[i + 1][1];
+                var dx = bx - ax, dy = by - ay;
+                var ab2 = dx * dx + dy * dy;
+                var t = 0;
+                if (ab2 > 0) {
+                    t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / ab2));
+                }
+                var qx = ax + t * dx, qy = ay + t * dy;
+                var dist2 = (px - qx) * (px - qx) + (py - qy) * (py - qy);
+                if (dist2 < bestDist2) {
+                    bestDist2 = dist2;
+                    bestIdx = i;
+                    bestQ = [qx, qy];
+                    bestT = t;
+                }
+            }
+
+            var approxDistMeters = Math.sqrt(bestDist2) * 111000;
+            if (approxDistMeters > 45) {
+                return null;
+            }
+
+            var remaining = [userCoords];
+            if (bestT < 0.95) {
+                remaining.push(bestQ);
+            }
+            for (var j = bestIdx + 1; j < coords.length; j++) {
+                remaining.push(coords[j]);
+            }
+            return remaining;
+        }
 
         function initializeMap(token) {
             if (map) return;
@@ -251,18 +335,40 @@ export const mapHtmlString = `<!DOCTYPE html>
             let boundsCoords = [];
 
             if (userLocation) {
-                userCoords = [userLocation.longitude, userLocation.latitude];
-                
-                if (userMarkerObj) userMarkerObj.remove();
-                
-                const el = document.createElement('div');
-                el.className = 'user-marker';
-                
-                userMarkerObj = new mapboxgl.Marker({ element: el })
-                    .setLngLat(userCoords)
-                    .addTo(map);
-                
-                boundsCoords.push(userCoords);
+                const uLat = (userLocation.latitude !== undefined && userLocation.latitude !== null)
+                    ? parseFloat(userLocation.latitude)
+                    : (userLocation.coords && parseFloat(userLocation.coords.latitude));
+                const uLng = (userLocation.longitude !== undefined && userLocation.longitude !== null)
+                    ? parseFloat(userLocation.longitude)
+                    : (userLocation.coords && parseFloat(userLocation.coords.longitude));
+
+                if (!isNaN(uLat) && !isNaN(uLng)) {
+                    userCoords = [uLng, uLat];
+                    
+                    if (!userMarkerObj) {
+                        const el = document.createElement('div');
+                        el.className = 'user-marker-container';
+                        el.innerHTML = '<div class="user-marker-pulse"></div><div class="user-marker-dot"></div><div class="user-marker-heading" style="display:none;"></div>';
+                        
+                        userMarkerObj = new mapboxgl.Marker({ element: el, anchor: 'center' })
+                            .setLngLat(userCoords)
+                            .addTo(map);
+                    } else {
+                        userMarkerObj.setLngLat(userCoords);
+                    }
+
+                    const heading = userLocation.coords ? userLocation.coords.heading : userLocation.heading;
+                    if (heading !== undefined && heading !== null && heading >= 0) {
+                        const headingEl = userMarkerObj.getElement().querySelector('.user-marker-heading');
+                        if (headingEl) {
+                            headingEl.style.display = 'block';
+                            headingEl.style.transformOrigin = 'center 16px';
+                            headingEl.style.transform = 'rotate(' + heading + 'deg)';
+                        }
+                    }
+
+                    boundsCoords.push(userCoords);
+                }
             }
 
             buildings.forEach(b => {
@@ -366,59 +472,101 @@ export const mapHtmlString = `<!DOCTYPE html>
                 if (targetBuilding) {
                     const targetLat = parseFloat(targetBuilding.latitude);
                     const targetLng = parseFloat(targetBuilding.longitude);
-                    boundsCoords.push([sourceLng, sourceLat]);
-                    boundsCoords.push([targetLng, targetLat]);
 
-                    fetch('https://api.mapbox.com/directions/v5/mapbox/walking/' + sourceLng + ',' + sourceLat + ';' + targetLng + ',' + targetLat + '?geometries=geojson&access_token=' + mapboxgl.accessToken)
-                        .then(res => res.json())
-                        .then(routeData => {
-                            let geojson = { type: 'FeatureCollection', features: [] };
-                            if (routeData && routeData.routes && routeData.routes.length > 0) {
-                                geojson.features.push({
+                    // Check if we can slice existing full route from user's current GPS position
+                    let slicedCoords = null;
+                    if (activeFullRouteCoords && activeTargetId == targetBuildingId && !sourceBuildingId) {
+                        slicedCoords = sliceRouteFromUser(activeFullRouteCoords, [sourceLng, sourceLat]);
+                    }
+
+                    if (slicedCoords && slicedCoords.length >= 2) {
+                        // Immediately update remaining route line on map (smooth, zero network latency)
+                        if (map.getSource('route')) {
+                            map.getSource('route').setData({
+                                type: 'FeatureCollection',
+                                features: [{
                                     type: 'Feature',
-                                    geometry: routeData.routes[0].geometry
-                                });
-                            } else {
-                                geojson.features.push({
-                                    type: 'Feature',
+                                    properties: {},
                                     geometry: {
                                         type: 'LineString',
-                                        coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
+                                        coordinates: slicedCoords
                                     }
-                                });
-                            }
-                            if (map.getSource('route')) {
-                                map.getSource('route').setData(geojson);
-                            }
-                        })
-                        .catch(err => {
-                            console.error('Route fetch error:', err);
-                            if (map.getSource('route')) {
-                                map.getSource('route').setData({
-                                    type: 'FeatureCollection',
-                                    features: [{
+                                }]
+                            });
+                        }
+                    } else {
+                        // Fetch new full walking route from Mapbox
+                        fetch('https://api.mapbox.com/directions/v5/mapbox/walking/' + sourceLng + ',' + sourceLat + ';' + targetLng + ',' + targetLat + '?geometries=geojson&access_token=' + mapboxgl.accessToken)
+                            .then(res => res.json())
+                            .then(routeData => {
+                                let geojson = { type: 'FeatureCollection', features: [] };
+                                if (routeData && routeData.routes && routeData.routes.length > 0) {
+                                    activeFullRouteCoords = routeData.routes[0].geometry.coordinates;
+                                    activeTargetId = targetBuildingId;
+                                    
+                                    const initialSlice = !sourceBuildingId ? sliceRouteFromUser(activeFullRouteCoords, [sourceLng, sourceLat]) : null;
+                                    const coordsToRender = (initialSlice && initialSlice.length >= 2) ? initialSlice : activeFullRouteCoords;
+
+                                    geojson.features.push({
                                         type: 'Feature',
+                                        properties: {},
+                                        geometry: {
+                                            type: 'LineString',
+                                            coordinates: coordsToRender
+                                        }
+                                    });
+                                } else {
+                                    activeFullRouteCoords = null;
+                                    geojson.features.push({
+                                        type: 'Feature',
+                                        properties: {},
                                         geometry: {
                                             type: 'LineString',
                                             coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
                                         }
-                                    }]
-                                });
-                            }
-                        });
+                                    });
+                                }
+                                if (map.getSource('route')) {
+                                    map.getSource('route').setData(geojson);
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Route fetch error:', err);
+                                if (map.getSource('route')) {
+                                    map.getSource('route').setData({
+                                        type: 'FeatureCollection',
+                                        features: [{
+                                            type: 'Feature',
+                                            properties: {},
+                                            geometry: {
+                                                type: 'LineString',
+                                                coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
+                                            }
+                                        }]
+                                    });
+                                }
+                            });
+                    }
+
+                    // Keep camera smoothly framed on user and target building
+                    const routeBounds = new mapboxgl.LngLatBounds([sourceLng, sourceLat], [sourceLng, sourceLat]);
+                    routeBounds.extend([targetLng, targetLat]);
+                    map.fitBounds(routeBounds, {
+                        padding: { top: 120, bottom: 180, left: 50, right: 50 },
+                        maxZoom: 18,
+                        duration: 800
+                    });
                 }
             } else {
                 if (map.getSource('route')) {
                     map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
                 }
-            }
-
-            if (boundsCoords.length > 0) {
-                const bounds = new mapboxgl.LngLatBounds(boundsCoords[0], boundsCoords[0]);
-                for (const coord of boundsCoords) {
-                    bounds.extend(coord);
+                if (!hasInitialCentered && boundsCoords.length > 0) {
+                    hasInitialCentered = true;
+                    const bounds = new mapboxgl.LngLatBounds(boundsCoords[0], boundsCoords[0]);
+                    for (const coord of boundsCoords) bounds.extend(coord);
+                    map.fitBounds(bounds, { padding: 50, maxZoom: 18 });
                 }
-                map.fitBounds(bounds, { padding: 50, maxZoom: 18 });
             }
         }
 
@@ -443,13 +591,19 @@ export const mapHtmlString = `<!DOCTYPE html>
                     // Update map with payload
                     window.updateMap(payloadData);
                 } else if (data.type === "draw_route") {
+                    if (targetBuildingId != payloadData.buildingId || sourceBuildingId != payloadData.sourceBuildingId) {
+                        activeFullRouteCoords = null;
+                        activeTargetId = null;
+                    }
                     targetBuildingId = payloadData.buildingId;
                     sourceBuildingId = payloadData.sourceBuildingId || null;
                     if (window.lastMapData) window.updateMap(window.lastMapData);
                 } else if (data.type === "clear_route") {
                     targetBuildingId = null;
                     sourceBuildingId = null;
-                    if (mapInitialized) {
+                    activeFullRouteCoords = null;
+                    activeTargetId = null;
+                    if (mapInitialized && map.getSource('route')) {
                         map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
                     }
                 }

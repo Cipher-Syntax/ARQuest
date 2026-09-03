@@ -60,6 +60,7 @@ export default function BuildingsScreen() {
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [routeTarget, setRouteTarget] = useState(null);
+    const [isRouteActive, setIsRouteActive] = useState(false);
 
     const [originQuery, setOriginQuery] = useState("");
     const [isOriginFocused, setIsOriginFocused] = useState(false);
@@ -112,21 +113,22 @@ export default function BuildingsScreen() {
                     setSearchQuery(target.name);
                     setRouteOrigin(null);
                     setOriginQuery("");
+                    setIsRouteActive(false);
                 }, 0);
             }
         }
     }, [targetBuildingId, allBuildings]);
 
-    // Reliably send draw_route whenever routeTarget is active, when webView becomes ready, or when GPS updates
+    // Send draw_route only when navigation is actively started
     useEffect(() => {
-        if (routeTarget && webViewReady && webViewRef.current) {
+        if (isRouteActive && routeTarget && webViewReady && webViewRef.current) {
             const message = createBridgeMessage("draw_route", {
                 buildingId: routeTarget.id,
                 sourceBuildingId: routeOrigin ? routeOrigin.id : null,
             });
             webViewRef.current.postMessage(message);
         }
-    }, [routeTarget, routeOrigin, webViewReady, location]);
+    }, [isRouteActive, routeTarget, routeOrigin, webViewReady, location]);
 
     const handleMessage = (event) => {
         const result = parseBridgeMessage(event.nativeEvent.data);
@@ -248,12 +250,10 @@ export default function BuildingsScreen() {
         setRouteTarget(building);
         setSearchQuery(building.name);
         setIsSearchFocused(false);
+        setIsRouteActive(false);
 
         if (webViewRef.current) {
-            const message = createBridgeMessage("draw_route", {
-                buildingId: building.id,
-                sourceBuildingId: routeOrigin ? routeOrigin.id : null,
-            });
+            const message = createBridgeMessage("clear_route");
             webViewRef.current.postMessage(message);
         }
     };
@@ -263,7 +263,7 @@ export default function BuildingsScreen() {
         setOriginQuery(building.name);
         setIsOriginFocused(false);
 
-        if (routeTarget && webViewRef.current) {
+        if (isRouteActive && routeTarget && webViewRef.current) {
             const message = createBridgeMessage("draw_route", {
                 buildingId: routeTarget.id,
                 sourceBuildingId: building.id,
@@ -275,7 +275,7 @@ export default function BuildingsScreen() {
     const handleClearOrigin = () => {
         setRouteOrigin(null);
         setOriginQuery("");
-        if (routeTarget && webViewRef.current) {
+        if (isRouteActive && routeTarget && webViewRef.current) {
             const message = createBridgeMessage("draw_route", {
                 buildingId: routeTarget.id,
                 sourceBuildingId: null,
@@ -287,7 +287,28 @@ export default function BuildingsScreen() {
     const handleClearRoute = () => {
         setRouteTarget(null);
         setSearchQuery("");
+        setIsRouteActive(false);
 
+        if (webViewRef.current) {
+            const message = createBridgeMessage("clear_route");
+            webViewRef.current.postMessage(message);
+        }
+    };
+
+    const handleStartRoute = () => {
+        if (!routeTarget) return;
+        setIsRouteActive(true);
+        if (webViewRef.current) {
+            const message = createBridgeMessage("draw_route", {
+                buildingId: routeTarget.id,
+                sourceBuildingId: routeOrigin ? routeOrigin.id : null,
+            });
+            webViewRef.current.postMessage(message);
+        }
+    };
+
+    const handleStopRoute = () => {
+        setIsRouteActive(false);
         if (webViewRef.current) {
             const message = createBridgeMessage("clear_route");
             webViewRef.current.postMessage(message);
@@ -964,8 +985,62 @@ export default function BuildingsScreen() {
                 </View>
             </Modal>
 
-            {/* Map Legend */}
-            {!modalVisible && viewMode === 'map' && (
+            {/* Google Maps Style Route Navigation Card */}
+            {!modalVisible && viewMode === 'map' && routeTarget && (
+                <View style={styles.routeNavCard}>
+                    <View style={styles.routeNavHeader}>
+                        <View style={styles.routeNavInfo}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                {isRouteActive && (
+                                    <View style={styles.pulseLiveDot} />
+                                )}
+                                <Text style={styles.routeNavTitle} numberOfLines={1}>
+                                    {routeTarget.name}
+                                </Text>
+                            </View>
+                            <Text style={styles.routeNavSubtitle}>
+                                {routeDistance !== null 
+                                    ? `${routeDistance}m • ~${Math.max(1, Math.round(routeDistance / 75))} min walk` 
+                                    : (routeOrigin ? `From ${routeOrigin.name}` : "From Your Location (GPS)")}
+                            </Text>
+                        </View>
+
+                        {/* Actions: Start vs Exit / AR */}
+                        {!isRouteActive ? (
+                            <TouchableOpacity
+                                style={styles.startNavBtn}
+                                onPress={handleStartRoute}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons name="navigate" size={18} color="#FFFFFF" />
+                                <Text style={styles.startNavBtnText}>Start</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <TouchableOpacity
+                                    style={styles.arQuickBtn}
+                                    onPress={() => router.push({ pathname: "/(tabs)/ar", params: { buildingId: routeTarget.id } })}
+                                    activeOpacity={0.8}
+                                >
+                                    <Ionicons name="cube-outline" size={16} color={theme.colors.primary} />
+                                    <Text style={styles.arQuickBtnText}>AR</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.exitNavBtn}
+                                    onPress={handleStopRoute}
+                                    activeOpacity={0.8}
+                                >
+                                    <Ionicons name="close" size={18} color="#FFFFFF" />
+                                    <Text style={styles.exitNavBtnText}>Exit</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            )}
+
+            {/* Map Legend (hidden while route is being planned or navigated) */}
+            {!modalVisible && viewMode === 'map' && !routeTarget && (
                 <View style={styles.mapLegend}>
                     <Text style={styles.legendTitle}>MAP LEGEND</Text>
                     <View style={styles.legendRow}>
@@ -1404,5 +1479,103 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: theme.colors.textPrimary,
         fontWeight: "500",
+    },
+    routeNavCard: {
+        position: "absolute",
+        bottom: 20,
+        left: 16,
+        right: 16,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        elevation: 6,
+        zIndex: 30,
+    },
+    routeNavHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    routeNavInfo: {
+        flex: 1,
+        marginRight: 12,
+    },
+    routeNavTitle: {
+        fontSize: 15,
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.textPrimary,
+    },
+    routeNavSubtitle: {
+        fontSize: 12,
+        fontFamily: fonts.body.regular,
+        color: theme.colors.textSecondary,
+        marginTop: 2,
+    },
+    pulseLiveDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: "#22C55E",
+    },
+    startNavBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "#16A34A",
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+        borderRadius: 22,
+        shadowColor: "#16A34A",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    startNavBtnText: {
+        color: "#FFFFFF",
+        fontSize: 14,
+        fontFamily: fonts.body.bold,
+    },
+    arQuickBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: "#FFF0F0",
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 18,
+    },
+    arQuickBtnText: {
+        color: theme.colors.primary,
+        fontSize: 12,
+        fontFamily: fonts.body.bold,
+    },
+    exitNavBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: "#DC2626",
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 18,
+        shadowColor: "#DC2626",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3,
+        elevation: 3,
+    },
+    exitNavBtnText: {
+        color: "#FFFFFF",
+        fontSize: 12,
+        fontFamily: fonts.body.bold,
     },
 });
