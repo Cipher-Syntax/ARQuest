@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     ViroARScene,
     Viro3DObject,
@@ -61,34 +61,77 @@ export default function ARQuestScene(props) {
         isArrived = false,
     } = sceneNavigator.viroAppProps || {};
 
-    const [distanceToTarget, setDistanceToTarget] = useState(null);
     const [targetAngle, setTargetAngle] = useState(0);
     const [chevronPositions, setChevronPositions] = useState([]);
-    const [isNearby, setIsNearby] = useState(false);
+    const [hudPosition, setHudPosition] = useState([0, -0.1, -2]);
 
     const smoothedAngleRef = useRef(0);
     const hasInitRef = useRef(false);
+    // Track camera's real-world position so navigation elements follow the user
+    const cameraPositionRef = useRef([0, 0, 0]);
+    const lastCamUpdateRef = useRef(0);
+    const lastAngleRef = useRef(0);
 
     // Target to aim at (immediate walking waypoint or destination)
     const effectiveLat = nextWaypoint?.latitude ?? targetLat;
     const effectiveLng = nextWaypoint?.longitude ?? targetLng;
 
+    // Derived values calculated directly in render (avoids cascading state updates)
+    const distanceToTarget = (userLat && userLng && targetLat && targetLng)
+        ? getDistance(
+            { latitude: userLat, longitude: userLng },
+            { latitude: targetLat, longitude: targetLng }
+        )
+        : null;
+    const isNearby = (distanceToTarget !== null && distanceToTarget <= 25) || isArrived;
+    const hasArrived = isArrived || isNearby;
+
+    /**
+     * Recompute chevron and HUD world positions given a bearing angle and
+     * the camera's current world-space position. Called from both the GPS
+     * useEffect and the camera transform update so arrows always follow the user.
+     */
+    const recomputeNavPositions = useCallback((angle, camPos) => {
+        const rad = (angle * Math.PI) / 180;
+        const [cx, cy, cz] = camPos;
+        const distances = [1.0, 1.8, 2.6, 3.4];
+        const chevrons = distances.map((d) => ({
+            x: cx + d * Math.sin(rad),
+            y: cy - 0.9,
+            z: cz - d * Math.cos(rad),
+            angle,
+        }));
+        setChevronPositions(chevrons);
+        setHudPosition([
+            cx + 2.0 * Math.sin(rad),
+            cy - 0.1,
+            cz - 2.0 * Math.cos(rad),
+        ]);
+    }, []);
+
+    /**
+     * Camera world-space transform update — fires every frame from ARCore/ARKit.
+     * Throttled to ~30fps. Updates arrow positions so they always float in
+     * front of wherever the user is RIGHT NOW, not where the session started.
+     */
+    const onCameraTransformUpdate = useCallback((camTransform) => {
+        const now = Date.now();
+        if (now - lastCamUpdateRef.current < 33) return; // ~30fps throttle
+        lastCamUpdateRef.current = now;
+
+        const pos = camTransform.cameraTransform.position;
+        cameraPositionRef.current = pos;
+
+        // Re-anchor navigation elements to the user's current camera position
+        if (hasInitRef.current) {
+            recomputeNavPositions(lastAngleRef.current, pos);
+        }
+    }, [recomputeNavPositions]);
+
     useEffect(() => {
         if (!userLat || !userLng) return;
 
-        // 1. Total distance to destination building
-        if (targetLat && targetLng) {
-            const dist = getDistance(
-                { latitude: userLat, longitude: userLng },
-                { latitude: targetLat, longitude: targetLng }
-            );
-            setDistanceToTarget(dist);
-            setIsNearby(dist <= 25 || isArrived);
-        } else if (isArrived) {
-            setIsNearby(true);
-        }
-
-        // 2. Relative bearing and angle to next waypoint / target with EMA smoothing
+        // Relative bearing and angle to next waypoint / target with EMA smoothing
         if (effectiveLat && effectiveLng) {
             const { angle: rawAngle } = calculateTargetRelative(
                 userLat, userLng,
@@ -115,28 +158,15 @@ export default function ARQuestScene(props) {
             }
 
             setTargetAngle(chosenAngle);
+            lastAngleRef.current = chosenAngle;
 
-            // Compute 4 ground arrow positions along the bearing path (proportional spacing)
-            const rad = (chosenAngle * Math.PI) / 180;
-            const distances = [1.0, 1.8, 2.6, 3.4];
-            const chevrons = distances.map((d) => {
-                const x = d * Math.sin(rad);
-                const z = -(d * Math.cos(rad));
-                return { x, y: -0.9, z, angle: chosenAngle };
-            });
-            setChevronPositions(chevrons);
+            // Recompute positions offset from the camera's current world position
+            recomputeNavPositions(chosenAngle, cameraPositionRef.current);
         }
-    }, [userLat, userLng, userHeading, targetLat, targetLng, effectiveLat, effectiveLng, isArrived]);
-
-    const hasArrived = isArrived || isNearby;
-
-    // Position for the sleek floating HUD marker (2.0m ahead in target direction)
-    const hudRad = (targetAngle * Math.PI) / 180;
-    const hudX = 2.0 * Math.sin(hudRad);
-    const hudZ = -(2.0 * Math.cos(hudRad));
+    }, [userLat, userLng, userHeading, targetLat, targetLng, effectiveLat, effectiveLng, isArrived, recomputeNavPositions]);
 
     return (
-        <ViroARScene>
+        <ViroARScene onCameraTransformUpdate={onCameraTransformUpdate}>
             {/* ── Scene Lighting ── */}
             <ViroAmbientLight color="#ffffff" intensity={1200} />
             <ViroDirectionalLight color="#ffffff" direction={[0, -1, -1]} castsShadow shadowOpacity={0.4} />
@@ -149,6 +179,8 @@ export default function ARQuestScene(props) {
                 1. 3D AR NAVIGATION PATH (Sleek Ground Chevrons)
                 Renders proportional, glowing 3D arrow chevrons along the ground
                 pointing in the real-world direction of the building.
+                Positions are offset from the camera's current world-space
+                position so they follow the user as they walk.
                 Hidden when arrived at the destination.
                 ============================================================
             */}
@@ -187,12 +219,14 @@ export default function ARQuestScene(props) {
                 ============================================================
                 2. SLEEK FLOATING 3D DIRECTION HUD BILLBOARD
                 Hovers cleanly in the direction of the destination.
+                Position is kept at the camera's current world offset so it
+                always floats in front of the user, not at session-start origin.
                 Hidden when arrived at the destination.
                 ============================================================
             */}
             {!hasArrived && distanceToTarget !== null && (
                 <ViroNode
-                    position={[hudX, -0.1, hudZ]}
+                    position={hudPosition}
                     rotation={[0, -targetAngle, 0]}
                     animation={{ name: 'hover', run: true, loop: true }}
                 >

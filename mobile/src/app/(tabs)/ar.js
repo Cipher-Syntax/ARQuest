@@ -78,6 +78,12 @@ export default function ARScreen() {
 
     const { targetBuildingId } = useLocalSearchParams();
 
+    const [navTargetFull, setNavTargetFull] = useState(null);
+    const [nextWaypoint, setNextWaypoint] = useState(null);
+
+    const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
+    const { unlockedBuildings } = useUnlockedBuildings();
+
     useEffect(() => {
         const fetchRoute = async () => {
             if (navTargetFull && location) {
@@ -115,12 +121,6 @@ export default function ARScreen() {
         const interval = setInterval(fetchRoute, 10000);
         return () => clearInterval(interval);
     }, [navTargetFull?.id, location?.latitude, location?.longitude, location?.coords?.latitude, location?.coords?.longitude]);
-
-    const [navTargetFull, setNavTargetFull] = useState(null);
-    const [nextWaypoint, setNextWaypoint] = useState(null);
-
-    const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
-    const { unlockedBuildings } = useUnlockedBuildings();
 
     const [isCameraActive, setIsCameraActive] = useState(false);
 
