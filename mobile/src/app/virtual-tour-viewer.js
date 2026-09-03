@@ -34,6 +34,10 @@ export default function VirtualTourViewerScreen() {
     const [webViewReady, setWebViewReady] = useState(false);
     const [localModelUrl, setLocalModelUrl] = useState(null);
     const [liveHotspots, setLiveHotspots] = useState([]);
+    const [hasPanorama, setHasPanorama] = useState(false);
+    const [checkingPanorama, setCheckingPanorama] = useState(
+        Boolean(buildingId),
+    );
     const webViewRef = useRef(null);
     const gyroSubscriptionRef = useRef(null);
     const {
@@ -112,6 +116,63 @@ export default function VirtualTourViewerScreen() {
 
         initAsset();
     }, [buildingId, modelUrl]);
+
+    // ── Check if 360° Panorama equivalent exists for this building ──
+    useEffect(() => {
+        if (!buildingId) return;
+        let isMounted = true;
+        api.get(`/api/buildings/${buildingId}/panorama/`)
+            .then((res) => {
+                if (isMounted) {
+                    if (
+                        res.data &&
+                        res.data.success &&
+                        res.data.data &&
+                        res.data.data.start_scene
+                    ) {
+                        setHasPanorama(true);
+                    } else {
+                        setHasPanorama(false);
+                    }
+                }
+            })
+            .catch(() => {
+                if (isMounted) setHasPanorama(false);
+            })
+            .finally(() => {
+                if (isMounted) setCheckingPanorama(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [buildingId]);
+
+    const handleOpenPanorama = () => {
+        if (!buildingId) {
+            Alert("PANORAMA", "Building details are unavailable.", [
+                { text: "ACKNOWLEDGE" },
+            ]);
+            return;
+        }
+
+        if (!hasPanorama && !checkingPanorama) {
+            Alert(
+                "PANORAMA UNAVAILABLE",
+                `No 360° photo panorama walkthrough has been linked to ${buildingName || "this building"} yet.`,
+                [{ text: "ACKNOWLEDGE" }],
+            );
+            return;
+        }
+
+        router.push({
+            pathname: "/panorama-viewer",
+            params: {
+                buildingId: buildingId,
+                buildingName: buildingName || "Building Panorama",
+            },
+        });
+    };
 
     // ── Send init message when WebView + model are both ready ─────
     useEffect(() => {
@@ -263,17 +324,52 @@ export default function VirtualTourViewerScreen() {
                 originWhitelist={["*"]}
             />
 
-            {/* Floating Back Button */}
-            <TouchableOpacity
-                style={styles.floatingBackButton}
-                onPress={() => router.back()}
-            >
-                <Ionicons
-                    name="close"
-                    size={24}
-                    color={theme.colors.arHighlight}
-                />
-            </TouchableOpacity>
+            {/* Top Right Action Controls */}
+            <View style={styles.topRightActions}>
+                {/* 360° Panorama Equivalent Action Button */}
+                <TouchableOpacity
+                    style={[
+                        styles.panoramaEquivBtn,
+                        !hasPanorama &&
+                            !checkingPanorama &&
+                            styles.panoramaEquivBtnDisabled,
+                    ]}
+                    onPress={handleOpenPanorama}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons
+                        name="globe-outline"
+                        size={18}
+                        color={
+                            hasPanorama
+                                ? theme.colors.arHighlight
+                                : "rgba(255,255,255,0.4)"
+                        }
+                    />
+                    <Text
+                        style={[
+                            styles.panoramaEquivText,
+                            !hasPanorama &&
+                                !checkingPanorama &&
+                                styles.panoramaEquivTextDisabled,
+                        ]}
+                    >
+                        360° PANORAMA
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Floating Back Button */}
+                <TouchableOpacity
+                    style={styles.floatingBackButton}
+                    onPress={() => router.back()}
+                >
+                    <Ionicons
+                        name="close"
+                        size={24}
+                        color={theme.colors.arHighlight}
+                    />
+                </TouchableOpacity>
+            </View>
 
             {/* HUD Overlay */}
             <View style={styles.hudTopContainer} pointerEvents="none">
@@ -328,10 +424,45 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         backgroundColor: "transparent",
     },
-    floatingBackButton: {
+    topRightActions: {
         position: "absolute",
         top: 20,
         right: 20,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        zIndex: 25,
+    },
+    panoramaEquivBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "rgba(0, 229, 255, 0.15)",
+        borderWidth: 1,
+        borderColor: theme.colors.arHighlight,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 22,
+        shadowColor: theme.colors.arHighlight,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    panoramaEquivBtnDisabled: {
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        borderColor: "rgba(255, 255, 255, 0.2)",
+    },
+    panoramaEquivText: {
+        color: theme.colors.arHighlight,
+        fontSize: 12,
+        fontWeight: "bold",
+        letterSpacing: 1,
+    },
+    panoramaEquivTextDisabled: {
+        color: "rgba(255, 255, 255, 0.4)",
+    },
+    floatingBackButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
@@ -340,7 +471,6 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
         justifyContent: "center",
         alignItems: "center",
-        zIndex: 20,
     },
     hudTopContainer: {
         position: "absolute",
