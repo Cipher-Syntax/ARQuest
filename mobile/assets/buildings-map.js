@@ -127,6 +127,7 @@ export const mapHtmlString = `<!DOCTYPE html>
         let sourceBuildingId = null;
         let activeFullRouteCoords = null;
         let activeTargetId = null;
+        let shouldRefitRoute = false;
 
         // Bridge logging helper
         function sendBridgeLog(level, message) {
@@ -509,6 +510,17 @@ export const mapHtmlString = `<!DOCTYPE html>
                                             coordinates: coordsToRender
                                         }
                                     });
+
+                                    if (shouldRefitRoute) {
+                                        shouldRefitRoute = false;
+                                        const routeBounds = new mapboxgl.LngLatBounds();
+                                        activeFullRouteCoords.forEach(c => routeBounds.extend(c));
+                                        map.fitBounds(routeBounds, {
+                                            padding: { top: 140, bottom: 140, left: 40, right: 40 },
+                                            maxZoom: 17,
+                                            duration: 600
+                                        });
+                                    }
                                 } else {
                                     activeFullRouteCoords = null;
                                     geojson.features.push({
@@ -519,6 +531,17 @@ export const mapHtmlString = `<!DOCTYPE html>
                                             coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
                                         }
                                     });
+
+                                    if (shouldRefitRoute) {
+                                        shouldRefitRoute = false;
+                                        const routeBounds = new mapboxgl.LngLatBounds([sourceLng, sourceLat], [sourceLng, sourceLat]);
+                                        routeBounds.extend([targetLng, targetLat]);
+                                        map.fitBounds(routeBounds, {
+                                            padding: { top: 140, bottom: 140, left: 40, right: 40 },
+                                            maxZoom: 17,
+                                            duration: 600
+                                        });
+                                    }
                                 }
                                 if (map.getSource('route')) {
                                     map.getSource('route').setData(geojson);
@@ -542,14 +565,18 @@ export const mapHtmlString = `<!DOCTYPE html>
                             });
                     }
 
-                    // Smoothly frame camera on route
-                    const routeBounds = new mapboxgl.LngLatBounds([sourceLng, sourceLat], [sourceLng, sourceLat]);
-                    routeBounds.extend([targetLng, targetLat]);
-                    map.fitBounds(routeBounds, {
-                        padding: { top: 120, bottom: 180, left: 50, right: 50 },
-                        maxZoom: 18,
-                        duration: 800
-                    });
+                    // If route was already cached and slicedCoords was used, fit once
+                    if (shouldRefitRoute && (slicedCoords || activeFullRouteCoords)) {
+                        shouldRefitRoute = false;
+                        const coords = slicedCoords || activeFullRouteCoords;
+                        const routeBounds = new mapboxgl.LngLatBounds();
+                        coords.forEach(c => routeBounds.extend(c));
+                        map.fitBounds(routeBounds, {
+                            padding: { top: 140, bottom: 140, left: 40, right: 40 },
+                            maxZoom: 17,
+                            duration: 600
+                        });
+                    }
                 }
             } else {
                 if (map.getSource('route')) {
@@ -594,12 +621,14 @@ export const mapHtmlString = `<!DOCTYPE html>
                     }
                     targetBuildingId = payloadData.buildingId;
                     sourceBuildingId = payloadData.sourceBuildingId || null;
+                    shouldRefitRoute = true;
                     if (window.lastMapData) processUpdateMap(window.lastMapData);
                 } else if (data.type === "clear_route") {
                     targetBuildingId = null;
                     sourceBuildingId = null;
                     activeFullRouteCoords = null;
                     activeTargetId = null;
+                    shouldRefitRoute = false;
                     if (mapInitialized && map && map.getSource('route')) {
                         map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
                     }
