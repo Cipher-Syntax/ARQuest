@@ -462,36 +462,36 @@ export default function BuildingsScreen() {
 
                     <View style={styles.terminalInputRowActive}>
                         <Text style={styles.terminalInputLabel}>TO</Text>
-                        <TextInput
-                            style={styles.terminalInputActive}
-                            placeholder="Search Destination"
-                            placeholderTextColor="#999999"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            onFocus={() => {
-                                setIsSearchFocused(true);
-                                setIsOriginFocused(false);
-                            }}
-                            onBlur={() =>
-                                setTimeout(() => setIsSearchFocused(false), 200)
-                            }
-                        />
+                        <View style={styles.toInputWrapper}>
+                            <TextInput
+                                style={styles.terminalInputActive}
+                                placeholder="Search Destination"
+                                placeholderTextColor="#999999"
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                onFocus={() => {
+                                    setIsSearchFocused(true);
+                                    setIsOriginFocused(false);
+                                }}
+                                onBlur={() =>
+                                    setTimeout(() => setIsSearchFocused(false), 200)
+                                }
+                            />
+                            {routeTarget && routeDistance !== null && (
+                                <View style={styles.distanceCornerBadge} pointerEvents="none">
+                                    <Text style={styles.distanceCornerBadgeText}>
+                                        {routeDistance}m
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                         {routeTarget && (
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                                {routeDistance !== null && (
-                                    <View style={{ backgroundColor: "#FFF0F0", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-                                        <Text style={{ fontSize: 11, fontFamily: fonts.body.bold, color: theme.colors.primary }}>
-                                            {routeDistance}m
-                                        </Text>
-                                    </View>
-                                )}
-                                <TouchableOpacity
-                                    onPress={handleClearRoute}
-                                    style={styles.clearRouteBtn}
-                                >
-                                    <X color={theme.colors.textMuted} size={18} />
-                                </TouchableOpacity>
-                            </View>
+                            <TouchableOpacity
+                                onPress={handleClearRoute}
+                                style={styles.clearRouteBtn}
+                            >
+                                <X color={theme.colors.textMuted} size={18} />
+                            </TouchableOpacity>
                         )}
                     </View>
                 </View>
@@ -1207,8 +1207,13 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
         borderRadius: theme.radius.md,
     },
-    terminalInputActive: {
+    toInputWrapper: {
         flex: 1,
+        position: "relative",
+        justifyContent: "center",
+    },
+    terminalInputActive: {
+        width: "100%",
         fontFamily: fonts.body.regular,
         fontSize: 14,
         color: theme.colors.primary,
@@ -1218,6 +1223,29 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.primary,
         borderRadius: theme.radius.md,
+    },
+    distanceCornerBadge: {
+        position: "absolute",
+        top: -9,
+        right: 12,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+        borderRadius: theme.radius.sm,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        zIndex: 10,
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.12,
+        shadowRadius: 2,
+    },
+    distanceCornerBadgeText: {
+        fontSize: 10,
+        fontFamily: fonts.body.bold,
+        color: theme.colors.primary,
+        letterSpacing: 0.5,
     },
     clearRouteBtn: {
         padding: theme.spacing.xs,
