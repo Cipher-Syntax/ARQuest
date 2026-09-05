@@ -7,11 +7,19 @@ import { theme } from "../../theme/tokens";
 export default function ViewerHeader({ title }) {
     const router = useRouter();
 
+    const handleBack = () => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace("/(tabs)/buildings");
+        }
+    };
+
     return (
         <View style={styles.header}>
             <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => router.back()}
+                onPress={handleBack}
             >
                 <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>

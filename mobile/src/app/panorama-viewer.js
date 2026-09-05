@@ -62,6 +62,19 @@ export default function PanoramaViewerScreen() {
         };
     }, [fromVirtualTour]);
 
+    const handleBack = () => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            if (fromVirtualTour !== "true") {
+                ScreenOrientation.lockAsync(
+                    ScreenOrientation.OrientationLock.PORTRAIT,
+                );
+            }
+            router.replace("/(tabs)/buildings");
+        }
+    };
+
     useEffect(() => {
         loadWalkthrough();
     }, [buildingId, targetSceneId]);
@@ -172,7 +185,7 @@ export default function PanoramaViewerScreen() {
             {/* Gamified Floating Back Button */}
             <TouchableOpacity
                 style={styles.floatingBackButton}
-                onPress={() => router.back()}
+                onPress={handleBack}
             >
                 <Ionicons
                     name="close"

@@ -227,6 +227,17 @@ export default function VirtualTourViewerScreen() {
         });
     };
 
+    const handleBack = () => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            ScreenOrientation.lockAsync(
+                ScreenOrientation.OrientationLock.PORTRAIT,
+            );
+            router.replace("/(tabs)/buildings");
+        }
+    };
+
     // ── Send init message when WebView + model are both ready ─────
     useEffect(() => {
         if (webViewReady && webViewRef.current && localModelUrl) {
@@ -447,7 +458,7 @@ export default function VirtualTourViewerScreen() {
                 {/* Floating Back Button */}
                 <TouchableOpacity
                     style={styles.floatingBackButton}
-                    onPress={() => router.back()}
+                    onPress={handleBack}
                 >
                     <Ionicons
                         name="close"
