@@ -40,16 +40,31 @@ export default function BuildingsScreen() {
     const router = useRouter();
     const { targetBuildingId } = useLocalSearchParams();
 
+    const sendMapUpdate = React.useCallback(() => {
+        if (webViewRef.current) {
+            const unlockedIds = unlockedBuildings.map((b) => b.id);
+            const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
+            const message = createBridgeMessage("update", {
+                buildings: allBuildings,
+                unlockedIds: unlockedIds,
+                mapboxToken: token,
+                userLocation: location,
+            });
+            webViewRef.current.postMessage(message);
+        }
+    }, [allBuildings, unlockedBuildings, location]);
+
     useFocusEffect(
         React.useCallback(() => {
             ScreenOrientation.lockAsync(
                 ScreenOrientation.OrientationLock.PORTRAIT,
             );
             startTracking();
+            sendMapUpdate();
             return () => {
                 stopTracking();
             };
-        }, [startTracking, stopTracking])
+        }, [startTracking, stopTracking, sendMapUpdate])
     );
 
     const [allBuildings, setAllBuildings] = useState([]);
@@ -90,17 +105,10 @@ export default function BuildingsScreen() {
     }, []);
 
     useEffect(() => {
-        if (webViewReady && webViewRef.current && allBuildings.length > 0) {
-            const unlockedIds = unlockedBuildings.map((b) => b.id);
-            const message = createBridgeMessage("update", {
-                buildings: allBuildings,
-                unlockedIds: unlockedIds, 
-                mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
-                userLocation: location,
-            });
-            webViewRef.current.postMessage(message);
+        if (webViewReady && webViewRef.current) {
+            sendMapUpdate();
         }
-    }, [webViewReady, allBuildings, unlockedBuildings, location]);
+    }, [webViewReady, sendMapUpdate]);
 
     const lastTargetBuildingIdRef = useRef(null);
 
@@ -142,6 +150,17 @@ export default function BuildingsScreen() {
         }
 
         const { type, payload } = result.data;
+
+        if (type === "map_ready") {
+            setWebViewReady(true);
+            sendMapUpdate();
+            return;
+        }
+
+        if (type === "log") {
+            console.log("[Map WebView]", payload?.level, payload?.message);
+            return;
+        }
 
         if (type === "building_click") {
             const building = allBuildings.find(
@@ -320,7 +339,10 @@ export default function BuildingsScreen() {
     };
     const { mapHtmlString } = require("../../../assets/buildings-map");
 
-    const mapHtml = mapHtmlString;
+    const mapHtml = useMemo(() => {
+        const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
+        return mapHtmlString.replace("__MAPBOX_TOKEN__", token);
+    }, []);
 
     const sortedBuildings = useMemo(() => {
         return allBuildings
@@ -365,8 +387,8 @@ export default function BuildingsScreen() {
                 style={styles.webview}
                 onMessage={handleMessage}
                 onLoadEnd={() => {
-                    console.log("[WebView] Load End Triggered");
                     setWebViewReady(true);
+                    sendMapUpdate();
                 }}
                 onError={(syntheticEvent) => {
                     const { nativeEvent } = syntheticEvent;
