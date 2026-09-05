@@ -15,6 +15,9 @@ export const LocationProvider = ({ children }) => {
     const headingSubscription = useRef(null);
     const lastHeadingRef = useRef(0);
     const lastHeadingTimeRef = useRef(0);
+    const lastErrorRef = useRef(null);
+    const isTrackingRef = useRef(false);
+    isTrackingRef.current = isTracking;
     const permissionStatusRef = useRef(permissionStatus);
     permissionStatusRef.current = permissionStatus;
 
@@ -24,7 +27,10 @@ export const LocationProvider = ({ children }) => {
             setPermissionStatus(status);
             return status;
         } catch (err) {
-            setError(err.message);
+            if (lastErrorRef.current !== err.message) {
+                lastErrorRef.current = err.message;
+                setError(err.message);
+            }
             return "denied";
         }
     }, []);
@@ -35,7 +41,10 @@ export const LocationProvider = ({ children }) => {
             setPermissionStatus(status);
             return status === "granted";
         } catch (err) {
-            setError(err.message);
+            if (lastErrorRef.current !== err.message) {
+                lastErrorRef.current = err.message;
+                setError(err.message);
+            }
             return false;
         }
     }, []);
@@ -49,7 +58,9 @@ export const LocationProvider = ({ children }) => {
             headingSubscription.current.remove();
             headingSubscription.current = null;
         }
-        setIsTracking(false);
+        if (isTrackingRef.current) {
+            setIsTracking(false);
+        }
     }, []);
 
     const startTracking = useCallback(async () => {
@@ -59,18 +70,30 @@ export const LocationProvider = ({ children }) => {
                 const { status } = await Location.requestForegroundPermissionsAsync();
                 setPermissionStatus(status);
                 if (status !== "granted") {
-                    setError("Location permission denied");
+                    const deniedMsg = "Location permission denied";
+                    if (lastErrorRef.current !== deniedMsg) {
+                        lastErrorRef.current = deniedMsg;
+                        setError(deniedMsg);
+                    }
                     return;
                 }
             } catch (err) {
-                setError(err.message);
+                if (lastErrorRef.current !== err.message) {
+                    lastErrorRef.current = err.message;
+                    setError(err.message);
+                }
                 return;
             }
         }
 
         try {
-            setIsTracking(true);
-            setError(null);
+            if (!isTrackingRef.current) {
+                setIsTracking(true);
+            }
+            if (lastErrorRef.current !== null) {
+                lastErrorRef.current = null;
+                setError(null);
+            }
 
             // Avoid re-subscribing if already active
             if (!watchSubscription.current) {
@@ -86,12 +109,23 @@ export const LocationProvider = ({ children }) => {
                         const isMocked = newLocation.mocked === true;
 
                         if (isMocked) {
-                            setError("Fake GPS detected! Please disable mock locations to play.");
+                            const msg = "Fake GPS detected! Please disable mock locations to play.";
+                            if (lastErrorRef.current !== msg) {
+                                lastErrorRef.current = msg;
+                                setError(msg);
+                            }
                             return;
                         } else if (isWeak) {
-                            setError("Weak GPS Signal. Please step outside or use QR code fallback.");
+                            const msg = "Weak GPS Signal. Please step outside or use QR code fallback.";
+                            if (lastErrorRef.current !== msg) {
+                                lastErrorRef.current = msg;
+                                setError(msg);
+                            }
                         } else {
-                            setError(null);
+                            if (lastErrorRef.current !== null) {
+                                lastErrorRef.current = null;
+                                setError(null);
+                            }
                         }
 
                         setLocation({

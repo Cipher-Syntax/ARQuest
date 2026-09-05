@@ -54,17 +54,22 @@ export default function BuildingsScreen() {
         }
     }, [allBuildings, unlockedBuildings, location]);
 
+    const sendMapUpdateRef = useRef(sendMapUpdate);
+    sendMapUpdateRef.current = sendMapUpdate;
+
     useFocusEffect(
         React.useCallback(() => {
             ScreenOrientation.lockAsync(
                 ScreenOrientation.OrientationLock.PORTRAIT,
             );
             startTracking();
-            sendMapUpdate();
+            if (sendMapUpdateRef.current) {
+                sendMapUpdateRef.current();
+            }
             return () => {
                 stopTracking();
             };
-        }, [startTracking, stopTracking, sendMapUpdate])
+        }, [startTracking, stopTracking])
     );
 
     const [allBuildings, setAllBuildings] = useState([]);
