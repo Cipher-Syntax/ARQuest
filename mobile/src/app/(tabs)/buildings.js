@@ -26,6 +26,7 @@ import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { api } from "../../services";
 import { geofencingService } from "../../services";
 import * as ScreenOrientation from "expo-screen-orientation";
+import { ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
 
