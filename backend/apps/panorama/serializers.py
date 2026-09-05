@@ -17,7 +17,10 @@ class PanoramaSceneSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = PanoramaScene
-        fields = ['id', 'title', 'image_url', 'is_start_scene', 'sort_order', 'hotspots']
+        fields = [
+            'id', 'title', 'image_url', 'is_start_scene', 'sort_order', 'hotspots',
+            'anchor_x', 'anchor_y', 'anchor_z', 'anchor_radius',
+        ]
     
     def get_image_url(self, obj):
         if obj.image:
@@ -36,7 +39,10 @@ class PanoramaWalkthroughSerializer(serializers.Serializer):
 class PanoramaSceneWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = PanoramaScene
-        fields = ['title', 'image', 'is_start_scene', 'sort_order', 'is_active']
+        fields = [
+            'title', 'image', 'is_start_scene', 'sort_order', 'is_active',
+            'anchor_x', 'anchor_y', 'anchor_z', 'anchor_radius',
+        ]
 
 
 class PanoramaHotspotWriteSerializer(serializers.ModelSerializer):

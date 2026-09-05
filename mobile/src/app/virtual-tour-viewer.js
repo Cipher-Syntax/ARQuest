@@ -5,9 +5,11 @@ import {
     StyleSheet,
     ActivityIndicator,
     TouchableOpacity,
+    Modal,
+    ScrollView,
 } from "react-native";
 import { customAlert as Alert } from "../components/ui/CustomAlert";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
@@ -38,7 +40,12 @@ export default function VirtualTourViewerScreen() {
     const [checkingPanorama, setCheckingPanorama] = useState(
         Boolean(buildingId),
     );
+    // Unit 30: Panorama Walkthrough Data & Spatial Linking States
+    const [panoramaData, setPanoramaData] = useState(null);
+    const [nearbyScene, setNearbyScene] = useState(null);
+    const [showRoomModal, setShowRoomModal] = useState(false);
     const webViewRef = useRef(null);
+
     const gyroSubscriptionRef = useRef(null);
     const {
         loadAsset,
@@ -46,11 +53,16 @@ export default function VirtualTourViewerScreen() {
         progress: assetProgress,
     } = useAssetCache();
 
-    // ── Screen orientation: lock to landscape for VR feel ─────────
+    // ── Screen orientation: lock to landscape for VR / 3D exploration ──
+    useFocusEffect(
+        useCallback(() => {
+            ScreenOrientation.lockAsync(
+                ScreenOrientation.OrientationLock.LANDSCAPE,
+            );
+        }, []),
+    );
+
     useEffect(() => {
-        ScreenOrientation.lockAsync(
-            ScreenOrientation.OrientationLock.LANDSCAPE,
-        );
         return () => {
             ScreenOrientation.lockAsync(
                 ScreenOrientation.OrientationLock.PORTRAIT,
@@ -130,14 +142,19 @@ export default function VirtualTourViewerScreen() {
                         res.data.data &&
                         res.data.data.start_scene
                     ) {
+                        setPanoramaData(res.data.data);
                         setHasPanorama(true);
                     } else {
+                        setPanoramaData(null);
                         setHasPanorama(false);
                     }
                 }
             })
             .catch(() => {
-                if (isMounted) setHasPanorama(false);
+                if (isMounted) {
+                    setPanoramaData(null);
+                    setHasPanorama(false);
+                }
             })
             .finally(() => {
                 if (isMounted) setCheckingPanorama(false);
@@ -165,11 +182,47 @@ export default function VirtualTourViewerScreen() {
             return;
         }
 
+        // If user is near a specific mapped room anchor, open that room directly
+        if (nearbyScene) {
+            router.push({
+                pathname: "/panorama-viewer",
+                params: {
+                    buildingId: buildingId,
+                    buildingName: buildingName || "Building Panorama",
+                    targetSceneId: nearbyScene.id,
+                    fromVirtualTour: "true",
+                },
+            });
+            return;
+        }
+
+        // If multiple rooms exist and user is in an unmapped zone, show Room Selector modal
+        if (panoramaData?.scenes && panoramaData.scenes.length > 1) {
+            setShowRoomModal(true);
+            return;
+        }
+
+        // Fallback: open default start scene
         router.push({
             pathname: "/panorama-viewer",
             params: {
                 buildingId: buildingId,
                 buildingName: buildingName || "Building Panorama",
+                targetSceneId: panoramaData?.start_scene?.id,
+                fromVirtualTour: "true",
+            },
+        });
+    };
+
+    const handleSelectRoom = (scene) => {
+        setShowRoomModal(false);
+        router.push({
+            pathname: "/panorama-viewer",
+            params: {
+                buildingId: buildingId,
+                buildingName: buildingName || "Building Panorama",
+                targetSceneId: scene.id,
+                fromVirtualTour: "true",
             },
         });
     };
@@ -183,6 +236,7 @@ export default function VirtualTourViewerScreen() {
                     type: "init",
                     modelUrl: localModelUrl,
                     hotspots: liveHotspots,
+                    panoramaScenes: panoramaData?.scenes || [],
                     controlMode: controlMode || "joystick",
                 }),
             );
@@ -195,7 +249,8 @@ export default function VirtualTourViewerScreen() {
                 );
             }
         };
-    }, [localModelUrl, webViewReady, liveHotspots]);
+    }, [localModelUrl, webViewReady, liveHotspots, panoramaData]);
+
 
     // ── Native Gyroscope Bridge ────────────────────────────────────
     // React Native WebView (Android) does NOT forward deviceorientation
@@ -296,11 +351,44 @@ export default function VirtualTourViewerScreen() {
             } else if (data.type === "error") {
                 setLoading(false);
                 setError(data.message || "Failed to load model");
+            } else if (data.type === "portal_clicked") {
+                // Direct jump into the room's 360 photo when user taps a 3D portal badge
+                router.push({
+                    pathname: "/panorama-viewer",
+                    params: {
+                        buildingId: buildingId,
+                        buildingName: buildingName || "Building Panorama",
+                        targetSceneId: data.sceneId,
+                        fromVirtualTour: "true",
+                    },
+                });
+            } else if (data.type === "camera_position") {
+                // Calculate proximity to mapped panorama scenes (Unit 30)
+                const scenes = panoramaData?.scenes || [];
+                let closest = null;
+                let minDistance = Infinity;
+                for (const scene of scenes) {
+                    if (scene.anchor_x != null && scene.anchor_z != null) {
+                        const dx = data.x - scene.anchor_x;
+                        const dy =
+                            (data.y || 1.6) -
+                            (scene.anchor_y != null ? scene.anchor_y : 1.6);
+                        const dz = data.z - scene.anchor_z;
+                        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        const radius = scene.anchor_radius || 5.0;
+                        if (dist <= radius && dist < minDistance) {
+                            minDistance = dist;
+                            closest = scene;
+                        }
+                    }
+                }
+                setNearbyScene(closest);
             }
         } catch (e) {
             console.error("WebView message error:", e);
         }
     };
+
 
     const viewerHtml = require("../../assets/virtual-tour-viewer.html");
 
@@ -326,10 +414,11 @@ export default function VirtualTourViewerScreen() {
 
             {/* Top Right Action Controls */}
             <View style={styles.topRightActions}>
-                {/* 360° Panorama Equivalent Action Button */}
+                {/* 360° Panorama Action Button (Text-only, no icon, cyan theme) */}
                 <TouchableOpacity
                     style={[
                         styles.panoramaEquivBtn,
+                        nearbyScene && styles.panoramaEquivBtnActive,
                         !hasPanorama &&
                             !checkingPanorama &&
                             styles.panoramaEquivBtnDisabled,
@@ -337,26 +426,23 @@ export default function VirtualTourViewerScreen() {
                     onPress={handleOpenPanorama}
                     activeOpacity={0.8}
                 >
-                    <Ionicons
-                        name="globe-outline"
-                        size={18}
-                        color={
-                            hasPanorama
-                                ? theme.colors.arHighlight
-                                : "rgba(255,255,255,0.4)"
-                        }
-                    />
                     <Text
                         style={[
                             styles.panoramaEquivText,
+                            nearbyScene && styles.panoramaEquivTextActive,
                             !hasPanorama &&
                                 !checkingPanorama &&
                                 styles.panoramaEquivTextDisabled,
                         ]}
+                        numberOfLines={1}
                     >
-                        360° PANORAMA
+                        {nearbyScene
+                            ? `VIEW ${nearbyScene.title.toUpperCase()} 360°`
+                            : "360° PANORAMA"}
                     </Text>
                 </TouchableOpacity>
+
+
 
                 {/* Floating Back Button */}
                 <TouchableOpacity
@@ -411,9 +497,95 @@ export default function VirtualTourViewerScreen() {
                     </View>
                 </View>
             )}
+
+            {/* Unit 30: Unmapped Area Room Selector Modal */}
+            <Modal
+
+                visible={showRoomModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowRoomModal(false)}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalCard}>
+                        <View style={styles.modalHeader}>
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 8,
+                                }}
+                            >
+                                <Ionicons
+                                    name="globe-outline"
+                                    size={20}
+                                    color={theme.colors.arHighlight}
+                                />
+                                <Text style={styles.modalTitle}>
+                                    SELECT 360° ROOM
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setShowRoomModal(false)}
+                                style={styles.modalCloseBtn}
+                            >
+                                <Ionicons name="close" size={20} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.modalSubtitle}>
+                            Select any room or area in{" "}
+                            {buildingName || "this building"} to view its 360°
+                            photo walkthrough:
+                        </Text>
+                        <ScrollView
+                            style={styles.roomList}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            {(panoramaData?.scenes || []).map((scene) => (
+                                <TouchableOpacity
+                                    key={scene.id}
+                                    style={styles.roomItem}
+                                    onPress={() => handleSelectRoom(scene)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.roomItemLeft}>
+                                        <Ionicons
+                                            name={
+                                                scene.is_start_scene
+                                                    ? "star"
+                                                    : "business-outline"
+                                            }
+                                            size={18}
+                                            color={theme.colors.arHighlight}
+                                        />
+                                        <View>
+                                            <Text style={styles.roomItemTitle}>
+                                                {scene.title}
+                                            </Text>
+                                            {scene.is_start_scene && (
+                                                <Text
+                                                    style={styles.roomItemBadge}
+                                                >
+                                                    MAIN ENTRANCE / START
+                                                </Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                    <Ionicons
+                                        name="chevron-forward"
+                                        size={18}
+                                        color="rgba(255,255,255,0.5)"
+                                    />
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
@@ -434,13 +606,12 @@ const styles = StyleSheet.create({
         zIndex: 25,
     },
     panoramaEquivBtn: {
-        flexDirection: "row",
         alignItems: "center",
-        gap: 6,
+        justifyContent: "center",
         backgroundColor: "rgba(0, 229, 255, 0.15)",
         borderWidth: 1,
         borderColor: theme.colors.arHighlight,
-        paddingHorizontal: 14,
+        paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 22,
         shadowColor: theme.colors.arHighlight,
@@ -448,6 +619,12 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 4,
+    },
+    panoramaEquivBtnActive: {
+        backgroundColor: "rgba(0, 229, 255, 0.35)",
+        borderColor: theme.colors.arHighlight,
+        shadowColor: theme.colors.arHighlight,
+        shadowOpacity: 0.7,
     },
     panoramaEquivBtnDisabled: {
         backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -459,9 +636,14 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         letterSpacing: 1,
     },
+    panoramaEquivTextActive: {
+        color: "#FFFFFF",
+    },
+
     panoramaEquivTextDisabled: {
         color: "rgba(255, 255, 255, 0.4)",
     },
+
     floatingBackButton: {
         width: 44,
         height: 44,
@@ -491,7 +673,7 @@ const styles = StyleSheet.create({
     },
     hudSubtitle: {
         fontSize: 10,
-        color: theme.colors.success,
+        color: theme.colors.arHighlight,
         fontWeight: "bold",
         letterSpacing: 2,
         marginTop: 4,
@@ -499,6 +681,7 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: -1, height: 1 },
         textShadowRadius: 10,
     },
+
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: "center",
@@ -538,4 +721,84 @@ const styles = StyleSheet.create({
         textAlign: "center",
         fontWeight: "bold",
     },
+    // Unit 30: Room Selector Modal Styles
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.75)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalCard: {
+        backgroundColor: "#072A30",
+        borderWidth: 1.5,
+        borderColor: "#00E5FF",
+        borderRadius: 16,
+        padding: 20,
+        width: "80%",
+        maxWidth: 520,
+        maxHeight: "85%",
+        shadowColor: "#00E5FF",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    modalTitle: {
+        fontSize: 16,
+        fontWeight: "900",
+        color: "#00E5FF",
+        letterSpacing: 2,
+    },
+    modalCloseBtn: {
+        padding: 4,
+        borderRadius: 12,
+        backgroundColor: "rgba(255,255,255,0.1)",
+    },
+    modalSubtitle: {
+        fontSize: 12,
+        color: "#C9D6DA",
+        marginBottom: 16,
+        lineHeight: 18,
+    },
+    roomList: {
+        maxHeight: 220,
+    },
+    roomItem: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        backgroundColor: "#123B44",
+        borderWidth: 1,
+        borderColor: "#2C5A63",
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderRadius: 10,
+        marginBottom: 8,
+    },
+    roomItemLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        flex: 1,
+    },
+    roomItemTitle: {
+        fontSize: 14,
+        fontWeight: "bold",
+        color: "#FFFFFF",
+    },
+    roomItemBadge: {
+        fontSize: 9,
+        fontWeight: "bold",
+        color: "#00E5FF",
+        marginTop: 2,
+        letterSpacing: 1,
+    },
 });
+

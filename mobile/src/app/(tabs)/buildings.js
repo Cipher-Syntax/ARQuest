@@ -25,7 +25,7 @@ import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { api } from "../../services";
 import { geofencingService } from "../../services";
-import { ShieldAlert, X } from "lucide-react-native";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
 
@@ -41,6 +41,9 @@ export default function BuildingsScreen() {
 
     useFocusEffect(
         React.useCallback(() => {
+            ScreenOrientation.lockAsync(
+                ScreenOrientation.OrientationLock.PORTRAIT,
+            );
             startTracking();
             return () => {
                 stopTracking();

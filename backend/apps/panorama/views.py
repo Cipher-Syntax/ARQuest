@@ -99,15 +99,24 @@ def building_scenes_admin(request, building_id):
             return success_response(serializer.data, status_code=status.HTTP_201_CREATED)
         return error_response(ErrorCodes.VALIDATION_ERROR, serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['DELETE'])
+@api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAdminRole])
 def scene_detail_admin(request, id):
     try:
         scene = PanoramaScene.objects.get(id=id)
-        scene.delete()
-        return success_response({'message': 'Scene deleted successfully'})
     except PanoramaScene.DoesNotExist:
         return error_response(ErrorCodes.NOT_FOUND, 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'PATCH':
+        serializer = PanoramaSceneWriteSerializer(scene, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(PanoramaSceneSerializer(scene, context={'request': request}).data)
+        return error_response(ErrorCodes.VALIDATION_ERROR, serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        scene.delete()
+        return success_response({'message': 'Scene deleted successfully'})
 
 
 @api_view(['GET', 'POST'])

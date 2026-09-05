@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
     View,
     Text,
@@ -6,7 +6,7 @@ import {
     ActivityIndicator,
     TouchableOpacity,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { WebView } from "react-native-webview";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,7 +18,8 @@ import { useAssetCache } from "../hooks/useAssetCache";
 import { assetService } from "../services";
 
 export default function PanoramaViewerScreen() {
-    const { buildingId, buildingName } = useLocalSearchParams();
+    const { buildingId, buildingName, targetSceneId, fromVirtualTour } =
+        useLocalSearchParams();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -32,26 +33,38 @@ export default function PanoramaViewerScreen() {
         progress: assetProgress,
     } = useAssetCache();
 
-    useEffect(() => {
-        // Unlock screen orientation for Virtual Tour
-        const lockLandscape = async () => {
-            await ScreenOrientation.lockAsync(
+    // ── Screen orientation: lock to landscape for 360 viewer ──
+    useFocusEffect(
+        useCallback(() => {
+            ScreenOrientation.lockAsync(
                 ScreenOrientation.OrientationLock.LANDSCAPE,
             );
-        };
-        lockLandscape();
 
+            return () => {
+                // If exiting to a non-Virtual-Tour screen (e.g. buildings tab), restore portrait
+                if (fromVirtualTour !== "true") {
+                    ScreenOrientation.lockAsync(
+                        ScreenOrientation.OrientationLock.PORTRAIT,
+                    );
+                }
+            };
+        }, [fromVirtualTour]),
+    );
+
+    useEffect(() => {
         return () => {
-            // Lock back to portrait on exit
-            ScreenOrientation.lockAsync(
-                ScreenOrientation.OrientationLock.PORTRAIT,
-            );
+            // Restore portrait on unmount only if not returning to Virtual Tour
+            if (fromVirtualTour !== "true") {
+                ScreenOrientation.lockAsync(
+                    ScreenOrientation.OrientationLock.PORTRAIT,
+                );
+            }
         };
-    }, []);
+    }, [fromVirtualTour]);
 
     useEffect(() => {
         loadWalkthrough();
-    }, [buildingId]);
+    }, [buildingId, targetSceneId]);
 
     useEffect(() => {
         if (currentScene && webViewRef.current && walkthrough) {
@@ -76,9 +89,21 @@ export default function PanoramaViewerScreen() {
                 const data = response.data.data;
                 console.log("Walkthrough loaded:", data);
                 setWalkthrough(data);
-                setCurrentScene(data.start_scene);
+
+                // Unit 30: Start at targetSceneId if passed from 3D Virtual Tour portal or proximity HUD
+                let initialScene = data.start_scene;
+                if (targetSceneId && data.scenes && data.scenes.length > 0) {
+                    const foundTarget = data.scenes.find(
+                        (s) => s.id === targetSceneId
+                    );
+                    if (foundTarget) {
+                        initialScene = foundTarget;
+                    }
+                }
+                setCurrentScene(initialScene);
                 setError(null);
             } else {
+
                 setError(response.data.message || "Failed to load panorama");
             }
         } catch (err) {

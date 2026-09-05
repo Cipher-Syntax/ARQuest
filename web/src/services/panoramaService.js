@@ -28,6 +28,14 @@ export const panoramaService = {
         return response.data;
     },
 
+    updateScene: async (sceneId, data) => {
+        const response = await api.patch(
+            `/api/panorama/scenes/${sceneId}/admin/`,
+            data,
+        );
+        return response.data.data;
+    },
+
     getSceneHotspots: async (sceneId) => {
         const response = await api.get(
             `/api/panorama/scenes/${sceneId}/hotspots/`,

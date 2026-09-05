@@ -12,8 +12,14 @@ class PanoramaScene(models.Model):
     sort_order = models.PositiveIntegerField(default=0)
     is_start_scene = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    # Unit 30: 3D Spatial Anchor Coordinates for Virtual Tour ↔ Panorama linking
+    anchor_x = models.FloatField(null=True, blank=True, help_text='3D Model local X coordinate')
+    anchor_y = models.FloatField(null=True, blank=True, default=1.6, help_text='3D Model eye-level Y coordinate')
+    anchor_z = models.FloatField(null=True, blank=True, help_text='3D Model local Z coordinate')
+    anchor_radius = models.FloatField(default=5.0, help_text='Proximity catchment radius in meters')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     
     class Meta:
         ordering = ['sort_order', 'created_at']
