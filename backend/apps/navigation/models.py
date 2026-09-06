@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 import math
 from django.db import models
 
@@ -8,7 +8,7 @@ class NavigationNode(models.Model):
 
     NODE_TYPE_CHOICES = [
         ('entrance', 'Building Entrance'),
-        ('junction', 'Walkway Junction'),
+        ('junction', 'Walkway'),
         ('gate', 'Campus Gate'),
         ('poi', 'Point of Interest'),
     ]

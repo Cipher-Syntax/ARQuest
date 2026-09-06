@@ -39,12 +39,12 @@ const NODE_TYPES = {
         description: "Front doors, lobby entries, or physical building access points",
     },
     junction: {
-        label: "Walkway Junction",
-        short: "Junction",
+        label: "Walkway",
+        short: "Walkway",
         color: "#0ea5e9", // Sky Blue
         border: "#ffffff",
         icon: GitBranch,
-        description: "Sidewalk intersections and corners where pathways branch out",
+        description: "Pedestrian pathways, sidewalks, corridors, and walking paths",
     },
     gate: {
         label: "Campus Gate",
@@ -574,17 +574,23 @@ export default function NavigationPage() {
 
                     {/* Type Filter Chips (uses radius-sm: 6px) */}
                     <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar text-[11px]">
-                        {["all", "entrance", "junction", "gate", "poi"].map((t) => (
+                        {[
+                            { key: "all", label: "all" },
+                            { key: "entrance", label: "entrance" },
+                            { key: "junction", label: "walkway" },
+                            { key: "gate", label: "gate" },
+                            { key: "poi", label: "poi" },
+                        ].map(({ key, label }) => (
                             <button
-                                key={t}
-                                onClick={() => setTypeFilter(t)}
+                                key={key}
+                                onClick={() => setTypeFilter(key)}
                                 className={`px-2 py-0.5 rounded-[6px] font-semibold uppercase tracking-wider text-[10px] transition-colors whitespace-nowrap ${
-                                    typeFilter === t
+                                    typeFilter === key
                                         ? "bg-slate-800 text-white"
                                         : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-200/50"
                                 }`}
                             >
-                                {t}
+                                {label}
                             </button>
                         ))}
                     </div>
