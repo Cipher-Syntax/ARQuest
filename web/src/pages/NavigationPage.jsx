@@ -218,12 +218,12 @@ export default function NavigationPage() {
         view: "Select a node or path to inspect. Switch to a mode above to add data.",
         add_node: "Click anywhere on the satellite map to drop a navigation node.",
         draw_path: drawingFrom
-            ? `Started from "${drawingFrom.label}". Click walkway points, then click another node to finish.`
-            : "Click a node to start drawing a path from it.",
+            ? `Path from "${drawingFrom.label}" (${Math.max(0, drawPreview.length - 1)} points). Click destination node to save.`
+            : "Click a start node on the map to begin drawing a walkway path.",
     };
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-gray-100">
+        <div className="flex h-[calc(100vh-8.5rem)] min-h-[520px] rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-white">
             {/* Left panel */}
             <aside className="w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
                 <div className="px-4 py-4 border-b border-gray-200">
@@ -247,6 +247,27 @@ export default function NavigationPage() {
                         <Navigation size={14} />
                         {mode === "draw_path" ? "Cancel Draw Path" : "Draw Path"}
                     </button>
+
+                    {mode === "draw_path" && (
+                        <div className="mt-1 p-2.5 bg-sky-50 border border-sky-200 rounded-lg text-xs text-sky-900 flex items-start gap-2">
+                            <Navigation size={14} className="text-sky-600 shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
+                                <strong className="block text-sky-800 font-semibold mb-0.5">Draw Path Active</strong>
+                                {drawingFrom
+                                    ? `Origin: "${drawingFrom.label}". Click walkway bends, then click destination node.`
+                                    : "Click any node on the map to begin."}
+                            </div>
+                        </div>
+                    )}
+                    {mode === "add_node" && (
+                        <div className="mt-1 p-2.5 bg-red-50 border border-brand/20 rounded-lg text-xs text-brand flex items-start gap-2">
+                            <MapPin size={14} className="text-brand shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
+                                <strong className="block font-semibold mb-0.5">Add Node Active</strong>
+                                Click anywhere on the satellite map to drop a waypoint.
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {/* Nodes */}
@@ -329,19 +350,36 @@ export default function NavigationPage() {
             </aside>
 
             {/* Right map panel */}
-            <div className="flex-1 relative">
-                <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-10 px-4 py-2 rounded-full text-xs font-medium shadow-md text-white pointer-events-none ${mode === "add_node" ? "bg-brand" : mode === "draw_path" ? "bg-sky-600" : "bg-gray-700/80"}`}>
-                    {instrText[mode]}
+            <div className="flex-1 relative overflow-hidden">
+                {/* Floating instruction banner */}
+                <div className={`absolute top-5 left-1/2 -translate-x-1/2 z-40 px-5 py-2.5 rounded-full text-xs font-semibold shadow-xl text-white pointer-events-none transition-all flex items-center gap-2 border ${
+                    mode === "add_node"
+                        ? "bg-brand border-white/30 ring-2 ring-brand/20"
+                        : mode === "draw_path"
+                        ? "bg-sky-600 border-white/30 ring-2 ring-sky-500/20"
+                        : "bg-gray-800/90 border-gray-700/50 backdrop-blur-md"
+                }`}>
+                    {mode === "draw_path" && <Navigation size={13} className="text-sky-200 animate-pulse" />}
+                    {mode === "add_node" && <MapPin size={13} className="text-red-200" />}
+                    {mode === "view" && <Route size={13} className="text-gray-300" />}
+                    <span>{instrText[mode]}</span>
                 </div>
+
+                {/* Success toast (Brand primary color, no green) */}
                 {successMsg && (
-                    <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-full text-xs font-semibold shadow bg-green-600 text-white flex items-center gap-1.5">
-                        <Check size={12} /> {successMsg}
+                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl bg-brand text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                        <Check size={14} className="text-white" />
+                        <span>{successMsg}</span>
                     </div>
                 )}
+
+                {/* Error toast */}
                 {error && (
-                    <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-lg text-xs font-semibold shadow bg-red-600 text-white flex items-center gap-2">
-                        {error}
-                        <button onClick={() => setError(null)}><X size={12} /></button>
+                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-xl text-xs font-bold shadow-2xl bg-red-600 text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                        <span>{error}</span>
+                        <button onClick={() => setError(null)} className="ml-1 text-white/80 hover:text-white">
+                            <X size={13} />
+                        </button>
                     </div>
                 )}
                 <Map
