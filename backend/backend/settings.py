@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'apps.panorama',
     'apps.gamification',
     'apps.quizzes',
+    'apps.navigation',
 ]
 
 REST_FRAMEWORK = {

@@ -23,8 +23,7 @@ import theme from "../../theme/tokens";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
-import { api } from "../../services";
-import { geofencingService } from "../../services";
+import { api, authService, geofencingService } from "../../services";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
@@ -40,19 +39,36 @@ export default function BuildingsScreen() {
     const router = useRouter();
     const { targetBuildingId } = useLocalSearchParams();
 
+    const [authToken, setAuthToken] = useState("");
+
+    useEffect(() => {
+        let isMounted = true;
+        authService.getAccessToken().then((token) => {
+            if (isMounted && token) {
+                setAuthToken(token);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     const sendMapUpdate = React.useCallback(() => {
         if (webViewRef.current) {
             const unlockedIds = unlockedBuildings.map((b) => b.id);
             const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
+            const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
             const message = createBridgeMessage("update", {
                 buildings: allBuildings,
                 unlockedIds: unlockedIds,
                 mapboxToken: token,
+                apiBase: apiBase,
+                authToken: authToken,
                 userLocation: location,
             });
             webViewRef.current.postMessage(message);
         }
-    }, [allBuildings, unlockedBuildings, location]);
+    }, [allBuildings, unlockedBuildings, location, authToken]);
 
     const sendMapUpdateRef = useRef(sendMapUpdate);
     sendMapUpdateRef.current = sendMapUpdate;
@@ -139,13 +155,16 @@ export default function BuildingsScreen() {
     // Send draw_route only when navigation is actively started
     useEffect(() => {
         if (isRouteActive && routeTarget && webViewReady && webViewRef.current) {
+            const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
             const message = createBridgeMessage("draw_route", {
                 buildingId: routeTarget.id,
                 sourceBuildingId: routeOrigin ? routeOrigin.id : null,
+                apiBase: apiBase,
+                authToken: authToken,
             });
             webViewRef.current.postMessage(message);
         }
-    }, [isRouteActive, routeTarget, routeOrigin, webViewReady, location]);
+    }, [isRouteActive, routeTarget, routeOrigin, webViewReady, location, authToken]);
 
     const handleMessage = (event) => {
         const result = parseBridgeMessage(event.nativeEvent.data);
@@ -327,9 +346,12 @@ export default function BuildingsScreen() {
         if (!routeTarget) return;
         setIsRouteActive(true);
         if (webViewRef.current) {
+            const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
             const message = createBridgeMessage("draw_route", {
                 buildingId: routeTarget.id,
                 sourceBuildingId: routeOrigin ? routeOrigin.id : null,
+                apiBase: apiBase,
+                authToken: authToken,
             });
             webViewRef.current.postMessage(message);
         }
@@ -346,8 +368,12 @@ export default function BuildingsScreen() {
 
     const mapHtml = useMemo(() => {
         const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
-        return mapHtmlString.replace("__MAPBOX_TOKEN__", token);
-    }, []);
+        const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
+        return mapHtmlString
+            .replace("__MAPBOX_TOKEN__", token)
+            .replace("__ARQUEST_API_BASE__", apiBase)
+            .replace("__ARQUEST_AUTH_TOKEN__", authToken || "");
+    }, [authToken]);
 
     const sortedBuildings = useMemo(() => {
         return allBuildings

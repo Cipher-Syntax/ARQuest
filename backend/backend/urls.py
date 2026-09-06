@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/panorama/', include('apps.panorama.urls')),
     path('api/assets/', include('apps.buildings.asset_urls')),
     path('api/gamification/', include('apps.gamification.urls')),
+    path('api/navigation/', include('apps.navigation.urls')),
 ]
 
 if settings.DEBUG:
