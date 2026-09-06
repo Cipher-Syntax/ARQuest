@@ -1,6 +1,25 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
-    MapPin, Navigation, Trash2, X, Check, Route, Circle, ChevronDown, ChevronUp,
+    MapPin,
+    Navigation,
+    Trash2,
+    X,
+    Check,
+    Route,
+    Circle,
+    ChevronDown,
+    ChevronUp,
+    DoorOpen,
+    GitBranch,
+    Compass,
+    Footprints,
+    Plus,
+    Search,
+    Eye,
+    Layers,
+    Activity,
+    Info,
+    CornerDownRight,
 } from "lucide-react";
 import Map, { Marker, Source, Layer, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -9,36 +28,144 @@ import { navigationService } from "../services/navigationService";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
-const NODE_TYPE_LABELS = {
-    entrance: "Building Entrance",
-    junction: "Walkway Junction",
-    gate: "Campus Gate",
-    poi: "Point of Interest",
-};
-const NODE_TYPE_COLORS = {
-    entrance: "#B21830",
-    junction: "#0ea5e9",
-    gate: "#f59e0b",
-    poi: "#8b5cf6",
+
+const NODE_TYPES = {
+    entrance: {
+        label: "Building Entrance",
+        short: "Entrance",
+        color: "#B21830", // Brand Crimson
+        border: "#ffffff",
+        icon: DoorOpen,
+        description: "Front doors, lobby entries, or physical building access points",
+    },
+    junction: {
+        label: "Walkway Junction",
+        short: "Junction",
+        color: "#0ea5e9", // Sky Blue
+        border: "#ffffff",
+        icon: GitBranch,
+        description: "Sidewalk intersections and corners where pathways branch out",
+    },
+    gate: {
+        label: "Campus Gate",
+        short: "Gate",
+        color: "#f59e0b", // Amber
+        border: "#ffffff",
+        icon: Compass,
+        description: "Perimeter checkpoints and campus road entrances",
+    },
+    poi: {
+        label: "Point of Interest",
+        short: "POI",
+        color: "#8b5cf6", // Violet
+        border: "#ffffff",
+        icon: Footprints,
+        description: "Open-air spots, monuments, bleachers, gazebos, or fields",
+    },
 };
 
-function NodeDot({ node, selected, isDrawingOrigin }) {
-    const color = NODE_TYPE_COLORS[node.node_type] || "#0ea5e9";
-    const highlighted = selected || isDrawingOrigin;
+// Spatial beacon marker component
+function NodeMarkerItem({ node, selected, isDrawingOrigin, onClick }) {
+    const config = NODE_TYPES[node.node_type] || NODE_TYPES.junction;
+    const isHighlighted = selected || isDrawingOrigin;
+
     return (
         <div
-            title={node.label}
-            style={{
-                width: 18, height: 18, borderRadius: "50%",
-                backgroundColor: color,
-                border: `3px solid ${highlighted ? "#fff" : "rgba(255,255,255,0.7)"}`,
-                boxShadow: highlighted
-                    ? `0 0 0 3px ${color}, 0 2px 8px rgba(0,0,0,0.4)`
-                    : "0 2px 6px rgba(0,0,0,0.3)",
-                cursor: "pointer",
-                transition: "box-shadow 0.2s",
-            }}
-        />
+            onClick={onClick}
+            title={`${node.label} (${config.label})`}
+            className="group relative cursor-pointer flex items-center justify-center -translate-x-1/2 -translate-y-1/2"
+            style={{ width: 34, height: 34 }}
+        >
+            {/* Outer halo when active or drawing */}
+            {isHighlighted && (
+                <span
+                    className="absolute inset-0 rounded-full animate-ping opacity-60"
+                    style={{ backgroundColor: config.color }}
+                />
+            )}
+
+            {/* Subtle glow ring */}
+            <div
+                className="absolute inset-1 rounded-full transition-transform duration-200 group-hover:scale-125"
+                style={{
+                    backgroundColor: isHighlighted ? `${config.color}33` : "rgba(0,0,0,0.25)",
+                    boxShadow: isHighlighted ? `0 0 12px ${config.color}` : "0 2px 5px rgba(0,0,0,0.35)",
+                }}
+            />
+
+            {/* Core beacon pin */}
+            <div
+                className="relative flex items-center justify-center rounded-full transition-all duration-200 group-hover:scale-110"
+                style={{
+                    width: isHighlighted ? 22 : 18,
+                    height: isHighlighted ? 22 : 18,
+                    backgroundColor: config.color,
+                    border: `2.5px solid ${isHighlighted ? "#ffffff" : "rgba(255, 255, 255, 0.9)"}`,
+                    boxShadow: isHighlighted
+                        ? `0 0 0 3px ${config.color}, 0 4px 10px rgba(0,0,0,0.5)`
+                        : "0 2px 6px rgba(0,0,0,0.4)",
+                }}
+            >
+                <div
+                    className="rounded-full bg-white transition-opacity"
+                    style={{
+                        width: isHighlighted ? 7 : 5,
+                        height: isHighlighted ? 7 : 5,
+                        opacity: isHighlighted ? 1 : 0.85,
+                    }}
+                />
+            </div>
+
+            {/* Hover tooltip */}
+            <div
+                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:flex flex-col items-center pointer-events-none z-50 whitespace-nowrap"
+            >
+                <div className="px-2.5 py-1 rounded-[6px] bg-slate-900/95 backdrop-blur-md border border-slate-700/80 text-white text-[11px] font-semibold shadow-xl flex items-center gap-1.5">
+                    <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: config.color }}
+                    />
+                    <span>{node.label}</span>
+                    <span className="text-[10px] text-slate-400 font-normal">· {config.short}</span>
+                </div>
+                <div className="w-1.5 h-1.5 bg-slate-900 border-r border-b border-slate-700/80 rotate-45 -mt-1" />
+            </div>
+        </div>
+    );
+}
+
+// Institutional Building Marker with radius-sm (6px)
+function BuildingMarkerItem({ building }) {
+    const lat = parseFloat(building.latitude);
+    const lng = parseFloat(building.longitude);
+    if (isNaN(lat) || isNaN(lng)) return null;
+
+    return (
+        <Marker longitude={lng} latitude={lat} anchor="bottom">
+            <div className="flex flex-col items-center pointer-events-none select-none group">
+                {/* Modern institutional pill badge (uses radius-sm: 6px per design system) */}
+                <div
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-white/95 backdrop-blur-md border border-slate-200 text-slate-900 font-bold text-[10.5px] shadow-lg tracking-tight mb-1"
+                    style={{
+                        boxShadow: "0 3px 10px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)",
+                    }}
+                >
+                    <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{
+                            backgroundColor: building.primary_department?.color_hex || "#B21830",
+                        }}
+                    />
+                    <span className="truncate max-w-[130px]">{building.name}</span>
+                </div>
+
+                {/* Ground anchor pin */}
+                <div className="relative flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-brand border-2 border-white shadow-md" />
+                    <div className="w-1 h-1 rounded-full bg-white" />
+                </div>
+            </div>
+        </Marker>
     );
 }
 
@@ -50,23 +177,41 @@ export default function NavigationPage() {
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
     const [saving, setSaving] = useState(false);
+
+    // Map viewport
     const [viewState, setViewState] = useState({
-        longitude: WMSU_CENTER.lng, latitude: WMSU_CENTER.lat,
-        zoom: 17, pitch: 30, bearing: 0,
+        longitude: WMSU_CENTER.lng,
+        latitude: WMSU_CENTER.lat,
+        zoom: 17,
+        pitch: 35,
+        bearing: 0,
     });
+
+    // Interaction mode: "view" | "add_node" | "draw_path"
     const [mode, setMode] = useState("view");
     const [drawingFrom, setDrawingFrom] = useState(null);
     const [drawPreview, setDrawPreview] = useState([]);
     const drawCoordsRef = useRef([]);
+
+    // Forms and inspect states
     const [nodeForm, setNodeForm] = useState(null);
-    const [nodeFormData, setNodeFormData] = useState({ label: "", node_type: "junction", building: "" });
+    const [nodeFormData, setNodeFormData] = useState({
+        label: "",
+        node_type: "junction",
+        building: "",
+    });
     const [selectedNode, setSelectedNode] = useState(null);
     const [selectedPath, setSelectedPath] = useState(null);
+
+    // UI filters & collapsible tabs
     const [nodesExpanded, setNodesExpanded] = useState(true);
     const [pathsExpanded, setPathsExpanded] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [typeFilter, setTypeFilter] = useState("all"); // "all" | "entrance" | "junction" | "gate" | "poi"
     const [deleteTarget, setDeleteTarget] = useState(null);
 
-    const load = useCallback(async () => {
+    // Fetch initial network
+    const loadData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -79,21 +224,23 @@ export default function NavigationPage() {
             setNodes(n || []);
             setPaths(p || []);
         } catch {
-            setError("Failed to load data.");
+            setError("Failed to load campus navigation network.");
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => { load(); }, [load]);
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const flashSuccess = (msg) => {
         setSuccessMsg(msg);
-        setTimeout(() => setSuccessMsg(null), 3000);
+        setTimeout(() => setSuccessMsg(null), 3200);
     };
 
-    const resetMode = useCallback((m = "view") => {
-        setMode(m);
+    const resetMode = useCallback((newMode = "view") => {
+        setMode(newMode);
         setDrawingFrom(null);
         setDrawPreview([]);
         drawCoordsRef.current = [];
@@ -101,6 +248,14 @@ export default function NavigationPage() {
         setSelectedNode(null);
         setSelectedPath(null);
     }, []);
+
+    // Start drawing a path from an already inspected node
+    const startDrawingFromNode = (node) => {
+        resetMode("draw_path");
+        setDrawingFrom(node);
+        drawCoordsRef.current = [[node.longitude, node.latitude]];
+        setDrawPreview([[node.longitude, node.latitude]]);
+    };
 
     const handleMapClick = useCallback((e) => {
         const { lng, lat } = e.lngLat;
@@ -115,16 +270,22 @@ export default function NavigationPage() {
         }
     }, [mode, drawingFrom]);
 
-    const handleNodeMarkerClick = useCallback((node) => (e) => {
+    const handleNodeClick = useCallback((node) => (e) => {
         if (e.originalEvent) e.originalEvent.stopPropagation();
+
         if (mode === "draw_path") {
             if (!drawingFrom) {
+                // Pick origin
                 setDrawingFrom(node);
                 drawCoordsRef.current = [[node.longitude, node.latitude]];
                 setDrawPreview([[node.longitude, node.latitude]]);
                 return;
             }
+
+            // Clicked same node
             if (node.id === drawingFrom.id) return;
+
+            // Finish path: origin -> intermediate points -> destination
             const geometry = [
                 [drawingFrom.longitude, drawingFrom.latitude],
                 ...drawCoordsRef.current.slice(1),
@@ -133,7 +294,11 @@ export default function NavigationPage() {
             savePath(drawingFrom.id, node.id, geometry);
             return;
         }
-        if (mode === "view") { setSelectedNode(node); setSelectedPath(null); }
+
+        if (mode === "view") {
+            setSelectedNode(node);
+            setSelectedPath(null);
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, drawingFrom]);
 
@@ -150,9 +315,9 @@ export default function NavigationPage() {
             });
             setNodes((prev) => [...prev, created]);
             setNodeForm(null);
-            flashSuccess("Node saved.");
+            flashSuccess(`Node "${created.label}" added.`);
         } catch {
-            setError("Failed to save node.");
+            setError("Failed to save navigation node.");
         } finally {
             setSaving(false);
         }
@@ -162,15 +327,17 @@ export default function NavigationPage() {
         setSaving(true);
         try {
             const created = await navigationService.createPath({
-                start_node: startId, end_node: endId, geometry,
+                start_node: startId,
+                end_node: endId,
+                geometry,
             });
             setPaths((prev) => [...prev, created]);
             setDrawingFrom(null);
             setDrawPreview([]);
             drawCoordsRef.current = [];
-            flashSuccess("Path saved.");
+            flashSuccess(`Path (${created.distance_meters}m) connected!`);
         } catch {
-            setError("Failed to save path.");
+            setError("Failed to connect pathway segment.");
         } finally {
             setSaving(false);
         }
@@ -184,188 +351,380 @@ export default function NavigationPage() {
                 await navigationService.deleteNode(deleteTarget.id);
                 setNodes((prev) => prev.filter((n) => n.id !== deleteTarget.id));
                 setSelectedNode(null);
+                flashSuccess("Node removed.");
             } else {
                 await navigationService.deletePath(deleteTarget.id);
                 setPaths((prev) => prev.filter((p) => p.id !== deleteTarget.id));
                 setSelectedPath(null);
+                flashSuccess("Path removed.");
             }
-            flashSuccess("Deleted.");
         } catch {
-            setError("Failed to delete.");
+            setError("Failed to delete item.");
         } finally {
             setSaving(false);
             setDeleteTarget(null);
         }
     };
 
-    const pathsGeojson = {
+    // GeoJSON for paths layer
+    const pathsGeojson = useMemo(() => ({
         type: "FeatureCollection",
         features: paths.map((p) => ({
             type: "Feature",
-            properties: { id: p.id },
+            properties: {
+                id: p.id,
+                selected: selectedPath?.id === p.id,
+                distance: p.distance_meters,
+            },
             geometry: { type: "LineString", coordinates: p.geometry },
         })),
-    };
-    const previewGeojson = {
+    }), [paths, selectedPath]);
+
+    // GeoJSON for active drawing preview
+    const previewGeojson = useMemo(() => ({
         type: "FeatureCollection",
         features:
             drawPreview.length >= 2
                 ? [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: drawPreview } }]
                 : [],
+    }), [drawPreview]);
+
+    // Network metrics
+    const totalDistance = useMemo(() => {
+        return Math.round(paths.reduce((acc, p) => acc + (p.distance_meters || 0), 0));
+    }, [paths]);
+
+    // Filtered lists
+    const filteredNodes = useMemo(() => {
+        return nodes.filter((n) => {
+            const matchesQuery = n.label.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesType = typeFilter === "all" || n.node_type === typeFilter;
+            return matchesQuery && matchesType;
+        });
+    }, [nodes, searchQuery, typeFilter]);
+
+    const filteredPaths = useMemo(() => {
+        return paths.filter((p) => {
+            return (
+                p.start_node_label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                p.end_node_label?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        });
+    }, [paths, searchQuery]);
+
+    const instructionContent = {
+        view: {
+            title: "Inspect Network",
+            desc: "Click any waypoint or pathway to inspect its details and connections.",
+            icon: Eye,
+            badgeClass: "bg-slate-900/90 text-slate-200 border-slate-700/60",
+        },
+        add_node: {
+            title: "Drop Waypoint Mode",
+            desc: "Click anywhere on the satellite map to position a new navigation node.",
+            icon: MapPin,
+            badgeClass: "bg-brand text-white border-white/25 ring-4 ring-brand/20",
+        },
+        draw_path: {
+            title: "Draw Walkway Path",
+            desc: drawingFrom
+                ? `Tracing from "${drawingFrom.label}" (${Math.max(0, drawPreview.length - 1)} bends). Click next waypoint to link.`
+                : "Click any starting waypoint on the map to begin tracing the walkway.",
+            icon: Navigation,
+            badgeClass: "bg-sky-600 text-white border-white/25 ring-4 ring-sky-500/20",
+        },
     };
 
-    const instrText = {
-        view: "Select a node or path to inspect. Switch to a mode above to add data.",
-        add_node: "Click anywhere on the satellite map to drop a navigation node.",
-        draw_path: drawingFrom
-            ? `Path from "${drawingFrom.label}" (${Math.max(0, drawPreview.length - 1)} points). Click destination node to save.`
-            : "Click a start node on the map to begin drawing a walkway path.",
-    };
+    const currentInstruction = instructionContent[mode];
+    const InstrIcon = currentInstruction.icon;
 
     return (
-        <div className="flex h-[calc(100vh-8.5rem)] min-h-[520px] rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-white">
-            {/* Left panel */}
-            <aside className="w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-                <div className="px-4 py-4 border-b border-gray-200">
-                    <h2 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Route size={16} className="text-brand" /> Walking Paths
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-0.5">WMSU pedestrian navigation network</p>
+        <div className="flex h-[calc(100vh-8.5rem)] min-h-[540px] rounded-2xl border border-slate-200/80 shadow-md overflow-hidden bg-white">
+            {/* Left Control & Directory Sidebar */}
+            <aside className="w-80 flex-shrink-0 bg-slate-50/70 border-r border-slate-200 flex flex-col overflow-hidden">
+                {/* Header with network metrics */}
+                <div className="px-4 py-3.5 bg-white border-b border-slate-200">
+                    <div className="flex items-center justify-between mb-1">
+                        <h2 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                            <Route size={16} className="text-brand" /> Campus Walking Network
+                        </h2>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            WMSU
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-slate-500 font-medium mt-2">
+                        <div className="flex items-center gap-1">
+                            <Circle size={11} className="text-brand fill-brand" />
+                            <span>{nodes.length} nodes</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Route size={11} className="text-sky-600" />
+                            <span>{paths.length} paths</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-slate-700 font-semibold ml-auto">
+                            <Footprints size={12} className="text-slate-500" />
+                            <span>{totalDistance}m total</span>
+                        </div>
+                    </div>
                 </div>
-                <div className="px-4 py-3 border-b border-gray-200 flex flex-col gap-2">
-                    <button
-                        onClick={() => resetMode(mode === "add_node" ? "view" : "add_node")}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${mode === "add_node" ? "bg-brand text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                    >
-                        <MapPin size={14} />
-                        {mode === "add_node" ? "Cancel Add Node" : "Add Node"}
-                    </button>
-                    <button
-                        onClick={() => resetMode(mode === "draw_path" ? "view" : "draw_path")}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${mode === "draw_path" ? "bg-sky-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                    >
-                        <Navigation size={14} />
-                        {mode === "draw_path" ? "Cancel Draw Path" : "Draw Path"}
-                    </button>
 
-                    {mode === "draw_path" && (
-                        <div className="mt-1 p-2.5 bg-sky-50 border border-sky-200 rounded-lg text-xs text-sky-900 flex items-start gap-2">
-                            <Navigation size={14} className="text-sky-600 shrink-0 mt-0.5" />
-                            <div className="leading-relaxed">
-                                <strong className="block text-sky-800 font-semibold mb-0.5">Draw Path Active</strong>
-                                {drawingFrom
-                                    ? `Origin: "${drawingFrom.label}". Click walkway bends, then click destination node.`
-                                    : "Click any node on the map to begin."}
-                            </div>
-                        </div>
-                    )}
-                    {mode === "add_node" && (
-                        <div className="mt-1 p-2.5 bg-red-50 border border-brand/20 rounded-lg text-xs text-brand flex items-start gap-2">
-                            <MapPin size={14} className="text-brand shrink-0 mt-0.5" />
-                            <div className="leading-relaxed">
-                                <strong className="block font-semibold mb-0.5">Add Node Active</strong>
-                                Click anywhere on the satellite map to drop a waypoint.
+                {/* Primary Mode Switcher (Uses radius-sm: 6px) */}
+                <div className="px-4 py-3 bg-white border-b border-slate-200 flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            type="button"
+                            onClick={() => resetMode(mode === "add_node" ? "view" : "add_node")}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-[6px] text-xs font-bold transition-all shadow-sm ${
+                                mode === "add_node"
+                                    ? "bg-brand text-white shadow-brand/30 shadow-md ring-2 ring-brand/40"
+                                    : "bg-slate-100 text-slate-700 hover:bg-slate-200/80 border border-slate-200/60"
+                            }`}
+                        >
+                            <MapPin size={14} className={mode === "add_node" ? "text-white" : "text-brand"} />
+                            <span>{mode === "add_node" ? "Exit Add Node" : "Add Node"}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => resetMode(mode === "draw_path" ? "view" : "draw_path")}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-[6px] text-xs font-bold transition-all shadow-sm ${
+                                mode === "draw_path"
+                                    ? "bg-sky-600 text-white shadow-sky-600/30 shadow-md ring-2 ring-sky-500/40"
+                                    : "bg-slate-100 text-slate-700 hover:bg-slate-200/80 border border-slate-200/60"
+                            }`}
+                        >
+                            <Navigation size={14} className={mode === "draw_path" ? "text-white" : "text-sky-600"} />
+                            <span>{mode === "draw_path" ? "Exit Draw Path" : "Draw Path"}</span>
+                        </button>
+                    </div>
+
+                    {/* Active Mode Banner in Sidebar */}
+                    {mode !== "view" && (
+                        <div
+                            className={`p-2.5 rounded-[6px] text-xs flex items-start gap-2 border animate-in fade-in duration-200 ${
+                                mode === "draw_path"
+                                    ? "bg-sky-50 border-sky-200 text-sky-900"
+                                    : "bg-red-50 border-brand/20 text-brand"
+                            }`}
+                        >
+                            <InstrIcon size={14} className={`shrink-0 mt-0.5 ${mode === "draw_path" ? "text-sky-600" : "text-brand"}`} />
+                            <div className="leading-tight">
+                                <strong className="block font-bold mb-0.5">{currentInstruction.title}</strong>
+                                <span className="text-[11px] opacity-90">{currentInstruction.desc}</span>
                             </div>
                         </div>
                     )}
                 </div>
-                <div className="flex-1 overflow-y-auto">
-                    {/* Nodes */}
-                    <button
-                        onClick={() => setNodesExpanded((v) => !v)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-colors"
-                    >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                            <Circle size={14} /> Nodes
-                            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-brand text-white text-xs font-bold">{nodes.length}</span>
-                        </div>
-                        {nodesExpanded ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                    </button>
-                    {nodesExpanded && (
-                        <ul className="divide-y divide-gray-100">
-                            {nodes.length === 0 && (
-                                <li className="px-4 py-3 text-xs text-gray-400 italic">No nodes yet. Add one on the map.</li>
-                            )}
-                            {nodes.map((n) => (
-                                <li
-                                    key={n.id}
-                                    onClick={() => { setSelectedNode(n); setSelectedPath(null); }}
-                                    className={`px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${selectedNode?.id === n.id ? "bg-red-50 border-l-2 border-brand" : ""}`}
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-medium text-gray-800 truncate">{n.label}</p>
-                                            <p className="text-xs text-gray-400">{NODE_TYPE_LABELS[n.node_type]}</p>
-                                        </div>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: "node", id: n.id }); }}
-                                            className="shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+
+                {/* Directory Search & Filters */}
+                <div className="px-4 py-2.5 bg-slate-100/70 border-b border-slate-200 flex flex-col gap-2">
+                    <div className="relative">
+                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Filter waypoints & paths..."
+                            className="w-full pl-8 pr-3 py-1.5 rounded-[6px] bg-white border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand font-medium"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                                <X size={12} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Type Filter Chips (uses radius-sm: 6px) */}
+                    <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar text-[11px]">
+                        {["all", "entrance", "junction", "gate", "poi"].map((t) => (
+                            <button
+                                key={t}
+                                onClick={() => setTypeFilter(t)}
+                                className={`px-2 py-0.5 rounded-[6px] font-semibold uppercase tracking-wider text-[10px] transition-colors whitespace-nowrap ${
+                                    typeFilter === t
+                                        ? "bg-slate-800 text-white"
+                                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-200/50"
+                                }`}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Collapsible Directory Lists */}
+                <div className="flex-1 overflow-y-auto divide-y divide-slate-200">
+                    {/* Nodes Section */}
+                    <div>
+                        <button
+                            onClick={() => setNodesExpanded((v) => !v)}
+                            className="w-full flex items-center justify-between px-4 py-2 bg-slate-100/90 hover:bg-slate-200/70 transition-colors text-xs font-bold text-slate-700"
+                        >
+                            <div className="flex items-center gap-1.5">
+                                <Circle size={12} className="text-slate-500" />
+                                <span>Waypoints</span>
+                                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-800 font-extrabold text-[10px]">
+                                    {filteredNodes.length}
+                                </span>
+                            </div>
+                            {nodesExpanded ? <ChevronUp size={13} className="text-slate-500" /> : <ChevronDown size={13} className="text-slate-500" />}
+                        </button>
+
+                        {nodesExpanded && (
+                            <ul className="divide-y divide-slate-100 bg-white">
+                                {filteredNodes.length === 0 && (
+                                    <li className="px-4 py-4 text-center text-xs text-slate-400 italic">
+                                        No matching nodes found.
+                                    </li>
+                                )}
+                                {filteredNodes.map((n) => {
+                                    const cfg = NODE_TYPES[n.node_type] || NODE_TYPES.junction;
+                                    const isSelected = selectedNode?.id === n.id;
+                                    return (
+                                        <li
+                                            key={n.id}
+                                            onClick={() => {
+                                                setSelectedNode(n);
+                                                setSelectedPath(null);
+                                            }}
+                                            className={`px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors flex items-center justify-between gap-2 border-l-2 ${
+                                                isSelected ? "bg-red-50/70 border-brand" : "border-transparent"
+                                            }`}
                                         >
-                                            <Trash2 size={13} />
-                                        </button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    {/* Paths */}
-                    <button
-                        onClick={() => setPathsExpanded((v) => !v)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-colors"
-                    >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                            <Route size={14} /> Paths
-                            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-brand text-white text-xs font-bold">{paths.length}</span>
-                        </div>
-                        {pathsExpanded ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                    </button>
-                    {pathsExpanded && (
-                        <ul className="divide-y divide-gray-100">
-                            {paths.length === 0 && (
-                                <li className="px-4 py-3 text-xs text-gray-400 italic">No paths yet. Draw one between nodes.</li>
-                            )}
-                            {paths.map((p) => (
-                                <li
-                                    key={p.id}
-                                    onClick={() => { setSelectedPath(p); setSelectedNode(null); }}
-                                    className={`px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${selectedPath?.id === p.id ? "bg-sky-50 border-l-2 border-sky-500" : ""}`}
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-medium text-gray-800 truncate">{p.start_node_label} → {p.end_node_label}</p>
-                                            <p className="text-xs text-gray-400">{p.distance_meters}m · {p.is_accessible ? "♿ accessible" : "steps"}</p>
-                                        </div>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: "path", id: p.id }); }}
-                                            className="shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                                            <div className="min-w-0 flex items-center gap-2">
+                                                <span
+                                                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                                                    style={{ backgroundColor: cfg.color }}
+                                                />
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-semibold text-slate-800 truncate">{n.label}</p>
+                                                    <p className="text-[10.5px] text-slate-400 truncate">
+                                                        {cfg.short} {n.building_name ? `· ${n.building_name}` : ""}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                {mode === "view" && (
+                                                    <button
+                                                        type="button"
+                                                        title="Start path from this node"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            startDrawingFromNode(n);
+                                                        }}
+                                                        className="p-1 rounded-[6px] text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors"
+                                                    >
+                                                        <CornerDownRight size={12} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeleteTarget({ type: "node", id: n.id, label: n.label });
+                                                    }}
+                                                    className="p-1 rounded-[6px] text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </div>
+
+                    {/* Paths Section */}
+                    <div>
+                        <button
+                            onClick={() => setPathsExpanded((v) => !v)}
+                            className="w-full flex items-center justify-between px-4 py-2 bg-slate-100/90 hover:bg-slate-200/70 transition-colors text-xs font-bold text-slate-700"
+                        >
+                            <div className="flex items-center gap-1.5">
+                                <Route size={12} className="text-slate-500" />
+                                <span>Connected Paths</span>
+                                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-800 font-extrabold text-[10px]">
+                                    {filteredPaths.length}
+                                </span>
+                            </div>
+                            {pathsExpanded ? <ChevronUp size={13} className="text-slate-500" /> : <ChevronDown size={13} className="text-slate-500" />}
+                        </button>
+
+                        {pathsExpanded && (
+                            <ul className="divide-y divide-slate-100 bg-white">
+                                {filteredPaths.length === 0 && (
+                                    <li className="px-4 py-4 text-center text-xs text-slate-400 italic">
+                                        No matching paths found.
+                                    </li>
+                                )}
+                                {filteredPaths.map((p) => {
+                                    const isSelected = selectedPath?.id === p.id;
+                                    return (
+                                        <li
+                                            key={p.id}
+                                            onClick={() => {
+                                                setSelectedPath(p);
+                                                setSelectedNode(null);
+                                            }}
+                                            className={`px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors flex items-center justify-between gap-2 border-l-2 ${
+                                                isSelected ? "bg-sky-50/70 border-sky-500" : "border-transparent"
+                                            }`}
                                         >
-                                            <Trash2 size={13} />
-                                        </button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-semibold text-slate-800 truncate">
+                                                    {p.start_node_label} <span className="text-slate-400">↔</span> {p.end_node_label}
+                                                </p>
+                                                <p className="text-[10.5px] text-slate-400">
+                                                    {p.distance_meters}m · ~{Math.max(1, Math.round(p.distance_meters / 80))} min walk
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeleteTarget({
+                                                        type: "path",
+                                                        id: p.id,
+                                                        label: `${p.start_node_label} ↔ ${p.end_node_label}`,
+                                                    });
+                                                }}
+                                                className="p-1 rounded-[6px] text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </div>
                 </div>
             </aside>
 
-            {/* Right map panel */}
-            <div className="flex-1 relative overflow-hidden">
-                {/* Floating instruction banner */}
-                <div className={`absolute top-5 left-1/2 -translate-x-1/2 z-40 px-5 py-2.5 rounded-full text-xs font-semibold shadow-xl text-white pointer-events-none transition-all flex items-center gap-2 border ${
-                    mode === "add_node"
-                        ? "bg-brand border-white/30 ring-2 ring-brand/20"
-                        : mode === "draw_path"
-                        ? "bg-sky-600 border-white/30 ring-2 ring-sky-500/20"
-                        : "bg-gray-800/90 border-gray-700/50 backdrop-blur-md"
-                }`}>
-                    {mode === "draw_path" && <Navigation size={13} className="text-sky-200 animate-pulse" />}
-                    {mode === "add_node" && <MapPin size={13} className="text-red-200" />}
-                    {mode === "view" && <Route size={13} className="text-gray-300" />}
-                    <span>{instrText[mode]}</span>
+            {/* Right Interactive Satellite Map Panel */}
+            <div className="flex-1 relative overflow-hidden bg-slate-900">
+                {/* High-Tech Floating Instruction HUD Bar */}
+                <div className={`absolute top-5 left-1/2 -translate-x-1/2 z-40 px-5 py-2.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2.5 border transition-all duration-300 ${currentInstruction.badgeClass}`}>
+                    <InstrIcon size={14} className={mode === "draw_path" ? "text-sky-200 animate-pulse" : "text-white"} />
+                    <span className="tracking-tight">{currentInstruction.desc}</span>
+                    {mode !== "view" && (
+                        <button
+                            type="button"
+                            onClick={() => resetMode("view")}
+                            className="ml-2 pl-2 border-l border-white/30 text-[11px] font-bold underline opacity-80 hover:opacity-100"
+                        >
+                            Cancel
+                        </button>
+                    )}
                 </div>
 
-                {/* Success toast (Brand primary color, no green) */}
+                {/* Save Feedback Toast (Adheres strictly to Brand Red, no green) */}
                 {successMsg && (
                     <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl bg-brand text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                         <Check size={14} className="text-white" />
@@ -373,15 +732,17 @@ export default function NavigationPage() {
                     </div>
                 )}
 
-                {/* Error toast */}
+                {/* Error Banner Toast */}
                 {error && (
-                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-xl text-xs font-bold shadow-2xl bg-red-600 text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-[12px] text-xs font-bold shadow-2xl bg-red-600 text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                         <span>{error}</span>
                         <button onClick={() => setError(null)} className="ml-1 text-white/80 hover:text-white">
                             <X size={13} />
                         </button>
                     </div>
                 )}
+
+                {/* Mapbox Map */}
                 <Map
                     {...viewState}
                     onMove={(e) => setViewState(e.viewState)}
@@ -392,166 +753,332 @@ export default function NavigationPage() {
                     cursor={mode === "add_node" ? "crosshair" : mode === "draw_path" ? "cell" : "grab"}
                 >
                     <NavigationControl position="top-right" />
+
+                    {/* Drawn Walkway Paths (Electric AR Cyan with White Casing) */}
                     <Source id="nav-paths" type="geojson" data={pathsGeojson}>
-                        <Layer id="nav-paths-casing" type="line" paint={{ "line-color": "#ffffff", "line-width": 5 }} layout={{ "line-join": "round", "line-cap": "round" }} />
-                        <Layer id="nav-paths-line" type="line" paint={{ "line-color": "#00E5FF", "line-width": 3 }} layout={{ "line-join": "round", "line-cap": "round" }} />
+                        <Layer
+                            id="nav-paths-casing"
+                            type="line"
+                            paint={{
+                                "line-color": "#ffffff",
+                                "line-width": 5.5,
+                                "line-opacity": 0.9,
+                            }}
+                            layout={{ "line-join": "round", "line-cap": "round" }}
+                        />
+                        <Layer
+                            id="nav-paths-line"
+                            type="line"
+                            paint={{
+                                "line-color": [
+                                    "case",
+                                    ["==", ["get", "selected"], true],
+                                    "#f59e0b", // Selected path in amber
+                                    "#00E5FF", // Electric AR cyan for all active walkways
+                                ],
+                                "line-width": 3,
+                            }}
+                            layout={{ "line-join": "round", "line-cap": "round" }}
+                        />
                     </Source>
+
+                    {/* Active In-Progress Pathway Draw Preview */}
                     <Source id="draw-preview" type="geojson" data={previewGeojson}>
-                        <Layer id="draw-preview-line" type="line" paint={{ "line-color": "#f59e0b", "line-width": 2, "line-dasharray": [2, 2] }} layout={{ "line-join": "round", "line-cap": "round" }} />
+                        <Layer
+                            id="draw-preview-casing"
+                            type="line"
+                            paint={{
+                                "line-color": "#ffffff",
+                                "line-width": 4,
+                            }}
+                            layout={{ "line-join": "round", "line-cap": "round" }}
+                        />
+                        <Layer
+                            id="draw-preview-line"
+                            type="line"
+                            paint={{
+                                "line-color": "#f59e0b",
+                                "line-width": 2.5,
+                                "line-dasharray": [3, 2],
+                            }}
+                            layout={{ "line-join": "round", "line-cap": "round" }}
+                        />
                     </Source>
-                    {buildings.map((b) => {
-                        const lat = parseFloat(b.latitude);
-                        const lng = parseFloat(b.longitude);
-                        if (isNaN(lat) || isNaN(lng)) return null;
-                        return (
-                            <Marker key={`bld-${b.id}`} longitude={lng} latitude={lat} anchor="bottom">
-                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", pointerEvents: "none" }}>
-                                    <div style={{ background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.08)", color: "#111827", fontWeight: 700, fontSize: 10, padding: "2px 6px", borderRadius: 4, marginBottom: 2, whiteSpace: "nowrap" }}>
-                                        {b.name}
-                                    </div>
-                                    <div style={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: "#B21830", border: "2px solid white", boxShadow: "0 2px 4px rgba(0,0,0,0.3)" }} />
-                                </div>
-                            </Marker>
-                        );
-                    })}
+
+                    {/* Buildings as institutional landmark tags (radius-sm: 6px) */}
+                    {buildings.map((b) => (
+                        <BuildingMarkerItem key={`bld-${b.id}`} building={b} />
+                    ))}
+
+                    {/* Waypoint Nodes on map */}
                     {nodes.map((n) => (
-                        <Marker key={`nd-${n.id}`} longitude={n.longitude} latitude={n.latitude} anchor="center" onClick={handleNodeMarkerClick(n)}>
-                            <NodeDot node={n} selected={selectedNode?.id === n.id} isDrawingOrigin={drawingFrom?.id === n.id} />
+                        <Marker
+                            key={`nd-${n.id}`}
+                            longitude={n.longitude}
+                            latitude={n.latitude}
+                            anchor="center"
+                        >
+                            <NodeMarkerItem
+                                node={n}
+                                selected={selectedNode?.id === n.id}
+                                isDrawingOrigin={drawingFrom?.id === n.id}
+                                onClick={handleNodeClick(n)}
+                            />
                         </Marker>
                     ))}
                 </Map>
 
-                {/* Node creation form */}
+                {/* Modern Node Creation Sheet (Uses radius-md: 12px & radius-sm: 6px) */}
                 {nodeForm && (
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80">
-                        <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
-                                <MapPin size={14} className="text-brand" /> New Navigation Node
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-white/95 backdrop-blur-md rounded-[12px] shadow-2xl border border-slate-200/90 p-4 w-84 max-w-[90vw] animate-in fade-in slide-in-from-bottom-3 duration-200">
+                        <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                                <MapPin size={15} className="text-brand" /> New Waypoint Node
                             </h3>
-                            <button onClick={() => setNodeForm(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+                            <button
+                                onClick={() => setNodeForm(null)}
+                                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                            >
+                                <X size={14} />
+                            </button>
                         </div>
-                        <div className="space-y-2.5">
+
+                        <div className="space-y-3">
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Label *</label>
+                                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                    Label *
+                                </label>
                                 <input
                                     autoFocus
                                     value={nodeFormData.label}
                                     onChange={(e) => setNodeFormData((p) => ({ ...p, label: e.target.value }))}
                                     placeholder="e.g. Main Gate, CICS Entrance"
-                                    className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full border border-slate-200 rounded-[6px] px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand font-medium"
                                 />
                             </div>
+
+                            {/* Segmented Type Chips */}
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
-                                <select
-                                    value={nodeFormData.node_type}
-                                    onChange={(e) => setNodeFormData((p) => ({ ...p, node_type: e.target.value }))}
-                                    className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand bg-white"
-                                >
-                                    {Object.entries(NODE_TYPE_LABELS).map(([k, v]) => (
-                                        <option key={k} value={k}>{v}</option>
-                                    ))}
-                                </select>
+                                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                    Waypoint Role
+                                </label>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    {Object.entries(NODE_TYPES).map(([typeKey, cfg]) => {
+                                        const ChipIcon = cfg.icon;
+                                        const isSelected = nodeFormData.node_type === typeKey;
+                                        return (
+                                            <button
+                                                key={typeKey}
+                                                type="button"
+                                                onClick={() => setNodeFormData((p) => ({ ...p, node_type: typeKey }))}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] text-left text-xs font-semibold border transition-all ${
+                                                    isSelected
+                                                        ? "border-slate-800 bg-slate-900 text-white shadow-sm"
+                                                        : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                                                }`}
+                                            >
+                                                <span
+                                                    className="w-2 h-2 rounded-full shrink-0"
+                                                    style={{ backgroundColor: cfg.color }}
+                                                />
+                                                <span className="truncate">{cfg.short}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
+
+                            {/* Optional Building Link */}
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Link to Building (optional)</label>
+                                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                    Link to Campus Building (Optional)
+                                </label>
                                 <select
                                     value={nodeFormData.building}
                                     onChange={(e) => setNodeFormData((p) => ({ ...p, building: e.target.value }))}
-                                    className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand bg-white"
+                                    className="w-full border border-slate-200 rounded-[6px] px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white font-medium"
                                 >
-                                    <option value="">— None —</option>
+                                    <option value="">— No Building Link —</option>
                                     {buildings.map((b) => (
-                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                        <option key={b.id} value={b.id}>
+                                            {b.name}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
-                            <p className="text-xs text-gray-400">Position: {nodeForm.lat.toFixed(6)}, {nodeForm.lng.toFixed(6)}</p>
+
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
+                                <span>GPS Coordinates:</span>
+                                <span>{nodeForm.lat.toFixed(6)}, {nodeForm.lng.toFixed(6)}</span>
+                            </div>
                         </div>
-                        <div className="flex gap-2 mt-4">
-                            <button onClick={() => setNodeForm(null)} className="flex-1 px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+
+                        <div className="flex gap-2 mt-4 pt-2 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setNodeForm(null)}
+                                className="flex-1 px-3 py-1.5 rounded-[6px] border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                            >
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 onClick={handleSaveNode}
                                 disabled={saving || !nodeFormData.label.trim()}
-                                className="flex-1 px-3 py-1.5 rounded-md bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors disabled:opacity-50"
+                                className="flex-1 px-3 py-1.5 rounded-[6px] bg-brand text-white text-xs font-bold shadow hover:bg-brand-dark transition-colors disabled:opacity-50"
                             >
-                                {saving ? "Saving..." : "Save Node"}
+                                {saving ? "Saving..." : "Save Waypoint"}
                             </button>
                         </div>
                     </div>
                 )}
 
-                {/* Selected node info */}
+                {/* Inspected Node Card (Bottom-Right) */}
                 {selectedNode && mode === "view" && (
-                    <div className="absolute bottom-6 right-6 z-20 bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-64">
+                    <div className="absolute bottom-6 right-6 z-30 bg-white/95 backdrop-blur-md rounded-[12px] shadow-2xl border border-slate-200 p-4 w-72 animate-in fade-in slide-in-from-bottom-2 duration-200">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-brand uppercase tracking-wide">Node</span>
-                            <button onClick={() => setSelectedNode(null)} className="text-gray-400 hover:text-gray-600"><X size={13} /></button>
+                            <span className="px-2 py-0.5 rounded-[6px] text-[10px] font-extrabold uppercase tracking-wider bg-red-100 text-brand">
+                                Waypoint Info
+                            </span>
+                            <button
+                                onClick={() => setSelectedNode(null)}
+                                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                            >
+                                <X size={13} />
+                            </button>
                         </div>
-                        <p className="font-semibold text-gray-800 text-sm">{selectedNode.label}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{NODE_TYPE_LABELS[selectedNode.node_type]}</p>
+
+                        <p className="font-bold text-slate-900 text-sm">{selectedNode.label}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                            {NODE_TYPES[selectedNode.node_type]?.label || selectedNode.node_type}
+                        </p>
+
                         {selectedNode.building_name && (
-                            <p className="text-xs text-sky-600 mt-0.5">Building: {selectedNode.building_name}</p>
+                            <div className="mt-2 p-2 rounded-[6px] bg-slate-50 border border-slate-200 text-xs text-slate-700">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">
+                                    Linked Building
+                                </span>
+                                <span className="font-semibold text-slate-900">{selectedNode.building_name}</span>
+                            </div>
                         )}
-                        <p className="text-xs text-gray-400 mt-1 font-mono">
+
+                        <p className="text-[10.5px] text-slate-400 font-mono mt-2">
                             {selectedNode.latitude.toFixed(6)}, {selectedNode.longitude.toFixed(6)}
                         </p>
-                        <button
-                            onClick={() => setDeleteTarget({ type: "node", id: selectedNode.id })}
-                            className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-red-200 text-red-600 text-xs hover:bg-red-50 transition-colors"
-                        >
-                            <Trash2 size={11} /> Delete Node
-                        </button>
-                    </div>
-                )}
 
-                {/* Selected path info */}
-                {selectedPath && mode === "view" && (
-                    <div className="absolute bottom-6 right-6 z-20 bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-64">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-sky-600 uppercase tracking-wide">Path</span>
-                            <button onClick={() => setSelectedPath(null)} className="text-gray-400 hover:text-gray-600"><X size={13} /></button>
+                        <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => startDrawingFromNode(selectedNode)}
+                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold hover:bg-sky-100 transition-colors"
+                            >
+                                <Navigation size={12} /> Draw Path
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setDeleteTarget({ type: "node", id: selectedNode.id, label: selectedNode.label })}
+                                className="p-1.5 rounded-[6px] border border-red-200 text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                            >
+                                <Trash2 size={12} />
+                            </button>
                         </div>
-                        <p className="font-semibold text-gray-800 text-sm">{selectedPath.start_node_label} → {selectedPath.end_node_label}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{selectedPath.distance_meters}m · ~{Math.ceil(selectedPath.distance_meters / 80)} min walk</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{selectedPath.is_accessible ? "Wheelchair accessible" : "Steps / elevated walkway"}</p>
+                    </div>
+                )}
+
+                {/* Inspected Path Card (Bottom-Right) */}
+                {selectedPath && mode === "view" && (
+                    <div className="absolute bottom-6 right-6 z-30 bg-white/95 backdrop-blur-md rounded-[12px] shadow-2xl border border-slate-200 p-4 w-72 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="px-2 py-0.5 rounded-[6px] text-[10px] font-extrabold uppercase tracking-wider bg-sky-100 text-sky-800">
+                                Pathway Segment
+                            </span>
+                            <button
+                                onClick={() => setSelectedPath(null)}
+                                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                            >
+                                <X size={13} />
+                            </button>
+                        </div>
+
+                        <p className="font-bold text-slate-900 text-sm">
+                            {selectedPath.start_node_label} <span className="text-slate-400 font-normal">↔</span> {selectedPath.end_node_label}
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-2 mt-2.5">
+                            <div className="p-2 rounded-[6px] bg-slate-50 border border-slate-200 text-center">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Distance</span>
+                                <span className="font-extrabold text-slate-900 text-sm">{selectedPath.distance_meters}m</span>
+                            </div>
+                            <div className="p-2 rounded-[6px] bg-slate-50 border border-slate-200 text-center">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Est. Pace</span>
+                                <span className="font-extrabold text-slate-900 text-sm">
+                                    ~{Math.max(1, Math.round(selectedPath.distance_meters / 80))} min
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="mt-2 text-[11px] text-slate-500 flex items-center gap-1.5">
+                            <Footprints size={12} className="text-slate-400" />
+                            <span>Two-way pedestrian accessible</span>
+                        </div>
+
                         <button
-                            onClick={() => setDeleteTarget({ type: "path", id: selectedPath.id })}
-                            className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-red-200 text-red-600 text-xs hover:bg-red-50 transition-colors"
+                            type="button"
+                            onClick={() =>
+                                setDeleteTarget({
+                                    type: "path",
+                                    id: selectedPath.id,
+                                    label: `${selectedPath.start_node_label} ↔ ${selectedPath.end_node_label}`,
+                                })
+                            }
+                            className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50 transition-colors"
                         >
-                            <Trash2 size={11} /> Delete Path
+                            <Trash2 size={12} /> Remove Pathway
                         </button>
                     </div>
                 )}
 
+                {/* Loading indicator overlay */}
                 {loading && (
-                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-30">
-                        <div className="text-sm text-gray-500 font-medium animate-pulse">Loading map data...</div>
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="px-5 py-3 rounded-[12px] bg-white text-slate-800 text-xs font-bold shadow-2xl flex items-center gap-2.5">
+                            <Activity size={15} className="text-brand animate-spin" />
+                            <span>Loading campus navigation network...</span>
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* Delete confirm modal */}
+            {/* Modern Delete Confirmation Dialog */}
             {deleteTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-xl shadow-2xl p-6 w-80">
-                        <h3 className="font-bold text-gray-900 text-base mb-2">
-                            Delete {deleteTarget.type === "node" ? "Node" : "Path"}?
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+                    <div className="bg-white rounded-[12px] shadow-2xl border border-slate-200 p-6 w-88 max-w-full">
+                        <h3 className="font-bold text-slate-900 text-base mb-2 flex items-center gap-2">
+                            <Trash2 size={16} className="text-red-600" />
+                            Delete {deleteTarget.type === "node" ? "Waypoint Node" : "Pathway"}?
                         </h3>
-                        <p className="text-sm text-gray-500 mb-4">
+                        <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                            Are you sure you want to remove{" "}
+                            <strong className="text-slate-900 font-bold">"{deleteTarget.label}"</strong>?
                             {deleteTarget.type === "node"
-                                ? "All paths connected to this node will be orphaned."
-                                : "This path will be permanently removed from the network."}{" "}
-                            This cannot be undone.
+                                ? " Connected pathway segments will be disconnected."
+                                : " This pathway will be permanently unlinked from pedestrian routes."}
                         </p>
-                        <div className="flex gap-3">
-                            <button onClick={() => setDeleteTarget(null)} className="flex-1 px-3 py-2 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+                        <div className="flex gap-2.5">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteTarget(null)}
+                                className="flex-1 px-3 py-2 rounded-[6px] border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                            >
                                 Cancel
                             </button>
-                            <button onClick={handleDelete} disabled={saving} className="flex-1 px-3 py-2 rounded-md bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50">
-                                {saving ? "Deleting..." : "Delete"}
+                            <button
+                                type="button"
+                                onClick={handleDelete}
+                                disabled={saving}
+                                className="flex-1 px-3 py-2 rounded-[6px] bg-red-600 text-white text-xs font-bold hover:bg-red-700 shadow-md transition-colors disabled:opacity-50"
+                            >
+                                {saving ? "Deleting..." : "Confirm Delete"}
                             </button>
                         </div>
                     </div>
