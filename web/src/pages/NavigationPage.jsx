@@ -73,7 +73,7 @@ function NodeMarkerItem({ node, selected, isDrawingOrigin, onClick }) {
         <div
             onClick={onClick}
             title={`${node.label} (${config.label})`}
-            className="group relative cursor-pointer flex items-center justify-center -translate-x-1/2 -translate-y-1/2"
+            className="group relative cursor-pointer flex items-center justify-center"
             style={{ width: 34, height: 34 }}
         >
             {/* Outer halo when active or drawing */}
@@ -189,6 +189,7 @@ export default function NavigationPage() {
 
     // Interaction mode: "view" | "add_node" | "draw_path"
     const [mode, setMode] = useState("view");
+    const [mapCursor, setMapCursor] = useState("grab");
     const [drawingFrom, setDrawingFrom] = useState(null);
     const [drawPreview, setDrawPreview] = useState([]);
     const drawCoordsRef = useRef([]);
@@ -257,6 +258,12 @@ export default function NavigationPage() {
         setDrawPreview([[node.longitude, node.latitude]]);
     };
 
+    // Ensure that only paths whose both start and end nodes currently exist in the active network are rendered or counted
+    const validNodeIds = useMemo(() => new Set(nodes.map((n) => String(n.id))), [nodes]);
+    const validPaths = useMemo(() => {
+        return paths.filter((p) => validNodeIds.has(String(p.start_node)) && validNodeIds.has(String(p.end_node)));
+    }, [paths, validNodeIds]);
+
     const handleMapClick = useCallback((e) => {
         const { lng, lat } = e.lngLat;
         if (mode === "add_node") {
@@ -267,8 +274,26 @@ export default function NavigationPage() {
         if (mode === "draw_path" && drawingFrom) {
             drawCoordsRef.current.push([lng, lat]);
             setDrawPreview([...drawCoordsRef.current]);
+            return;
         }
-    }, [mode, drawingFrom]);
+        if (mode === "view") {
+            // Check if user clicked on a pathway line feature on the map
+            if (e.features && e.features.length > 0) {
+                const feat = e.features[0];
+                const clickedPathId = feat.properties?.id;
+                if (clickedPathId) {
+                    const match = validPaths.find((p) => String(p.id) === String(clickedPathId));
+                    if (match) {
+                        setSelectedPath(match);
+                        setSelectedNode(null);
+                        return;
+                    }
+                }
+            }
+            setSelectedNode(null);
+            setSelectedPath(null);
+        }
+    }, [mode, drawingFrom, validPaths]);
 
     const handleNodeClick = useCallback((node) => (e) => {
         if (e.originalEvent) e.originalEvent.stopPropagation();
@@ -349,14 +374,24 @@ export default function NavigationPage() {
         try {
             if (deleteTarget.type === "node") {
                 await navigationService.deleteNode(deleteTarget.id);
-                setNodes((prev) => prev.filter((n) => n.id !== deleteTarget.id));
+                const targetIdStr = String(deleteTarget.id);
+                // Immediately remove the node and prune any attached ways from state
+                setNodes((prev) => prev.filter((n) => String(n.id) !== targetIdStr));
+                setPaths((prev) => prev.filter((p) => String(p.start_node) !== targetIdStr && String(p.end_node) !== targetIdStr));
                 setSelectedNode(null);
-                flashSuccess("Node removed.");
+                setSelectedPath((prev) => {
+                    if (prev && (String(prev.start_node) === targetIdStr || String(prev.end_node) === targetIdStr)) {
+                        return null;
+                    }
+                    return prev;
+                });
+                flashSuccess("Waypoint and connected walkways removed.");
             } else {
                 await navigationService.deletePath(deleteTarget.id);
-                setPaths((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+                const targetIdStr = String(deleteTarget.id);
+                setPaths((prev) => prev.filter((p) => String(p.id) !== targetIdStr));
                 setSelectedPath(null);
-                flashSuccess("Path removed.");
+                flashSuccess("Pathway removed.");
             }
         } catch {
             setError("Failed to delete item.");
@@ -366,10 +401,10 @@ export default function NavigationPage() {
         }
     };
 
-    // GeoJSON for paths layer
+    // GeoJSON for paths layer (only valid connected paths)
     const pathsGeojson = useMemo(() => ({
         type: "FeatureCollection",
-        features: paths.map((p) => ({
+        features: validPaths.map((p) => ({
             type: "Feature",
             properties: {
                 id: p.id,
@@ -378,7 +413,7 @@ export default function NavigationPage() {
             },
             geometry: { type: "LineString", coordinates: p.geometry },
         })),
-    }), [paths, selectedPath]);
+    }), [validPaths, selectedPath]);
 
     // GeoJSON for active drawing preview
     const previewGeojson = useMemo(() => ({
@@ -389,10 +424,10 @@ export default function NavigationPage() {
                 : [],
     }), [drawPreview]);
 
-    // Network metrics
+    // Network metrics (based on valid pathways)
     const totalDistance = useMemo(() => {
-        return Math.round(paths.reduce((acc, p) => acc + (p.distance_meters || 0), 0));
-    }, [paths]);
+        return Math.round(validPaths.reduce((acc, p) => acc + (p.distance_meters || 0), 0));
+    }, [validPaths]);
 
     // Filtered lists
     const filteredNodes = useMemo(() => {
@@ -404,13 +439,13 @@ export default function NavigationPage() {
     }, [nodes, searchQuery, typeFilter]);
 
     const filteredPaths = useMemo(() => {
-        return paths.filter((p) => {
+        return validPaths.filter((p) => {
             return (
                 p.start_node_label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 p.end_node_label?.toLowerCase().includes(searchQuery.toLowerCase())
             );
         });
-    }, [paths, searchQuery]);
+    }, [validPaths, searchQuery]);
 
     const instructionContent = {
         view: {
@@ -459,7 +494,7 @@ export default function NavigationPage() {
                         </div>
                         <div className="flex items-center gap-1">
                             <Route size={11} className="text-sky-600" />
-                            <span>{paths.length} paths</span>
+                            <span>{validPaths.length} paths</span>
                         </div>
                         <div className="flex items-center gap-1 text-slate-700 font-semibold ml-auto">
                             <Footprints size={12} className="text-slate-500" />
@@ -726,7 +761,7 @@ export default function NavigationPage() {
 
                 {/* Save Feedback Toast (Adheres strictly to Brand Red, no green) */}
                 {successMsg && (
-                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl bg-brand text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl bg-brand text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                         <Check size={14} className="text-white" />
                         <span>{successMsg}</span>
                     </div>
@@ -734,7 +769,7 @@ export default function NavigationPage() {
 
                 {/* Error Banner Toast */}
                 {error && (
-                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-[12px] text-xs font-bold shadow-2xl bg-red-600 text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-[12px] text-xs font-bold shadow-2xl bg-red-600 text-white border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                         <span>{error}</span>
                         <button onClick={() => setError(null)} className="ml-1 text-white/80 hover:text-white">
                             <X size={13} />
@@ -750,7 +785,13 @@ export default function NavigationPage() {
                     style={{ width: "100%", height: "100%" }}
                     mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
                     mapboxAccessToken={MAPBOX_TOKEN}
-                    cursor={mode === "add_node" ? "crosshair" : mode === "draw_path" ? "cell" : "grab"}
+                    cursor={mode === "add_node" ? "crosshair" : mode === "draw_path" ? "cell" : mapCursor}
+                    interactiveLayerIds={mode === "view" ? ["nav-paths-line", "nav-paths-casing"] : []}
+                    onMouseMove={(e) => {
+                        if (mode === "view") {
+                            setMapCursor(e.features && e.features.length > 0 ? "pointer" : "grab");
+                        }
+                    }}
                 >
                     <NavigationControl position="top-right" />
 
@@ -962,6 +1003,14 @@ export default function NavigationPage() {
                             </div>
                         )}
 
+                        {/* Connected walkways count */}
+                        <div className="mt-2 px-2.5 py-1.5 rounded-[6px] bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
+                            <span className="text-[10.5px] font-semibold text-slate-500">Connected Ways</span>
+                            <span className="font-bold text-slate-800 text-xs">
+                                {validPaths.filter((p) => String(p.start_node) === String(selectedNode.id) || String(p.end_node) === String(selectedNode.id)).length} pathways
+                            </span>
+                        </div>
+
                         <p className="text-[10.5px] text-slate-400 font-mono mt-2">
                             {selectedNode.latitude.toFixed(6)}, {selectedNode.longitude.toFixed(6)}
                         </p>
@@ -1061,7 +1110,7 @@ export default function NavigationPage() {
                             Are you sure you want to remove{" "}
                             <strong className="text-slate-900 font-bold">"{deleteTarget.label}"</strong>?
                             {deleteTarget.type === "node"
-                                ? " Connected pathway segments will be disconnected."
+                                ? " All connected walkway paths and ways attached to this point will also be removed immediately."
                                 : " This pathway will be permanently unlinked from pedestrian routes."}
                         </p>
                         <div className="flex gap-2.5">
