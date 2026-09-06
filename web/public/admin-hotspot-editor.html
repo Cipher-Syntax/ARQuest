@@ -270,15 +270,18 @@
             
             // Keyboard state for FPS movement
             const keys = { w: false, a: false, s: false, d: false };
+            let editorMode = "HOTSPOTS";
 
             // Initialize from React iframe message
             window.addEventListener("message", (event) => {
                 const data = event.data;
                 if (data.type === "INIT_EDITOR") {
+                    if (data.mode) editorMode = data.mode;
                     if (data.hotspots) hotspotsData = data.hotspots;
                     init(data.modelUrl);
                 }
             });
+
 
             // Fallback for direct testing (if opened without React)
             if (!window.parent || window === window.parent) {
@@ -387,6 +390,20 @@
                         document.getElementById("loading").style.display =
                             "none";
 
+                        if (editorMode === "PICK_ANCHOR") {
+                            const overlay = document.getElementById("ui-overlay");
+                            if (overlay) {
+                                overlay.innerHTML = `
+                                    <h3 style="color:#00E5FF;margin:0 0 4px 0;">3D Anchor Picker</h3>
+                                    <p style="margin:0 0 2px 0;color:#ddd;">1. Drag to rotate, Right-click to pan, Scroll to zoom.</p>
+                                    <p style="margin:0;color:#00E5FF;font-weight:bold;">2. Double-Click anywhere on the entrance doorway or room to pick coordinates.</p>
+                                `;
+
+                            }
+                            const saveBtn = document.querySelector(".btn-save-all");
+                            if (saveBtn) saveBtn.style.display = "none";
+                        }
+
                         // Re-render saved hotspots
                         hotspotsData.forEach((h) => {
                             if (!h.id)
@@ -411,10 +428,10 @@
                             }
                         }
                     },
-                    (err) => {
-                        console.error(err);
-                        const progressText = document.getElementById('progress-text');
-                        if (progressText) progressText.innerText = "Error loading model. Check console.";
+                    (error) => {
+                        console.error("Failed to load model", error);
+                        document.getElementById("loading").innerHTML =
+                            '<div style="color:#ff4444;font-weight:bold;">FAILED TO LOAD 3D MODEL</div>';
                     },
                 );
             }
@@ -430,6 +447,19 @@
                 const intersects = raycaster.intersectObject(model, true);
 
                 if (intersects.length > 0) {
+                    if (editorMode === "PICK_ANCHOR") {
+                        const pt = intersects[0].point;
+                        window.parent.postMessage(
+                            {
+                                type: "ANCHOR_PICKED",
+                                x: Number(pt.x.toFixed(2)),
+                                y: Number((pt.y + 1.6).toFixed(2)), // Eye level default (+1.6m from floor)
+                                z: Number(pt.z.toFixed(2)),
+                            },
+                            "*",
+                        );
+                        return;
+                    }
                     pendingCoordinate = intersects[0].point;
                     editingHotspotId = null;
                     document.getElementById("form-title").innerText =

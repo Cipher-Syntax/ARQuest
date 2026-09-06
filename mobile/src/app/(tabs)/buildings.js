@@ -25,6 +25,7 @@ import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { api } from "../../services";
 import { geofencingService } from "../../services";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
@@ -39,9 +40,32 @@ export default function BuildingsScreen() {
     const router = useRouter();
     const { targetBuildingId } = useLocalSearchParams();
 
+    const sendMapUpdate = React.useCallback(() => {
+        if (webViewRef.current) {
+            const unlockedIds = unlockedBuildings.map((b) => b.id);
+            const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
+            const message = createBridgeMessage("update", {
+                buildings: allBuildings,
+                unlockedIds: unlockedIds,
+                mapboxToken: token,
+                userLocation: location,
+            });
+            webViewRef.current.postMessage(message);
+        }
+    }, [allBuildings, unlockedBuildings, location]);
+
+    const sendMapUpdateRef = useRef(sendMapUpdate);
+    sendMapUpdateRef.current = sendMapUpdate;
+
     useFocusEffect(
         React.useCallback(() => {
+            ScreenOrientation.lockAsync(
+                ScreenOrientation.OrientationLock.PORTRAIT,
+            );
             startTracking();
+            if (sendMapUpdateRef.current) {
+                sendMapUpdateRef.current();
+            }
             return () => {
                 stopTracking();
             };
@@ -86,17 +110,10 @@ export default function BuildingsScreen() {
     }, []);
 
     useEffect(() => {
-        if (webViewReady && webViewRef.current && allBuildings.length > 0) {
-            const unlockedIds = unlockedBuildings.map((b) => b.id);
-            const message = createBridgeMessage("update", {
-                buildings: allBuildings,
-                unlockedIds: unlockedIds, 
-                mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
-                userLocation: location,
-            });
-            webViewRef.current.postMessage(message);
+        if (webViewReady && webViewRef.current) {
+            sendMapUpdate();
         }
-    }, [webViewReady, allBuildings, unlockedBuildings, location]);
+    }, [webViewReady, sendMapUpdate]);
 
     const lastTargetBuildingIdRef = useRef(null);
 
@@ -138,6 +155,17 @@ export default function BuildingsScreen() {
         }
 
         const { type, payload } = result.data;
+
+        if (type === "map_ready") {
+            setWebViewReady(true);
+            sendMapUpdate();
+            return;
+        }
+
+        if (type === "log") {
+            console.log("[Map WebView]", payload?.level, payload?.message);
+            return;
+        }
 
         if (type === "building_click") {
             const building = allBuildings.find(
@@ -316,7 +344,10 @@ export default function BuildingsScreen() {
     };
     const { mapHtmlString } = require("../../../assets/buildings-map");
 
-    const mapHtml = mapHtmlString;
+    const mapHtml = useMemo(() => {
+        const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
+        return mapHtmlString.replace("__MAPBOX_TOKEN__", token);
+    }, []);
 
     const sortedBuildings = useMemo(() => {
         return allBuildings
@@ -361,8 +392,8 @@ export default function BuildingsScreen() {
                 style={styles.webview}
                 onMessage={handleMessage}
                 onLoadEnd={() => {
-                    console.log("[WebView] Load End Triggered");
                     setWebViewReady(true);
+                    sendMapUpdate();
                 }}
                 onError={(syntheticEvent) => {
                     const { nativeEvent } = syntheticEvent;
@@ -431,36 +462,36 @@ export default function BuildingsScreen() {
 
                     <View style={styles.terminalInputRowActive}>
                         <Text style={styles.terminalInputLabel}>TO</Text>
-                        <TextInput
-                            style={styles.terminalInputActive}
-                            placeholder="Search Destination"
-                            placeholderTextColor="#999999"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            onFocus={() => {
-                                setIsSearchFocused(true);
-                                setIsOriginFocused(false);
-                            }}
-                            onBlur={() =>
-                                setTimeout(() => setIsSearchFocused(false), 200)
-                            }
-                        />
+                        <View style={styles.toInputWrapper}>
+                            <TextInput
+                                style={styles.terminalInputActive}
+                                placeholder="Search Destination"
+                                placeholderTextColor="#999999"
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                onFocus={() => {
+                                    setIsSearchFocused(true);
+                                    setIsOriginFocused(false);
+                                }}
+                                onBlur={() =>
+                                    setTimeout(() => setIsSearchFocused(false), 200)
+                                }
+                            />
+                            {routeTarget && routeDistance !== null && (
+                                <View style={styles.distanceCornerBadge} pointerEvents="none">
+                                    <Text style={styles.distanceCornerBadgeText}>
+                                        {routeDistance}m
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                         {routeTarget && (
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                                {routeDistance !== null && (
-                                    <View style={{ backgroundColor: "#FFF0F0", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-                                        <Text style={{ fontSize: 11, fontFamily: fonts.body.bold, color: theme.colors.primary }}>
-                                            {routeDistance}m
-                                        </Text>
-                                    </View>
-                                )}
-                                <TouchableOpacity
-                                    onPress={handleClearRoute}
-                                    style={styles.clearRouteBtn}
-                                >
-                                    <X color={theme.colors.textMuted} size={18} />
-                                </TouchableOpacity>
-                            </View>
+                            <TouchableOpacity
+                                onPress={handleClearRoute}
+                                style={styles.clearRouteBtn}
+                            >
+                                <X color={theme.colors.textMuted} size={18} />
+                            </TouchableOpacity>
                         )}
                     </View>
                 </View>
@@ -1176,8 +1207,13 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
         borderRadius: theme.radius.md,
     },
-    terminalInputActive: {
+    toInputWrapper: {
         flex: 1,
+        position: "relative",
+        justifyContent: "center",
+    },
+    terminalInputActive: {
+        width: "100%",
         fontFamily: fonts.body.regular,
         fontSize: 14,
         color: theme.colors.primary,
@@ -1187,6 +1223,29 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.primary,
         borderRadius: theme.radius.md,
+    },
+    distanceCornerBadge: {
+        position: "absolute",
+        top: -9,
+        right: 12,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+        borderRadius: theme.radius.sm,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        zIndex: 10,
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.12,
+        shadowRadius: 2,
+    },
+    distanceCornerBadgeText: {
+        fontSize: 10,
+        fontFamily: fonts.body.bold,
+        color: theme.colors.primary,
+        letterSpacing: 0.5,
     },
     clearRouteBtn: {
         padding: theme.spacing.xs,

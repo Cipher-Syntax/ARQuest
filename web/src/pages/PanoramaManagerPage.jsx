@@ -5,10 +5,10 @@ import {
     Plus,
     Trash2,
     Edit2,
-    CheckCircle,
     X,
     Play,
 } from "lucide-react";
+
 import { buildingService } from "../services/buildingService";
 import { panoramaService } from "../services/panoramaService";
 import DragDropFileUpload from "../components/common/DragDropFileUpload";
@@ -35,13 +35,35 @@ const PanoramaManagerPage = () => {
     const [hotspotErrors, setHotspotErrors] = useState({});
     const [sceneToDelete, setSceneToDelete] = useState(null);
     const [hotspotToDelete, setHotspotToDelete] = useState(null);
+    const [show3DPicker, setShow3DPicker] = useState(false);
+
+    useEffect(() => {
+        const handleMessage = (event) => {
+            if (event.data && event.data.type === "ANCHOR_PICKED") {
+                const { x, y, z } = event.data;
+                setShow3DPicker(false);
+                showSuccess(`Captured from 3D Model: (${x}, ${y}, ${z})`);
+                if (window.__setAnchorCoordinates) {
+                    window.__setAnchorCoordinates(x, y, z);
+                }
+            }
+        };
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
+    }, []);
+
 
     const [newScene, setNewScene] = useState({
+
         title: "",
         image: null,
         is_start_scene: false,
         sort_order: 1,
         is_active: true,
+        anchor_x: "",
+        anchor_y: "1.6",
+        anchor_z: "",
+        anchor_radius: "5.0",
     });
 
     const [editingHotspot, setEditingHotspot] = useState(null);
@@ -119,6 +141,10 @@ const PanoramaManagerPage = () => {
             formData.append("is_start_scene", newScene.is_start_scene);
             formData.append("sort_order", newScene.sort_order);
             formData.append("is_active", newScene.is_active);
+            if (newScene.anchor_x !== "") formData.append("anchor_x", parseFloat(newScene.anchor_x));
+            if (newScene.anchor_y !== "") formData.append("anchor_y", parseFloat(newScene.anchor_y));
+            if (newScene.anchor_z !== "") formData.append("anchor_z", parseFloat(newScene.anchor_z));
+            formData.append("anchor_radius", parseFloat(newScene.anchor_radius) || 5.0);
 
             await panoramaService.createScene(id, formData);
             showSuccess("Scene created successfully!");
@@ -128,7 +154,12 @@ const PanoramaManagerPage = () => {
                 is_start_scene: false,
                 sort_order: scenes.length + 2,
                 is_active: true,
+                anchor_x: "",
+                anchor_y: "1.6",
+                anchor_z: "",
+                anchor_radius: "5.0",
             });
+
             loadData();
         } catch (error) {
             setErrors(
@@ -233,7 +264,23 @@ const PanoramaManagerPage = () => {
         }
     };
 
+
+    const handleUpdateSceneAnchors = async (sceneId, anchorData) => {
+        try {
+            await panoramaService.updateScene(sceneId, anchorData);
+            showSuccess("3D anchor coordinates saved!");
+            // Refresh scenes list so selectedScene reflects new anchor values
+            const scenesData = await panoramaService.getBuildingScenes(id);
+            setScenes(scenesData || []);
+            const updated = scenesData.find((s) => s.id === sceneId);
+            if (updated) setSelectedScene(updated);
+        } catch (error) {
+            console.error("Failed to update anchor coordinates", error);
+        }
+    };
+
     if (loading) return <div style={{ padding: "24px" }}>Loading...</div>;
+
 
     return (
         <div>
@@ -243,18 +290,21 @@ const PanoramaManagerPage = () => {
                         position: "fixed",
                         top: "24px",
                         right: "24px",
-                        backgroundColor: "#10b981",
+                        backgroundColor: theme.colors.primary,
                         color: "#fff",
-                        padding: "16px 24px",
+                        padding: "14px 22px",
                         borderRadius: theme.radius.md,
                         zIndex: 9999,
-                        display: "flex",
-                        gap: "8px",
+                        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.25)",
+                        fontWeight: "600",
+                        fontSize: "14px",
+                        letterSpacing: "0.3px",
                     }}
                 >
-                    <CheckCircle size={20} /> {successMessage}
+                    {successMessage}
                 </div>
             )}
+
 
             <div
                 style={{
@@ -306,7 +356,14 @@ const PanoramaManagerPage = () => {
                 />
 
                 {}
-                <ScenePreview selectedScene={selectedScene} />
+                <ScenePreview
+                    selectedScene={selectedScene}
+                    building={building}
+                    onUpdateSceneAnchors={handleUpdateSceneAnchors}
+                    onOpen3DPicker={() => setShow3DPicker(true)}
+                />
+
+
 
                 {}
                 <HotspotsPanel
@@ -486,9 +543,94 @@ const PanoramaManagerPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* Fullscreen 3D Anchor Picker Modal */}
+            {show3DPicker && (
+
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100vw",
+                        height: "100vh",
+                        background: "rgba(0,0,0,0.95)",
+                        zIndex: 99999,
+                        display: "flex",
+                        flexDirection: "column",
+                    }}
+                >
+                    <div
+                        style={{
+                            padding: "14px 24px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            background: theme.colors.primary,
+                            borderBottom: "1px solid rgba(255,255,255,0.15)",
+                        }}
+                    >
+                        <div>
+                            <h2
+                                style={{
+                                    color: "#ffffff",
+                                    margin: 0,
+                                    fontSize: "18px",
+                                    fontWeight: "700",
+                                    letterSpacing: "0.5px",
+                                }}
+                            >
+                                PICK 3D ANCHOR: {selectedScene?.title}
+                            </h2>
+
+                            <p
+                                style={{
+                                    color: "rgba(255,255,255,0.85)",
+                                    margin: "4px 0 0 0",
+                                    fontSize: "12px",
+                                }}
+                            >
+                                Rotate / zoom around the 3D building. <b>Double-click</b> on the doorway, entrance, or floor where this panorama photo was taken.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShow3DPicker(false)}
+                            style={{
+                                background: theme.colors.error,
+                                color: "white",
+                                border: "none",
+                                padding: "8px 18px",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontWeight: "bold",
+                                fontSize: "12px",
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                    <iframe
+                        src="/admin-hotspot-editor.html"
+                        style={{ width: "100%", flex: 1, border: "none" }}
+                        onLoad={(e) => {
+                            e.target.contentWindow.postMessage(
+                                {
+                                    type: "INIT_EDITOR",
+                                    mode: "PICK_ANCHOR",
+                                    modelUrl: building?.model_url,
+                                },
+                                "*",
+                            );
+                        }}
+                    />
+                </div>
+            )}
         </div>
     );
 };
+
 
 export default PanoramaManagerPage;
 
@@ -756,7 +898,48 @@ const ScenesList = ({
     );
 };
 
-const ScenePreview = ({ selectedScene }) => (
+const ScenePreview = ({ selectedScene, building, onUpdateSceneAnchors, onOpen3DPicker }) => {
+    const [anchorX, setAnchorX] = useState("");
+    const [anchorY, setAnchorY] = useState("1.6");
+    const [anchorZ, setAnchorZ] = useState("");
+    const [anchorRadius, setAnchorRadius] = useState("5.0");
+    const [savingAnchor, setSavingAnchor] = useState(false);
+
+    // Register callback so 3D picker message can set state directly
+    useEffect(() => {
+        window.__setAnchorCoordinates = (x, y, z) => {
+            setAnchorX(String(x));
+            setAnchorY(String(y));
+            setAnchorZ(String(z));
+        };
+        return () => {
+            window.__setAnchorCoordinates = null;
+        };
+    }, []);
+
+    // Sync anchor form when selected scene changes
+    useEffect(() => {
+        if (selectedScene) {
+            setAnchorX(selectedScene.anchor_x != null ? String(selectedScene.anchor_x) : "");
+            setAnchorY(selectedScene.anchor_y != null ? String(selectedScene.anchor_y) : "1.6");
+            setAnchorZ(selectedScene.anchor_z != null ? String(selectedScene.anchor_z) : "");
+            setAnchorRadius(selectedScene.anchor_radius != null ? String(selectedScene.anchor_radius) : "5.0");
+        }
+    }, [selectedScene?.id]);
+
+    const handleSaveAnchors = async () => {
+        if (!selectedScene || !onUpdateSceneAnchors) return;
+        setSavingAnchor(true);
+        await onUpdateSceneAnchors(selectedScene.id, {
+            anchor_x: anchorX !== "" ? parseFloat(anchorX) : null,
+            anchor_y: anchorY !== "" ? parseFloat(anchorY) : 1.6,
+            anchor_z: anchorZ !== "" ? parseFloat(anchorZ) : null,
+            anchor_radius: parseFloat(anchorRadius) || 5.0,
+        });
+        setSavingAnchor(false);
+    };
+
+    return (
     <div
         style={{
             backgroundColor: "#fff",
@@ -784,11 +967,128 @@ const ScenePreview = ({ selectedScene }) => (
                     alt={selectedScene.title}
                     style={{
                         width: "100%",
-                        maxHeight: "400px",
+                        maxHeight: "340px",
                         objectFit: "contain",
                         borderRadius: theme.radius.sm,
+                        marginBottom: theme.spacing.md,
                     }}
                 />
+
+                {/* Unit 30: 3D Anchor Coordinate Editor */}
+                <div
+                    style={{
+                        width: "100%",
+                        background: "rgba(0,0,0,0.03)",
+                        border: `1px solid ${theme.colors.border}`,
+                        borderRadius: theme.radius.sm,
+                        padding: theme.spacing.sm,
+                    }}
+                >
+                    <p style={{ fontSize: "12px", fontWeight: "700", letterSpacing: "1px", color: theme.colors.primary, marginBottom: "8px" }}>
+                        3D VIRTUAL TOUR ANCHOR
+                    </p>
+                    <p style={{ fontSize: "11px", color: theme.colors.text.secondary, marginBottom: "10px", lineHeight: "1.5" }}>
+                        Set where this panorama was taken inside the building model. You can either type the numbers or click the 3D button below to pick it visually!
+                    </p>
+
+                    {/* Interactive 3D Model Picker Button */}
+                    <button
+                        type="button"
+                        onClick={onOpen3DPicker}
+                        disabled={!building?.model_url}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "100%",
+                            padding: "9px 14px",
+                            marginBottom: "12px",
+                            background: building?.model_url ? theme.colors.primary : "#e5e7eb",
+                            color: building?.model_url ? "#ffffff" : "#9ca3af",
+                            border: "none",
+                            borderRadius: theme.radius.sm,
+                            cursor: building?.model_url ? "pointer" : "not-allowed",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            letterSpacing: "0.5px",
+                        }}
+                    >
+                        {building?.model_url ? "Pick Location from 3D Model" : "No 3D Model Uploaded for Building"}
+                    </button>
+
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                        <div>
+                            <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px" }}>Anchor X</label>
+                            <input
+                                type="number"
+                                step="0.1"
+                                placeholder="e.g. 12.5"
+                                value={anchorX}
+                                onChange={(e) => setAnchorX(e.target.value)}
+                                style={{ width: "100%", padding: "6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px" }}>Anchor Y (Eye Level)</label>
+                            <input
+                                type="number"
+                                step="0.1"
+                                placeholder="default: 1.6"
+                                value={anchorY}
+                                onChange={(e) => setAnchorY(e.target.value)}
+                                style={{ width: "100%", padding: "6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px" }}>Anchor Z</label>
+                            <input
+                                type="number"
+                                step="0.1"
+                                placeholder="e.g. -8.0"
+                                value={anchorZ}
+                                onChange={(e) => setAnchorZ(e.target.value)}
+                                style={{ width: "100%", padding: "6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px" }}>Radius (meters)</label>
+                            <input
+                                type="number"
+                                step="0.5"
+                                min="1"
+                                placeholder="default: 5"
+                                value={anchorRadius}
+                                onChange={(e) => setAnchorRadius(e.target.value)}
+                                style={{ width: "100%", padding: "6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                            />
+                        </div>
+                    </div>
+                    {(selectedScene.anchor_x != null && selectedScene.anchor_z != null) && (
+                        <div style={{ fontSize: "11px", color: theme.colors.primary, fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
+                            Anchor saved: ({selectedScene.anchor_x}, {selectedScene.anchor_y}, {selectedScene.anchor_z}) — radius {selectedScene.anchor_radius}m
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleSaveAnchors}
+                        disabled={savingAnchor}
+                        style={{
+                            width: "100%",
+                            padding: "7px",
+                            background: theme.colors.primary,
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: savingAnchor ? "not-allowed" : "pointer",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            letterSpacing: "0.5px",
+                        }}
+                    >
+                        {savingAnchor ? "Saving..." : "Save 3D Anchor Coordinates"}
+                    </button>
+                </div>
             </>
         ) : (
             <div
@@ -801,7 +1101,9 @@ const ScenePreview = ({ selectedScene }) => (
             </div>
         )}
     </div>
-);
+    );
+};
+
 
 const HotspotsPanel = ({
     hotspots,

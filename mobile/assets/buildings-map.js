@@ -5,11 +5,27 @@ export const mapHtmlString = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
-    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background: #ffffff; overflow: hidden; }
-        #map { width: 100vw; height: 100vh; background: #f5f5f5; }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f3f4f6;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
         
         .custom-dept-marker { background: transparent; border: none; }
         .user-marker-container {
@@ -27,7 +43,7 @@ export const mapHtmlString = `<!DOCTYPE html>
             width: 28px;
             height: 28px;
             border-radius: 50%;
-            background-color: rgba(66, 133, 244, 0.3);
+            background-color: rgba(66, 133, 244, 0.35);
             animation: userPulse 2s infinite ease-out;
         }
         .user-marker-dot {
@@ -69,29 +85,16 @@ export const mapHtmlString = `<!DOCTYPE html>
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
-        .mapboxgl-popup-content {
-            padding: 0;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .mapboxgl-popup-close-button {
-            z-index: 10;
-            font-size: 20px;
-            color: #555;
-            padding: 4px;
-        }
-
         .building-label {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(0, 0, 0, 0.08);
             color: #111827;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-weight: 700;
-            font-size: 12px;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            padding: 4px 8px;
-            border-radius: 4px;
+            font-size: 11px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+            padding: 3px 8px;
+            border-radius: 6px;
             margin-bottom: 4px;
             text-align: center;
             white-space: nowrap;
@@ -101,38 +104,9 @@ export const mapHtmlString = `<!DOCTYPE html>
             color: #f97316;
         }
 
-        .model-viewer-container {
-            width: 200px;
-            height: 200px;
-            background: #f8fafc;
-            position: relative;
-        }
-        
-        model-viewer {
-            width: 100%;
-            height: 100%;
-            background-color: transparent;
-        }
-        
-        .model-viewer-label {
-            position: absolute;
-            bottom: 8px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            pointer-events: none;
-        }
-        
-        .model-viewer-label span {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            color: #B21830;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        .mapboxgl-ctrl-top-right {
+            top: 75px !important;
+            right: 12px !important;
         }
     </style>
 </head>
@@ -140,11 +114,8 @@ export const mapHtmlString = `<!DOCTYPE html>
     <div id="map"></div>
 
     <script>
+        const DEFAULT_MAPBOX_TOKEN = "__MAPBOX_TOKEN__";
         const WMSU_CENTER = [122.0605, 6.9122]; // Lng, Lat
-        const wmsuBounds = [
-            [122.0575, 6.9095], // SW
-            [122.064, 6.9155], // NE
-        ];
 
         let map = null;
         let markers = [];
@@ -156,6 +127,23 @@ export const mapHtmlString = `<!DOCTYPE html>
         let sourceBuildingId = null;
         let activeFullRouteCoords = null;
         let activeTargetId = null;
+        let shouldRefitRoute = false;
+
+        // Bridge logging helper
+        function sendBridgeLog(level, message) {
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: "log",
+                    payload: { level: level, message: message },
+                    correlationId: "log_" + Date.now(),
+                    source: "WEBVIEW"
+                }));
+            }
+        }
+
+        window.onerror = function(msg, url, line, col, error) {
+            sendBridgeLog("error", msg + " (" + url + ":" + line + ":" + col + ")");
+        };
 
         function sliceRouteFromUser(coords, userCoords) {
             if (!coords || coords.length < 2) return coords;
@@ -201,137 +189,147 @@ export const mapHtmlString = `<!DOCTYPE html>
 
         function initializeMap(token) {
             if (map) return;
-            mapboxgl.accessToken = token;
+            const activeToken = token || DEFAULT_MAPBOX_TOKEN;
+            mapboxgl.accessToken = activeToken;
             
-            map = new mapboxgl.Map({
-                container: 'map',
-                style: 'mapbox://styles/mapbox/streets-v12',
-                center: WMSU_CENTER,
-                zoom: 16,
-                minZoom: 15,
-                maxBounds: wmsuBounds,
-                pitch: 45, // Add 3D pitch
-                bearing: 0
-            });
+            try {
+                map = new mapboxgl.Map({
+                    container: 'map',
+                    style: 'mapbox://styles/mapbox/streets-v12',
+                    center: WMSU_CENTER,
+                    zoom: 16.5,
+                    pitch: 45,
+                    bearing: -15,
+                    attributionControl: false
+                });
 
-            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+                map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
+                map.addControl(new mapboxgl.NavigationControl({ showCompass: true, showZoom: true }), 'top-right');
 
-            map.on('load', () => {
-                mapInitialized = true;
-                
-                // Add 3D building extrusions if the style supports it
-                try {
-                    if (map.getSource('composite')) {
+                map.on('load', () => {
+                    mapInitialized = true;
+                    sendBridgeLog("info", "Mapbox map loaded successfully");
+                    
+                    // Add 3D building extrusions
+                    try {
+                        const layers = map.getStyle().layers;
+                        const labelLayerId = layers && layers.find(
+                            (layer) => layer.type === 'symbol' && layer.layout && layer.layout['text-field']
+                        )?.id;
+
+                        if (map.getSource('composite')) {
+                            map.addLayer(
+                                {
+                                    'id': '3d-buildings',
+                                    'source': 'composite',
+                                    'source-layer': 'building',
+                                    'filter': ['==', 'extrude', 'true'],
+                                    'type': 'fill-extrusion',
+                                    'minzoom': 15,
+                                    'paint': {
+                                        'fill-extrusion-color': '#d1d5db',
+                                        'fill-extrusion-height': [
+                                            'interpolate',
+                                            ['linear'],
+                                            ['zoom'],
+                                            15,
+                                            0,
+                                            15.05,
+                                            ['get', 'height']
+                                        ],
+                                        'fill-extrusion-base': [
+                                            'interpolate',
+                                            ['linear'],
+                                            ['zoom'],
+                                            15,
+                                            0,
+                                            15.05,
+                                            ['get', 'min_height']
+                                        ],
+                                        'fill-extrusion-opacity': 0.65
+                                    }
+                                },
+                                labelLayerId
+                            );
+                        }
+                    } catch (e) {
+                        console.log('3D buildings layer notice:', e);
+                    }
+
+                    // Add route sources and layers
+                    if (!map.getSource('route')) {
+                        map.addSource('route', {
+                            type: 'geojson',
+                            data: { type: 'FeatureCollection', features: [] }
+                        });
+                    }
+
+                    if (!map.getLayer('route-line-casing')) {
                         map.addLayer({
-                            'id': '3d-buildings',
-                            'source': 'composite',
-                            'source-layer': 'building',
-                            'filter': ['==', 'extrude', 'true'],
-                            'type': 'fill-extrusion',
-                            'minzoom': 15,
-                            'paint': {
-                                'fill-extrusion-color': '#aaa',
-                                'fill-extrusion-height': ['get', 'height'],
-                                'fill-extrusion-base': ['get', 'min_height'],
-                                'fill-extrusion-opacity': 0.6
+                            id: 'route-line-casing',
+                            type: 'line',
+                            source: 'route',
+                            layout: {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            paint: {
+                                'line-color': '#FFFFFF',
+                                'line-width': 8,
                             }
                         });
                     }
-                } catch (e) {
-                    console.log('Skipping 3D buildings layer (not supported by this map style)');
-                }
 
-                // Add source and layers for fog of war
-                map.addSource('fog', {
-                    type: 'geojson',
-                    data: getFogGeoJSON([], null)
-                });
-                
-                map.addLayer({
-                    id: 'fog-layer',
-                    type: 'fill',
-                    source: 'fog',
-                    paint: {
-                        'fill-color': '#ffffff',
-                        'fill-opacity': 0.85
+                    if (!map.getLayer('route-line')) {
+                        map.addLayer({
+                            id: 'route-line',
+                            type: 'line',
+                            source: 'route',
+                            layout: {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            paint: {
+                                'line-color': '#B21830',
+                                'line-width': 5,
+                            }
+                        });
+                    }
+
+                    // Notify React Native that map is ready to receive data
+                    if (window.ReactNativeWebView) {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: "map_ready",
+                            payload: {},
+                            correlationId: "map_load_" + Date.now(),
+                            source: "WEBVIEW"
+                        }));
+                    }
+
+                    if (window.lastMapData) {
+                        processUpdateMap(window.lastMapData);
                     }
                 });
 
-                // Add source and layers for routing
-                map.addSource('route', {
-                    type: 'geojson',
-                    data: { type: 'FeatureCollection', features: [] }
+                map.on('error', (e) => {
+                    sendBridgeLog("error", "Mapbox internal error: " + (e.error ? e.error.message : JSON.stringify(e)));
                 });
-
-                map.addLayer({
-                    id: 'route-line',
-                    type: 'line',
-                    source: 'route',
-                    layout: {
-                        'line-join': 'round',
-                        'line-cap': 'round'
-                    },
-                    paint: {
-                        'line-color': '#B21830',
-                        'line-width': 6,
-                    }
-                });
-
-                if (window.lastMapData) {
-                    processUpdateMap(window.lastMapData);
-                }
-            });
-        }
-
-        function getFogGeoJSON(unlockedCoords, userCoords) {
-            const worldPolygon = turf.polygon([[
-                [-180, -90],
-                [180, -90],
-                [180, 90],
-                [-180, 90],
-                [-180, -90]
-            ]]);
-
-            const campusPolygon = turf.polygon([[
-                [122.0575, 6.9095], // SW
-                [122.064, 6.9095], // SE
-                [122.064, 6.9155], // NE
-                [122.0575, 6.9155], // NW
-                [122.0575, 6.9095], // SW
-            ]]);
-
-            let mask = turf.difference(worldPolygon, campusPolygon);
-
-            if (userCoords) {
-                const isOutside = userCoords[1] > 6.9155 || userCoords[1] < 6.9095 || userCoords[0] > 122.064 || userCoords[0] < 122.0575;
-                if (isOutside) {
-                    const userCircle = turf.circle(userCoords, 150, {steps: 64, units: 'meters'});
-                    mask = turf.difference(mask, userCircle);
-                }
+            } catch (err) {
+                sendBridgeLog("error", "Failed to construct mapboxgl.Map: " + err.message);
             }
-            
-            unlockedCoords.forEach(coords => {
-                const isOutside = coords[1] > 6.9155 || coords[1] < 6.9095 || coords[0] > 122.064 || coords[0] < 122.0575;
-                if (isOutside) {
-                    const buildingCircle = turf.circle(coords, 150, {steps: 64, units: 'meters'});
-                    if (mask) mask = turf.difference(mask, buildingCircle);
-                }
-            });
-
-            return mask || turf.featureCollection([]);
         }
 
         function processUpdateMap(data) {
-            if (!mapInitialized) return;
+            if (!mapInitialized || !map) return;
             
-            const { buildings, unlockedIds, userLocation } = data;
+            const buildings = data.buildings || [];
+            const unlockedIds = data.unlockedIds || [];
+            const userLocation = data.userLocation || null;
             
             // Clear existing markers
             markers.forEach(m => m.remove());
             markers = [];
 
-            let unlockedCoords = [];
-            let userCoords = null;
             let boundsCoords = [];
 
             if (userLocation) {
@@ -343,7 +341,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                     : (userLocation.coords && parseFloat(userLocation.coords.longitude));
 
                 if (!isNaN(uLat) && !isNaN(uLng)) {
-                    userCoords = [uLng, uLat];
+                    const userCoords = [uLng, uLat];
                     
                     if (!userMarkerObj) {
                         const el = document.createElement('div');
@@ -375,16 +373,14 @@ export const mapHtmlString = `<!DOCTYPE html>
                 const isUnlocked = unlockedIds.includes(b.id);
                 const lng = parseFloat(b.longitude);
                 const lat = parseFloat(b.latitude);
-                const coords = [lng, lat];
+                if (isNaN(lng) || isNaN(lat)) return;
                 
+                const coords = [lng, lat];
                 if (isUnlocked) {
-                    unlockedCoords.push(coords);
                     boundsCoords.push(coords);
                 }
 
-                const bgColor = isUnlocked ? "#FFFFFF" : "rgba(255,255,255,0.8)";
-                const borderColor = isUnlocked ? "#B21830" : "#CCCCCC";
-                const iconColor = isUnlocked ? "#B21830" : "#888888";
+                const iconColor = isUnlocked ? "#B21830" : "#6B7280";
 
                 const el = document.createElement('div');
                 el.style.display = 'flex';
@@ -407,7 +403,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                     </div>\`;
                 } else {
                     iconHtml = \`
-                    <div style="width: 16px; height: 16px; background-color: \${iconColor}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>\`;
+                    <div style="width: 16px; height: 16px; background-color: \${iconColor}; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.35);"></div>\`;
                 }
 
                 el.innerHTML = labelStr + iconHtml;
@@ -417,8 +413,8 @@ export const mapHtmlString = `<!DOCTYPE html>
                     .addTo(map);
 
                 el.addEventListener('click', (e) => {
-                    e.stopPropagation(); // prevent map click
-                    if (window.ARBridge) {
+                    e.stopPropagation();
+                    if (window.ARBridge && window.ARBridge.sendMessage) {
                         window.ARBridge.sendMessage("building_click", {
                             buildingId: b.id,
                             isUnlocked: isUnlocked,
@@ -428,9 +424,13 @@ export const mapHtmlString = `<!DOCTYPE html>
                         window.ReactNativeWebView.postMessage(
                             JSON.stringify({
                                 type: "building_click",
-                                buildingId: b.id,
-                                isUnlocked: isUnlocked,
-                                name: b.name,
+                                payload: {
+                                    buildingId: b.id,
+                                    isUnlocked: isUnlocked,
+                                    name: b.name,
+                                },
+                                correlationId: "map_marker_" + Date.now(),
+                                source: "WEBVIEW"
                             })
                         );
                     }
@@ -438,9 +438,6 @@ export const mapHtmlString = `<!DOCTYPE html>
 
                 markers.push(marker);
             });
-
-            // Update fog
-            map.getSource('fog').setData(getFogGeoJSON(unlockedCoords, userCoords));
 
             // Routing
             let sourceLat = null;
@@ -473,14 +470,12 @@ export const mapHtmlString = `<!DOCTYPE html>
                     const targetLat = parseFloat(targetBuilding.latitude);
                     const targetLng = parseFloat(targetBuilding.longitude);
 
-                    // Check if we can slice existing full route from user's current GPS position
                     let slicedCoords = null;
                     if (activeFullRouteCoords && activeTargetId == targetBuildingId && !sourceBuildingId) {
                         slicedCoords = sliceRouteFromUser(activeFullRouteCoords, [sourceLng, sourceLat]);
                     }
 
                     if (slicedCoords && slicedCoords.length >= 2) {
-                        // Immediately update remaining route line on map (smooth, zero network latency)
                         if (map.getSource('route')) {
                             map.getSource('route').setData({
                                 type: 'FeatureCollection',
@@ -495,7 +490,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                             });
                         }
                     } else {
-                        // Fetch new full walking route from Mapbox
+                        // Fetch walking route from Mapbox Directions API
                         fetch('https://api.mapbox.com/directions/v5/mapbox/walking/' + sourceLng + ',' + sourceLat + ';' + targetLng + ',' + targetLat + '?geometries=geojson&access_token=' + mapboxgl.accessToken)
                             .then(res => res.json())
                             .then(routeData => {
@@ -515,6 +510,17 @@ export const mapHtmlString = `<!DOCTYPE html>
                                             coordinates: coordsToRender
                                         }
                                     });
+
+                                    if (shouldRefitRoute) {
+                                        shouldRefitRoute = false;
+                                        const routeBounds = new mapboxgl.LngLatBounds();
+                                        activeFullRouteCoords.forEach(c => routeBounds.extend(c));
+                                        map.fitBounds(routeBounds, {
+                                            padding: { top: 140, bottom: 140, left: 40, right: 40 },
+                                            maxZoom: 17,
+                                            duration: 600
+                                        });
+                                    }
                                 } else {
                                     activeFullRouteCoords = null;
                                     geojson.features.push({
@@ -525,6 +531,17 @@ export const mapHtmlString = `<!DOCTYPE html>
                                             coordinates: [[sourceLng, sourceLat], [targetLng, targetLat]]
                                         }
                                     });
+
+                                    if (shouldRefitRoute) {
+                                        shouldRefitRoute = false;
+                                        const routeBounds = new mapboxgl.LngLatBounds([sourceLng, sourceLat], [sourceLng, sourceLat]);
+                                        routeBounds.extend([targetLng, targetLat]);
+                                        map.fitBounds(routeBounds, {
+                                            padding: { top: 140, bottom: 140, left: 40, right: 40 },
+                                            maxZoom: 17,
+                                            duration: 600
+                                        });
+                                    }
                                 }
                                 if (map.getSource('route')) {
                                     map.getSource('route').setData(geojson);
@@ -548,14 +565,18 @@ export const mapHtmlString = `<!DOCTYPE html>
                             });
                     }
 
-                    // Keep camera smoothly framed on user and target building
-                    const routeBounds = new mapboxgl.LngLatBounds([sourceLng, sourceLat], [sourceLng, sourceLat]);
-                    routeBounds.extend([targetLng, targetLat]);
-                    map.fitBounds(routeBounds, {
-                        padding: { top: 120, bottom: 180, left: 50, right: 50 },
-                        maxZoom: 18,
-                        duration: 800
-                    });
+                    // If route was already cached and slicedCoords was used, fit once
+                    if (shouldRefitRoute && (slicedCoords || activeFullRouteCoords)) {
+                        shouldRefitRoute = false;
+                        const coords = slicedCoords || activeFullRouteCoords;
+                        const routeBounds = new mapboxgl.LngLatBounds();
+                        coords.forEach(c => routeBounds.extend(c));
+                        map.fitBounds(routeBounds, {
+                            padding: { top: 140, bottom: 140, left: 40, right: 40 },
+                            maxZoom: 17,
+                            duration: 600
+                        });
+                    }
                 }
             } else {
                 if (map.getSource('route')) {
@@ -565,7 +586,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                     hasInitialCentered = true;
                     const bounds = new mapboxgl.LngLatBounds(boundsCoords[0], boundsCoords[0]);
                     for (const coord of boundsCoords) bounds.extend(coord);
-                    map.fitBounds(bounds, { padding: 50, maxZoom: 18 });
+                    map.fitBounds(bounds, { padding: 60, maxZoom: 17.5 });
                 }
             }
         }
@@ -573,22 +594,25 @@ export const mapHtmlString = `<!DOCTYPE html>
         window.updateMap = function (data) {
             window.lastMapData = data;
             
-            if (!map && data.mapboxToken) {
-                initializeMap(data.mapboxToken);
+            if (data && data.mapboxToken && mapboxgl && mapboxgl.accessToken !== data.mapboxToken) {
+                mapboxgl.accessToken = data.mapboxToken;
+            }
+
+            if (!map) {
+                initializeMap((data && data.mapboxToken) || DEFAULT_MAPBOX_TOKEN);
             } else if (mapInitialized) {
-                processUpdateMap(data);
+                processUpdateMap(data || {});
             }
         };
 
         const handleRNMessage = (event) => {
             try {
                 let data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-                
-                // Support new structured payload format
-                const payloadData = data.payload ? data.payload : data;
+                const payloadData = (data && data.payload) ? data.payload : data;
+
+                if (!data) return;
 
                 if (data.type === "init" || data.type === "update") {
-                    // Update map with payload
                     window.updateMap(payloadData);
                 } else if (data.type === "draw_route") {
                     if (targetBuildingId != payloadData.buildingId || sourceBuildingId != payloadData.sourceBuildingId) {
@@ -597,23 +621,37 @@ export const mapHtmlString = `<!DOCTYPE html>
                     }
                     targetBuildingId = payloadData.buildingId;
                     sourceBuildingId = payloadData.sourceBuildingId || null;
-                    if (window.lastMapData) window.updateMap(window.lastMapData);
+                    shouldRefitRoute = true;
+                    if (window.lastMapData) processUpdateMap(window.lastMapData);
                 } else if (data.type === "clear_route") {
                     targetBuildingId = null;
                     sourceBuildingId = null;
                     activeFullRouteCoords = null;
                     activeTargetId = null;
-                    if (mapInitialized && map.getSource('route')) {
+                    shouldRefitRoute = false;
+                    if (mapInitialized && map && map.getSource('route')) {
                         map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
                     }
                 }
             } catch (e) {
                 console.error("Parse error", e);
+                sendBridgeLog("error", "Failed to handle RN message: " + e.message);
             }
         };
 
         window.addEventListener("message", handleRNMessage);
         document.addEventListener("message", handleRNMessage);
+
+        // Immediate map start
+        if (typeof mapboxgl !== 'undefined') {
+            initializeMap(DEFAULT_MAPBOX_TOKEN);
+        } else {
+            window.addEventListener('DOMContentLoaded', () => {
+                if (typeof mapboxgl !== 'undefined') {
+                    initializeMap(DEFAULT_MAPBOX_TOKEN);
+                }
+            });
+        }
     </script>
 </body>
 </html>

@@ -37,6 +37,14 @@ export default function Building3DViewerScreen() {
         buildingDescription || null,
     );
 
+    const handleBack = () => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace("/(tabs)/buildings");
+        }
+    };
+
     useEffect(() => {
         const fetchTriviaAndDetails = async () => {
             if (!buildingId) return;
@@ -178,7 +186,7 @@ export default function Building3DViewerScreen() {
             {/* Gamified Floating Back Button */}
             <TouchableOpacity
                 style={styles.floatingBackButton}
-                onPress={() => router.back()}
+                onPress={handleBack}
             >
                 <Ionicons
                     name="close"

@@ -161,7 +161,18 @@
             .floating-label.restricted::after {
                 border-color: rgba(220, 53, 69, 0.9) transparent transparent transparent;
             }
+            .floating-label.portal-label {
+                background: rgba(7, 42, 48, 0.92);
+                color: #00e5ff;
+                border: 1.5px solid #00e5ff;
+                box-shadow: 0 0 14px rgba(0, 229, 255, 0.45);
+                letter-spacing: 0.5px;
+            }
+            .floating-label.portal-label::after {
+                border-color: #00e5ff transparent transparent transparent;
+            }
             /* ── Gyroscope mode indicator pill ─────────────────────── */
+
             #gyro-indicator {
                 position: absolute;
                 top: 16px;
@@ -291,6 +302,8 @@
             let worldBounds;
 
             let hotspots = [];
+            let portalBadges = [];
+            let lastCamBroadcastTime = 0;
             const tapRaycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
 
@@ -459,6 +472,16 @@
 
                     if (intersects.length > 0) {
                         let hit = intersects[0].object;
+                        if (hit.userData.isPortal) {
+                            window.ReactNativeWebView?.postMessage(
+                                JSON.stringify({
+                                    type: "portal_clicked",
+                                    sceneId: hit.userData.sceneId,
+                                    sceneTitle: hit.userData.sceneTitle,
+                                })
+                            );
+                            return;
+                        }
                         if (hit.userData.title) {
                             activeHotspot = hit; 
                             document.getElementById("info-title").textContent = hit.userData.title;
@@ -811,6 +834,94 @@
                             hotspots.push(hitBox);
                         };
 
+                        // Unit 30: 360 Panorama Portal Badges
+                        const createPortalBadge = (sceneData) => {
+                            const x = sceneData.anchor_x;
+                            const y = sceneData.anchor_y != null ? sceneData.anchor_y : 1.6;
+                            const z = sceneData.anchor_z;
+                            const title = sceneData.title || "360° Room";
+
+                            const portalGroup = new THREE.Group();
+                            portalGroup.position.set(x, y, z);
+
+                            // Outer Glowing Cyan Ring
+                            const outerRingGeom = new THREE.RingGeometry(0.35, 0.42, 32);
+                            const outerRingMat = new THREE.MeshBasicMaterial({
+                                color: 0x00E5FF,
+                                side: THREE.DoubleSide,
+                                transparent: true,
+                                opacity: 0.9,
+                            });
+                            const outerRing = new THREE.Mesh(outerRingGeom, outerRingMat);
+                            portalGroup.add(outerRing);
+
+                            // Inner Pulsing Cyan Accent Ring
+                            const innerRingGeom = new THREE.RingGeometry(0.24, 0.28, 32);
+                            const innerRingMat = new THREE.MeshBasicMaterial({
+                                color: 0x96C0CE,
+                                side: THREE.DoubleSide,
+                                transparent: true,
+                                opacity: 0.8,
+                            });
+                            const innerRing = new THREE.Mesh(innerRingGeom, innerRingMat);
+                            portalGroup.add(innerRing);
+
+                            // Center Disc with 360° Icon Canvas Texture
+                            const pCanvas = document.createElement("canvas");
+                            pCanvas.width = 128;
+                            pCanvas.height = 128;
+                            const pCtx = pCanvas.getContext("2d");
+                            pCtx.fillStyle = "rgba(7, 42, 48, 0.88)";
+                            pCtx.beginPath();
+                            pCtx.arc(64, 64, 60, 0, Math.PI * 2);
+                            pCtx.fill();
+                            pCtx.lineWidth = 4;
+                            pCtx.strokeStyle = "#00e5ff";
+                            pCtx.stroke();
+                            pCtx.fillStyle = "#ffffff";
+                            pCtx.font = "bold 40px sans-serif";
+                            pCtx.textAlign = "center";
+                            pCtx.textBaseline = "middle";
+                            pCtx.fillText("360°", 64, 64);
+
+                            const pTexture = new THREE.CanvasTexture(pCanvas);
+                            const centerGeom = new THREE.PlaneGeometry(0.44, 0.44);
+                            const centerMat = new THREE.MeshBasicMaterial({
+                                map: pTexture,
+                                transparent: true,
+                                side: THREE.DoubleSide,
+                            });
+                            const centerMesh = new THREE.Mesh(centerGeom, centerMat);
+                            portalGroup.add(centerMesh);
+
+                            // Clickable Invisible Hitbox
+                            const hitBoxGeom = new THREE.SphereGeometry(0.55, 12, 12);
+                            const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
+                            const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
+
+                            // HTML Floating Label
+                            const labelDiv = document.createElement("div");
+                            labelDiv.className = "floating-label portal-label";
+                            labelDiv.innerHTML = `${title}<br><span style="font-size:10px;color:#00E5FF;font-weight:bold;">TAP TO ENTER 360°</span>`;
+                            document.getElementById("floating-labels").appendChild(labelDiv);
+
+
+                            hitBox.userData = {
+                                isPortal: true,
+                                sceneId: sceneData.id,
+                                sceneTitle: title,
+                                parentGroup: portalGroup,
+                                pulseMesh: innerRing,
+                                outerRing: outerRing,
+                                labelDiv: labelDiv,
+                            };
+
+                            portalGroup.add(hitBox);
+                            scene.add(portalGroup);
+                            hotspots.push(hitBox);
+                            portalBadges.push(hitBox);
+                        };
+
                         // Load Dynamic Hotspots from the Database
                         if (
                             window.buildingHotspots &&
@@ -828,6 +939,17 @@
                                 );
                             });
                         }
+
+                        // Load 360 Panorama Portals from window.panoramaScenes
+                        if (
+                            window.panoramaScenes &&
+                            window.panoramaScenes.length > 0
+                        ) {
+                            window.panoramaScenes.forEach((sceneData) => {
+                                createPortalBadge(sceneData);
+                            });
+                        }
+
 
                         document.getElementById("loading").style.display =
                             "none";
@@ -879,6 +1001,7 @@
                 const time = performance.now() * 0.003;
 
                 hotspots.forEach((h) => {
+                    if (h.userData.isPortal) return;
                     const npcGroup = h.userData.parentGroup;
                     const rightArm = h.userData.rightArm;
                     const labelDiv = h.userData.labelDiv;
@@ -920,6 +1043,52 @@
                         labelDiv.style.top = `${y}px`;
                     }
                 });
+
+                // Animate 360 Portal Badges (Unit 30)
+                portalBadges.forEach((p) => {
+                    const pGroup = p.userData.parentGroup;
+                    const labelDiv = p.userData.labelDiv;
+                    // Always face the camera
+                    pGroup.quaternion.copy(camera.quaternion);
+
+                    // Pulse animation
+                    if (p.userData.pulseMesh) {
+                        const s = 1 + Math.sin(time * 3) * 0.08;
+                        p.userData.pulseMesh.scale.set(s, s, s);
+                    }
+
+                    // Position floating HTML label above portal
+                    pGroup.getWorldPosition(tempVector);
+                    const dist = tempVector.distanceTo(camera.position);
+                    tempVector.y += 0.55;
+                    tempVector.project(camera);
+
+                    if (tempVector.z > 1 || dist > 25) {
+                        labelDiv.style.opacity = "0";
+                    } else {
+                        const opacity = dist < 8 ? "1" : Math.max(0, 1 - (dist - 8) / 8).toFixed(2);
+                        labelDiv.style.opacity = opacity;
+                        const lx = (tempVector.x * 0.5 + 0.5) * window.innerWidth;
+                        const ly = (tempVector.y * -0.5 + 0.5) * window.innerHeight;
+                        labelDiv.style.left = `${lx}px`;
+                        labelDiv.style.top = `${ly}px`;
+                    }
+                });
+
+                // Broadcast camera position at ~10 FPS for mobile proximity HUD (Unit 30)
+                const now = performance.now();
+                if (now - lastCamBroadcastTime > 100) {
+                    lastCamBroadcastTime = now;
+                    window.ReactNativeWebView?.postMessage(
+                        JSON.stringify({
+                            type: "camera_position",
+                            x: Number(camera.position.x.toFixed(2)),
+                            y: Number(camera.position.y.toFixed(2)),
+                            z: Number(camera.position.z.toFixed(2)),
+                        })
+                    );
+                }
+
 
                 if (model) {
                     // Apply gyroscope camera rotation FIRST (before movement processing)
@@ -1135,14 +1304,27 @@
                         }
                     });
                 }
+                if (portalBadges && portalBadges.length > 0) {
+                    portalBadges.forEach((p) => {
+                        if (p.userData && p.userData.labelDiv && p.userData.labelDiv.parentNode) {
+                            p.userData.labelDiv.parentNode.removeChild(p.userData.labelDiv);
+                        }
+                    });
+                    portalBadges = [];
+                }
                 renderer.dispose();
                 controls.dispose();
             }
+
 
             // ── Message Handlers (window + document for Android WebView) ──
             function handleIncomingMessage(data) {
                 if (data.type === "init") {
                     window.buildingHotspots = data.hotspots || [];
+                    // Unit 30: Store panorama scene anchors for portal badge spawning
+                    window.panoramaScenes = (data.panoramaScenes || []).filter(
+                        (s) => s.anchor_x != null && s.anchor_z != null
+                    );
                     init(data.modelUrl, data.controlMode || "joystick");
                 } else if (data.type === "gyro_data") {
                     // Native sensor data bridged from React Native expo-sensors DeviceMotion
