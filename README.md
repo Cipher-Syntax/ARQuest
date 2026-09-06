@@ -35,7 +35,13 @@ It enforces strict Role-Based Access Control (RBAC) across four distinct user ro
 ### 📍 GPS Geofencing & Campus Map Navigation
 - Real-time location detection with automated campus building discoveries.
 - Defines precise polygon and circular geofence boundaries per campus facility.
-- Powered by the **Mapbox API** for interactive 2D maps, building search, and walking routes.
+- High-performance vector map display powered by Mapbox GL.
+
+### 🚶 Custom WMSU Campus Pedestrian Navigation (A* Routing Engine)
+- **Self-Sovereign Routing Network**: Fully replaces external Mapbox Directions API with an internal WMSU walking network owned, stored, and calculated by ARQuest.
+- **A\* Shortest-Path Algorithm**: Django backend computes optimal pedestrian routes between any campus location and building entrance over a real-geometry walkway graph.
+- **Live GeoJSON Integration**: Dynamically streams route geometry and distance estimations directly to the mobile app's Mapbox rendering layer.
+- **Admin Satellite Walking Network Editor**: Intuitive web GIS interface allowing administrators to place waypoint nodes (Entrances, Walkways, Gates, POIs) and trace multi-point walkways directly on satellite imagery, featuring real-time connection snapping and automatic pruning of disconnected ways.
 
 ### 🧭 Native Spatial AR Navigation (ViroReact)
 - **3D Ground Chevrons**: Projects glowing crimson and gold ground chevrons guiding users to their destination.
@@ -49,9 +55,10 @@ It enforces strict Role-Based Access Control (RBAC) across four distinct user ro
 - **Interactive Quizzes & Trivia**: Contextual trivia facts and building quizzes reinforcing institutional knowledge.
 - **Global Leaderboard & Badges**: Real-time student rankings with tiered badges and level titles.
 
-### 🏢 3D Building Inspection & 360° Virtual Walkthroughs
+### 🏢 3D Building Inspection, 360° Virtual Walkthroughs & Spatial Linking
 - **Interactive 3D Models**: Touch-based rotation, zoom, and spatial inspection of `.glb/.gltf` campus structures.
 - **360° Panoramic Walkthroughs**: Indoor exploration via interactive spatial hotspots (Entrance → Hallway → Office → Labs).
+- **Hybrid 3D-to-360° Spatial Linking**: Seamless context-aware transitions between the First-Person 3D Virtual Tour and real-world 360° photo spheres via in-world 3D portal badges ($Y \approx 1.6\text{m}$) and proximity-sensing dynamic HUD prompts.
 - **Magic Window VR (Accreditor Mode)**: Gyroscope-enabled first-person virtual tour for remote institutional evaluation.
 
 ### 🛡️ Account Settings, Preferences & Self-Service Deactivation
@@ -62,6 +69,7 @@ It enforces strict Role-Based Access Control (RBAC) across four distinct user ro
 
 ### 📊 Real-Time Admin Web Dashboard (React 19 & Vite)
 - **Live Operational Status**: Real-time campus health, total facilities, active students, and daily foot traffic.
+- **Campus Walking Network Manager**: Full authoring suite for campus navigation nodes, multi-point walkway paths, real-time connectivity metrics, and route diagnostics.
 - **Interactive Recharts Visualizations**: Daily, weekly, monthly, and yearly foot traffic trends with Bar/Area graph toggles.
 - **Content Coverage Matrix**: Real-time deployment tracking for 360° panoramas, geofences, quests, and quizzes.
 - **User Role Composition**: Real-time distribution breakdown across Students, Accreditors, Visitors, and Admins.

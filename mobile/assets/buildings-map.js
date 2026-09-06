@@ -115,6 +115,8 @@ export const mapHtmlString = `<!DOCTYPE html>
 
     <script>
         const DEFAULT_MAPBOX_TOKEN = "__MAPBOX_TOKEN__";
+        let ARQUEST_API_BASE = "__ARQUEST_API_BASE__";
+        let ARQUEST_AUTH_TOKEN = "__ARQUEST_AUTH_TOKEN__";
         const WMSU_CENTER = [122.0605, 6.9122]; // Lng, Lat
 
         let map = null;
@@ -490,15 +492,22 @@ export const mapHtmlString = `<!DOCTYPE html>
                             });
                         }
                     } else {
-                        // Fetch walking route from Mapbox Directions API
-                        fetch('https://api.mapbox.com/directions/v5/mapbox/walking/' + sourceLng + ',' + sourceLat + ';' + targetLng + ',' + targetLat + '?geometries=geojson&access_token=' + mapboxgl.accessToken)
+                        // Fetch walking route from ARQuest Campus Navigation API
+                        const routeUrl = ARQUEST_API_BASE + '/api/navigation/route/?from_lat=' + sourceLat + '&from_lng=' + sourceLng + '&to_building_id=' + targetBuildingId;
+                        const routeHeaders = { 'Content-Type': 'application/json' };
+                        if (ARQUEST_AUTH_TOKEN && ARQUEST_AUTH_TOKEN !== '__ARQUEST_AUTH_TOKEN__') {
+                            routeHeaders['Authorization'] = 'Bearer ' + ARQUEST_AUTH_TOKEN;
+                        }
+                        fetch(routeUrl, {
+                            headers: routeHeaders
+                        })
                             .then(res => res.json())
                             .then(routeData => {
                                 let geojson = { type: 'FeatureCollection', features: [] };
-                                if (routeData && routeData.routes && routeData.routes.length > 0) {
-                                    activeFullRouteCoords = routeData.routes[0].geometry.coordinates;
+                                if (routeData && routeData.success && routeData.data && routeData.data.features && routeData.data.features.length > 0) {
+                                    activeFullRouteCoords = routeData.data.features[0].geometry.coordinates;
                                     activeTargetId = targetBuildingId;
-                                    
+
                                     const initialSlice = !sourceBuildingId ? sliceRouteFromUser(activeFullRouteCoords, [sourceLng, sourceLat]) : null;
                                     const coordsToRender = (initialSlice && initialSlice.length >= 2) ? initialSlice : activeFullRouteCoords;
 
@@ -522,6 +531,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                                         });
                                     }
                                 } else {
+                                    // Fallback: straight line if no route graph exists yet
                                     activeFullRouteCoords = null;
                                     geojson.features.push({
                                         type: 'Feature',
@@ -548,7 +558,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                                 }
                             })
                             .catch(err => {
-                                console.error('Route fetch error:', err);
+                                console.error('ARQuest route fetch error:', err);
                                 if (map.getSource('route')) {
                                     map.getSource('route').setData({
                                         type: 'FeatureCollection',
@@ -597,6 +607,12 @@ export const mapHtmlString = `<!DOCTYPE html>
             if (data && data.mapboxToken && mapboxgl && mapboxgl.accessToken !== data.mapboxToken) {
                 mapboxgl.accessToken = data.mapboxToken;
             }
+            if (data && data.apiBase) {
+                ARQUEST_API_BASE = data.apiBase;
+            }
+            if (data && data.authToken) {
+                ARQUEST_AUTH_TOKEN = data.authToken;
+            }
 
             if (!map) {
                 initializeMap((data && data.mapboxToken) || DEFAULT_MAPBOX_TOKEN);
@@ -615,6 +631,12 @@ export const mapHtmlString = `<!DOCTYPE html>
                 if (data.type === "init" || data.type === "update") {
                     window.updateMap(payloadData);
                 } else if (data.type === "draw_route") {
+                    if (payloadData && payloadData.apiBase) {
+                        ARQUEST_API_BASE = payloadData.apiBase;
+                    }
+                    if (payloadData && payloadData.authToken) {
+                        ARQUEST_AUTH_TOKEN = payloadData.authToken;
+                    }
                     if (targetBuildingId != payloadData.buildingId || sourceBuildingId != payloadData.sourceBuildingId) {
                         activeFullRouteCoords = null;
                         activeTargetId = null;

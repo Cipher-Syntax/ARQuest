@@ -23,6 +23,7 @@ import ArchivePage from "../pages/ArchivePage";
 import FeedbackPage from "../pages/FeedbackPage";
 import HistoryPage from "../pages/HistoryPage";
 import ModelCompressorPage from "../pages/ModelCompressorPage";
+import NavigationPage from "../pages/NavigationPage";
 
 const App = () => {
     return (
@@ -71,6 +72,7 @@ const App = () => {
                         <Route path="feedback" element={<FeedbackPage />} />
                         <Route path="history" element={<HistoryPage />} />
                         <Route path="compressor" element={<ModelCompressorPage />} />
+                        <Route path="navigation" element={<NavigationPage />} />
                     </Route>
                 </Routes>
             </AuthProvider>

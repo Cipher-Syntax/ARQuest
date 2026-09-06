@@ -16,25 +16,27 @@ graph LR
         M2["GPS & Sensor Telemetry\n(Location · Heading · Gyro)"]
         M3["Geofencing Engine\n(Haversine + Backend Validation)"]
         M4["Spatial AR Navigation\n(ViroReact Chevrons + Off-Screen Turn Indicators)"]
-        M5["Asset & 3D Cache\n(Three.js · 360° VR Tours)"]
-        M6["Gamification Arena\n(Quests · Badges · EXP · Streaks)"]
-        M7["Settings, Preferences & Feedback\n(SoundManager · CustomAlert)"]
+        M5["Custom Pedestrian Router\n(ARQuest Route Streamer · Mapbox Visualizer)"]
+        M6["Asset & 3D Cache\n(Three.js · 360° VR Tours · Spatial Linking)"]
+        M7["Gamification Arena\n(Quests · Badges · EXP · Streaks)"]
+        M8["Settings, Preferences & Feedback\n(SoundManager · CustomAlert)"]
     end
 
     subgraph BACKEND ["Django Backend\nDjango 5 · DRF · SimpleJWT"]
         B1["/api/auth/\nauth · profile · password · deactivation"]
         B2["/api/buildings/\nfacilities · geofences · unlocks"]
         B3["/api/geofencing/\nlocation proximity validation"]
-        B4["/api/panorama/\n360 scenes · hotspots"]
-        B5["/api/gamification/\nquests · challenges · leaderboard · badges"]
-        B6["/api/quizzes/\ntrivia · building quizzes"]
-        B7["/api/feedback/ & /api/notifications/\nuser issues · audit stream"]
-        B8["/api/dashboard/\nreal-time stats & foot traffic aggregations"]
-        B9["RBAC Permission Engine\nIsStudent · IsAdmin · IsProfessional"]
+        B4["/api/navigation/\nNavigationNode · NavigationPath · A* Engine · GeoJSON Route"]
+        B5["/api/panorama/\n360 scenes · hotspots · spatial anchors (X,Y,Z)"]
+        B6["/api/gamification/\nquests · challenges · leaderboard · badges"]
+        B7["/api/quizzes/\ntrivia · building quizzes"]
+        B8["/api/feedback/ & /api/notifications/\nuser issues · audit stream"]
+        B9["/api/dashboard/\nreal-time stats & foot traffic aggregations"]
+        B10["RBAC Permission Engine\nIsStudent · IsAdmin · IsProfessional"]
     end
 
     subgraph DATA ["Data Layer"]
-        DB[("PostgreSQL\n18 models · 7 domain apps")]
+        DB[("PostgreSQL\n20 models · 8 domain apps")]
         MEDIA["Media Storage\nmodels/ · panoramas/ · assets/"]
     end
 
@@ -42,11 +44,12 @@ graph LR
         W1["Auth + JWT State\n(localStorage / useAuth)"]
         W2["Real-Time Dashboard Overview\n(KPIs · Foot Traffic Charts · Coverage)"]
         W3["Buildings · Departments · Geofences\nArchive & Soft-Delete"]
-        W4["Panorama Manager\n(360° scenes · interactive hotspots)"]
-        W5["CMS Gamification\n(quests · trivia · quizzes · badges)"]
-        W6["User Management & Role Provisioning\n(Students · Accreditors · Admins)"]
-        W7["Feedback Radar & System History Logs\n(mobile bug reports · audit trail)"]
-        W8["System Settings & Feature Toggles"]
+        W4["Walking Paths Network Editor\n(Satellite Node Dropper · Path Tracing · Disconnected Way Pruner)"]
+        W5["Panorama Manager\n(360° scenes · interactive hotspots · 3D anchors)"]
+        W6["CMS Gamification\n(quests · trivia · quizzes · badges)"]
+        W7["User Management & Role Provisioning\n(Students · Accreditors · Admins)"]
+        W8["Feedback Radar & System History Logs\n(mobile bug reports · audit trail)"]
+        W9["System Settings & Feature Toggles"]
     end
 
     MOBILE -->|"REST API\n(JWT Bearer)"| BACKEND
@@ -75,6 +78,7 @@ graph TD
         GEO_SVC["geofencing/geofencingService.js\nfetchGeofences · validateLocation"]
         UNLOCK_SVC["core/unlockService.js\nunlockBuilding · unlockByQR"]
         GAME_SVC["gamification/gamificationService.js\nfetchQuests · submitQuiz · checkin"]
+        NAV_SVC["navigation/navigationService.js\nfetchRoute · fetchNodes · A* GeoJSON"]
     end
 
     subgraph HOOKS ["Hooks (src/hooks/)"]
@@ -86,16 +90,16 @@ graph TD
 
     subgraph SCREENS ["Application Screens"]
         SCR_AUTH["app/(auth)/\nLogin (Reactivation) · Register · OTP · Avatar"]
-        SCR_TABS["app/(tabs)/\nHome · Explore (Mapbox) · Spatial AR · Directory · Profile"]
+        SCR_TABS["app/(tabs)/\nHome · Explore (Mapbox & A* Route) · Spatial AR · Directory · Profile"]
         SCR_SETTINGS["app/\nAccount Settings · App Preferences · Visited Buildings (Passport)\nAbout ARQuest · Terms · Privacy"]
         MODALS["components/ui/\nFeedbackModal · CustomAlert · OnboardingTutorial"]
     end
 
-    subgraph AR_AND_3D ["Spatial AR & 3D Visualizers"]
+    subgraph AR_AND_3D ["Spatial AR, Navigation & 3D Visualizers"]
         VIRO_AR["Spatial AR (ViroReact)\n3D Ground Chevrons · Heading EMA\n2D Off-Screen Turn Indicators"]
         WV_3D["Building3DViewer (Three.js)\nGLTFLoader · OrbitControls · PBR"]
-        WV_PANO["PanoramaViewer (Three.js)\nEquirectangular 360° Sphere · Hotspots"]
-        WV_VR["VirtualTourViewer (Three.js)\nMagic Window VR · Gyroscope Control"]
+        WV_PANO["PanoramaViewer (Three.js)\nEquirectangular 360° Sphere · Hotspots\nSpatial Anchor Alignment (X,Y,Z)"]
+        WV_VR["VirtualTourViewer (Three.js)\nFirst-Person 3D Tour · In-World 3D Portals\nProximity HUD · Two-Way Spatial Linking"]
     end
 
     AUTH_CTX --> API_JS
@@ -103,8 +107,10 @@ graph TD
     API_JS --> GEO_SVC
     API_JS --> UNLOCK_SVC
     API_JS --> GAME_SVC
+    API_JS --> NAV_SVC
 
     LOC_CTX --> GEO_SVC
+    LOC_CTX --> NAV_SVC
     UNLOCK_CTX --> UNLOCK_SVC
 
     SCREENS --> USE_AUTH
@@ -112,21 +118,9 @@ graph TD
     SCREENS --> USE_UNLOCK
     SCREENS --> SOUND_MGR
     SCREENS --> AR_AND_3D
+    SCREENS --> NAV_SVC
 
-    USE_GPS --> GEO_SVC
-    USE_UNLOCK --> UNLOCK_SVC
-    USE_CACHE --> ASSET_SVC
-    USE_ROLE --> ROLE_SVC
-
-    AUTH_SCREENS --> AUTH_SVC
-    TAB_SCREENS --> USE_GPS
-    TAB_SCREENS --> USE_UNLOCK
-    TAB_SCREENS --> USE_ROLE
-    SCR_AR --> USE_CACHE
-
-    SCR_3D --> WV_3D
-    SCR_PANO --> WV_PANO
-    SCR_VT --> WV_VR
+    WV_VR <-->|"Two-Way Spatial Jump (Unit 30)"| WV_PANO
 ```
 
 ---
@@ -143,6 +137,7 @@ graph TD
         URL_AUTH["/api/auth/"]
         URL_BLDG["/api/buildings/"]
         URL_GEO["/api/geofencing/"]
+        URL_NAV["/api/navigation/"]
         URL_PANO["/api/panorama/"]
         URL_GAME["/api/gamification/"]
         URL_ASSET["/api/assets/"]
@@ -182,8 +177,16 @@ graph TD
         EP_GEO_VAL["POST  validate/\nHaversine distance check\nstatus: inside · nearby · outside · weak_signal"]
     end
 
+    subgraph NAV_APP ["App: navigation"]
+        EP_N_NODES["GET/POST  nodes/\nWaypoint CRUD (entrance, walkway, gate, poi)"]
+        EP_N_NODE["GET/PATCH/DELETE  nodes/{id}/"]
+        EP_N_PATHS["GET/POST  paths/\nMulti-coordinate walkway geometry"]
+        EP_N_PATH["GET/PATCH/DELETE  paths/{id}/"]
+        EP_N_ROUTE["GET  route/\nA* routing engine\nfrom_lat, from_lng, to_building_id\nReturns GeoJSON FeatureCollection"]
+    end
+
     subgraph PANO_APP ["App: panorama"]
-        EP_P_SCENES["GET/POST  buildings/{id}/scenes/"]
+        EP_P_SCENES["GET/POST  buildings/{id}/scenes/\nincludes 3D spatial anchors (pos_x, pos_y, pos_z)"]
         EP_P_SCENE["GET/PATCH/DELETE  scenes/{id}/admin/"]
         EP_P_WALK["GET  buildings/{id}/walkthrough/"]
         EP_P_HOTSPOT["GET/POST  scenes/{id}/hotspots/"]
@@ -237,6 +240,7 @@ graph TD
     URL_AUTH --> AUTH_APP
     URL_BLDG --> BLDG_APP
     URL_GEO  --> GEO_APP
+    URL_NAV  --> NAV_APP
     URL_PANO --> PANO_APP
     URL_GAME --> GAME_APP
     URL_API  --> API_APP
@@ -248,6 +252,7 @@ graph TD
     AUTH_APP --> PG
     BLDG_APP --> PG
     GEO_APP  --> PG
+    NAV_APP  --> PG
     PANO_APP --> PG
     GAME_APP --> PG
     API_APP  --> PG
@@ -277,6 +282,7 @@ graph TD
         NAV_BLDG["Buildings"]
         NAV_DEPT["Departments"]
         NAV_GEO["Geofences"]
+        NAV_WALK["Walking Paths"]
         NAV_PANO["Panoramas"]
         NAV_MEDIA["Media"]
         NAV_QUESTS["Quests & Trivia"]
@@ -294,6 +300,7 @@ graph TD
         PG_EDIT["BuildingEditorPage.jsx\nFull CRUD + 3D model upload\nDual department selectors\nPublish status control"]
         PG_DEPT["DepartmentsPage.jsx\nCollege CRUD\nMap pin color picker"]
         PG_GEO["GeofencesPage.jsx\nMapbox map\nClick-to-place center marker\nRadius circle overlay"]
+        PG_NAV["NavigationPage.jsx\nInteractive Mapbox satellite editor\nWaypoint nodes · Walkway tracing\nDynamic connection centering\nDisconnected way auto-pruning"]
         PG_PANO["PanoramasPage.jsx\nBuilding list view"]
         PG_PANO_M["PanoramaManagerPage.jsx\n3-column layout:\nScenes · Preview · Hotspots\nyaw / pitch coordinate inputs"]
         PG_MEDIA["MediaPage.jsx\n3D model + asset file upload\nCloudinary integration"]
@@ -319,6 +326,7 @@ graph TD
         AC9["/api/settings/"]
         AC10["/api/dashboard/"]
         AC11["/api/notifications/  +  /api/feedbacks/"]
+        AC12["/api/navigation/nodes/  ·  paths/"]
     end
 
     LOGIN_PG --> PROTECTED
@@ -331,6 +339,7 @@ graph TD
     PG_EDIT  --> AC1
     PG_DEPT  --> AC2
     PG_GEO   --> AC3
+    PG_NAV   --> AC12
     PG_PANO_M --> AC4
     PG_QUESTS --> AC5
     PG_TRIVIA --> AC5
@@ -352,6 +361,7 @@ graph TD
     AXIOS --> AC9
     AXIOS --> AC10
     AXIOS --> AC11
+    AXIOS --> AC12
 ```
 
 ---
@@ -387,8 +397,13 @@ graph TD
     end
 
     subgraph PANO_TABLES ["panorama app tables"]
-        T_SCENE["PANORAMA_SCENE\nid · building_id · title\nimage · sort_order\nis_start_scene · is_active"]
+        T_SCENE["PANORAMA_SCENE\nid · building_id · title\nimage · sort_order\nis_start_scene · is_active\npos_x · pos_y · pos_z ← spatial anchor"]
         T_HOTSPOT["PANORAMA_HOTSPOT\nid · source_scene_id · target_scene_id\nlabel · yaw · pitch · is_active"]
+    end
+
+    subgraph NAV_TABLES ["navigation app tables"]
+        T_NODE["NAVIGATION_NODE\nid (UUID) · label · latitude · longitude\nnode_type (entrance/walkway/gate/poi)\nbuilding_id (FK nullable)\nis_active · created_at"]
+        T_PATH["NAVIGATION_PATH\nid (UUID) · start_node_id (FK)\nend_node_id (FK) · geometry (JSON)\ndistance_meters · is_accessible\nis_active · created_at"]
     end
 
     subgraph API_TABLE ["api app table"]
@@ -427,6 +442,9 @@ graph TD
     T_BLDG -->|"1 to many"| T_QUEST
     T_BLDG -->|"1 to many"| T_TRIVIA
     T_BLDG -->|"1 to many"| T_SCENE
+    T_BLDG -->|"1 to many"| T_NODE
+    T_NODE -->|"start_node (CASCADE)"| T_PATH
+    T_NODE -->|"end_node (CASCADE)"| T_PATH
     T_SCENE -->|"source_scene"| T_HOTSPOT
     T_SCENE -->|"target_scene"| T_HOTSPOT
     T_QUEST -->|"1 to many"| T_PROG
@@ -494,51 +512,50 @@ The mobile application uses React Native with the Expo managed workflow and targ
 
 Navigation uses `expo-router` with file-based routing. Screens are split into two route groups: `(auth)` for unauthenticated flows like login, register, and OTP verification, and `(tabs)` for the main app shell with bottom tab navigation. Full-screen feature screens such as the 3D viewer, panorama viewer, virtual tour, and leaderboard sit at the top level of the app directory and get pushed onto the navigation stack from tab screens.
 
-The service layer keeps all HTTP communication behind dedicated modules. `api.js` sets up an Axios instance that attaches the JWT access token from SecureStore to every request header and handles token refresh on 401 responses. Individual services like `authService.js`, `geofencingService.js`, `unlockService.js`, and `assetService.js` wrap specific API endpoint groups so screen components do not contain raw HTTP calls.
+The service layer keeps all HTTP communication behind dedicated modules. `api.js` sets up an Axios instance that attaches the JWT access token from SecureStore to every request header and handles token refresh on 401 responses. Dedicated services wrap specific API endpoint groups: `authService.js`, `geofencingService.js`, `unlockService.js`, `assetService.js`, and `navigationService.js`. Specifically, `navigationService.js` queries the custom `/api/navigation/route/` endpoint to stream optimal campus pedestrian paths calculated via server-side A* pathfinding, passing the resulting GeoJSON directly to the Mapbox route layer.
 
 Custom hooks sit between the services and the screens. `useLocationTracking` runs a background GPS watcher and gives screens the current coordinates and accuracy. `useUnlockedBuildings` keeps a live list of buildings the current user has access to. `useAssetCache` handles local caching of 3D model URLs and panorama data to avoid re-downloading files on repeated visits. `useRoleAccess` exposes boolean flags from the current user's role for conditional rendering.
 
-The WebView rendering layer is a deliberate boundary in the architecture. All 3D and 360 degree visualization is handed off to standalone HTML pages that run Three.js inside a React Native `WebView`. This avoids the complexity and APK size cost of integrating a native 3D engine like Unity or a full ARCore SDK. Three.js handles interactive GLB model viewing, panoramic projection, and gyroscope-based virtual tours while staying within the JavaScript ecosystem. The WebView and React Native communicate through `postMessage` events in both directions. The native layer can tell the renderer to load a scene or change a model. The renderer can notify the native layer when loading is done, when a hotspot is tapped, or when an error occurs.
+The WebView rendering layer is a deliberate boundary in the architecture. All 3D and 360 degree visualization is handed off to standalone HTML pages that run Three.js inside a React Native `WebView`. This avoids the complexity and APK size cost of integrating a native 3D engine like Unity or a full ARCore SDK. Three.js handles interactive GLB model viewing, panoramic projection, and gyroscope-based virtual tours while staying within the JavaScript ecosystem. Under Unit 30, the First-Person 3D Virtual Tour (`virtual-tour-viewer`) and 360° Photo Sphere Walkthrough (`panorama-viewer`) feature **Hybrid Spatial Linking**: in-world 3D portal badges floating at eye-level ($Y \approx 1.6\text{m}$) and real-time proximity sensing trigger direct transitions between 3D rooms and high-resolution panoramic spheres with two-way position restoration.
 
 ---
 
 ### Layer 2 - Backend API (Django 5 + Django REST Framework)
 
-The backend is a Django 5 application using Django REST Framework to serve a JSON API. It is split into five Django applications, each with a separate domain responsibility.
+The backend is a Django 5 application using Django REST Framework to serve a JSON API. It is split into eight domain applications:
 
-The `authentication` app handles everything related to user identity: registration, OTP email verification, login, logout, JWT token issuance and refresh, role-based permission classes, and professional account creation. It uses SimpleJWT with access tokens set to 60 minutes and refresh tokens set to 7 days. Refresh tokens are blacklisted on logout so they cannot be reused after a session ends. Outbound email goes through the `django-anymail` library using Brevo SMTP.
+1. The `authentication` app handles identity: registration, OTP email verification, login, logout, JWT token issuance and refresh, role-based permission classes, and professional account creation. SimpleJWT manages 60-minute access tokens and 7-day refresh tokens (blacklisted upon logout).
+2. The `buildings` app covers CRUD for buildings and departments, geofence setup, building unlock tracking, asset metadata, quest and trivia content, and the soft-delete archive system.
+3. The `geofencing` app provides stateless proximity evaluation via the Haversine formula, calculating distance to nearest buildings and emitting `inside`, `nearby`, or `outside` status flags.
+4. The `navigation` app (Unit 31) implements an internal, self-sovereign WMSU campus pedestrian routing graph. It manages `NavigationNode` (fixed GPS waypoints categorized as entrances, walkways, campus gates, or POIs) and `NavigationPath` (two-way pedestrian walkways with multi-coordinate line geometries). A server-side **A\* pathfinding engine** traverses this graph to compute the shortest walking distance and generates GeoJSON `LineString` routes for the mobile app, eliminating third-party routing dependencies.
+5. The `panorama` app manages 360° walkthroughs via `PanoramaScene` and `PanoramaHotspot`. Under Unit 30, scenes incorporate 3D spatial anchor coordinates (`pos_x`, `pos_y`, `pos_z`) to bridge physical photo spheres with digital 3D virtual tour models.
+6. The `gamification` app manages quests, limited challenges, user progress, streak counts, and tiered badges.
+7. The `quizzes` app powers building-specific trivia quiz banks and EXP reward calculation.
+8. The `api` app provides platform-wide utilities: operational health checks, aggregated foot-traffic metrics, notification dispatches, user feedback processing, and `SystemSetting` flags.
 
-The `buildings` app is the largest domain. It covers CRUD for buildings and departments, geofence setup, building unlock tracking, asset metadata, quest and trivia content, and the soft-delete archive system. The `SoftDeleteModel` abstract base class, used by `Building`, `Quest`, and `TriviaFact`, overrides Django's default `delete()` to write a `deleted_at` timestamp instead of running a SQL DELETE. A `SoftDeleteManager` filters those records out of all standard querysets so archived content is invisible to normal queries but still reachable through the archive management endpoints.
-
-The `geofencing` app has no models. It provides one stateless POST endpoint that takes GPS coordinates and accuracy from the mobile app, queries active geofences from the buildings domain, and runs a Haversine calculation for each. The response includes a status label (inside, nearby, outside, or weak signal) and the distance to the nearest building. Keeping this logic in its own app means the detection algorithm can be changed without touching the building data management code.
-
-The `panorama` app manages the two models that power 360 degree walkthroughs: `PanoramaScene` for individual panorama images and `PanoramaHotspot` for navigation links between scenes. Admin endpoints provide full CRUD on scenes and hotspots. Mobile endpoints return the full walkthrough graph for a building in a single response to keep round trips low during viewer startup.
-
-The `api` app provides system-wide utility endpoints that do not fit other domains: a health check, a dashboard stats summary for the admin homepage, and the `SystemSetting` singleton with a public read endpoint for mobile and an authenticated write endpoint for admin.
-
-All API endpoints use custom DRF permission classes for role-based access: `IsAdminRole`, `IsStudentRole`, `IsProfessionalRole`, `IsAdminOrProfessionalRole`, and `IsAuthenticatedWithRole`. These classes read the `role` field from the authenticated user object, which is parsed from the JWT token on every request. If the role does not match, the endpoint returns 403 Forbidden. Access control is always evaluated on the server regardless of what the client UI shows.
+All API endpoints use custom DRF permission classes for role-based access: `IsAdminRole`, `IsStudentRole`, `IsProfessionalRole`, `IsAdminOrProfessionalRole`, and `IsAuthenticatedWithRole`.
 
 ---
 
 ### Layer 3 - Admin Web Dashboard (React 19 + Vite)
 
-The admin web dashboard is a single-page application built with React 19 and Vite. It gives administrators a content management interface for all campus data without requiring direct database access or code changes. It is kept separate from the mobile application so it is not constrained by small screen sizes, touch interaction patterns, or app store distribution requirements.
+The admin web dashboard is a single-page application built with React 19 and Vite. It gives administrators a content management interface for all campus data without requiring direct database access or code changes.
 
-The dashboard authenticates with the same JWT tokens as the mobile app but stores them in `localStorage` instead of a hardware enclave. This is appropriate for a browser-based tool on trusted administrator machines. An Axios instance with request and response interceptors handles token attachment and automatic refresh on 401 errors, matching the mobile app's token behavior.
+The navigation is a persistent left sidebar covering: Dashboard, Buildings, Departments, Geofences, **Walking Paths**, Panoramas, Media, Quests & Trivia, Professional Accounts, User Management, Leaderboard, Archive, and Settings.
 
-The navigation is a persistent left sidebar covering all functional areas: Buildings, Departments, Geofences, Panoramas, Media, Quests, Trivia, Professional Accounts, User Management, Leaderboard, Archive, and Settings. Each section maps to a specific part of the backend API.
-
-The geofence editor is the most complex component. It embeds a Mapbox map restricted to the WMSU campus bounding box. Clicking the map places the geofence center marker and the radius circle updates live as the radius input changes. This gives immediate visual feedback on coverage area before saving, which reduces the chance of geofences being set too large or too small.
-
-The Panorama Manager uses a three-column layout with the scene list on the left, scene image preview in the center, and hotspot management on the right. Hotspot positioning uses yaw and pitch angles in degrees, matching the spherical coordinate values Three.js uses to place hotspot markers in the panorama viewer.
+The **Walking Paths Network Editor** (`NavigationPage.jsx`, Unit 31) allows administrators to construct and maintain the entire campus pedestrian network directly from their laptop using high-resolution Mapbox satellite imagery:
+- Waypoint nodes can be positioned with a click, linked to campus buildings, and categorized (Building Entrance, Walkway, Campus Gate, Point of Interest).
+- Walkway segments are drawn interactively between waypoints, capturing true multi-point sidewalk geometries and curve bends.
+- Features real-time visual connection centering (dead-center bullseye alignment) and automatic pruning of disconnected ways when waypoints are removed.
+- Allows administrators to inspect pathway lengths, estimated walking paces, and network connectivity without walking campus paths physically.
 
 ---
 
 ### Layer 4 - Data Layer (PostgreSQL and Media Storage)
 
-PostgreSQL is the relational database for all structured data. It was chosen for its relational integrity support, JSON field capability for future flexibility, and compatibility with Django's ORM. The database is only accessed through the Django ORM. No component issues raw SQL or connects directly to the database outside the backend process.
+PostgreSQL is the relational database for all structured data. It manages 20 core models across 8 domain applications, maintaining full relational integrity with `CASCADE` foreign keys on connected pathway segments and `SET_NULL` bindings on building associations. Path coordinates are stored as native JSON geometry arrays for microdegree precision.
 
-Media files including 3D models, panorama images, and building assets are stored separately from the database in a Django-managed media directory. In development this is a local filesystem path. In production it can be swapped out for an S3-compatible object store without changing application code, because all file access goes through Django's `FileField` and `ImageField` storage backends. Files are served either directly by Django in development or through a CDN or reverse proxy in production. The mobile app never bundles these files. They are always fetched on demand from URLs in API responses and cached locally by the asset cache layer.
+Media files including 3D models (`.glb/.gltf`), 360° equirectangular panoramas, and building assets are stored separately in Django's media storage pipeline, easily swappable for S3-compatible cloud storage in production.
 
 ---
 

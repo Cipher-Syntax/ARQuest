@@ -250,3 +250,112 @@ sequenceDiagram
     API-->>Dashboard: 200 OK {total_buildings, active_students, gps_unlocks, role_distribution, content_coverage, recent_activity, recent_feedbacks}
     Dashboard->>Dashboard: Render dynamic Recharts foot traffic graphs, coverage progress bars, and live activity feed
 ```
+
+---
+
+## 9. Custom WMSU Campus Pedestrian Routing Flow (Unit 31)
+
+```mermaid
+sequenceDiagram
+    actor Student
+    participant App as Mobile App (Explore Tab)
+    participant GPS as Location Sensor
+    participant API as Django Navigation API
+    participant Router as A* Routing Engine
+    participant DB as PostgreSQL
+
+    Student->>App: Tap Building Marker → Tap "Directions / Navigate"
+    App->>GPS: Obtain current location {from_lat, from_lng}
+    App->>API: GET /api/navigation/route/?from_lat=6.9120&from_lng=122.0600&to_building_id=<UUID>
+    
+    API->>DB: Query target building's entrance node
+    API->>DB: Query nearest active navigation node to user origin
+    API->>DB: Fetch all active NavigationPath segments (weights = distance_meters)
+    API->>Router: Build campus graph & run A* Shortest Path
+    Router->>Router: Compute optimal node sequence & stitch multi-coordinate geometry
+    Router-->>API: Optimal path solution (coordinates, distance_meters, est_walk_minutes)
+    
+    API-->>App: 200 OK (GeoJSON FeatureCollection: LineString, distance, duration)
+    App->>App: Update Mapbox Route Source with GeoJSON line (Electric AR Cyan)
+    App->>Student: Display turn guidance & distance banner (bypasses Mapbox Directions API)
+```
+
+---
+
+## 10. Admin Walking Paths Authoring & Real-Time Pruning Flow (Unit 31)
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant Web as Admin Web Dashboard (NavigationPage.jsx)
+    participant Map as Mapbox Satellite Map
+    participant API as Django Navigation API
+    participant DB as PostgreSQL
+
+    Admin->>Web: Navigate to "Walking Paths" in Sidebar
+    Web->>API: GET /api/navigation/nodes/ & GET /api/navigation/paths/
+    API->>DB: Query all NavigationNodes and NavigationPaths
+    API-->>Web: 200 OK {nodes: [...], paths: [...]}
+    Web->>Map: Render waypoint markers (centered pins) & GeoJSON walkway lines
+
+    %% Node Creation
+    Admin->>Map: Click satellite terrain in "Drop Waypoint" mode
+    Web->>Admin: Open "New Waypoint Node" modal (Label, Role, Linked Building)
+    Admin->>Web: Fill form (Role = "Walkway") → Tap "Save Waypoint"
+    Web->>API: POST /api/navigation/nodes/ {label, latitude, longitude, node_type: "junction"}
+    API->>DB: Insert NavigationNode
+    API-->>Web: 201 Created {node}
+    Web->>Map: Render new centered circular waypoint marker
+
+    %% Pathway Drawing
+    Admin->>Map: Select start node → Click path bends → Select destination node
+    Web->>API: POST /api/navigation/paths/ {start_node, end_node, geometry: [[lng,lat],...]}
+    API->>DB: Insert NavigationPath (auto-calculates geodesic distance_meters)
+    API-->>Web: 201 Created {path}
+    Web->>Map: Draw new connected walkway line (dead-center bullseye connection)
+
+    %% Waypoint Deletion & Auto-Pruning
+    Admin->>Web: Select waypoint node → Tap Trash icon → Confirm Delete
+    Web->>API: DELETE /api/navigation/nodes/{id}/
+    API->>DB: Delete NavigationNode (PostgreSQL cascades deletion of all attached paths)
+    API-->>Web: 204 No Content
+    Web->>Web: Filter nodes state AND synchronously prune all connected paths from paths state
+    Web->>Map: Instantly remove waypoint circle AND remove all attached walkway lines from map
+```
+
+---
+
+## 11. 3D Virtual Tour to 360° Panorama Spatial Linking Flow (Unit 30)
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant VT as VirtualTourViewer (Three.js 3D Model)
+    participant Proximity as Spatial Proximity Engine
+    participant Pano as PanoramaViewer (Three.js 360° Sphere)
+    participant API as Django Panorama API
+
+    User->>VT: Walk inside building 3D model using Virtual Joystick
+    loop Every Animation Frame
+        VT->>Proximity: Read virtual camera (X, Y, Z) coordinates
+        Proximity->>Proximity: Compare distance against PanoramaScene spatial anchors (pos_x, pos_y, pos_z)
+    end
+
+    alt Camera within 5m of Room Spatial Anchor
+        Proximity-->>VT: Room detected (e.g., "Computer Lab 1")
+        VT->>User: Update Top HUD: [ 🌐 VIEW COMPUTER LAB 1 360° ]
+        VT->>User: Render glowing 3D Portal Badge floating at doorway (Y = 1.6m)
+    else Camera outside mapped anchors (> 5m)
+        VT->>User: Display generic [ 🌐 360° PANORAMA ] button (opens Room Selector modal)
+    end
+
+    User->>VT: Tap 3D Portal Badge OR Top HUD Button
+    VT->>VT: Save current 3D camera position & orientation
+    VT->>Pano: Transition to 360° PanoramaViewer with target scene ID
+    Pano->>User: Display immersive 360° photo sphere of selected room
+
+    User->>Pano: Tap "X" (Close) Button
+    Pano-->>VT: Dismiss panorama
+    VT->>VT: Restore saved camera position & orientation
+    VT->>User: Resume first-person 3D Virtual Tour seamlessly
+```
