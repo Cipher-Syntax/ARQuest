@@ -53,7 +53,7 @@ flowchart TD
     EXPLORE --> SELECT["Select Target Building Pin"]
     SELECT --> NAV_CHOICE{"Choose Navigation Mode"}
 
-    NAV_CHOICE -->|"2D Visual Route"| MAP_ROUTE["Draw Walking Path on 2D Map"]
+    NAV_CHOICE -->|"2D Visual Route"| MAP_ROUTE["Fetch Custom WMSU Walkway Route\n(GET /api/navigation/route/)\nA* Shortest-Path Calculation\nDraw GeoJSON Path on Map (Electric Cyan)"]
     NAV_CHOICE -->|"Spatial AR Lens"| AR_SCREEN["Launch Spatial AR (ViroReact)"]
 
     AR_SCREEN --> SENSORS["Read GPS Coords + Compass Heading (Azimuth)"]
@@ -70,9 +70,11 @@ flowchart TD
     GEOFENCE -->|"Yes"| UNLOCK["Building Unlocked!\n+25 EXP Awarded + Stamp in Passport"]
     UNLOCK --> OPTIONS{"Explore Options"}
 
-    OPTIONS --> VIEW_3D["Inspect 3D Architectural Model (Three.js)"]
-    OPTIONS --> VIEW_PANO["Open 360° Indoor Walkthrough"]
+    OPTIONS --> VIEW_3D["First-Person 3D Virtual Tour (Three.js)"]
+    OPTIONS --> VIEW_PANO["360° Photo Sphere Walkthrough"]
     OPTIONS --> QUIZ["Take Building Trivia Quiz (+50 EXP)"]
+
+    VIEW_3D <-->|"Hybrid Spatial Linking (Unit 30)\n3D Doorway Portals / Proximity HUD"| VIEW_PANO
 ```
 
 ---
@@ -96,6 +98,8 @@ flowchart TD
     PANO_VIEW --> HOTSPOTS["Navigate Room-to-Room via Hotspots\n(Entrance → Hallway → Labs)"]
     PANO_VIEW --> VR_TOGGLE["Enable 'Magic Window VR' Mode"]
     VR_TOGGLE --> GYRO["Look around using Phone Gyroscope\n(First-Person Inspection)"]
+
+    MODEL_VIEW <-->|"Direct Room Jump\n(Spatial Linking)"| PANO_VIEW
 ```
 
 ---
@@ -164,4 +168,31 @@ flowchart TD
 
     DB_NOTIF --> ADMIN_RADAR["Admin Web Dashboard: Real-Time Feedback Radar Updated"]
     ADMIN_RADAR --> ADMIN_RESOLVE["Admin Reviews Issue → Updates Status to 'Resolved'"]
+```
+
+---
+
+## Flow 7 — Admin Walking Network Authoring & Disconnected Way Pruning
+
+```mermaid
+flowchart TD
+    ADMIN_START["Admin Dashboard → Navigate to 'Walking Paths' (NavigationPage)"]
+    ADMIN_START --> MAP_VIEW["Interactive Satellite Map with Walking Path Overlays"]
+
+    MAP_VIEW --> ADMIN_CHOICE{"Admin Authoring Action"}
+
+    ADMIN_CHOICE -->|"Add / Edit Node"| PLACE_NODE["Click Map Coordinates → Select Type\n(Entrance, Walkway, Gate, POI)\nAnchor Building / Accessibility Flag"]
+    ADMIN_CHOICE -->|"Draw Path"| DRAW_WAY["Select Origin Node → Plot Intermediate Polyline Coordinates → Select Destination Node\n(Calculate Geodesy Distance)"]
+    ADMIN_CHOICE -->|"Delete Node"| DELETE_NODE["Admin Deletes Junction or POI Node"]
+
+    PLACE_NODE --> BULK_SAVE["Save to Backend (POST/PUT /api/navigation/nodes/)"]
+    DRAW_WAY --> BULK_SAVE_PATH["Save to Backend (POST/PUT /api/navigation/paths/)"]
+    DELETE_NODE --> REALTIME_PRUNE["Real-Time Way Pruning:\nClient automatically purges disconnected paths referencing deleted node"]
+    REALTIME_PRUNE --> BULK_DELETE["Delete Cascaded Paths & Node in Database (DELETE /api/navigation/nodes/:id/)"]
+
+    BULK_SAVE --> GRAPH_READY["Campus Graph Updated in Database"]
+    BULK_SAVE_PATH --> GRAPH_READY
+    BULK_DELETE --> GRAPH_READY
+
+    GRAPH_READY --> SERVER_ASTAR["Backend A* Pathfinder Serves Zero-Downtime Clean Topological Routes"]
 ```

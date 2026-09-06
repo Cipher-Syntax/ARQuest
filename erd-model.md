@@ -271,12 +271,18 @@ flowchart TD
     s_img(["image"])
     s_start(["is_start_scene"])
     s_sort(["sort_order"])
+    s_px(["pos_x (anchor)"])
+    s_py(["pos_y (anchor)"])
+    s_pz(["pos_z (anchor)"])
 
     SCENE --- s_id
     SCENE --- s_title
     SCENE --- s_img
     SCENE --- s_start
     SCENE --- s_sort
+    SCENE --- s_px
+    SCENE --- s_py
+    SCENE --- s_pz
 
     %% Attributes - Hotspot
     h_id(["id (PK)"])
@@ -372,4 +378,62 @@ flowchart TD
     %% Structure
     USER --- submits --- FDBK
     USER --- receives --- NOTIF
+```
+
+---
+
+## 6. Campus Pedestrian Navigation Domain (Unit 31)
+
+This domain governs the self-sovereign WMSU walking network, enabling server-side A* routing without third-party directions dependencies.
+- **NAVIGATION_NODE**: Fixed physical GPS waypoints on campus, representing building access doors (`entrance`), sidewalk turns and walkway intersections (`junction`), campus perimeter gates (`gate`), or open-air landmarks (`poi`).
+- **NAVIGATION_PATH**: Walkable pathway segments linking two nodes, storing multi-coordinate geodesic line strings representing real sidewalks, distance in meters, and accessibility flags.
+
+```mermaid
+flowchart TD
+    %% Entities (Rectangles)
+    BLDG["BUILDING"]
+    NODE["NAVIGATION_NODE"]
+    PATH["NAVIGATION_PATH"]
+
+    %% Relationships (Diamonds)
+    entrance{"entrance for"}
+    start_pt{"starts at"}
+    end_pt{"ends at"}
+
+    %% Attributes for NAVIGATION_NODE (Ovals)
+    nn_id(["id (PK UUID)"])
+    nn_lbl(["label"])
+    nn_lat(["latitude"])
+    nn_lng(["longitude"])
+    nn_type(["node_type"])
+    nn_act(["is_active"])
+    nn_cr(["created_at"])
+
+    NODE --- nn_id
+    NODE --- nn_lbl
+    NODE --- nn_lat
+    NODE --- nn_lng
+    NODE --- nn_type
+    NODE --- nn_act
+    NODE --- nn_cr
+
+    %% Attributes for NAVIGATION_PATH (Ovals)
+    np_id(["id (PK UUID)"])
+    np_geo(["geometry (JSON)"])
+    np_dist(["distance_meters"])
+    np_acc(["is_accessible"])
+    np_act(["is_active"])
+    np_cr(["created_at"])
+
+    PATH --- np_id
+    PATH --- np_geo
+    PATH --- np_dist
+    PATH --- np_acc
+    PATH --- np_act
+    PATH --- np_cr
+
+    %% Structure Connections
+    NODE --- entrance --- BLDG
+    PATH --- start_pt --- NODE
+    PATH --- end_pt --- NODE
 ```

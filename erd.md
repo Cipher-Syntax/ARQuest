@@ -182,6 +182,9 @@ erDiagram
         int         sort_order
         boolean     is_start_scene  "one per building"
         boolean     is_active
+        float       pos_x           "nullable; 3D spatial anchor X"
+        float       pos_y           "nullable; 3D spatial anchor Y"
+        float       pos_z           "nullable; 3D spatial anchor Z"
         datetime    created_at
         datetime    updated_at
     }
@@ -194,6 +197,28 @@ erDiagram
         float       yaw             "horizontal rotation in degrees"
         float       pitch           "vertical rotation in degrees"
         boolean     is_active
+    }
+
+    NAVIGATION_NODE {
+        uuid        id              PK
+        string      label
+        float       latitude
+        float       longitude
+        string      node_type       "entrance | junction/walkway | gate | poi"
+        uuid        building_id     FK "nullable"
+        boolean     is_active
+        datetime    created_at
+    }
+
+    NAVIGATION_PATH {
+        uuid        id              PK
+        uuid        start_node_id   FK
+        uuid        end_node_id     FK
+        json        geometry        "[[lng, lat], ...] coordinate pairs"
+        float       distance_meters
+        boolean     is_accessible
+        boolean     is_active
+        datetime    created_at
     }
 
     SYSTEM_SETTING {
@@ -247,6 +272,10 @@ erDiagram
     BUILDING            ||--o{ TRIVIA_FACT            : "has"
     BUILDING            ||--o{ QUIZ_QUESTION          : "has"
     BUILDING            ||--o{ PANORAMA_SCENE         : "has"
+    BUILDING            ||--o{ NAVIGATION_NODE        : "has entrance node"
+
+    NAVIGATION_NODE     ||--o{ NAVIGATION_PATH        : "is start_node of"
+    NAVIGATION_NODE     ||--o{ NAVIGATION_PATH        : "is end_node of"
 
     PANORAMA_SCENE      ||--o{ PANORAMA_HOTSPOT       : "is source of"
     PANORAMA_SCENE      ||--o{ PANORAMA_HOTSPOT       : "is target of"
@@ -363,12 +392,38 @@ Records a badge earned by a user along with the timestamp it was awarded. Unique
 ---
 
 ### `PANORAMA_SCENE` — `panorama` app
-One 360° panoramic image within a building's virtual walkthrough. Exactly one scene per building may be `is_start_scene=true` at a time.
+One 360° panoramic image within a building's virtual walkthrough. Exactly one scene per building may be `is_start_scene=true` at a time. Under Unit 30, scenes contain nullable 3D spatial anchors (`pos_x`, `pos_y`, `pos_z`) allowing seamless two-way jumps between the first-person 3D Virtual Tour model and the physical 360° photo sphere.
 
 ---
 
 ### `PANORAMA_HOTSPOT` — `panorama` app
 Navigation marker inside a `PanoramaScene`. Links a source scene to a target scene using `yaw`/`pitch` spherical coordinates. Cross-building links are blocked by model-level validation.
+
+---
+
+### `NAVIGATION_NODE` — `navigation` app
+A fixed GPS waypoint within the WMSU campus pedestrian network (Unit 31).
+
+| Field | Notes |
+|---|---|
+| `label` | Human-readable name (e.g., "Main Gate", "CICS Front Entrance", "Library Corner") |
+| `latitude` / `longitude` | Exact floating-point WGS84 coordinates |
+| `node_type` | Role: `entrance` (Building Entrance), `junction` (Walkway), `gate` (Campus Gate), `poi` (Point of Interest) |
+| `building` | Nullable FK to `Building` with `SET_NULL` on deletion; populated for entrance waypoints |
+| `is_active` | Boolean flag enabling/disabling waypoint from routing calculations |
+
+---
+
+### `NAVIGATION_PATH` — `navigation` app
+A walkable pedestrian path segment connecting two `NavigationNode` records (Unit 31).
+
+| Field | Notes |
+|---|---|
+| `start_node` / `end_node` | Foreign keys to `NavigationNode` with `CASCADE` deletion; models bidirectional pedestrian travel |
+| `geometry` | Native JSON array of `[longitude, latitude]` pairs capturing the real physical curves and bends of campus sidewalks |
+| `distance_meters` | Calculated geodesic path length used by the server-side A* routing algorithm |
+| `is_accessible` | Flag designating wheelchair/PWD accessibility |
+| `is_active` | Boolean flag enabling/disabling pathway segment |
 
 ---
 
@@ -407,7 +462,10 @@ System notifications sent to users regarding various events (e.g., feedback upda
 | `SystemSetting` always `pk=1` | `save()` override |
 | Inactive building cannot be unlocked | `BuildingUnlock.clean()` |
 | Geofence radius must be > 0 | `Geofence.clean()` |
-| Lat: -90 to 90 / Lng: -180 to 180 | `Building.clean()`, `Geofence.clean()` |
+| Lat: -90 to 90 / Lng: -180 to 180 | `Building.clean()`, `Geofence.clean()`, `NavigationNode.clean()` |
+| Path geometry must have $\ge 2$ `[lng, lat]` pairs | `NavigationPathSerializer.validate_geometry()` |
+| Node deletion cascades all connected paths | `NavigationPath.start_node` / `end_node` (`on_delete=models.CASCADE`) |
+| Building deletion unlinks entrance nodes | `NavigationNode.building` (`on_delete=models.SET_NULL`) |
 
 ---
 
@@ -431,6 +489,7 @@ All other models use standard **hard delete**.
 |---|---|
 | `authentication` | `User`, `EmailOTP` |
 | `buildings` | `Department`, `Building`, `Geofence`, `BuildingUnlock`, `BuildingAsset` |
+| `navigation` | `NavigationNode`, `NavigationPath` |
 | `gamification` | `Quest`, `UserQuestProgress`, `TriviaFact`, `Badge`, `UserBadge` |
 | `quizzes` | `QuizQuestion`, `UserQuizProgress` |
 | `panorama` | `PanoramaScene`, `PanoramaHotspot` |
