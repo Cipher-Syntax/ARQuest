@@ -43,7 +43,7 @@ import { geofencingService } from "../../services";
 
 export default function HomeScreen() {
     const isFocused = useIsFocused();
-    const { user } = useAuth();
+    const { user, showStreakModal } = useAuth();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -240,14 +240,23 @@ export default function HomeScreen() {
                         <View style={styles.headerRight}>
                             {user?.role === "student" &&
                                 user?.streak_count > 0 && (
-                                    <View style={styles.streakBadge}>
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
+                                        onPress={() =>
+                                            showStreakModal?.({
+                                                streakCount: user.streak_count,
+                                                isNewCheckin: false,
+                                            })
+                                        }
+                                        style={styles.streakBadge}
+                                    >
                                         <Text style={styles.streakFlame}>
                                             🔥
                                         </Text>
                                         <Text style={styles.streakText}>
                                             {user.streak_count}
                                         </Text>
-                                    </View>
+                                    </TouchableOpacity>
                                 )}
                         </View>
                     </View>

@@ -1,5 +1,5 @@
 // src/app/(tabs)/ar.js
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
     View,
     Text,
@@ -14,7 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
-import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect, useNavigation } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
@@ -24,6 +24,7 @@ import { geofencingService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
 import { checkARSupport } from "../../utils/ar-hardware-check";
+import { getUpcomingWaypoint } from "../../utils/geo-ar";
 import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
 import BrandedSelfieFrame from "../../components/ar/BrandedSelfieFrame";
@@ -76,53 +77,130 @@ export default function ARScreen() {
     const arViewRef = useRef(null);
     const { canUseAR } = useRoleAccess();
 
-    const { targetBuildingId } = useLocalSearchParams();
+    const navigation = useNavigation();
+    const { targetBuildingId, buildingId } = useLocalSearchParams();
+    const activeTargetId = targetBuildingId || buildingId;
 
     const [navTargetFull, setNavTargetFull] = useState(null);
     const [nextWaypoint, setNextWaypoint] = useState(null);
+    const [routeCoordinates, setRouteCoordinates] = useState([]);
+    const [isCameraActive, setIsCameraActive] = useState(false);
 
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
 
     useEffect(() => {
+        if (!isCameraActive || !navTargetFull?.id) {
+            setRouteCoordinates([]);
+            setNextWaypoint(null);
+            return;
+        }
+
+        let isMounted = true;
+
         const fetchRoute = async () => {
-            if (navTargetFull && location) {
-                // Immediately fallback to direct line-of-sight if routing fails
-                setNextWaypoint({ longitude: navTargetFull.longitude, latitude: navTargetFull.latitude });
+            if (!isMounted || !isCameraActive || !navTargetFull?.id) return;
+            const startLng = location?.longitude ?? location?.coords?.longitude;
+            const startLat = location?.latitude ?? location?.coords?.latitude;
+
+            if (startLat && startLng) {
+                const fallbackWaypoint = {
+                    longitude: navTargetFull.longitude,
+                    latitude: navTargetFull.latitude,
+                };
+
                 try {
-                    const startLng = location?.longitude ?? location?.coords?.longitude;
-                    const startLat = location?.latitude ?? location?.coords?.latitude;
-                    const endLng = navTargetFull.longitude;
-                    const endLat = navTargetFull.latitude;
-                    const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-                    
-                    const res = await fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&steps=true&access_token=${token}`);
-                    const data = await res.json();
-                    
-                    if (data.routes && data.routes.length > 0) {
-                        const steps = data.routes[0].legs[0].steps;
-                        if (steps.length > 1) {
-                            // First step is just starting point, next step is the immediate direction
-                            const nextStepCoords = steps[1].maneuver.location;
-                            setNextWaypoint({ longitude: nextStepCoords[0], latitude: nextStepCoords[1] });
-                        } else {
-                            // Almost there, point directly to destination
-                            setNextWaypoint({ longitude: endLng, latitude: endLat });
+                    const res = await api.get(
+                        `/api/navigation/route/?from_lat=${startLat}&from_lng=${startLng}&to_building_id=${navTargetFull.id}`
+                    );
+
+                    if (
+                        isMounted &&
+                        isCameraActive &&
+                        res.data?.success &&
+                        res.data?.data?.features?.[0]?.geometry?.coordinates
+                    ) {
+                        const coords = res.data.data.features[0].geometry.coordinates;
+                        if (Array.isArray(coords) && coords.length >= 2) {
+                            setRouteCoordinates(coords);
+                            const upcoming = getUpcomingWaypoint(coords, startLat, startLng);
+                            if (upcoming) {
+                                setNextWaypoint(upcoming);
+                            }
+                            return;
                         }
                     }
                 } catch (e) {
-                    console.log("Error fetching AR route:", e);
+                    console.log("Campus navigation route unavailable, falling back to direct line-of-sight:", e?.message || e);
+                }
+
+                if (isMounted) {
+                    setRouteCoordinates([]);
+                    setNextWaypoint(fallbackWaypoint);
                 }
             }
         };
-        fetchRoute();
-        
-        // Refresh route every 10 seconds if actively navigating
-        const interval = setInterval(fetchRoute, 10000);
-        return () => clearInterval(interval);
-    }, [navTargetFull?.id, location?.latitude, location?.longitude, location?.coords?.latitude, location?.coords?.longitude]);
 
-    const [isCameraActive, setIsCameraActive] = useState(false);
+        fetchRoute();
+
+        // Refresh global route every 10 seconds only while camera is active in foreground
+        const interval = setInterval(fetchRoute, 10000);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
+    }, [
+        isCameraActive,
+        navTargetFull?.id,
+        navTargetFull?.latitude,
+        navTargetFull?.longitude,
+        !(location?.latitude ?? location?.coords?.latitude),
+    ]);
+
+    // Continuously update immediate upcoming waypoint along active campus walking route as user moves
+    useEffect(() => {
+        if (isCameraActive && routeCoordinates && routeCoordinates.length >= 2 && location) {
+            const curLat = location?.latitude ?? location?.coords?.latitude;
+            const curLng = location?.longitude ?? location?.coords?.longitude;
+            if (curLat && curLng) {
+                const upcoming = getUpcomingWaypoint(routeCoordinates, curLat, curLng);
+                if (upcoming) {
+                    setNextWaypoint(prev => {
+                        if (!prev || Math.abs(prev.latitude - upcoming.latitude) > 0.00001 || Math.abs(prev.longitude - upcoming.longitude) > 0.00001) {
+                            return upcoming;
+                        }
+                        return prev;
+                    });
+                }
+            }
+        }
+    }, [
+        isCameraActive,
+        location?.latitude,
+        location?.longitude,
+        location?.coords?.latitude,
+        location?.coords?.longitude,
+        routeCoordinates,
+    ]);
+
+    const handleExit = useCallback(() => {
+        setIsCameraActive(false);
+        stopTracking();
+        setNavTargetFull(null);
+        setNextWaypoint(null);
+        setRouteCoordinates([]);
+        setCapturedBg(null);
+        setBgReady(false);
+        setIsScanningQr(false);
+        setScannedData(null);
+        router.setParams({ targetBuildingId: undefined, buildingId: undefined });
+
+        if (navigation?.canGoBack && navigation.canGoBack()) {
+            navigation.goBack();
+        } else {
+            router.replace("/(tabs)/buildings");
+        }
+    }, [navigation, stopTracking, startTracking]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -132,6 +210,14 @@ export default function ARScreen() {
             return () => {
                 setIsCameraActive(false);
                 stopTracking();
+                setNavTargetFull(null);
+                setNextWaypoint(null);
+                setRouteCoordinates([]);
+                setCapturedBg(null);
+                setBgReady(false);
+                setIsScanningQr(false);
+                setScannedData(null);
+                router.setParams({ targetBuildingId: undefined, buildingId: undefined });
             };
         }, [startTracking, stopTracking])
     );
@@ -225,20 +311,11 @@ export default function ARScreen() {
     );
 
     useEffect(() => {
-        let fetchId = targetBuildingId;
-        const safeActiveQuests = Array.isArray(activeQuests) ? activeQuests : [];
-        if (!fetchId && safeActiveQuests.length > 0) {
-            const firstIncomplete = safeActiveQuests.find(q => !q.is_completed);
-            if (firstIncomplete) {
-                fetchId = firstIncomplete.target_building;
-            }
-        }
-        
-        if (fetchId) {
-            if (nearbyBuildingFull && nearbyBuildingFull.id === fetchId) {
+        if (activeTargetId) {
+            if (nearbyBuildingFull && nearbyBuildingFull.id === activeTargetId) {
                 setNavTargetFull(nearbyBuildingFull);
             } else {
-                api.get(`/api/buildings/${fetchId}/`)
+                api.get(`/api/buildings/${activeTargetId}/`)
                     .then((res) => {
                         if (res.data.success) {
                             setNavTargetFull(res.data.data);
@@ -249,7 +326,7 @@ export default function ARScreen() {
         } else {
             setNavTargetFull(null);
         }
-    }, [targetBuildingId, activeQuests, nearbyBuildingFull]);
+    }, [activeTargetId, nearbyBuildingFull]);
 
     const getBearing = (lat1, lon1, lat2, lon2) => {
         const toRad = (val) => (val * Math.PI) / 180;
@@ -496,7 +573,11 @@ export default function ARScreen() {
                 setNearbyBuilding(null);
             }
         } catch (error) {
-            console.error("Error validating location for AR overlay:", error);
+            if (error?.response?.data?.error?.code === "SPOOFING_DETECTED") {
+                console.warn("Location validation notice: Spoofing/velocity alert from backend.");
+            } else {
+                console.warn("Location validation notice:", error?.message || error);
+            }
         }
     };
 
@@ -766,7 +847,7 @@ export default function ARScreen() {
                 {/* --- Top Left Controls (Exit, QR, Active Missions) --- */}
                 {!capturing && (
                     <View style={styles.topLeftControls}>
-                        <TouchableOpacity style={styles.exitButton} onPress={() => router.back()}>
+                        <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
                             <X size={24} color={theme.colors.primary} />
                         </TouchableOpacity>
 

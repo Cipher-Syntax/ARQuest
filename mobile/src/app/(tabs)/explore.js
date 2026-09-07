@@ -288,7 +288,11 @@ export default function ExploreScreen() {
                 }
             }
         } catch (err) {
-            console.error("Validation error:", err);
+            if (err?.response?.data?.error?.code === "SPOOFING_DETECTED") {
+                console.warn("Location validation notice: Spoofing/velocity alert from backend.");
+            } else {
+                console.warn("Validation error:", err?.message || err);
+            }
         } finally {
             setIsValidating(false);
         }

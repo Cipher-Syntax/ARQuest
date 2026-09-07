@@ -12,6 +12,12 @@ const AuthActionsContext = createContext(null);
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [streakModalData, setStreakModalData] = useState({
+        visible: false,
+        streakCount: 0,
+        bonusExp: 0,
+        isNewCheckin: false,
+    });
 
     const checkToken = useCallback(async () => {
         try {
@@ -56,19 +62,12 @@ export const AuthProvider = ({ children }) => {
 
                         if (streakBonusExp > 0) {
                             setTimeout(() => {
-                                if (streakBonusExp === 10 && newStreak > 0 && newStreak % 3 === 0) {
-                                    Alert(
-                                        `🔥 ${newStreak}-Day Streak!`,
-                                        `Amazing consistency! You've reached ${newStreak} consecutive days and earned a +${streakBonusExp} EXP bonus.`,
-                                        [{ text: "Awesome!", style: "default" }],
-                                    );
-                                } else {
-                                    Alert(
-                                        `✅ Daily Check-in`,
-                                        `You earned +${streakBonusExp} EXP for logging in today. Keep your streak going!`,
-                                        [{ text: "Okay", style: "default" }],
-                                    );
-                                }
+                                setStreakModalData({
+                                    visible: true,
+                                    streakCount: newStreak,
+                                    bonusExp: streakBonusExp,
+                                    isNewCheckin: true,
+                                });
                             }, 500);
                         }
                     } catch (checkinErr) {
@@ -129,16 +128,32 @@ export const AuthProvider = ({ children }) => {
         return () => unsubscribe();
     }, [checkToken]);
 
+    const showStreakModal = useCallback((data = {}) => {
+        setStreakModalData({
+            visible: true,
+            streakCount: data.streakCount !== undefined ? data.streakCount : (user?.streak_count || 0),
+            bonusExp: data.bonusExp !== undefined ? data.bonusExp : 0,
+            isNewCheckin: data.isNewCheckin !== undefined ? data.isNewCheckin : false,
+        });
+    }, [user?.streak_count]);
+
+    const hideStreakModal = useCallback(() => {
+        setStreakModalData((prev) => ({ ...prev, visible: false }));
+    }, []);
+
     const stateValue = useMemo(() => ({
         user,
-        isLoading
-    }), [user, isLoading]);
+        isLoading,
+        streakModalData,
+    }), [user, isLoading, streakModalData]);
 
     const actionsValue = useMemo(() => ({
         login,
         logout,
-        checkToken
-    }), [login, logout, checkToken]);
+        checkToken,
+        showStreakModal,
+        hideStreakModal,
+    }), [login, logout, checkToken, showStreakModal, hideStreakModal]);
 
     return (
         <AuthStateContext.Provider value={stateValue}>
