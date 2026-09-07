@@ -83,50 +83,56 @@ export default function ARScreen() {
     const [navTargetFull, setNavTargetFull] = useState(null);
     const [nextWaypoint, setNextWaypoint] = useState(null);
     const [routeCoordinates, setRouteCoordinates] = useState([]);
+    const [isCameraActive, setIsCameraActive] = useState(false);
 
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
 
     useEffect(() => {
+        if (!isCameraActive || !navTargetFull?.id) {
+            setRouteCoordinates([]);
+            setNextWaypoint(null);
+            return;
+        }
+
         let isMounted = true;
 
         const fetchRoute = async () => {
+            if (!isMounted || !isCameraActive || !navTargetFull?.id) return;
             const startLng = location?.longitude ?? location?.coords?.longitude;
             const startLat = location?.latitude ?? location?.coords?.latitude;
 
-            if (navTargetFull && startLat && startLng) {
+            if (startLat && startLng) {
                 const fallbackWaypoint = {
                     longitude: navTargetFull.longitude,
                     latitude: navTargetFull.latitude,
                 };
 
-                if (navTargetFull.id) {
-                    try {
-                        const res = await api.get(
-                            `/api/navigation/route/?from_lat=${startLat}&from_lng=${startLng}&to_building_id=${navTargetFull.id}`
-                        );
+                try {
+                    const res = await api.get(
+                        `/api/navigation/route/?from_lat=${startLat}&from_lng=${startLng}&to_building_id=${navTargetFull.id}`
+                    );
 
-                        if (
-                            isMounted &&
-                            res.data?.success &&
-                            res.data?.data?.features?.[0]?.geometry?.coordinates
-                        ) {
-                            const coords = res.data.data.features[0].geometry.coordinates;
-                            if (Array.isArray(coords) && coords.length >= 2) {
-                                setRouteCoordinates(coords);
-                                const upcoming = getUpcomingWaypoint(coords, startLat, startLng);
-                                if (upcoming) {
-                                    setNextWaypoint(upcoming);
-                                }
-                                return;
+                    if (
+                        isMounted &&
+                        isCameraActive &&
+                        res.data?.success &&
+                        res.data?.data?.features?.[0]?.geometry?.coordinates
+                    ) {
+                        const coords = res.data.data.features[0].geometry.coordinates;
+                        if (Array.isArray(coords) && coords.length >= 2) {
+                            setRouteCoordinates(coords);
+                            const upcoming = getUpcomingWaypoint(coords, startLat, startLng);
+                            if (upcoming) {
+                                setNextWaypoint(upcoming);
                             }
+                            return;
                         }
-                    } catch (e) {
-                        console.log("Campus navigation route unavailable, falling back to direct line-of-sight:", e?.message || e);
                     }
+                } catch (e) {
+                    console.log("Campus navigation route unavailable, falling back to direct line-of-sight:", e?.message || e);
                 }
 
-                // Fallback to direct line-of-sight if routing fails or no path defined
                 if (isMounted) {
                     setRouteCoordinates([]);
                     setNextWaypoint(fallbackWaypoint);
@@ -136,13 +142,14 @@ export default function ARScreen() {
 
         fetchRoute();
 
-        // Refresh global route every 10 seconds while actively navigating
+        // Refresh global route every 10 seconds only while camera is active in foreground
         const interval = setInterval(fetchRoute, 10000);
         return () => {
             isMounted = false;
             clearInterval(interval);
         };
     }, [
+        isCameraActive,
         navTargetFull?.id,
         navTargetFull?.latitude,
         navTargetFull?.longitude,
@@ -151,7 +158,7 @@ export default function ARScreen() {
 
     // Continuously update immediate upcoming waypoint along active campus walking route as user moves
     useEffect(() => {
-        if (routeCoordinates && routeCoordinates.length >= 2 && location) {
+        if (isCameraActive && routeCoordinates && routeCoordinates.length >= 2 && location) {
             const curLat = location?.latitude ?? location?.coords?.latitude;
             const curLng = location?.longitude ?? location?.coords?.longitude;
             if (curLat && curLng) {
@@ -167,6 +174,7 @@ export default function ARScreen() {
             }
         }
     }, [
+        isCameraActive,
         location?.latitude,
         location?.longitude,
         location?.coords?.latitude,
@@ -174,7 +182,27 @@ export default function ARScreen() {
         routeCoordinates,
     ]);
 
-    const [isCameraActive, setIsCameraActive] = useState(false);
+    const handleExit = useCallback(() => {
+        setIsCameraActive(false);
+        stopTracking();
+        setNavTargetFull(null);
+        setNextWaypoint(null);
+        setRouteCoordinates([]);
+        setCapturedBg(null);
+        setBgReady(false);
+        setIsScanningQr(false);
+        setScannedData(null);
+        router.setParams({ targetBuildingId: undefined, buildingId: undefined });
+
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            setTimeout(() => {
+                setIsCameraActive(true);
+                startTracking();
+            }, 50);
+        }
+    }, [stopTracking, startTracking]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -184,6 +212,14 @@ export default function ARScreen() {
             return () => {
                 setIsCameraActive(false);
                 stopTracking();
+                setNavTargetFull(null);
+                setNextWaypoint(null);
+                setRouteCoordinates([]);
+                setCapturedBg(null);
+                setBgReady(false);
+                setIsScanningQr(false);
+                setScannedData(null);
+                router.setParams({ targetBuildingId: undefined, buildingId: undefined });
             };
         }, [startTracking, stopTracking])
     );
@@ -277,20 +313,11 @@ export default function ARScreen() {
     );
 
     useEffect(() => {
-        let fetchId = activeTargetId;
-        const safeActiveQuests = Array.isArray(activeQuests) ? activeQuests : [];
-        if (!fetchId && safeActiveQuests.length > 0) {
-            const firstIncomplete = safeActiveQuests.find(q => !q.is_completed);
-            if (firstIncomplete) {
-                fetchId = firstIncomplete.target_building;
-            }
-        }
-        
-        if (fetchId) {
-            if (nearbyBuildingFull && nearbyBuildingFull.id === fetchId) {
+        if (activeTargetId) {
+            if (nearbyBuildingFull && nearbyBuildingFull.id === activeTargetId) {
                 setNavTargetFull(nearbyBuildingFull);
             } else {
-                api.get(`/api/buildings/${fetchId}/`)
+                api.get(`/api/buildings/${activeTargetId}/`)
                     .then((res) => {
                         if (res.data.success) {
                             setNavTargetFull(res.data.data);
@@ -301,7 +328,7 @@ export default function ARScreen() {
         } else {
             setNavTargetFull(null);
         }
-    }, [activeTargetId, activeQuests, nearbyBuildingFull]);
+    }, [activeTargetId, nearbyBuildingFull]);
 
     const getBearing = (lat1, lon1, lat2, lon2) => {
         const toRad = (val) => (val * Math.PI) / 180;
@@ -818,7 +845,7 @@ export default function ARScreen() {
                 {/* --- Top Left Controls (Exit, QR, Active Missions) --- */}
                 {!capturing && (
                     <View style={styles.topLeftControls}>
-                        <TouchableOpacity style={styles.exitButton} onPress={() => router.back()}>
+                        <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
                             <X size={24} color={theme.colors.primary} />
                         </TouchableOpacity>
 
