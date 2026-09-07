@@ -1,5 +1,5 @@
 // src/app/(tabs)/ar.js
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
     View,
     Text,
@@ -14,7 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
-import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect, useNavigation } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
@@ -77,6 +77,7 @@ export default function ARScreen() {
     const arViewRef = useRef(null);
     const { canUseAR } = useRoleAccess();
 
+    const navigation = useNavigation();
     const { targetBuildingId, buildingId } = useLocalSearchParams();
     const activeTargetId = targetBuildingId || buildingId;
 
@@ -194,15 +195,12 @@ export default function ARScreen() {
         setScannedData(null);
         router.setParams({ targetBuildingId: undefined, buildingId: undefined });
 
-        if (router.canGoBack()) {
-            router.back();
+        if (navigation?.canGoBack && navigation.canGoBack()) {
+            navigation.goBack();
         } else {
-            setTimeout(() => {
-                setIsCameraActive(true);
-                startTracking();
-            }, 50);
+            router.replace("/(tabs)/buildings");
         }
-    }, [stopTracking, startTracking]);
+    }, [navigation, stopTracking, startTracking]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -575,7 +573,11 @@ export default function ARScreen() {
                 setNearbyBuilding(null);
             }
         } catch (error) {
-            console.error("Error validating location for AR overlay:", error);
+            if (error?.response?.data?.error?.code === "SPOOFING_DETECTED") {
+                console.warn("Location validation notice: Spoofing/velocity alert from backend.");
+            } else {
+                console.warn("Location validation notice:", error?.message || error);
+            }
         }
     };
 
