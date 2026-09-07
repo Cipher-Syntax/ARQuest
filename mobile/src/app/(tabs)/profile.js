@@ -42,7 +42,7 @@ import { customAlert as Alert } from "../../components/ui/CustomAlert";
 
 export default function ProfileScreen() {
     const isFocused = useIsFocused();
-    const { user, logout, checkToken } = useAuth();
+    const { user, logout, checkToken, showStreakModal } = useAuth();
     const { stopTracking } = useLocationTracking();
     const [myStats, setMyStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -222,14 +222,23 @@ export default function ProfileScreen() {
                                                 "FRESHMAN"}
                                         </Text>
                                     </View>
-                                    <View style={styles.miniStreak}>
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
+                                        onPress={() =>
+                                            showStreakModal?.({
+                                                streakCount: user?.streak_count || 0,
+                                                isNewCheckin: false,
+                                            })
+                                        }
+                                        style={styles.miniStreak}
+                                    >
                                         <Text style={styles.miniStreakText}>
                                             {user?.streak_count || 0} Days Streak!
                                         </Text>
                                         <Text style={styles.miniStreakFlame}>
                                             🔥
                                         </Text>
-                                    </View>
+                                    </TouchableOpacity>
                                 </>
                             ) : (
                                 <Text style={styles.playerRoleLabel}>
