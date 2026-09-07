@@ -77,7 +77,8 @@ export default function ARScreen() {
     const arViewRef = useRef(null);
     const { canUseAR } = useRoleAccess();
 
-    const { targetBuildingId } = useLocalSearchParams();
+    const { targetBuildingId, buildingId } = useLocalSearchParams();
+    const activeTargetId = targetBuildingId || buildingId;
 
     const [navTargetFull, setNavTargetFull] = useState(null);
     const [nextWaypoint, setNextWaypoint] = useState(null);
@@ -276,7 +277,7 @@ export default function ARScreen() {
     );
 
     useEffect(() => {
-        let fetchId = targetBuildingId;
+        let fetchId = activeTargetId;
         const safeActiveQuests = Array.isArray(activeQuests) ? activeQuests : [];
         if (!fetchId && safeActiveQuests.length > 0) {
             const firstIncomplete = safeActiveQuests.find(q => !q.is_completed);
@@ -300,7 +301,7 @@ export default function ARScreen() {
         } else {
             setNavTargetFull(null);
         }
-    }, [targetBuildingId, activeQuests, nearbyBuildingFull]);
+    }, [activeTargetId, activeQuests, nearbyBuildingFull]);
 
     const getBearing = (lat1, lon1, lat2, lon2) => {
         const toRad = (val) => (val * Math.PI) / 180;

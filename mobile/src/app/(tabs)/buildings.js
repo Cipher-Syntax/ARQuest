@@ -1076,7 +1076,7 @@ export default function BuildingsScreen() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                 <TouchableOpacity
                                     style={styles.arQuickBtn}
-                                    onPress={() => router.push({ pathname: "/(tabs)/ar", params: { buildingId: routeTarget.id } })}
+                                    onPress={() => router.push({ pathname: "/(tabs)/ar", params: { targetBuildingId: routeTarget.id, buildingId: routeTarget.id } })}
                                     activeOpacity={0.8}
                                 >
                                     <Ionicons name="cube-outline" size={16} color={theme.colors.primary} />
