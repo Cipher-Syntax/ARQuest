@@ -3,7 +3,7 @@ import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
+    FlatList,
     ActivityIndicator,
     Image,
     TouchableOpacity,
@@ -24,6 +24,85 @@ import { api } from "../services";
 import theme from "../theme/tokens";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
+
+const PassportStampCard = React.memo(({ building, isUnlocked }) => {
+    return (
+        <View
+            style={[
+                styles.stampCard,
+                isUnlocked
+                    ? styles.stampCardUnlocked
+                    : styles.stampCardLocked,
+            ]}
+        >
+            <View style={styles.imageContainer}>
+                {building.image_url ? (
+                    <Image
+                        source={{
+                            uri: building.image_url,
+                        }}
+                        style={[
+                            styles.buildingImage,
+                            !isUnlocked && styles.buildingImageLocked,
+                        ]}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <View style={styles.placeholderImage}>
+                        <Building2
+                            size={28}
+                            color={isUnlocked ? theme.colors.primary : theme.colors.textMuted}
+                        />
+                    </View>
+                )}
+
+                {/* Status Badge */}
+                <View
+                    style={[
+                        styles.statusBadge,
+                        isUnlocked
+                            ? styles.statusBadgeUnlocked
+                            : styles.statusBadgeLocked,
+                    ]}
+                >
+                    {isUnlocked ? (
+                        <>
+                            <Check size={10} color="#059669" style={{ marginRight: 2 }} />
+                            <Text style={styles.statusBadgeTextUnlocked}>VISITED</Text>
+                        </>
+                    ) : (
+                        <>
+                            <Lock size={10} color={theme.colors.textMuted} style={{ marginRight: 2 }} />
+                            <Text style={styles.statusBadgeTextLocked}>LOCKED</Text>
+                        </>
+                    )}
+                </View>
+            </View>
+
+            <View style={styles.cardFooter}>
+                <Text
+                    style={[
+                        styles.buildingName,
+                        !isUnlocked && styles.buildingNameLocked,
+                    ]}
+                    numberOfLines={2}
+                >
+                    {building.name}
+                </Text>
+                <View style={styles.codeRow}>
+                    <Text
+                        style={[
+                            styles.buildingCode,
+                            !isUnlocked && styles.buildingCodeLocked,
+                        ]}
+                    >
+                        {building.code || "CAMPUS"}
+                    </Text>
+                </View>
+            </View>
+        </View>
+    );
+});
 
 export default function PassportScreen() {
     const { user } = useAuth();
@@ -92,6 +171,132 @@ export default function PassportScreen() {
 
     const isProfessional = user?.role === "professional" || user?.role === "admin";
 
+    const renderHeader = () => (
+        <View>
+            {/* Progress Card */}
+            <View style={styles.progressCard}>
+                <View style={styles.progressHeader}>
+                    <Text style={styles.progressTitle}>
+                        {isProfessional ? "EVALUATION SUMMARY" : "EXPLORATION PROGRESS"}
+                    </Text>
+                    <Text style={styles.progressCount}>
+                        {unlockedCount} / {totalCount} ({Math.round(progress)}%)
+                    </Text>
+                </View>
+
+                <View style={styles.progressBarContainer}>
+                    <View
+                        style={[
+                            styles.progressBarFill,
+                            { width: `${progress}%` },
+                        ]}
+                    />
+                </View>
+
+                <Text style={styles.progressSubtext}>
+                    {unlockedCount === totalCount && totalCount > 0
+                        ? isProfessional
+                            ? "All campus facilities have been visited & evaluated!"
+                            : "Congratulations! You have discovered all campus buildings!"
+                        : isProfessional
+                          ? `${totalCount - unlockedCount} remaining building(s) left to inspect.`
+                          : `Walk near ${totalCount - unlockedCount} more building(s) to complete your passport.`}
+                </Text>
+            </View>
+
+            {/* Filter Pills */}
+            <View style={styles.filterRow}>
+                <TouchableOpacity
+                    style={[
+                        styles.filterPill,
+                        filter === "all" && styles.filterPillActive,
+                    ]}
+                    onPress={() => setFilter("all")}
+                    activeOpacity={0.8}
+                >
+                    <Text
+                        style={[
+                            styles.filterPillText,
+                            filter === "all" && styles.filterPillTextActive,
+                        ]}
+                    >
+                        All ({totalCount})
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.filterPill,
+                        filter === "visited" && styles.filterPillActive,
+                    ]}
+                    onPress={() => setFilter("visited")}
+                    activeOpacity={0.8}
+                >
+                    <Text
+                        style={[
+                            styles.filterPillText,
+                            filter === "visited" && styles.filterPillTextActive,
+                        ]}
+                    >
+                        Visited ({unlockedCount})
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.filterPill,
+                        filter === "unvisited" && styles.filterPillActive,
+                    ]}
+                    onPress={() => setFilter("unvisited")}
+                    activeOpacity={0.8}
+                >
+                    <Text
+                        style={[
+                            styles.filterPillText,
+                            filter === "unvisited" && styles.filterPillTextActive,
+                        ]}
+                    >
+                        Unvisited ({totalCount - unlockedCount})
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    const renderItem = React.useCallback(
+        ({ item }) => (
+            <PassportStampCard
+                building={item}
+                isUnlocked={unlockedIds.has(item.id)}
+            />
+        ),
+        [unlockedIds]
+    );
+
+    const renderEmpty = () => {
+        if (loading) {
+            return (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator
+                        size="large"
+                        color={theme.colors.primary}
+                    />
+                </View>
+            );
+        }
+        return (
+            <View style={styles.emptyContainer}>
+                <Building2 size={40} color={theme.colors.textMuted} style={{ marginBottom: 8 }} />
+                <Text style={styles.emptyTitle}>No Buildings Found</Text>
+                <Text style={styles.emptySubtext}>
+                    {filter === "visited"
+                        ? "You have not visited any buildings yet."
+                        : "All buildings have been visited!"}
+                </Text>
+            </View>
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             {/* Header */}
@@ -109,9 +314,22 @@ export default function PassportScreen() {
                 <View style={{ width: 36 }} />
             </View>
 
-            <ScrollView
+            <FlatList
+                data={loading ? [] : filteredBuildings}
+                keyExtractor={(item) => item.id.toString()}
+                numColumns={2}
+                columnWrapperStyle={styles.columnWrapper}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                ListHeaderComponent={renderHeader}
+                ListEmptyComponent={renderEmpty}
+                ListFooterComponent={<View style={{ height: 32 }} />}
+                renderItem={renderItem}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={6}
+                updateCellsBatchingPeriod={50}
+                initialNumToRender={6}
+                windowSize={5}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -119,200 +337,7 @@ export default function PassportScreen() {
                         tintColor={theme.colors.primary}
                     />
                 }
-            >
-                {/* Progress Card */}
-                <View style={styles.progressCard}>
-                    <View style={styles.progressHeader}>
-                        <Text style={styles.progressTitle}>
-                            {isProfessional ? "EVALUATION SUMMARY" : "EXPLORATION PROGRESS"}
-                        </Text>
-                        <Text style={styles.progressCount}>
-                            {unlockedCount} / {totalCount} ({Math.round(progress)}%)
-                        </Text>
-                    </View>
-
-                    <View style={styles.progressBarContainer}>
-                        <View
-                            style={[
-                                styles.progressBarFill,
-                                { width: `${progress}%` },
-                            ]}
-                        />
-                    </View>
-
-                    <Text style={styles.progressSubtext}>
-                        {unlockedCount === totalCount && totalCount > 0
-                            ? isProfessional
-                                ? "All campus facilities have been visited & evaluated!"
-                                : "Congratulations! You have discovered all campus buildings!"
-                            : isProfessional
-                              ? `${totalCount - unlockedCount} remaining building(s) left to inspect.`
-                              : `Walk near ${totalCount - unlockedCount} more building(s) to complete your passport.`}
-                    </Text>
-                </View>
-
-                {/* Filter Pills */}
-                <View style={styles.filterRow}>
-                    <TouchableOpacity
-                        style={[
-                            styles.filterPill,
-                            filter === "all" && styles.filterPillActive,
-                        ]}
-                        onPress={() => setFilter("all")}
-                        activeOpacity={0.8}
-                    >
-                        <Text
-                            style={[
-                                styles.filterPillText,
-                                filter === "all" && styles.filterPillTextActive,
-                            ]}
-                        >
-                            All ({totalCount})
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.filterPill,
-                            filter === "visited" && styles.filterPillActive,
-                        ]}
-                        onPress={() => setFilter("visited")}
-                        activeOpacity={0.8}
-                    >
-                        <Text
-                            style={[
-                                styles.filterPillText,
-                                filter === "visited" && styles.filterPillTextActive,
-                            ]}
-                        >
-                            Visited ({unlockedCount})
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.filterPill,
-                            filter === "unvisited" && styles.filterPillActive,
-                        ]}
-                        onPress={() => setFilter("unvisited")}
-                        activeOpacity={0.8}
-                    >
-                        <Text
-                            style={[
-                                styles.filterPillText,
-                                filter === "unvisited" && styles.filterPillTextActive,
-                            ]}
-                        >
-                            Unvisited ({totalCount - unlockedCount})
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Grid */}
-                {loading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator
-                            size="large"
-                            color={theme.colors.primary}
-                        />
-                    </View>
-                ) : filteredBuildings.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Building2 size={40} color={theme.colors.textMuted} style={{ marginBottom: 8 }} />
-                        <Text style={styles.emptyTitle}>No Buildings Found</Text>
-                        <Text style={styles.emptySubtext}>
-                            {filter === "visited"
-                                ? "You have not visited any buildings yet."
-                                : "All buildings have been visited!"}
-                        </Text>
-                    </View>
-                ) : (
-                    <View style={styles.grid}>
-                        {filteredBuildings.map((building) => {
-                            const isUnlocked = unlockedIds.has(building.id);
-                            return (
-                                <View
-                                    key={building.id}
-                                    style={[
-                                        styles.stampCard,
-                                        isUnlocked
-                                            ? styles.stampCardUnlocked
-                                            : styles.stampCardLocked,
-                                    ]}
-                                >
-                                    <View style={styles.imageContainer}>
-                                        {building.image_url ? (
-                                            <Image
-                                                source={{
-                                                    uri: building.image_url,
-                                                }}
-                                                style={[
-                                                    styles.buildingImage,
-                                                    !isUnlocked && styles.buildingImageLocked,
-                                                ]}
-                                                resizeMode="cover"
-                                            />
-                                        ) : (
-                                            <View style={styles.placeholderImage}>
-                                                <Building2
-                                                    size={28}
-                                                    color={isUnlocked ? theme.colors.primary : theme.colors.textMuted}
-                                                />
-                                            </View>
-                                        )}
-
-                                        {/* Status Badge */}
-                                        <View
-                                            style={[
-                                                styles.statusBadge,
-                                                isUnlocked
-                                                    ? styles.statusBadgeUnlocked
-                                                    : styles.statusBadgeLocked,
-                                            ]}
-                                        >
-                                            {isUnlocked ? (
-                                                <>
-                                                    <Check size={10} color="#059669" style={{ marginRight: 2 }} />
-                                                    <Text style={styles.statusBadgeTextUnlocked}>VISITED</Text>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Lock size={10} color={theme.colors.textMuted} style={{ marginRight: 2 }} />
-                                                    <Text style={styles.statusBadgeTextLocked}>LOCKED</Text>
-                                                </>
-                                            )}
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.cardFooter}>
-                                        <Text
-                                            style={[
-                                                styles.buildingName,
-                                                !isUnlocked && styles.buildingNameLocked,
-                                            ]}
-                                            numberOfLines={2}
-                                        >
-                                            {building.name}
-                                        </Text>
-                                        <View style={styles.codeRow}>
-                                            <Text
-                                                style={[
-                                                    styles.buildingCode,
-                                                    !isUnlocked && styles.buildingCodeLocked,
-                                                ]}
-                                            >
-                                                {building.code || "CAMPUS"}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                </View>
-                            );
-                        })}
-                    </View>
-                )}
-
-                <View style={{ height: 32 }} />
-            </ScrollView>
+            />
         </SafeAreaView>
     );
 }
@@ -443,9 +468,7 @@ const styles = StyleSheet.create({
         color: theme.colors.textMuted,
         textAlign: "center",
     },
-    grid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
+    columnWrapper: {
         justifyContent: "space-between",
     },
     stampCard: {

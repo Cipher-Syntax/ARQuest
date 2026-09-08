@@ -16,9 +16,9 @@ import { StatusBar } from "expo-status-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { DeviceMotion } from "expo-sensors";
 import { theme } from "../theme/tokens";
-import { useAssetCache } from "../hooks/useAssetCache";
 import { assetService } from "../services";
 import { api } from "../services";
+import ErrorBoundary from "../components/ui/ErrorBoundary";
 
 export default function VirtualTourViewerScreen() {
     const {
@@ -34,7 +34,8 @@ export default function VirtualTourViewerScreen() {
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState(null);
     const [webViewReady, setWebViewReady] = useState(false);
-    const [localModelUrl, setLocalModelUrl] = useState(null);
+    const [modelTarget, setModelTarget] = useState(null);
+    const [statusText, setStatusText] = useState("Initializing Virtual Tour...");
     const [liveHotspots, setLiveHotspots] = useState([]);
     const [hasPanorama, setHasPanorama] = useState(false);
     const [checkingPanorama, setCheckingPanorama] = useState(
@@ -45,13 +46,9 @@ export default function VirtualTourViewerScreen() {
     const [nearbyScene, setNearbyScene] = useState(null);
     const [showRoomModal, setShowRoomModal] = useState(false);
     const webViewRef = useRef(null);
+    const hasInitializedRef = useRef(false);
 
     const gyroSubscriptionRef = useRef(null);
-    const {
-        loadAsset,
-        isLoading: isAssetLoading,
-        progress: assetProgress,
-    } = useAssetCache();
 
     // ── Screen orientation: lock to landscape for VR / 3D exploration ──
     useFocusEffect(
@@ -75,7 +72,7 @@ export default function VirtualTourViewerScreen() {
         const initAsset = async () => {
             if (!buildingId) {
                 if (modelUrl) {
-                    setLocalModelUrl(modelUrl);
+                    setModelTarget({ url: modelUrl, assetId: "direct", version: 1 });
                 } else {
                     setError("3D model not available");
                     setLoading(false);
@@ -107,22 +104,30 @@ export default function VirtualTourViewerScreen() {
                 const assets = await assetService.getBuildingAssets(buildingId);
                 const modelAsset = assets.find((a) => a.asset_type === "model");
 
-                if (modelAsset && modelAsset.file_url) {
-                    setLocalModelUrl(modelAsset.file_url);
-                } else if (modelUrl) {
-                    setLocalModelUrl(modelUrl);
+                const targetUrl = modelAsset?.file_url || modelUrl;
+
+                if (targetUrl) {
+                    setModelTarget({
+                        url: targetUrl,
+                        assetId: modelAsset?.id || buildingId,
+                        version: modelAsset?.version || 1,
+                    });
                 } else {
                     setError("3D model not available");
+                    setLoading(false);
                 }
             } catch (err) {
                 console.error("Failed to fetch building assets:", err);
                 if (modelUrl) {
-                    setLocalModelUrl(modelUrl);
+                    setModelTarget({
+                        url: modelUrl,
+                        assetId: buildingId || "direct",
+                        version: 1,
+                    });
                 } else {
                     setError("Failed to load asset metadata");
+                    setLoading(false);
                 }
-            } finally {
-                // We let the WebView handle the actual loading progress
             }
         };
 
@@ -238,21 +243,136 @@ export default function VirtualTourViewerScreen() {
         }
     };
 
-    // ── Send init message when WebView + model are both ready ─────
+    // ── Send init / streamed chunks once when WebView + model are both ready ─────
     useEffect(() => {
-        if (webViewReady && webViewRef.current && localModelUrl) {
-            console.log("Loading model from URL:", localModelUrl);
+        if (
+            !webViewReady ||
+            !webViewRef.current ||
+            !modelTarget ||
+            hasInitializedRef.current
+        ) {
+            return;
+        }
+
+        let isMounted = true;
+
+        const loadModel = async () => {
+            hasInitializedRef.current = true;
+            const { url, assetId, version } = modelTarget;
+
+            const extraData = {
+                hotspots: liveHotspots,
+                panoramaScenes: panoramaData?.scenes || [],
+                controlMode: controlMode || "joystick",
+            };
+
+            try {
+                const isCached = await assetService.isCached(
+                    assetId,
+                    version,
+                    url,
+                );
+                let localUri = assetService.getLocalPath(
+                    assetId,
+                    version,
+                    url,
+                );
+
+                if (!isCached) {
+                    if (isMounted) {
+                        setStatusText("Downloading 3D Assets...");
+                    }
+                    try {
+                        localUri = await assetService.downloadAsset(
+                            url,
+                            assetId,
+                            version,
+                            (p) => {
+                                if (isMounted) {
+                                    const pct = Math.round(p * 100);
+                                    setProgress(pct);
+                                    setStatusText(
+                                        `Downloading 3D Assets... ${pct}%`,
+                                    );
+                                }
+                            },
+                        );
+                    } catch (dlErr) {
+                        console.warn(
+                            "Direct download failed, falling back to network stream in webview:",
+                            dlErr,
+                        );
+                        localUri = null;
+                    }
+                } else {
+                    if (isMounted) {
+                        setStatusText("Loading 3D Model from cache...");
+                    }
+                }
+
+                if (localUri && webViewRef.current) {
+                    if (isMounted)
+                        setStatusText("Rendering Interior Model...");
+                    const streamed =
+                        await assetService.streamModelToWebView(
+                            localUri,
+                            webViewRef,
+                            url,
+                            extraData,
+                        );
+                    if (!streamed && webViewRef.current) {
+                        webViewRef.current.postMessage(
+                            JSON.stringify({
+                                type: "init",
+                                modelUrl: url,
+                                ...extraData,
+                            }),
+                        );
+                    }
+                } else if (webViewRef.current) {
+                    webViewRef.current.postMessage(
+                        JSON.stringify({
+                            type: "init",
+                            modelUrl: url,
+                            ...extraData,
+                        }),
+                    );
+                }
+            } catch (err) {
+                console.error("Error preparing 3D tour model:", err);
+                if (webViewRef.current) {
+                    webViewRef.current.postMessage(
+                        JSON.stringify({
+                            type: "init",
+                            modelUrl: url,
+                            ...extraData,
+                        }),
+                    );
+                }
+            }
+        };
+
+        loadModel();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [modelTarget, webViewReady, liveHotspots]);
+
+    // Send incremental portal scene updates without tearing down or disposing the 3D model
+    useEffect(() => {
+        if (hasInitializedRef.current && webViewRef.current && panoramaData?.scenes) {
             webViewRef.current.postMessage(
                 JSON.stringify({
-                    type: "init",
-                    modelUrl: localModelUrl,
-                    hotspots: liveHotspots,
-                    panoramaScenes: panoramaData?.scenes || [],
-                    controlMode: controlMode || "joystick",
+                    type: "update_panorama_scenes",
+                    panoramaScenes: panoramaData.scenes,
                 }),
             );
         }
+    }, [panoramaData]);
 
+    // Send dispose message ONLY when component truly unmounts
+    useEffect(() => {
         return () => {
             if (webViewRef.current) {
                 webViewRef.current.postMessage(
@@ -260,7 +380,7 @@ export default function VirtualTourViewerScreen() {
                 );
             }
         };
-    }, [localModelUrl, webViewReady, liveHotspots, panoramaData]);
+    }, []);
 
 
     // ── Native Gyroscope Bridge ────────────────────────────────────
@@ -292,8 +412,9 @@ export default function VirtualTourViewerScreen() {
         };
 
         const startGyro = async () => {
-            // DeviceMotion update interval in ms (16ms ≈ 60fps)
-            DeviceMotion.setUpdateInterval(16);
+            // DeviceMotion update interval in ms (33ms ≈ 30fps)
+            // Slerp on Three.js side interpolates to 60fps visuals with 50% less bridge traffic
+            DeviceMotion.setUpdateInterval(33);
 
             // Fetch orient once at start; re-fetch on orientation change events
             let orientAngleDeg = await getOrientAngleDeg();
@@ -359,6 +480,7 @@ export default function VirtualTourViewerScreen() {
                 setError(null);
             } else if (data.type === "progress") {
                 setProgress(data.percent);
+                setStatusText(`Loading 3D Model... ${data.percent}%`);
             } else if (data.type === "error") {
                 setLoading(false);
                 setError(data.message || "Failed to load model");
@@ -408,20 +530,31 @@ export default function VirtualTourViewerScreen() {
             <StatusBar style="dark" hidden={true} />
 
             {/* Fullscreen 3D Canvas */}
-            <WebView
-                ref={webViewRef}
-                source={viewerHtml}
-                style={styles.webview}
-                onMessage={handleMessage}
-                onLoadEnd={() => setWebViewReady(true)}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                allowFileAccess={true}
-                allowFileAccessFromFileURLs={true}
-                allowUniversalAccessFromFileURLs={true}
-                mixedContentMode="always"
-                originWhitelist={["*"]}
-            />
+            <ErrorBoundary
+                title="3D Tour Disrupted"
+                message="WebGL context was lost or a rendering error occurred. Tap to recover."
+                onReset={() => {
+                    hasInitializedRef.current = false;
+                    setWebViewReady(false);
+                }}
+            >
+                <WebView
+                    ref={webViewRef}
+                    source={viewerHtml}
+                    style={styles.webview}
+                    onMessage={handleMessage}
+                    onLoadEnd={() => setWebViewReady(true)}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    cacheEnabled={true}
+                    cacheMode="LOAD_CACHE_ELSE_NETWORK"
+                    allowFileAccess={true}
+                    allowFileAccessFromFileURLs={true}
+                    allowUniversalAccessFromFileURLs={true}
+                    mixedContentMode="always"
+                    originWhitelist={["*"]}
+                />
+            </ErrorBoundary>
 
             {/* Top Right Action Controls */}
             <View style={styles.topRightActions}>
@@ -503,7 +636,7 @@ export default function VirtualTourViewerScreen() {
                             color={theme.colors.primary}
                         />
                         <Text style={styles.loadingText}>
-                            {`Initializing Virtual Tour... ${progress}%`}
+                            {statusText}
                         </Text>
                     </View>
                 </View>

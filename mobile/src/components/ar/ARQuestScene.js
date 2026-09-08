@@ -71,6 +71,8 @@ export default function ARQuestScene(props) {
     const cameraPositionRef = useRef([0, 0, 0]);
     const lastCamUpdateRef = useRef(0);
     const lastAngleRef = useRef(0);
+    const lastAnchorPosRef = useRef([0, 0, 0]);
+    const lastRecomputeTimeRef = useRef(0);
 
     // Target to aim at (immediate walking waypoint or destination)
     const effectiveLat = nextWaypoint?.latitude ?? targetLat;
@@ -110,20 +112,27 @@ export default function ARQuestScene(props) {
     }, []);
 
     /**
-     * Camera world-space transform update — fires every frame from ARCore/ARKit.
-     * Throttled to ~30fps. Updates arrow positions so they always float in
-     * front of wherever the user is RIGHT NOW, not where the session started.
+     * Camera world-space transform update from ARCore/ARKit.
+     * Decoupled: Throttled to ~4 Hz (250ms) AND distance delta (>= 35cm)
+     * to eliminate 30Hz React Native JS state thrashing and GC pauses.
      */
     const onCameraTransformUpdate = useCallback((camTransform) => {
-        const now = Date.now();
-        if (now - lastCamUpdateRef.current < 33) return; // ~30fps throttle
-        lastCamUpdateRef.current = now;
-
         const pos = camTransform.cameraTransform.position;
         cameraPositionRef.current = pos;
 
-        // Re-anchor navigation elements to the user's current camera position
-        if (hasInitRef.current) {
+        if (!hasInitRef.current) return;
+
+        const now = Date.now();
+        const timeDelta = now - lastRecomputeTimeRef.current;
+        if (timeDelta < 250) return; // 4Hz maximum throttle
+
+        const [lx, ly, lz] = lastAnchorPosRef.current;
+        const distSq = (pos[0] - lx) ** 2 + (pos[1] - ly) ** 2 + (pos[2] - lz) ** 2;
+
+        // Only recompute if user physically walked >= 35cm or 1.5s elapsed
+        if (distSq >= 0.12 || timeDelta >= 1500) {
+            lastRecomputeTimeRef.current = now;
+            lastAnchorPosRef.current = [pos[0], pos[1], pos[2]];
             recomputeNavPositions(lastAngleRef.current, pos);
         }
     }, [recomputeNavPositions]);
@@ -144,24 +153,22 @@ export default function ARQuestScene(props) {
                 smoothedAngleRef.current = rawAngle;
                 hasInitRef.current = true;
                 chosenAngle = rawAngle;
+                lastAngleRef.current = chosenAngle;
+                setTargetAngle(chosenAngle);
+                recomputeNavPositions(chosenAngle, cameraPositionRef.current);
             } else {
                 let diff = (rawAngle - smoothedAngleRef.current + 180) % 360 - 180;
                 if (diff < -180) diff += 360;
 
-                // Deadband: ignore micro-jitters under 1.5 degrees
-                if (Math.abs(diff) >= 1.5) {
+                // Deadband: ignore micro-jitters under 2.5 degrees to avoid redundant state renders
+                if (Math.abs(diff) >= 2.5) {
                     chosenAngle = (smoothedAngleRef.current + diff * 0.35 + 360) % 360;
                     smoothedAngleRef.current = chosenAngle;
-                } else {
-                    chosenAngle = smoothedAngleRef.current;
+                    lastAngleRef.current = chosenAngle;
+                    setTargetAngle(chosenAngle);
+                    recomputeNavPositions(chosenAngle, cameraPositionRef.current);
                 }
             }
-
-            setTargetAngle(chosenAngle);
-            lastAngleRef.current = chosenAngle;
-
-            // Recompute positions offset from the camera's current world position
-            recomputeNavPositions(chosenAngle, cameraPositionRef.current);
         }
     }, [userLat, userLng, userHeading, targetLat, targetLng, effectiveLat, effectiveLng, isArrived, recomputeNavPositions]);
 

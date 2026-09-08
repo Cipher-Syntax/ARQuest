@@ -81,6 +81,8 @@ export default function AR3DModelOverlay({
                 androidLayerType="hardware"
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
+                cacheEnabled={true}
+                cacheMode="LOAD_CACHE_ELSE_NETWORK"
                 allowFileAccess={true}
                 allowFileAccessFromFileURLs={true}
                 allowUniversalAccessFromFileURLs={true}

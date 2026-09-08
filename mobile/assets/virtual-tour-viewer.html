@@ -287,11 +287,17 @@
             import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
             import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-            let scene, camera, renderer, controls, model;
+            let scene, camera, renderer, controls, model, animFrameId;
             let moveForward = 0;
             let moveRight = 0;
             let joystickManager;
             let ghostMode = false;
+            let chunkCollector = {
+                totalChunks: 0,
+                chunks: [],
+                receivedCount: 0,
+                fallbackUrl: null,
+            };
             const MOVE_SPEED = 0.18;
             const COLLISION_DISTANCE = 0.38;
             const floorRaycaster = new THREE.Raycaster();
@@ -525,8 +531,9 @@
             });
 
             // ── Scene Initialization ───────────────────────────────────────
-            function init(modelUrl, mode) {
-                controlMode = mode || "joystick";
+            function ensureScene(mode) {
+                if (scene) return;
+                controlMode = mode || controlMode || "joystick";
 
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x87ceeb); // Sky color
@@ -548,6 +555,17 @@
                 });
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+                renderer.domElement.addEventListener("webglcontextlost", (event) => {
+                    event.preventDefault();
+                    console.warn("WebGL Context Lost! Suspending animation loop.");
+                    if (animFrameId) cancelAnimationFrame(animFrameId);
+                }, false);
+
+                renderer.domElement.addEventListener("webglcontextrestored", () => {
+                    console.log("WebGL Context Restored! Resuming animation loop.");
+                    animate();
+                }, false);
 
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
                 scene.add(ambientLight);
@@ -571,17 +589,20 @@
                 controls.enablePan = false;
 
                 initJoystick();
-                loadModel(modelUrl);
                 animate();
 
-                // Activate the selected control mode AFTER scene is initialised
-                // Data arrives via postMessage from React Native (expo-sensors) —
-                // no browser permission prompt needed at all.
                 if (controlMode === "gyroscope") {
                     startGyroscope();
                 }
 
                 window.addEventListener("resize", onWindowResize);
+            }
+
+            function init(modelUrl, mode) {
+                ensureScene(mode);
+                if (modelUrl) {
+                    loadModel(modelUrl);
+                }
             }
 
             // ── Joystick ───────────────────────────────────────────────────
@@ -612,18 +633,8 @@
             }
 
             // ── Model Loading ──────────────────────────────────────────────
-            function loadModel(url) {
-                console.log("Starting to load interior model from:", url);
-                const loader = new GLTFLoader();
-                
-                const dracoLoader = new DRACOLoader();
-                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-                loader.setDRACOLoader(dracoLoader);
-                
-                loader.load(
-                    url,
-                    (gltf) => {
-                        console.log("Model loaded successfully");
+            function onInteriorModelLoaded(gltf) {
+                console.log("Model loaded successfully");
                         model = gltf.scene;
                         scene.add(model);
 
@@ -956,6 +967,70 @@
                         window.ReactNativeWebView?.postMessage(
                             JSON.stringify({ type: "loaded" }),
                         );
+            }
+
+            function parseBase64Model(base64Data, fallbackUrl) {
+                ensureScene(controlMode);
+                document.getElementById("loading").textContent = "RENDERING INTERIOR...";
+
+                try {
+                    const binaryString = window.atob(base64Data);
+                    const len = binaryString.length;
+                    const bytes = new Uint8Array(len);
+                    for (let i = 0; i < len; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+
+                    const loader = new GLTFLoader();
+                    const dracoLoader = new DRACOLoader();
+                    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                    loader.setDRACOLoader(dracoLoader);
+
+                    loader.parse(
+                        bytes.buffer,
+                        "",
+                        (gltf) => {
+                            onInteriorModelLoaded(gltf);
+                        },
+                        (error) => {
+                            console.error("Cached interior model parse error:", error);
+                            if (fallbackUrl) {
+                                loadModel(fallbackUrl);
+                            } else {
+                                const errMsg = (error && error.message) ? error.message : "Failed to render cached interior model";
+                                document.getElementById("loading").textContent = "LOAD ERROR";
+                                window.ReactNativeWebView?.postMessage(
+                                    JSON.stringify({ type: "error", message: errMsg }),
+                                );
+                            }
+                        }
+                    );
+                } catch (e) {
+                    console.error("Base64 decode error:", e);
+                    if (fallbackUrl) {
+                        loadModel(fallbackUrl);
+                    } else {
+                        document.getElementById("loading").textContent = "LOAD ERROR";
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({ type: "error", message: e.message }),
+                        );
+                    }
+                }
+            }
+
+            function loadModel(url) {
+                ensureScene(controlMode);
+                console.log("Starting to load interior model from:", url);
+                const loader = new GLTFLoader();
+                
+                const dracoLoader = new DRACOLoader();
+                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                loader.setDRACOLoader(dracoLoader);
+                
+                loader.load(
+                    url,
+                    (gltf) => {
+                        onInteriorModelLoaded(gltf);
                     },
                     (progress) => {
                         if (progress.total > 0) {
@@ -975,12 +1050,13 @@
                     },
                     (error) => {
                         console.error("Model loading error:", error);
+                        const errMsg = (error && error.message) ? error.message : "Failed to load interior model. Please verify connection.";
                         document.getElementById("loading").textContent =
                             "LOAD ERROR";
                         window.ReactNativeWebView?.postMessage(
                             JSON.stringify({
                                 type: "error",
-                                message: error.message || "Unknown error",
+                                message: errMsg,
                             }),
                         );
                     },
@@ -994,7 +1070,7 @@
             const tempVector = new THREE.Vector3();
 
             function animate() {
-                requestAnimationFrame(animate);
+                animFrameId = requestAnimationFrame(animate);
 
                 // Auto-detect nearby NPCs and update labels
                 let minDist = 3.5;
@@ -1288,10 +1364,14 @@
 
             // ── Dispose / Cleanup ──────────────────────────────────────────
             function dispose() {
+                if (animFrameId) {
+                    cancelAnimationFrame(animFrameId);
+                    animFrameId = null;
+                }
                 window.removeEventListener("resize", onWindowResize);
                 // Gyro data came from RN postMessage — no DOM listener to remove
                 gyroEnabled = false;
-                if (model) {
+                if (model && scene) {
                     scene.remove(model);
                     model.traverse((child) => {
                         if (child.geometry) child.geometry.dispose();
@@ -1309,23 +1389,78 @@
                         if (p.userData && p.userData.labelDiv && p.userData.labelDiv.parentNode) {
                             p.userData.labelDiv.parentNode.removeChild(p.userData.labelDiv);
                         }
+                        if (scene) scene.remove(p);
                     });
                     portalBadges = [];
                 }
-                renderer.dispose();
-                controls.dispose();
+                if (renderer) renderer.dispose();
+                if (controls) controls.dispose();
+            }
+
+            function refreshPortalBadges() {
+                if (portalBadges && portalBadges.length > 0) {
+                    portalBadges.forEach((p) => {
+                        if (p.userData && p.userData.labelDiv && p.userData.labelDiv.parentNode) {
+                            p.userData.labelDiv.parentNode.removeChild(p.userData.labelDiv);
+                        }
+                        if (scene) scene.remove(p);
+                    });
+                    portalBadges = [];
+                }
+                if (window.panoramaScenes && window.panoramaScenes.length > 0) {
+                    window.panoramaScenes.forEach((sceneData) => {
+                        createPortalBadge(sceneData);
+                    });
+                }
             }
 
 
             // ── Message Handlers (window + document for Android WebView) ──
             function handleIncomingMessage(data) {
-                if (data.type === "init") {
+                if (data.type === "model_chunk_start") {
+                    if (data.controlMode) controlMode = data.controlMode;
+                    ensureScene(data.controlMode || "joystick");
+                    window.buildingHotspots = data.hotspots || window.buildingHotspots || [];
+                    window.panoramaScenes = (data.panoramaScenes || window.panoramaScenes || []).filter(
+                        (s) => s.anchor_x != null && s.anchor_z != null
+                    );
+                    chunkCollector = {
+                        totalChunks: data.totalChunks,
+                        chunks: new Array(data.totalChunks),
+                        receivedCount: 0,
+                        fallbackUrl: data.fallbackUrl,
+                    };
+                    document.getElementById("loading").textContent = "LOADING FROM STORAGE...";
+                } else if (data.type === "model_chunk") {
+                    if (chunkCollector.chunks && !chunkCollector.chunks[data.index]) {
+                        chunkCollector.chunks[data.index] = data.chunk;
+                        chunkCollector.receivedCount++;
+                        const pct = Math.round((chunkCollector.receivedCount / chunkCollector.totalChunks) * 100);
+                        document.getElementById("loading").textContent = `LOADING FROM STORAGE... ${pct}%`;
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({ type: "progress", percent: pct }),
+                        );
+                        if (chunkCollector.receivedCount === chunkCollector.totalChunks) {
+                            const fullBase64 = chunkCollector.chunks.join("");
+                            chunkCollector.chunks = null; // free memory immediately
+                            parseBase64Model(fullBase64, chunkCollector.fallbackUrl);
+                        }
+                    }
+                } else if (data.type === "init") {
                     window.buildingHotspots = data.hotspots || [];
                     // Unit 30: Store panorama scene anchors for portal badge spawning
                     window.panoramaScenes = (data.panoramaScenes || []).filter(
                         (s) => s.anchor_x != null && s.anchor_z != null
                     );
                     init(data.modelUrl, data.controlMode || "joystick");
+                } else if (data.type === "update_panorama_scenes") {
+                    // Update portal badges dynamically without tearing down Three.js model
+                    window.panoramaScenes = (data.panoramaScenes || []).filter(
+                        (s) => s.anchor_x != null && s.anchor_z != null
+                    );
+                    if (scene && model) {
+                        refreshPortalBadges();
+                    }
                 } else if (data.type === "gyro_data") {
                     // Native sensor data bridged from React Native expo-sensors DeviceMotion
                     onGyroData(

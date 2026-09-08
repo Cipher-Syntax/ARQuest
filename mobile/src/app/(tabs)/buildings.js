@@ -28,6 +28,39 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import { ShieldAlert, X } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
+import { ErrorBoundary } from "../../components/ui/ErrorBoundary";
+
+const BuildingListItem = React.memo(({ item, isUnlocked, isVisitor, isLast, onPress }) => (
+    <TouchableOpacity 
+        style={{ 
+            padding: 12, 
+            backgroundColor: '#FFF',
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            borderBottomWidth: isLast ? 0 : 1,
+            borderBottomColor: '#E5E7EB',
+            height: 85,
+        }}
+        onPress={onPress}
+        activeOpacity={0.7}
+    >
+        <View style={{ width: 60, height: 60, borderRadius: 12, backgroundColor: theme.colors.bgPrimary, overflow: 'hidden', marginRight: 16, justifyContent: 'center', alignItems: 'center' }}>
+            {item.image_url ? (
+                <Image source={{ uri: item.image_url }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+            ) : (
+                <Ionicons name="business" size={24} color={theme.colors.textMuted} />
+            )}
+        </View>
+        <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: fonts.heading.bold, fontSize: 16, color: theme.colors.textPrimary, marginBottom: 4 }} numberOfLines={1}>{item.name}</Text>
+            <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary }} numberOfLines={1}>
+                {item.primary_department ? `${item.primary_department.name} • ` : ""} 
+                {item.is_active === false ? "CLOSED" : (item.status === "MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE")}
+            </Text>
+        </View>
+        <Ionicons name={isUnlocked || isVisitor ? "chevron-forward" : "lock-closed"} size={20} color={isUnlocked || isVisitor ? theme.colors.primary : theme.colors.textMuted} />
+    </TouchableOpacity>
+));
 
 export default function BuildingsScreen() {
     const isFocused = useIsFocused();
@@ -387,6 +420,37 @@ export default function BuildingsScreen() {
             });
     }, [allBuildings, listSearchQuery, unlockedBuildings, role]);
 
+    const handlePressBuildingItem = React.useCallback((item) => {
+        const isUnlocked = unlockedBuildings.some(u => u.id === item.id);
+        if (isUnlocked || role === "visitor" || (item && item.status === "MAINTENANCE")) {
+            const unlockedData = unlockedBuildings.find(b => b.id === item.id) || {};
+            setSelectedBuilding({ ...item, ...unlockedData });
+            setModalVisible(true);
+        } else {
+            Alert("ZONE LOCKED", `You must physically deploy to ${item.name} to unlock its AR capabilities.`, [{ text: "ACKNOWLEDGE" }]);
+        }
+    }, [unlockedBuildings, role]);
+
+    const renderBuildingListItem = React.useCallback(({ item, index }) => {
+        const isUnlocked = unlockedBuildings.some(u => u.id === item.id);
+        const isLast = index === sortedBuildings.length - 1;
+        return (
+            <BuildingListItem
+                item={item}
+                isUnlocked={isUnlocked}
+                isVisitor={role === "visitor"}
+                isLast={isLast}
+                onPress={() => handlePressBuildingItem(item)}
+            />
+        );
+    }, [unlockedBuildings, sortedBuildings.length, role, handlePressBuildingItem]);
+
+    const getItemLayout = React.useCallback((data, index) => ({
+        length: 85,
+        offset: 85 * index,
+        index,
+    }), []);
+
     return (
         <View style={styles.container}>
             {isFocused && <StatusBar style="dark" />}
@@ -412,32 +476,43 @@ export default function BuildingsScreen() {
                         </View>
                     )}
 
-                    <WebView
-                        ref={webViewRef}
-                source={{ html: mapHtml, baseUrl: 'https://api.mapbox.com/' }}
-                style={styles.webview}
-                onMessage={handleMessage}
-                onLoadEnd={() => {
-                    setWebViewReady(true);
-                    sendMapUpdate();
-                }}
-                onError={(syntheticEvent) => {
-                    const { nativeEvent } = syntheticEvent;
-                    console.warn('[WebView] WebView error: ', nativeEvent);
-                }}
-                onHttpError={(syntheticEvent) => {
-                    const { nativeEvent } = syntheticEvent;
-                    console.warn('[WebView] HTTP error: ', nativeEvent);
-                }}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                allowFileAccess={true}
-                allowFileAccessFromFileURLs={true}
-                allowUniversalAccessFromFileURLs={true}
-                originWhitelist={["*"]}
-                injectedJavaScript={INJECTED_BRIDGE_SCRIPT}
-                mixedContentMode="always"
-            />
+                    <ErrorBoundary
+                        title="Map View Interrupted"
+                        message="The 3D campus map encountered an error. Tap retry to reload the map."
+                        onReset={() => {
+                            setWebViewReady(false);
+                            if (webViewRef.current) {
+                                webViewRef.current.reload();
+                            }
+                        }}
+                    >
+                        <WebView
+                            ref={webViewRef}
+                            source={{ html: mapHtml, baseUrl: 'https://api.mapbox.com/' }}
+                            style={styles.webview}
+                            onMessage={handleMessage}
+                            onLoadEnd={() => {
+                                setWebViewReady(true);
+                                sendMapUpdate();
+                            }}
+                            onError={(syntheticEvent) => {
+                                const { nativeEvent } = syntheticEvent;
+                                console.warn('[WebView] WebView error: ', nativeEvent);
+                            }}
+                            onHttpError={(syntheticEvent) => {
+                                const { nativeEvent } = syntheticEvent;
+                                console.warn('[WebView] HTTP error: ', nativeEvent);
+                            }}
+                            javaScriptEnabled={true}
+                            domStorageEnabled={true}
+                            allowFileAccess={true}
+                            allowFileAccessFromFileURLs={true}
+                            allowUniversalAccessFromFileURLs={true}
+                            originWhitelist={["*"]}
+                            injectedJavaScript={INJECTED_BRIDGE_SCRIPT}
+                            mixedContentMode="always"
+                        />
+                    </ErrorBoundary>
 
             {/* Routing Search Overlay */}
             <LinearGradient
@@ -662,47 +737,13 @@ export default function BuildingsScreen() {
                             data={sortedBuildings}
                             keyExtractor={b => b.id.toString()}
                             contentContainerStyle={{ paddingBottom: 100 }}
-                            renderItem={({item, index}) => {
-                                const isUnlocked = unlockedBuildings.some(u => u.id === item.id);
-                                const isLast = index === sortedBuildings.length - 1;
-                                return (
-                                    <TouchableOpacity 
-                                        style={{ 
-                                            padding: 12, 
-                                            backgroundColor: '#FFF',
-                                            flexDirection: 'row', 
-                                            alignItems: 'center', 
-                                            borderBottomWidth: isLast ? 0 : 1,
-                                            borderBottomColor: '#E5E7EB'
-                                        }}
-                                        onPress={() => {
-                                            if (isUnlocked || role === "visitor" || (item && item.status === "MAINTENANCE")) {
-                                                const unlockedData = unlockedBuildings.find(b => b.id === item.id) || {};
-                                                setSelectedBuilding({ ...item, ...unlockedData });
-                                                setModalVisible(true);
-                                            } else {
-                                                Alert("ZONE LOCKED", `You must physically deploy to ${item.name} to unlock its AR capabilities.`, [{ text: "ACKNOWLEDGE" }]);
-                                            }
-                                        }}
-                                    >
-                                        <View style={{ width: 60, height: 60, borderRadius: 12, backgroundColor: theme.colors.bgPrimary, overflow: 'hidden', marginRight: 16, justifyContent: 'center', alignItems: 'center' }}>
-                                            {item.image_url ? (
-                                                <Image source={{ uri: item.image_url }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
-                                            ) : (
-                                                <Ionicons name="business" size={24} color={theme.colors.textMuted} />
-                                            )}
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={{ fontFamily: fonts.heading.bold, fontSize: 16, color: theme.colors.textPrimary, marginBottom: 4 }}>{item.name}</Text>
-                                            <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary }}>
-                                                {item.primary_department ? `${item.primary_department.name} • ` : ""} 
-                                                {item.is_active === false ? "CLOSED" : (item.status === "MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE")}
-                                            </Text>
-                                        </View>
-                                        <Ionicons name={isUnlocked || role === "visitor" ? "chevron-forward" : "lock-closed"} size={20} color={isUnlocked || role === "visitor" ? theme.colors.primary : theme.colors.textMuted} />
-                                    </TouchableOpacity>
-                                )
-                            }}
+                            removeClippedSubviews={true}
+                            maxToRenderPerBatch={6}
+                            updateCellsBatchingPeriod={50}
+                            initialNumToRender={6}
+                            windowSize={5}
+                            getItemLayout={getItemLayout}
+                            renderItem={renderBuildingListItem}
                         />
                     </View>
                 </View>
