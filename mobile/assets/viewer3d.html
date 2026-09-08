@@ -46,8 +46,15 @@
             import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
             let scene, camera, renderer, controls, model;
+            let chunkCollector = {
+                totalChunks: 0,
+                chunks: null,
+                receivedCount: 0,
+                fallbackUrl: null,
+            };
 
-            function init(modelUrl) {
+            function ensureScene() {
+                if (scene) return;
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0xffffff);
 
@@ -87,10 +94,96 @@
                 controls.minDistance = 1;
                 controls.maxDistance = 50;
 
-                loadModel(modelUrl);
                 animate();
-
                 window.addEventListener("resize", onWindowResize);
+            }
+
+            function init(modelUrl) {
+                ensureScene();
+                loadModel(modelUrl);
+            }
+
+            function onModelLoaded(gltf) {
+                console.log("Model loaded successfully");
+                model = gltf.scene;
+                scene.add(model);
+
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+
+                model.position.sub(center);
+
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180);
+                let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+
+                // Shift the camera target slightly down to push the model UP on the screen
+                const yOffset = -maxDim * 0.15;
+
+                camera.position.set(
+                    cameraZ,
+                    cameraZ * 0.5 + yOffset,
+                    cameraZ,
+                );
+                camera.lookAt(0, yOffset, 0);
+
+                controls.target.set(0, yOffset, 0);
+                controls.update();
+
+                document.getElementById("loading").style.display = "none";
+                window.ReactNativeWebView?.postMessage(
+                    JSON.stringify({ type: "loaded" }),
+                );
+            }
+
+            function parseBase64Model(base64Data, fallbackUrl) {
+                ensureScene();
+                document.getElementById("loading").textContent = "Rendering 3D Model...";
+
+                try {
+                    const binaryString = window.atob(base64Data);
+                    const len = binaryString.length;
+                    const bytes = new Uint8Array(len);
+                    for (let i = 0; i < len; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+
+                    const loader = new GLTFLoader();
+                    const dracoLoader = new DRACOLoader();
+                    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                    loader.setDRACOLoader(dracoLoader);
+
+                    loader.parse(
+                        bytes.buffer,
+                        "",
+                        (gltf) => {
+                            onModelLoaded(gltf);
+                        },
+                        (error) => {
+                            console.error("Cached model parse error:", error);
+                            if (fallbackUrl) {
+                                loadModel(fallbackUrl);
+                            } else {
+                                const errMsg = (error && error.message) ? error.message : "Failed to render cached 3D model";
+                                document.getElementById("loading").textContent = errMsg;
+                                window.ReactNativeWebView?.postMessage(
+                                    JSON.stringify({ type: "error", message: errMsg }),
+                                );
+                            }
+                        }
+                    );
+                } catch (e) {
+                    console.error("Base64 decode error:", e);
+                    if (fallbackUrl) {
+                        loadModel(fallbackUrl);
+                    } else {
+                        document.getElementById("loading").textContent = "Failed to decode model";
+                        window.ReactNativeWebView?.postMessage(
+                            JSON.stringify({ type: "error", message: e.message }),
+                        );
+                    }
+                }
             }
 
             function loadModel(url) {
@@ -101,44 +194,11 @@
                 const dracoLoader = new DRACOLoader();
                 dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
                 loader.setDRACOLoader(dracoLoader);
-                loader.setCrossOrigin('anonymous');
                 
                 loader.load(
                     url,
                     (gltf) => {
-                        console.log("Model loaded successfully");
-                        model = gltf.scene;
-                        scene.add(model);
-
-                        const box = new THREE.Box3().setFromObject(model);
-                        const center = box.getCenter(new THREE.Vector3());
-                        const size = box.getSize(new THREE.Vector3());
-
-                        model.position.sub(center);
-
-                        const maxDim = Math.max(size.x, size.y, size.z);
-                        const fov = camera.fov * (Math.PI / 180);
-                        let cameraZ =
-                            Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
-
-                        // Shift the camera target slightly down to push the model UP on the screen
-                        const yOffset = -maxDim * 0.15;
-
-                        camera.position.set(
-                            cameraZ,
-                            cameraZ * 0.5 + yOffset,
-                            cameraZ,
-                        );
-                        camera.lookAt(0, yOffset, 0);
-
-                        controls.target.set(0, yOffset, 0);
-                        controls.update();
-
-                        document.getElementById("loading").style.display =
-                            "none";
-                        window.ReactNativeWebView?.postMessage(
-                            JSON.stringify({ type: "loaded" }),
-                        );
+                        onModelLoaded(gltf);
                     },
                     (progress) => {
                         if (progress.total > 0) {
@@ -158,12 +218,12 @@
                     },
                     (error) => {
                         console.error("Model loading error:", error);
-                        document.getElementById("loading").textContent =
-                            "Failed to load model";
+                        const errMsg = (error && error.message) ? error.message : "Failed to load 3D model. Please verify connection.";
+                        document.getElementById("loading").textContent = errMsg;
                         window.ReactNativeWebView?.postMessage(
                             JSON.stringify({
                                 type: "error",
-                                message: error.message || "Unknown error",
+                                message: errMsg,
                             }),
                         );
                     },
@@ -201,14 +261,35 @@
                 controls.dispose();
             }
 
-            window.addEventListener("message", (event) => {
+            function handleMessage(event) {
                 try {
-                    const data =
-                        typeof event.data === "string"
-                            ? JSON.parse(event.data)
-                            : event.data;
-                    console.log("Received message:", data);
-                    if (data.type === "init") {
+                    const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+                    console.log("Received message:", data?.type);
+                    if (data.type === "model_chunk_start") {
+                        ensureScene();
+                        chunkCollector = {
+                            totalChunks: data.totalChunks,
+                            chunks: new Array(data.totalChunks),
+                            receivedCount: 0,
+                            fallbackUrl: data.fallbackUrl,
+                        };
+                        document.getElementById("loading").textContent = "Loading from storage...";
+                    } else if (data.type === "model_chunk") {
+                        if (chunkCollector.chunks && !chunkCollector.chunks[data.index]) {
+                            chunkCollector.chunks[data.index] = data.chunk;
+                            chunkCollector.receivedCount++;
+                            const pct = Math.round((chunkCollector.receivedCount / chunkCollector.totalChunks) * 100);
+                            document.getElementById("loading").textContent = `Loading from storage... ${pct}%`;
+                            window.ReactNativeWebView?.postMessage(
+                                JSON.stringify({ type: "progress", percent: pct }),
+                            );
+                            if (chunkCollector.receivedCount === chunkCollector.totalChunks) {
+                                const fullBase64 = chunkCollector.chunks.join("");
+                                chunkCollector.chunks = null; // free memory immediately
+                                parseBase64Model(fullBase64, chunkCollector.fallbackUrl);
+                            }
+                        }
+                    } else if (data.type === "init") {
                         init(data.modelUrl);
                     } else if (data.type === "dispose") {
                         dispose();
@@ -216,24 +297,10 @@
                 } catch (e) {
                     console.error("Message parse error:", e);
                 }
-            });
+            }
 
-            document.addEventListener("message", (event) => {
-                try {
-                    const data =
-                        typeof event.data === "string"
-                            ? JSON.parse(event.data)
-                            : event.data;
-                    console.log("Received message:", data);
-                    if (data.type === "init") {
-                        init(data.modelUrl);
-                    } else if (data.type === "dispose") {
-                        dispose();
-                    }
-                } catch (e) {
-                    console.error("Message parse error:", e);
-                }
-            });
+            window.addEventListener("message", handleMessage);
+            document.addEventListener("message", handleMessage);
         </script>
     </body>
 </html>

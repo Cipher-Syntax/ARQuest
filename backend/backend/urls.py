@@ -19,6 +19,8 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.conf import settings
 from django.conf.urls.static import static
+from django.urls import re_path
+from django.views.static import serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,5 +35,14 @@ urlpatterns = [
     path('api/navigation/', include('apps.navigation.urls')),
 ]
 
+def cached_media_serve(request, path, document_root=None, show_indexes=False):
+    response = serve(request, path, document_root, show_indexes)
+    response['Cache-Control'] = 'public, max-age=2592000'
+    response['Access-Control-Allow-Origin'] = '*'
+    return response
+
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += [
+        re_path(r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'), cached_media_serve, {'document_root': settings.MEDIA_ROOT}),
+    ]
+

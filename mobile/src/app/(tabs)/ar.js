@@ -20,7 +20,7 @@ import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
-import { geofencingService } from "../../services";
+import { geofencingService, assetService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
 import { checkARSupport } from "../../utils/ar-hardware-check";
@@ -33,6 +33,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
 import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
+import ErrorBoundary from "../../components/ui/ErrorBoundary";
 
 export default function ARScreen() {
     const isFocused = useIsFocused();
@@ -48,9 +49,39 @@ export default function ARScreen() {
     const [bgReady, setBgReady] = useState(false);
     const [modelReady, setModelReady] = useState(true);
     const [isScanningQr, setIsScanningQr] = useState(false);
+    const [isCameraTransitioning, setIsCameraTransitioning] = useState(false);
     const [scannedData, setScannedData] = useState(null);
     const [isARSupported, setIsARSupported] = useState(true); // Assume supported; set false if check fails
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
+    const [cachedModelUri, setCachedModelUri] = useState(null);
+
+    useEffect(() => {
+        const targetBldg = navTargetFull || nearbyBuildingFull;
+        if (targetBldg && targetBldg.model_url) {
+            const assetId = `building_${targetBldg.id}_model`;
+            const version = targetBldg.updated_at ? new Date(targetBldg.updated_at).getTime() : "1";
+            assetService.isCached(assetId, version, targetBldg.model_url).then((isCached) => {
+                if (isCached) {
+                    const localPath = assetService.getLocalPath(assetId, version, targetBldg.model_url);
+                    setCachedModelUri(localPath);
+                } else {
+                    setCachedModelUri(targetBldg.model_url);
+                }
+            }).catch(() => {
+                setCachedModelUri(targetBldg.model_url);
+            });
+        } else {
+            setCachedModelUri(null);
+        }
+    }, [navTargetFull?.id, nearbyBuildingFull?.id, navTargetFull?.model_url, nearbyBuildingFull?.model_url]);
+
+    const toggleQrScanner = useCallback((enable) => {
+        setIsCameraTransitioning(true);
+        setIsScanningQr(enable);
+        setTimeout(() => {
+            setIsCameraTransitioning(false);
+        }, 250);
+    }, []);
 
     useEffect(() => {
         checkARSupport().then(supported => {
@@ -810,35 +841,44 @@ export default function ARScreen() {
                         onLoad={onBackgroundImageLoad}
                     />
                 ) : (
-                    isCameraActive && (
-                        !isScanningQr ? (
-                            <ViroARSceneNavigator
-                                autofocus={true}
-                                initialScene={{ scene: ARQuestScene }}
-                                viroAppProps={{
-                                    targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
-                                    targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
-                                    userLat: location?.latitude ?? location?.coords?.latitude,
-                                    userLng: location?.longitude ?? location?.coords?.longitude,
-                                    userHeading: heading,
-                                    modelUrl: (navTargetFull || nearbyBuildingFull)?.model_url,
-                                    buildingName: (navTargetFull || nearbyBuildingFull)?.name,
-                                    nextWaypoint: nextWaypoint,
-                                    isArrived: isArrived,
-                                }}
-                                style={styles.camera}
-                            />
-                        ) : (
-                            <CameraView
-                                style={styles.camera}
-                                facing="back"
-                                ref={cameraRef}
-                                onBarcodeScanned={handleBarCodeScanned}
-                                barcodeScannerSettings={{
-                                    barcodeTypes: ["qr"],
-                                }}
-                            />
-                        )
+                    isCameraActive && !isCameraTransitioning && (
+                        <ErrorBoundary
+                            title="AR Camera Interrupted"
+                            message="The camera or AR session was temporarily suspended. Tap to retry."
+                            onReset={() => {
+                                setIsCameraActive(false);
+                                setTimeout(() => setIsCameraActive(true), 200);
+                            }}
+                        >
+                            {!isScanningQr ? (
+                                <ViroARSceneNavigator
+                                    autofocus={true}
+                                    initialScene={{ scene: ARQuestScene }}
+                                    viroAppProps={{
+                                        targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
+                                        targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
+                                        userLat: location?.latitude ?? location?.coords?.latitude,
+                                        userLng: location?.longitude ?? location?.coords?.longitude,
+                                        userHeading: heading,
+                                        modelUrl: cachedModelUri || (navTargetFull || nearbyBuildingFull)?.model_url,
+                                        buildingName: (navTargetFull || nearbyBuildingFull)?.name,
+                                        nextWaypoint: nextWaypoint,
+                                        isArrived: isArrived,
+                                    }}
+                                    style={styles.camera}
+                                />
+                            ) : (
+                                <CameraView
+                                    style={styles.camera}
+                                    facing="back"
+                                    ref={cameraRef}
+                                    onBarcodeScanned={handleBarCodeScanned}
+                                    barcodeScannerSettings={{
+                                        barcodeTypes: ["qr"],
+                                    }}
+                                />
+                            )}
+                        </ErrorBoundary>
                     )
                 )}
 
@@ -1057,7 +1097,7 @@ export default function ARScreen() {
                 <View style={styles.bottomControls}>
                     <TouchableOpacity 
                         style={[styles.qrBigButton, isScanningQr && styles.qrBigButtonActive]} 
-                        onPress={() => setIsScanningQr(!isScanningQr)}
+                        onPress={() => toggleQrScanner(!isScanningQr)}
                     >
                         <QrCode size={20} color={isScanningQr ? "#fff" : theme.colors.primary} />
                         <Text style={[styles.qrBigButtonText, isScanningQr && { color: "#fff" }]}>

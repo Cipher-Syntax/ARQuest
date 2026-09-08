@@ -15,7 +15,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
-import { useAssetCache } from "../../hooks/useAssetCache";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService, assetService } from "../../services";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
@@ -42,8 +41,8 @@ export default function ExploreScreen() {
     } = useLocationTracking();
 
     const { unlockedBuildings, attemptUnlock } = useUnlockedBuildings();
-    const { loadAsset } = useAssetCache();
-    const prefetchedBuildingsRef = useRef(new Set());
+    const hasInitialValidationRef = useRef(false);
+    const lastValidatedStatusRef = useRef(null);
     const [validationResult, setValidationResult] = useState(null);
     const [isValidating, setIsValidating] = useState(false);
     const [lastUnlockAttempt, setLastUnlockAttempt] = useState(null);
@@ -93,6 +92,7 @@ export default function ExploreScreen() {
 
     const onRefresh = React.useCallback(() => {
         setRefreshing(true);
+        hasInitialValidationRef.current = false;
         loadData();
     }, []);
 
@@ -135,59 +135,68 @@ export default function ExploreScreen() {
             .slice(0, 5);
     }, [location, buildingsList]);
 
-    // Radar Pulse & Spin Animations
+    // Radar Pulse & Spin Animations (Paused when not tracking or screen unfocused)
     const pulseAnim1 = useRef(new Animated.Value(1)).current;
     const pulseAnim2 = useRef(new Animated.Value(1)).current;
     const spinAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        if (isTracking) {
-            Animated.loop(
-                Animated.stagger(600, [
-                    Animated.sequence([
-                        Animated.timing(pulseAnim1, {
-                            toValue: 1.5,
-                            duration: 1800,
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(pulseAnim1, {
-                            toValue: 1,
-                            duration: 0,
-                            useNativeDriver: true,
-                        }),
-                    ]),
-                    Animated.sequence([
-                        Animated.timing(pulseAnim2, {
-                            toValue: 1.5,
-                            duration: 1800,
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(pulseAnim2, {
-                            toValue: 1,
-                            duration: 0,
-                            useNativeDriver: true,
-                        }),
-                    ]),
-                ]),
-            ).start();
-
-            Animated.loop(
-                Animated.timing(spinAnim, {
-                    toValue: 1,
-                    duration: 4000,
-                    easing: Easing.linear,
-                    useNativeDriver: true,
-                }),
-            ).start();
-        } else {
+        if (!isTracking || !isFocused) {
             pulseAnim1.setValue(1);
             pulseAnim2.setValue(1);
             spinAnim.setValue(0);
-            Animated.timing(pulseAnim1).stop();
-            Animated.timing(pulseAnim2).stop();
-            Animated.timing(spinAnim).stop();
+            return;
         }
-    }, [isTracking]);
+
+        const pulseLoop = Animated.loop(
+            Animated.stagger(600, [
+                Animated.sequence([
+                    Animated.timing(pulseAnim1, {
+                        toValue: 1.5,
+                        duration: 1800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim1, {
+                        toValue: 1,
+                        duration: 0,
+                        useNativeDriver: true,
+                    }),
+                ]),
+                Animated.sequence([
+                    Animated.timing(pulseAnim2, {
+                        toValue: 1.5,
+                        duration: 1800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim2, {
+                        toValue: 1,
+                        duration: 0,
+                        useNativeDriver: true,
+                    }),
+                ]),
+            ])
+        );
+
+        const spinLoop = Animated.loop(
+            Animated.timing(spinAnim, {
+                toValue: 1,
+                duration: 4000,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        );
+
+        pulseLoop.start();
+        spinLoop.start();
+
+        return () => {
+            pulseLoop.stop();
+            spinLoop.stop();
+            pulseAnim1.setValue(1);
+            pulseAnim2.setValue(1);
+            spinAnim.setValue(0);
+        };
+    }, [isTracking, isFocused]);
 
     const spinInterpolate = spinAnim.interpolate({
         inputRange: [0, 1],
@@ -203,6 +212,43 @@ export default function ExploreScreen() {
     const validateLocation = async () => {
         if (!location) return;
 
+        // Stage 1: Client-Side Haversine Pre-Filtering
+        // Only dispatch the HTTP POST to /api/geofencing/validate/ when within (radius + 20m)
+        // or on initial acquisition, or when transitioning away from a building.
+        if (buildingsList.length > 0 && hasInitialValidationRef.current) {
+            let closestBuilding = null;
+            let minDistance = Infinity;
+
+            for (const b of buildingsList) {
+                if (b.latitude && b.longitude) {
+                    const d = getDistance(
+                        location.latitude,
+                        location.longitude,
+                        b.latitude,
+                        b.longitude
+                    );
+                    if (d < minDistance) {
+                        minDistance = d;
+                        closestBuilding = b;
+                    }
+                }
+            }
+
+            const radius = closestBuilding?.geofence?.radius_meters || closestBuilding?.geofence?.radius || 30;
+            const threshold = radius + 20;
+
+            // If user is safely outside (>75m and > threshold) and was already confirmed outside,
+            // update telemetry locally and skip the HTTP network round-trip.
+            if (minDistance > 75 && minDistance > threshold && lastValidatedStatusRef.current === "outside") {
+                setValidationResult({
+                    status: "outside",
+                    distance_meters: Math.round(minDistance),
+                    building: null,
+                });
+                return;
+            }
+        }
+
         setIsValidating(true);
         try {
             const result = await geofencingService.validateLocation(
@@ -210,6 +256,8 @@ export default function ExploreScreen() {
                 location.longitude,
                 location.accuracy || 10,
             );
+            hasInitialValidationRef.current = true;
+            lastValidatedStatusRef.current = result?.status || "outside";
             setValidationResult(result);
 
             // --- ASSET PREFETCHING MITIGATION ---
@@ -223,7 +271,7 @@ export default function ExploreScreen() {
                         if (bldgRes.data.success && bldgRes.data.data.model_url) {
                             const bldgData = bldgRes.data.data;
                             loadAsset({
-                                id: `model_${bldgData.id}`,
+                                id: `building_${bldgData.id}_model`,
                                 version: bldgData.updated_at ? new Date(bldgData.updated_at).getTime() : "1",
                                 file_url: bldgData.model_url
                             }).catch(e => console.warn('Pre-fetch failed', e));

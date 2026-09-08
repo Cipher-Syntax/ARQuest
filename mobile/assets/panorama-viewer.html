@@ -108,7 +108,7 @@
         <script type="module">
             import * as THREE from "three";
 
-            let scene, camera, renderer, sphere, texture;
+            let scene, camera, renderer, sphere, texture, animFrameId;
             let lon = 0,
                 lat = 0,
                 isDragging = false;
@@ -157,8 +157,22 @@
                     renderer = new THREE.WebGLRenderer({
                         canvas: document.getElementById("canvas"),
                         antialias: true,
+                        powerPreference: "high-performance",
                     });
                     renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+                    renderer.domElement.addEventListener("webglcontextlost", (event) => {
+                        event.preventDefault();
+                        console.warn("Panorama WebGL Context Lost! Pausing.");
+                        if (animFrameId) cancelAnimationFrame(animFrameId);
+                    }, false);
+
+                    renderer.domElement.addEventListener("webglcontextrestored", () => {
+                        console.log("Panorama WebGL Context Restored! Resuming.");
+                        animate();
+                    }, false);
+
                     setupControls();
                     window.addEventListener("resize", () => {
                         camera.aspect = window.innerWidth / window.innerHeight;
@@ -400,7 +414,7 @@
             }
 
             function animate() {
-                requestAnimationFrame(animate);
+                animFrameId = requestAnimationFrame(animate);
                 const phi = THREE.MathUtils.degToRad(90 - lat);
                 const theta = THREE.MathUtils.degToRad(lon - 90); // Offset by 90 to match Web
                 
@@ -485,20 +499,65 @@
                 renderer.render(scene, camera);
             }
 
+            function dispose() {
+                if (animFrameId) {
+                    cancelAnimationFrame(animFrameId);
+                    animFrameId = null;
+                }
+                if (sphere && scene) {
+                    scene.remove(sphere);
+                    if (sphere.geometry) sphere.geometry.dispose();
+                    if (sphere.material) sphere.material.dispose();
+                    sphere = null;
+                }
+                if (texture) {
+                    texture.dispose();
+                    texture = null;
+                }
+                hotspotMeshes.forEach((mesh) => {
+                    if (mesh.userData && mesh.userData.parentGroup && scene) {
+                        scene.remove(mesh.userData.parentGroup);
+                        mesh.userData.parentGroup.children.forEach(child => {
+                            if (child.geometry) child.geometry.dispose();
+                            if (child.material) child.material.dispose();
+                        });
+                    }
+                });
+                hotspotMeshes = [];
+                document.getElementById("floating-labels").innerHTML = "";
+                if (renderer) renderer.dispose();
+            }
+
+            function handleIncomingMessage(data) {
+                if (data.type === "init") {
+                    init(data.imageUrl, data.hotspots);
+                } else if (data.type === "dispose") {
+                    dispose();
+                }
+            }
+
             window.addEventListener("message", (event) => {
-                const data =
-                    typeof event.data === "string"
-                        ? JSON.parse(event.data)
-                        : event.data;
-                if (data.type === "init") init(data.imageUrl, data.hotspots);
+                try {
+                    const data =
+                        typeof event.data === "string"
+                            ? JSON.parse(event.data)
+                            : event.data;
+                    handleIncomingMessage(data);
+                } catch (e) {
+                    console.error("Message parse error:", e);
+                }
             });
 
             document.addEventListener("message", (event) => {
-                const data =
-                    typeof event.data === "string"
-                        ? JSON.parse(event.data)
-                        : event.data;
-                if (data.type === "init") init(data.imageUrl, data.hotspots);
+                try {
+                    const data =
+                        typeof event.data === "string"
+                            ? JSON.parse(event.data)
+                            : event.data;
+                    handleIncomingMessage(data);
+                } catch (e) {
+                    console.error("Message parse error:", e);
+                }
             });
         </script>
     </body>

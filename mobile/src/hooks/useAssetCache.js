@@ -17,9 +17,9 @@ export function useAssetCache() {
             progress: 0,
         }));
         try {
-            const cached = await assetService.isCached(asset.id, asset.version);
+            const cached = await assetService.isCached(asset.id, asset.version, asset.file_url);
             if (cached) {
-                const uri = assetService.getLocalPath(asset.id, asset.version);
+                const uri = assetService.getLocalPath(asset.id, asset.version, asset.file_url);
                 setState((prev) => ({
                     ...prev,
                     isLoading: false,

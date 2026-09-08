@@ -14,8 +14,8 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import ViewerHeader from "../components/viewer/ViewerHeader";
 import { theme } from "../theme/tokens";
 import { api } from "../services";
-import { useAssetCache } from "../hooks/useAssetCache";
 import { assetService } from "../services";
+import ErrorBoundary from "../components/ui/ErrorBoundary";
 
 export default function PanoramaViewerScreen() {
     const { buildingId, buildingName, targetSceneId, fromVirtualTour } =
@@ -27,11 +27,6 @@ export default function PanoramaViewerScreen() {
     const [currentScene, setCurrentScene] = useState(null);
     const [localImageUrl, setLocalImageUrl] = useState(null);
     const webViewRef = useRef(null);
-    const {
-        loadAsset,
-        isLoading: isAssetLoading,
-        progress: assetProgress,
-    } = useAssetCache();
 
     // ── Screen orientation: lock to landscape for 360 viewer ──
     useFocusEffect(
@@ -82,15 +77,36 @@ export default function PanoramaViewerScreen() {
     useEffect(() => {
         if (currentScene && webViewRef.current && walkthrough) {
             console.log("Sending scene to WebView:", currentScene.title);
-            webViewRef.current.postMessage(
-                JSON.stringify({
-                    type: "init",
-                    imageUrl: currentScene.image_url,
-                    hotspots: currentScene.hotspots || [],
-                }),
-            );
+            let isCancelled = false;
+            const sendScene = async () => {
+                const resolvedUrl = currentScene.image_url;
+
+                if (!isCancelled && webViewRef.current) {
+                    webViewRef.current.postMessage(
+                        JSON.stringify({
+                            type: "init",
+                            imageUrl: resolvedUrl,
+                            hotspots: currentScene.hotspots || [],
+                        }),
+                    );
+                }
+            };
+            sendScene();
+            return () => {
+                isCancelled = true;
+            };
         }
     }, [currentScene]);
+
+    useEffect(() => {
+        return () => {
+            if (webViewRef.current) {
+                webViewRef.current.postMessage(
+                    JSON.stringify({ type: "dispose" }),
+                );
+            }
+        };
+    }, []);
 
     const loadWalkthrough = async () => {
         try {
@@ -203,32 +219,40 @@ export default function PanoramaViewerScreen() {
             </View>
 
             {walkthrough && currentScene && (
-                <WebView
-                    ref={webViewRef}
-                    source={require("../../assets/panorama-viewer.html")}
-                    style={styles.webview}
-                    onMessage={handleMessage}
-                    onLoad={() => {
-                        if (webViewRef.current && currentScene) {
-                            setTimeout(() => {
-                                webViewRef.current.postMessage(
-                                    JSON.stringify({
-                                        type: "init",
-                                        imageUrl: currentScene.image_url,
-                                        hotspots: currentScene.hotspots || [],
-                                    }),
-                                );
-                            }, 1000);
-                        }
-                    }}
-                    javaScriptEnabled={true}
-                    domStorageEnabled={true}
-                    mixedContentMode="always"
-                    originWhitelist={["*"]}
-                    allowFileAccess={true}
-                    allowFileAccessFromFileURLs={true}
-                    allowUniversalAccessFromFileURLs={true}
-                />
+                <ErrorBoundary
+                    title="Panorama Disrupted"
+                    message="WebGL rendering was interrupted. Tap to reload."
+                    onReset={() => loadWalkthrough()}
+                >
+                    <WebView
+                        ref={webViewRef}
+                        source={require("../../assets/panorama-viewer.html")}
+                        style={styles.webview}
+                        onMessage={handleMessage}
+                        onLoad={() => {
+                            if (webViewRef.current && currentScene) {
+                                setTimeout(() => {
+                                    webViewRef.current.postMessage(
+                                        JSON.stringify({
+                                            type: "init",
+                                            imageUrl: currentScene.image_url,
+                                            hotspots: currentScene.hotspots || [],
+                                        }),
+                                    );
+                                }, 1000);
+                            }
+                        }}
+                        javaScriptEnabled={true}
+                        domStorageEnabled={true}
+                        cacheEnabled={true}
+                        cacheMode="LOAD_CACHE_ELSE_NETWORK"
+                        mixedContentMode="always"
+                        originWhitelist={["*"]}
+                        allowFileAccess={true}
+                        allowFileAccessFromFileURLs={true}
+                        allowUniversalAccessFromFileURLs={true}
+                    />
+                </ErrorBoundary>
             )}
         </View>
     );
