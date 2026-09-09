@@ -184,7 +184,7 @@ export default function ARQuestScene(props) {
         <ViroARScene onCameraTransformUpdate={onCameraTransformUpdate}>
             {/* ── Scene Lighting ── */}
             <ViroAmbientLight color="#ffffff" intensity={1200} />
-            <ViroDirectionalLight color="#ffffff" direction={[0, -1, -1]} castsShadow shadowOpacity={0.4} />
+            <ViroDirectionalLight color="#ffffff" direction={[0, -1, -1]} intensity={800} />
             <ViroDirectionalLight color="#ffffff" direction={[1, 0, 1]} intensity={600} />
             <ViroDirectionalLight color="#ffffff" direction={[-1, 0, 1]} intensity={600} />
             <ViroDirectionalLight color="#ffffff" direction={[0, 1, 0]} intensity={400} />
@@ -287,11 +287,7 @@ export default function ARQuestScene(props) {
                 ============================================================
             */}
             {hasArrived && (
-                <ViroNode
-                    position={[0, -0.60, -2.6]}
-                    dragType="FixedToWorld"
-                    onDrag={() => {}}
-                >
+                <ViroNode position={[0, -0.60, -2.6]}>
                     {/* Header: Building Name (Hovering clearly above the building) */}
                     <ViroText
                         text={buildingName || 'Destination'}
@@ -386,21 +382,22 @@ export default function ARQuestScene(props) {
                         />
                     )}
 
-                    {/* Rotating 3D Crystal Gem Beacon: floating inside the rings while loading or on error */}
-                    {(!modelUrl || modelError || !modelLoaded) && (
-                        <ViroNode position={[0, 0.35, 0]}>
-                            <ViroNode
-                                rotation={[45, 45, 0]}
-                                animation={{ name: 'spinBeacon', run: true, loop: true }}
-                            >
-                                <ViroBox
-                                    position={[0, 0, 0]}
-                                    scale={[0.26, 0.26, 0.26]}
-                                    materials={['beaconCrystal']}
-                                />
-                            </ViroNode>
+                    {/* Rotating 3D Crystal Gem Beacon: kept mounted with visibility toggle to prevent C++ animation thread unmount crashes */}
+                    <ViroNode
+                        position={[0, 0.35, 0]}
+                        visible={!modelLoaded || modelError || !modelUrl}
+                    >
+                        <ViroNode
+                            rotation={[45, 45, 0]}
+                            animation={{ name: 'spinBeacon', run: !modelLoaded || modelError || !modelUrl, loop: true }}
+                        >
+                            <ViroBox
+                                position={[0, 0, 0]}
+                                scale={(!modelLoaded || modelError || !modelUrl) ? [0.26, 0.26, 0.26] : [0.001, 0.001, 0.001]}
+                                materials={['beaconCrystal']}
+                            />
                         </ViroNode>
-                    )}
+                    </ViroNode>
                 </ViroNode>
             )}
         </ViroARScene>

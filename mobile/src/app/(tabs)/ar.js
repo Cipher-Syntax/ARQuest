@@ -860,7 +860,7 @@ export default function ARScreen() {
                                         userLat: location?.latitude ?? location?.coords?.latitude,
                                         userLng: location?.longitude ?? location?.coords?.longitude,
                                         userHeading: heading,
-                                        modelUrl: cachedModelUri || (navTargetFull || nearbyBuildingFull)?.model_url,
+                                        modelUrl: (navTargetFull || nearbyBuildingFull)?.model_url,
                                         buildingName: (navTargetFull || nearbyBuildingFull)?.name,
                                         nextWaypoint: nextWaypoint,
                                         isArrived: isArrived,
