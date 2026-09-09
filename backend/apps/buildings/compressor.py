@@ -181,22 +181,24 @@ def compress_3d_model(input_file, options=None):
     preset = options.get('preset', 'balanced')
 
     # --- Preset configuration ---
+    # Mobile AR Native (Option A) uses standard uncompressed geometry (No Draco)
+    # for native ViroReact/ARCore 6DoF C++ tinygltf parser compatibility.
     if preset == 'extreme':
         simplify_ratio = float(options.get('simplify_ratio', 0.25))
         max_texture_size = int(options.get('max_texture_size', 512))
-        use_draco = True
+        use_draco = options.get('use_draco', True)
     elif preset == 'high_fidelity':
         simplify_ratio = float(options.get('simplify_ratio', 0.85))
         max_texture_size = int(options.get('max_texture_size', 2048))
-        use_draco = True
+        use_draco = options.get('use_draco', False)
     elif preset == 'custom':
         simplify_ratio = float(options.get('simplify_ratio', 0.5))
         max_texture_size = int(options.get('max_texture_size', 1024) or 1024)
-        use_draco = options.get('use_draco', True)
-    else:  # 'balanced' default
+        use_draco = options.get('use_draco', False)
+    else:  # 'balanced' / 'mobile_ar' default (Mobile AR Balanced — 6DoF Native Ready)
         simplify_ratio = float(options.get('simplify_ratio', 0.5))
         max_texture_size = int(options.get('max_texture_size', 1024))
-        use_draco = True
+        use_draco = options.get('use_draco', False)
 
     force_double_sided = options.get('force_double_sided', True)
     force_opaque = options.get('force_opaque', True)

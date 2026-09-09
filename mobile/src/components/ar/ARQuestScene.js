@@ -66,9 +66,11 @@ export default function ARQuestScene(props) {
     const [chevronPositions, setChevronPositions] = useState([]);
     const [hudPosition, setHudPosition] = useState([0, -0.1, -2]);
     const [modelError, setModelError] = useState(false);
+    const [modelLoaded, setModelLoaded] = useState(false);
 
     useEffect(() => {
         setModelError(false);
+        setModelLoaded(false);
     }, [modelUrl]);
 
     const smoothedAngleRef = useRef(0);
@@ -326,22 +328,67 @@ export default function ARQuestScene(props) {
                         materials={['glowArrowGold']}
                     />
 
-                    {/* If modelUrl is available and hasn't errored, attempt 3D GLB model */}
-                    {modelUrl && !modelError ? (
+                    {/* Concentric Ground Rings Pedestal (Always anchored to physical ground) */}
+                    {/* Outer Ground Ring (Crimson) */}
+                    <ViroPolyline
+                        position={[0, -0.45, 0]}
+                        points={[
+                            [0, 0, 0.5],
+                            [0.35, 0, 0.35],
+                            [0.5, 0, 0],
+                            [0.35, 0, -0.35],
+                            [0, 0, -0.5],
+                            [-0.35, 0, -0.35],
+                            [-0.5, 0, 0],
+                            [-0.35, 0, 0.35],
+                            [0, 0, 0.5],
+                        ]}
+                        thickness={0.03}
+                        materials={['glowArrow']}
+                    />
+
+                    {/* Inner Ground Ring (Gold) */}
+                    <ViroPolyline
+                        position={[0, -0.45, 0]}
+                        points={[
+                            [0, 0, 0.3],
+                            [0.21, 0, 0.21],
+                            [0.3, 0, 0],
+                            [0.21, 0, -0.21],
+                            [0, 0, -0.3],
+                            [-0.21, 0, -0.21],
+                            [-0.3, 0, 0],
+                            [-0.21, 0, 0.21],
+                            [0, 0, 0.3],
+                        ]}
+                        thickness={0.025}
+                        materials={['glowArrowGold']}
+                    />
+
+                    {/* 3D Building Model (Anchored in 6DoF Real-World Space) */}
+                    {modelUrl && !modelError && (
                         <Viro3DObject
                             source={{ uri: modelUrl }}
                             position={[0, 0, 0]}
                             scale={[0.038, 0.038, 0.038]}
                             type="GLB"
+                            onLoadStart={() => {
+                                console.log('[ARQuestScene] Loading 3D model:', modelUrl);
+                            }}
+                            onLoadEnd={() => {
+                                console.log('[ARQuestScene] 3D Model loaded successfully');
+                                setModelLoaded(true);
+                            }}
                             onError={(e) => {
-                                console.warn('AR Model native load failed, falling back to 3D beacon:', e?.nativeEvent?.error || 'Failed to load model');
+                                console.warn('[ARQuestScene] AR Model native load failed, falling back to 3D beacon:', e?.nativeEvent?.error || 'Failed to load model');
                                 setModelError(true);
                             }}
                         />
-                    ) : (
-                        /* 3D Holographic Campus Landmark Monument */
+                    )}
+
+                    {/* Rotating 3D Crystal Gem Beacon: visible while model is loading OR as fallback if error/absent */}
+                    {(!modelUrl || modelError || !modelLoaded) && (
                         <ViroNode position={[0, -0.05, 0]}>
-                            {/* Rotating 3D Crystal Gem (Tilted Cube) */}
                             <ViroNode
                                 rotation={[45, 45, 0]}
                                 animation={{ name: 'spinBeacon', run: true, loop: true }}
@@ -352,42 +399,6 @@ export default function ARQuestScene(props) {
                                     materials={['beaconCrystal']}
                                 />
                             </ViroNode>
-
-                            {/* Outer Ground Ring (Crimson) */}
-                            <ViroPolyline
-                                position={[0, -0.45, 0]}
-                                points={[
-                                    [0, 0, 0.5],
-                                    [0.35, 0, 0.35],
-                                    [0.5, 0, 0],
-                                    [0.35, 0, -0.35],
-                                    [0, 0, -0.5],
-                                    [-0.35, 0, -0.35],
-                                    [-0.5, 0, 0],
-                                    [-0.35, 0, 0.35],
-                                    [0, 0, 0.5],
-                                ]}
-                                thickness={0.03}
-                                materials={['glowArrow']}
-                            />
-
-                            {/* Inner Ground Ring (Gold) */}
-                            <ViroPolyline
-                                position={[0, -0.45, 0]}
-                                points={[
-                                    [0, 0, 0.3],
-                                    [0.21, 0, 0.21],
-                                    [0.3, 0, 0],
-                                    [0.21, 0, -0.21],
-                                    [0, 0, -0.3],
-                                    [-0.21, 0, -0.21],
-                                    [-0.3, 0, 0],
-                                    [-0.21, 0, 0.21],
-                                    [0, 0, 0.3],
-                                ]}
-                                thickness={0.025}
-                                materials={['glowArrowGold']}
-                            />
                         </ViroNode>
                     )}
                 </ViroNode>
