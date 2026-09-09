@@ -1,3 +1,39 @@
-dist/
+# Dependencies (EAS Build installs dependencies automatically in the cloud)
+node_modules/
+
+# Local Expo & Web build artifacts
 .expo/
+dist/
 web-build/
+*.tsbuildinfo
+
+# Generated native directories (Managed workflow uses Expo config plugins and prebuilds on EAS)
+android/
+ios/
+
+# Native Gradle & Build caches
+.gradle/
+.kotlin/
+**/build/
+**/.cxx/
+
+# Environment Variables
+.env
+.env.*
+.env.local
+!.env.example
+
+# Debug and log files
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# OS and Certificate files
+.DS_Store
+Thumbs.db
+*.pem
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
