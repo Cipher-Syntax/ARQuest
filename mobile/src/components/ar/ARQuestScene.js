@@ -403,25 +403,34 @@ export default function ARQuestScene(props) {
                         materials={['glowArrowGold']}
                     />
 
-                    {/* 3D Building Model (Sits directly on top of the concentric ground rings) */}
+                    {/* 3D Building Model (Smooth 360° turntable rotation on top of concentric ground rings) */}
                     {effectiveModelUrl && !modelError && (
-                        <Viro3DObject
-                            source={{ uri: effectiveModelUrl }}
+                        <ViroNode
                             position={[0, 0, 0]}
-                            scale={[0.038, 0.038, 0.038]}
-                            type="GLB"
-                            onLoadStart={() => {
-                                console.log('[ARQuestScene] Loading 3D model:', effectiveModelUrl);
+                            animation={{
+                                name: 'rotateModel',
+                                run: modelLoaded,
+                                loop: true,
                             }}
-                            onLoadEnd={() => {
-                                console.log('[ARQuestScene] 3D Model loaded successfully');
-                                setModelLoaded(true);
-                            }}
-                            onError={(e) => {
-                                console.warn('[ARQuestScene] AR Model native load failed, falling back to 3D beacon:', e?.nativeEvent?.error || 'Failed to load model');
-                                setModelError(true);
-                            }}
-                        />
+                        >
+                            <Viro3DObject
+                                source={{ uri: effectiveModelUrl }}
+                                position={[0, 0, 0]}
+                                scale={[0.038, 0.038, 0.038]}
+                                type="GLB"
+                                onLoadStart={() => {
+                                    console.log('[ARQuestScene] Loading 3D model:', effectiveModelUrl);
+                                }}
+                                onLoadEnd={() => {
+                                    console.log('[ARQuestScene] 3D Model loaded successfully');
+                                    setModelLoaded(true);
+                                }}
+                                onError={(e) => {
+                                    console.warn('[ARQuestScene] AR Model native load failed:', e?.nativeEvent?.error || 'Failed to load model');
+                                    setModelError(true);
+                                }}
+                            />
+                        </ViroNode>
                     )}
 
                     {/* While 3D model is loading, show clean gold status text floating above the ground rings */}
@@ -510,6 +519,14 @@ ViroAnimations.registerAnimations({
             rotateY: '+=360',
         },
         duration: 4000,
+        loop: true,
+    },
+    rotateModel: {
+        properties: {
+            rotateY: '+=360',
+        },
+        duration: 18000, // 18-second smooth continuous 360° turntable rotation from left to right
+        easing: 'Linear',
         loop: true,
     },
 });
