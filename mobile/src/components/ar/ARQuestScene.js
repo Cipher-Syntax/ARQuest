@@ -68,10 +68,28 @@ export default function ARQuestScene(props) {
     const [modelError, setModelError] = useState(false);
     const [modelLoaded, setModelLoaded] = useState(false);
 
+    // Retain last valid modelUrl and buildingName so background network re-fetches cannot wipe them out mid-session
+    const stableModelUrlRef = useRef(modelUrl);
+    if (modelUrl) {
+        stableModelUrlRef.current = modelUrl;
+    }
+    const effectiveModelUrl = modelUrl || stableModelUrlRef.current;
+
+    const stableBuildingNameRef = useRef(buildingName);
+    if (buildingName) {
+        stableBuildingNameRef.current = buildingName;
+    }
+    const effectiveBuildingName = buildingName || stableBuildingNameRef.current;
+
+    // Only reset model loaded/error if the model URL genuinely changes to a different string
+    const prevModelUrlRef = useRef(effectiveModelUrl);
     useEffect(() => {
-        setModelError(false);
-        setModelLoaded(false);
-    }, [modelUrl]);
+        if (effectiveModelUrl && effectiveModelUrl !== prevModelUrlRef.current) {
+            prevModelUrlRef.current = effectiveModelUrl;
+            setModelError(false);
+            setModelLoaded(false);
+        }
+    }, [effectiveModelUrl]);
 
     const smoothedAngleRef = useRef(0);
     const hasInitRef = useRef(false);
@@ -93,8 +111,22 @@ export default function ARQuestScene(props) {
             { latitude: targetLat, longitude: targetLng }
         )
         : null;
+
+    // Latched arrival state with hysteresis:
+    // Once arrived (<= 25m or isArrived), remains arrived until user walks far away (> 45m).
+    // This eliminates flickering and disappearing models caused by natural GPS micro-drift.
+    const [latchedArrived, setLatchedArrived] = useState(false);
+
+    useEffect(() => {
+        if (isArrived || (distanceToTarget !== null && distanceToTarget <= 25)) {
+            setLatchedArrived(true);
+        } else if (distanceToTarget !== null && distanceToTarget > 45) {
+            setLatchedArrived(false);
+        }
+    }, [isArrived, distanceToTarget]);
+
     const isNearby = (distanceToTarget !== null && distanceToTarget <= 25) || isArrived;
-    const hasArrived = isArrived || isNearby;
+    const hasArrived = isArrived || isNearby || latchedArrived;
 
     /**
      * Recompute chevron and HUD world positions given a bearing angle and
@@ -290,7 +322,7 @@ export default function ARQuestScene(props) {
                 <ViroNode position={[0, -0.60, -2.6]}>
                     {/* Header: Building Name (Hovering clearly above the building) */}
                     <ViroText
-                        text={buildingName || 'Destination'}
+                        text={effectiveBuildingName || 'Destination'}
                         width={5}
                         height={1}
                         scale={[0.42, 0.42, 0.42]}
@@ -362,14 +394,14 @@ export default function ARQuestScene(props) {
                     />
 
                     {/* 3D Building Model (Sits directly on top of the concentric ground rings) */}
-                    {modelUrl && !modelError && (
+                    {effectiveModelUrl && !modelError && (
                         <Viro3DObject
-                            source={{ uri: modelUrl }}
+                            source={{ uri: effectiveModelUrl }}
                             position={[0, 0, 0]}
                             scale={[0.038, 0.038, 0.038]}
                             type="GLB"
                             onLoadStart={() => {
-                                console.log('[ARQuestScene] Loading 3D model:', modelUrl);
+                                console.log('[ARQuestScene] Loading 3D model:', effectiveModelUrl);
                             }}
                             onLoadEnd={() => {
                                 console.log('[ARQuestScene] 3D Model loaded successfully');
@@ -385,15 +417,15 @@ export default function ARQuestScene(props) {
                     {/* Rotating 3D Crystal Gem Beacon: kept mounted with visibility toggle to prevent C++ animation thread unmount crashes */}
                     <ViroNode
                         position={[0, 0.35, 0]}
-                        visible={!modelLoaded || modelError || !modelUrl}
+                        visible={!modelLoaded || modelError || !effectiveModelUrl}
                     >
                         <ViroNode
                             rotation={[45, 45, 0]}
-                            animation={{ name: 'spinBeacon', run: !modelLoaded || modelError || !modelUrl, loop: true }}
+                            animation={{ name: 'spinBeacon', run: !modelLoaded || modelError || !effectiveModelUrl, loop: true }}
                         >
                             <ViroBox
                                 position={[0, 0, 0]}
-                                scale={(!modelLoaded || modelError || !modelUrl) ? [0.26, 0.26, 0.26] : [0.001, 0.001, 0.001]}
+                                scale={(!modelLoaded || modelError || !effectiveModelUrl) ? [0.26, 0.26, 0.26] : [0.001, 0.001, 0.001]}
                                 materials={['beaconCrystal']}
                             />
                         </ViroNode>

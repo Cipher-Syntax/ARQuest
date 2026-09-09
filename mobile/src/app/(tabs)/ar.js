@@ -55,6 +55,32 @@ export default function ARScreen() {
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
     const [cachedModelUri, setCachedModelUri] = useState(null);
 
+    const navigation = useNavigation();
+    const { targetBuildingId, buildingId } = useLocalSearchParams();
+    const activeTargetId = targetBuildingId || buildingId;
+
+    const [navTargetFull, setNavTargetFull] = useState(null);
+    const [nextWaypoint, setNextWaypoint] = useState(null);
+    const [routeCoordinates, setRouteCoordinates] = useState([]);
+    const [isCameraActive, setIsCameraActive] = useState(false);
+
+    const [isArrivedLatched, setIsArrivedLatched] = useState(false);
+
+    // Stable references to prevent background geofence re-fetches from wiping model/name mid-session
+    const stableModelUrlRef = useRef(null);
+    const candidateModelUrl = (navTargetFull || nearbyBuildingFull)?.model_url;
+    if (candidateModelUrl) {
+        stableModelUrlRef.current = candidateModelUrl;
+    }
+    const effectiveModelUrl = candidateModelUrl || stableModelUrlRef.current;
+
+    const stableBuildingNameRef = useRef(null);
+    const candidateBuildingName = (navTargetFull || nearbyBuildingFull)?.name;
+    if (candidateBuildingName) {
+        stableBuildingNameRef.current = candidateBuildingName;
+    }
+    const effectiveBuildingName = candidateBuildingName || stableBuildingNameRef.current;
+
     useEffect(() => {
         const targetBldg = navTargetFull || nearbyBuildingFull;
         if (targetBldg && targetBldg.model_url) {
@@ -107,15 +133,6 @@ export default function ARScreen() {
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
     const { canUseAR } = useRoleAccess();
-
-    const navigation = useNavigation();
-    const { targetBuildingId, buildingId } = useLocalSearchParams();
-    const activeTargetId = targetBuildingId || buildingId;
-
-    const [navTargetFull, setNavTargetFull] = useState(null);
-    const [nextWaypoint, setNextWaypoint] = useState(null);
-    const [routeCoordinates, setRouteCoordinates] = useState([]);
-    const [isCameraActive, setIsCameraActive] = useState(false);
 
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
@@ -224,6 +241,9 @@ export default function ARScreen() {
         setBgReady(false);
         setIsScanningQr(false);
         setScannedData(null);
+        setIsArrivedLatched(false);
+        stableModelUrlRef.current = null;
+        stableBuildingNameRef.current = null;
         router.setParams({ targetBuildingId: undefined, buildingId: undefined });
 
         if (navigation?.canGoBack && navigation.canGoBack()) {
@@ -248,6 +268,9 @@ export default function ARScreen() {
                 setBgReady(false);
                 setIsScanningQr(false);
                 setScannedData(null);
+                setIsArrivedLatched(false);
+                stableModelUrlRef.current = null;
+                stableBuildingNameRef.current = null;
                 router.setParams({ targetBuildingId: undefined, buildingId: undefined });
             };
         }, [startTracking, stopTracking])
@@ -388,7 +411,7 @@ export default function ARScreen() {
     };
 
     let arrowAngle = 0;
-    let distanceToTarget = 0;
+    let distanceToTarget = null;
     let turnDirection = null; // 'left' | 'right' | 'ahead'
     const curLat = location?.latitude ?? location?.coords?.latitude;
     const curLng = location?.longitude ?? location?.coords?.longitude;
@@ -402,9 +425,19 @@ export default function ARScreen() {
         );
     }
 
-    const isArrived = navTargetFull
-        ? (distanceToTarget <= 25 || (geofenceStatus?.status === 'inside' && (nearbyBuildingFull?.id === navTargetFull?.id || nearbyBuilding?.id === navTargetFull?.id)))
-        : (geofenceStatus?.status === 'inside');
+    const rawArrived = Boolean(navTargetFull
+        ? ((distanceToTarget !== null && distanceToTarget <= 25) || (geofenceStatus?.status === 'inside' && (nearbyBuildingFull?.id === navTargetFull?.id || nearbyBuilding?.id === navTargetFull?.id)))
+        : (geofenceStatus?.status === 'inside'));
+
+    useEffect(() => {
+        if (rawArrived) {
+            setIsArrivedLatched(true);
+        } else if (distanceToTarget !== null && distanceToTarget > 45 && geofenceStatus?.status !== 'inside') {
+            setIsArrivedLatched(false);
+        }
+    }, [rawArrived, distanceToTarget, geofenceStatus?.status]);
+
+    const isArrived = Boolean(isArrivedLatched || rawArrived);
 
     if (navTargetFull && curLat && curLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
@@ -860,8 +893,8 @@ export default function ARScreen() {
                                         userLat: location?.latitude ?? location?.coords?.latitude,
                                         userLng: location?.longitude ?? location?.coords?.longitude,
                                         userHeading: heading,
-                                        modelUrl: (navTargetFull || nearbyBuildingFull)?.model_url,
-                                        buildingName: (navTargetFull || nearbyBuildingFull)?.name,
+                                        modelUrl: effectiveModelUrl,
+                                        buildingName: effectiveBuildingName,
                                         nextWaypoint: nextWaypoint,
                                         isArrived: isArrived,
                                     }}
@@ -926,7 +959,7 @@ export default function ARScreen() {
                         <View style={styles.topOvalShape} />
                         {(() => {
                             const activeBldg = navTargetFull || nearbyBuildingFull || nearbyBuilding;
-                            const dist = Math.round(navTargetFull ? distanceToTarget : (geofenceStatus?.distance_meters || 0));
+                            const dist = Math.round(navTargetFull ? (distanceToTarget || 0) : (geofenceStatus?.distance_meters || 0));
 
                             return (
                                 <View style={styles.topOvalContent}>
