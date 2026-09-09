@@ -60,6 +60,7 @@ export default function ARQuestScene(props) {
         nextWaypoint,
         buildingName,
         isArrived = false,
+        onModelLoadingChange,
     } = sceneNavigator.viroAppProps || {};
 
     const [targetAngle, setTargetAngle] = useState(0);
@@ -127,6 +128,15 @@ export default function ARQuestScene(props) {
 
     const isNearby = (distanceToTarget !== null && distanceToTarget <= 25) || isArrived;
     const hasArrived = isArrived || isNearby || latchedArrived;
+
+    // Report model loading status to the parent 2D HUD overlay
+    useEffect(() => {
+        if (hasArrived && effectiveModelUrl && !modelLoaded && !modelError) {
+            onModelLoadingChange?.(true);
+        } else {
+            onModelLoadingChange?.(false);
+        }
+    }, [hasArrived, effectiveModelUrl, modelLoaded, modelError, onModelLoadingChange]);
 
     /**
      * Recompute chevron and HUD world positions given a bearing angle and
@@ -414,22 +424,45 @@ export default function ARQuestScene(props) {
                         />
                     )}
 
-                    {/* Rotating 3D Crystal Gem Beacon: kept mounted with visibility toggle to prevent C++ animation thread unmount crashes */}
-                    <ViroNode
-                        position={[0, 0.35, 0]}
-                        visible={!modelLoaded || modelError || !effectiveModelUrl}
-                    >
-                        <ViroNode
-                            rotation={[45, 45, 0]}
-                            animation={{ name: 'spinBeacon', run: !modelLoaded || modelError || !effectiveModelUrl, loop: true }}
-                        >
-                            <ViroBox
-                                position={[0, 0, 0]}
-                                scale={(!modelLoaded || modelError || !effectiveModelUrl) ? [0.26, 0.26, 0.26] : [0.001, 0.001, 0.001]}
-                                materials={['beaconCrystal']}
-                            />
-                        </ViroNode>
-                    </ViroNode>
+                    {/* While 3D model is loading, show clean gold status text floating above the ground rings */}
+                    {effectiveModelUrl && !modelLoaded && !modelError && (
+                        <ViroText
+                            text="Loading 3D Model..."
+                            width={4}
+                            height={0.5}
+                            scale={[0.22, 0.22, 0.22]}
+                            position={[0, 0.35, 0]}
+                            style={{
+                                fontFamily: 'Arial',
+                                fontSize: 18,
+                                fontWeight: 'bold',
+                                color: '#E8B923',
+                                textAlign: 'center',
+                                textAlignVertical: 'center',
+                            }}
+                            materials={['goldTextMaterial']}
+                        />
+                    )}
+
+                    {/* Fallback text if 3D model fails to decode */}
+                    {modelError && (
+                        <ViroText
+                            text="3D Model Unavailable"
+                            width={4}
+                            height={0.5}
+                            scale={[0.20, 0.20, 0.20]}
+                            position={[0, 0.35, 0]}
+                            style={{
+                                fontFamily: 'Arial',
+                                fontSize: 16,
+                                fontWeight: 'bold',
+                                color: '#B21830',
+                                textAlign: 'center',
+                                textAlignVertical: 'center',
+                            }}
+                            materials={['textMaterial']}
+                        />
+                    )}
                 </ViroNode>
             )}
         </ViroARScene>

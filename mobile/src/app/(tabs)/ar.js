@@ -7,6 +7,8 @@ import {
     TouchableOpacity,
     Image,
     Animated,
+    ActivityIndicator,
+    Easing,
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -130,6 +132,27 @@ export default function ARScreen() {
     const rankAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
 
+    // 3D Model Loading State in AR
+    const [isArModelLoading, setIsArModelLoading] = useState(false);
+    const loadingShimmerAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (isArModelLoading) {
+            const loop = Animated.loop(
+                Animated.timing(loadingShimmerAnim, {
+                    toValue: 1,
+                    duration: 1200,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                })
+            );
+            loop.start();
+            return () => loop.stop();
+        } else {
+            loadingShimmerAnim.setValue(0);
+        }
+    }, [isArModelLoading]);
+
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
     const { canUseAR } = useRoleAccess();
@@ -242,6 +265,7 @@ export default function ARScreen() {
         setIsScanningQr(false);
         setScannedData(null);
         setIsArrivedLatched(false);
+        setIsArModelLoading(false);
         stableModelUrlRef.current = null;
         stableBuildingNameRef.current = null;
         router.setParams({ targetBuildingId: undefined, buildingId: undefined });
@@ -269,6 +293,7 @@ export default function ARScreen() {
                 setIsScanningQr(false);
                 setScannedData(null);
                 setIsArrivedLatched(false);
+                setIsArModelLoading(false);
                 stableModelUrlRef.current = null;
                 stableBuildingNameRef.current = null;
                 router.setParams({ targetBuildingId: undefined, buildingId: undefined });
@@ -897,6 +922,7 @@ export default function ARScreen() {
                                         buildingName: effectiveBuildingName,
                                         nextWaypoint: nextWaypoint,
                                         isArrived: isArrived,
+                                        onModelLoadingChange: setIsArModelLoading,
                                     }}
                                     style={styles.camera}
                                 />
@@ -984,9 +1010,35 @@ export default function ARScreen() {
                                         </Text>
                                         
                                         {isArrived ? (
-                                            <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
-                                                ✓ You have arrived!
-                                            </Text>
+                                            isArModelLoading ? (
+                                                <View style={{ marginTop: 2, width: '100%' }}>
+                                                    <View style={styles.modelLoadingRow}>
+                                                        <ActivityIndicator size="small" color="#E8B923" style={{ marginRight: 6 }} />
+                                                        <Text style={[styles.buildingStatus, { color: '#E8B923', fontWeight: 'bold' }]}>
+                                                            Loading 3D Model...
+                                                        </Text>
+                                                    </View>
+                                                    <View style={styles.modelLoadingTrack}>
+                                                        <Animated.View
+                                                            style={[
+                                                                styles.modelLoadingBar,
+                                                                {
+                                                                    transform: [{
+                                                                        translateX: loadingShimmerAnim.interpolate({
+                                                                            inputRange: [0, 1],
+                                                                            outputRange: [-80, 180],
+                                                                        }),
+                                                                    }],
+                                                                },
+                                                            ]}
+                                                        />
+                                                    </View>
+                                                </View>
+                                            ) : (
+                                                <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
+                                                    ✓ You have arrived!
+                                                </Text>
+                                            )
                                         ) : (
                                             <>
                                                 <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
@@ -1813,5 +1865,23 @@ const styles = StyleSheet.create({
         right: 16,
         zIndex: 50,
         alignItems: 'center',
+    },
+    modelLoadingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    modelLoadingTrack: {
+        height: 4,
+        width: '100%',
+        backgroundColor: 'rgba(232, 185, 35, 0.25)',
+        borderRadius: 2,
+        overflow: 'hidden',
+        marginTop: 4,
+    },
+    modelLoadingBar: {
+        height: '100%',
+        width: 80,
+        backgroundColor: '#E8B923',
+        borderRadius: 2,
     },
 });
