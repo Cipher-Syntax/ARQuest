@@ -288,17 +288,17 @@ export default function ARQuestScene(props) {
             */}
             {hasArrived && (
                 <ViroNode
-                    position={[0, -0.45, -2.6]}
+                    position={[0, -0.60, -2.6]}
                     dragType="FixedToWorld"
                     onDrag={() => {}}
                 >
-                    {/* Header: Building Name */}
+                    {/* Header: Building Name (Hovering clearly above the building) */}
                     <ViroText
                         text={buildingName || 'Destination'}
                         width={5}
                         height={1}
                         scale={[0.42, 0.42, 0.42]}
-                        position={[0, 0.72, 0]}
+                        position={[0, 1.30, 0]}
                         style={{
                             fontFamily: 'Arial',
                             fontSize: 26,
@@ -316,7 +316,7 @@ export default function ARQuestScene(props) {
                         width={4}
                         height={0.6}
                         scale={[0.26, 0.26, 0.26]}
-                        position={[0, 0.50, 0]}
+                        position={[0, 1.05, 0]}
                         style={{
                             fontFamily: 'Arial',
                             fontSize: 20,
@@ -328,20 +328,20 @@ export default function ARQuestScene(props) {
                         materials={['glowArrowGold']}
                     />
 
-                    {/* Concentric Ground Rings Pedestal (Always anchored to physical ground) */}
+                    {/* Concentric Ground Rings Pedestal (Anchor base on the ground) */}
                     {/* Outer Ground Ring (Crimson) */}
                     <ViroPolyline
-                        position={[0, -0.45, 0]}
+                        position={[0, 0, 0]}
                         points={[
-                            [0, 0, 0.5],
-                            [0.35, 0, 0.35],
-                            [0.5, 0, 0],
-                            [0.35, 0, -0.35],
-                            [0, 0, -0.5],
-                            [-0.35, 0, -0.35],
-                            [-0.5, 0, 0],
-                            [-0.35, 0, 0.35],
-                            [0, 0, 0.5],
+                            [0, 0, 0.6],
+                            [0.42, 0, 0.42],
+                            [0.6, 0, 0],
+                            [0.42, 0, -0.42],
+                            [0, 0, -0.6],
+                            [-0.42, 0, -0.42],
+                            [-0.6, 0, 0],
+                            [-0.42, 0, 0.42],
+                            [0, 0, 0.6],
                         ]}
                         thickness={0.03}
                         materials={['glowArrow']}
@@ -349,23 +349,23 @@ export default function ARQuestScene(props) {
 
                     {/* Inner Ground Ring (Gold) */}
                     <ViroPolyline
-                        position={[0, -0.45, 0]}
+                        position={[0, 0, 0]}
                         points={[
-                            [0, 0, 0.3],
-                            [0.21, 0, 0.21],
-                            [0.3, 0, 0],
-                            [0.21, 0, -0.21],
-                            [0, 0, -0.3],
-                            [-0.21, 0, -0.21],
-                            [-0.3, 0, 0],
-                            [-0.21, 0, 0.21],
-                            [0, 0, 0.3],
+                            [0, 0, 0.4],
+                            [0.28, 0, 0.28],
+                            [0.4, 0, 0],
+                            [0.28, 0, -0.28],
+                            [0, 0, -0.4],
+                            [-0.28, 0, -0.28],
+                            [-0.4, 0, 0],
+                            [-0.28, 0, 0.28],
+                            [0, 0, 0.4],
                         ]}
                         thickness={0.025}
                         materials={['glowArrowGold']}
                     />
 
-                    {/* 3D Building Model (Anchored in 6DoF Real-World Space) */}
+                    {/* 3D Building Model (Sits directly on top of the concentric ground rings) */}
                     {modelUrl && !modelError && (
                         <Viro3DObject
                             source={{ uri: modelUrl }}
@@ -386,9 +386,9 @@ export default function ARQuestScene(props) {
                         />
                     )}
 
-                    {/* Rotating 3D Crystal Gem Beacon: visible while model is loading OR as fallback if error/absent */}
+                    {/* Rotating 3D Crystal Gem Beacon: floating inside the rings while loading or on error */}
                     {(!modelUrl || modelError || !modelLoaded) && (
-                        <ViroNode position={[0, -0.05, 0]}>
+                        <ViroNode position={[0, 0.35, 0]}>
                             <ViroNode
                                 rotation={[45, 45, 0]}
                                 animation={{ name: 'spinBeacon', run: true, loop: true }}

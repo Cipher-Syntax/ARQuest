@@ -170,8 +170,9 @@ def compress_3d_model(input_file, options=None):
       4. join        — merge primitives to collapse CAD draw calls
       5. partition   — split oversized primitives into safe chunks (<200k tris)
       6. resize      — downscale high-res 4K/8K textures to mobile resolution
-      7. draco       — Google Draco geometry quantization (the main size killer)
-      8. (enhancement) — enforce double-sided walls for mobile AR
+      7. center      — center model horizontally (X=0, Z=0) and ground at floor (Y=0)
+      8. draco       — Google Draco geometry quantization (the main size killer)
+      9. (enhancement) — enforce double-sided walls for mobile AR
 
     Achieves 80–99% reduction on SketchUp/CAD GLB exports.
     """
@@ -297,6 +298,13 @@ def compress_3d_model(input_file, options=None):
             if rc == 0 and os.path.exists(step7_tex) and os.path.getsize(step7_tex) > 0:
                 current_path = step7_tex
                 logs.append(f"✓ Resized textures to max {max_texture_size}x{max_texture_size} px")
+
+        # ── Step 7b: center geometry and ground pivot to floor ───────────────
+        step7b_center = os.path.join(temp_dir, "s7b_centered.glb")
+        rc = _run(['gltf-transform', 'center', '--pivot', 'below', current_path, step7b_center], env, 'center', logs, timeout=180)
+        if rc == 0 and os.path.exists(step7b_center) and os.path.getsize(step7b_center) > 0:
+            current_path = step7b_center
+            logs.append("✓ Centered building geometry horizontally (X=0, Z=0) and grounded foundation (Y=0)")
 
         # ── Step 8: draco (geometry quantization) ────────────────────────────
         if use_draco:

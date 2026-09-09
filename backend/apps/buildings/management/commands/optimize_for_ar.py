@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.core.files.base import ContentFile
 from apps.buildings.models import Building
 from apps.buildings.utils import clean_and_enhance_gltf_json
-from apps.buildings.compressor import _run
+from apps.buildings.compressor import _run, partition_oversized_primitives
 
 
 class Command(BaseCommand):
@@ -118,6 +118,16 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.ERROR("    Draco decompression failed."))
                         continue
 
+                # Step 3b: Partition oversized primitives if any primitive exceeds 200,000 triangles
+                step_part = os.path.join(temp_dir, "partitioned.glb")
+                try:
+                    if partition_oversized_primitives(current_path, step_part, max_triangles_per_chunk=200000):
+                        if os.path.exists(step_part) and os.path.getsize(step_part) > 0:
+                            current_path = step_part
+                            self.stdout.write("    [OK] Partitioned dense primitives (<200k tris)")
+                except Exception as e:
+                    self.stdout.write(f"    [partition notice]: {str(e)[:150]}")
+
                 # Step 4: If mesh is dense or larger than 12MB, simplify polygons
                 decomp_size_mb = os.path.getsize(current_path) / (1024 * 1024)
                 if decomp_size_mb > 12.0:
@@ -149,6 +159,18 @@ class Command(BaseCommand):
                 ], env, 'resize', logs, timeout=180)
                 if rc == 0 and os.path.exists(step_resize) and os.path.getsize(step_resize) > 0:
                     current_path = step_resize
+
+                # Step 5b: Center scene bounding box horizontally and anchor foundation to floor
+                step_center = os.path.join(temp_dir, "centered.glb")
+                self.stdout.write("    Centering building geometry and grounding pivot to floor (--pivot below)...")
+                rc = _run([
+                    'gltf-transform', 'center',
+                    '--pivot', 'below',
+                    current_path, step_center
+                ], env, 'center', logs, timeout=180)
+                if rc == 0 and os.path.exists(step_center) and os.path.getsize(step_center) > 0:
+                    current_path = step_center
+                    self.stdout.write("    [OK] Building centered at (X=0, Z=0) with foundation at Y=0")
 
                 # Step 6: Final Native AR Sanitation & WebP to standard JPEG/PNG conversion
                 self.stdout.write("    Standardizing materials and textures (JPEG/PNG, Double-Sided PBR)...")
