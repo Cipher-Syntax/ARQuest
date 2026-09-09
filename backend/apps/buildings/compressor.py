@@ -328,13 +328,13 @@ def compress_3d_model(input_file, options=None):
             try:
                 with open(current_path, 'rb') as f:
                     raw_bytes = f.read()
-                enhanced_bytes = clean_and_enhance_gltf_json(raw_bytes)
+                enhanced_bytes = clean_and_enhance_gltf_json(raw_bytes, max_texture_size=max_texture_size)
                 step9 = os.path.join(temp_dir, "s9_enhanced.glb")
                 with open(step9, 'wb') as f:
                     f.write(enhanced_bytes)
                 if os.path.exists(step9) and os.path.getsize(step9) > 0:
                     current_path = step9
-                    logs.append("✓ Enforced double-sided walls and solid AR opacity")
+                    logs.append("✓ Enforced double-sided walls, solid AR opacity, and optimized textures")
             except Exception as e:
                 logs.append(f"Material sanitation skipped: {str(e)}")
 

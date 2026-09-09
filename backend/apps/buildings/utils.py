@@ -7,15 +7,16 @@ import tempfile
 from PIL import Image
 from django.core.files.base import ContentFile
 
-def clean_and_enhance_gltf_json(glb_bytes):
+def clean_and_enhance_gltf_json(glb_bytes, max_texture_size=1024):
     """
     Parses a GLB byte stream and ensures 100% compliance with native ViroReact/ARCore:
     1. Converts any embedded WebP textures to standard baseline JPEG/PNG (resolves native stb_image failure).
-    2. Re-links texture sources if EXT_texture_webp was used, and removes EXT_texture_webp.
-    3. If no mesh primitive uses KHR_draco_mesh_compression, cleans it from extensionsUsed and extensionsRequired.
-    4. Sets doubleSided=True on ALL materials (fixes missing backfaces in AR).
-    5. Enforces alphaMode='OPAQUE' on all solid materials (fixes transparent walls/roofs).
-    6. Strips legacy specular-glossiness and unsupported extensions.
+    2. Downscales oversized embedded textures (>max_texture_size) and converts opaque RGBA to compact JPEG.
+    3. Re-links texture sources if EXT_texture_webp was used, and removes EXT_texture_webp.
+    4. If no mesh primitive uses KHR_draco_mesh_compression, cleans it from extensionsUsed and extensionsRequired.
+    5. Sets doubleSided=True on ALL materials (fixes missing backfaces in AR).
+    6. Enforces alphaMode='OPAQUE' on all solid materials (fixes transparent walls/roofs).
+    7. Strips legacy specular-glossiness and unsupported extensions.
     """
     if len(glb_bytes) < 12:
         return glb_bytes
@@ -64,9 +65,20 @@ def clean_and_enhance_gltf_json(glb_bytes):
             if not mat['extensions']:
                 del mat['extensions']
 
-    # --- Check for WebP textures that choke native stb_image in ViroReact ---
+    # --- Check for WebP textures or heavy/oversized textures ---
     images = gltf.get('images', [])
+    buffer_views = gltf.get('bufferViews', [])
     has_webp = any(img.get('mimeType') == 'image/webp' for img in images)
+    
+    has_heavy_image = False
+    for img in images:
+        bv_idx = img.get('bufferView')
+        if bv_idx is not None and bv_idx < len(buffer_views):
+            if buffer_views[bv_idx].get('byteLength', 0) > 300 * 1024:
+                has_heavy_image = True
+                break
+
+    needs_image_processing = (has_webp or has_heavy_image) and offset < len(glb_bytes)
 
     # Check if KHR_draco_mesh_compression is actually used in any mesh primitive
     has_draco_primitives = False
@@ -78,8 +90,8 @@ def clean_and_enhance_gltf_json(glb_bytes):
         if has_draco_primitives:
             break
 
-    if not has_webp and offset < len(glb_bytes):
-        # Clean extensions when no WebP conversion is needed
+    if not needs_image_processing and offset < len(glb_bytes):
+        # Clean extensions when no image conversion/downscaling is needed
         if not has_draco_primitives:
             if 'extensionsUsed' in gltf:
                 gltf['extensionsUsed'] = [x for x in gltf['extensionsUsed'] if x not in ('KHR_draco_mesh_compression', 'EXT_texture_webp', 'KHR_materials_pbrSpecularGlossiness')]
@@ -104,41 +116,64 @@ def clean_and_enhance_gltf_json(glb_bytes):
         chunk0_header = struct.pack('<II', new_chunk0_length, 0x4E4F534A)
         return header + chunk0_header + new_json_bytes + remaining_bytes
 
-    # If has_webp: decompress WebP to standard JPEG/PNG and rebuild BIN chunk
-    if has_webp and offset < len(glb_bytes):
+    # If needs_image_processing: optimize textures with Pillow and rebuild BIN chunk
+    if needs_image_processing and offset < len(glb_bytes):
         chunk1_length, chunk1_type = struct.unpack_from('<II', glb_bytes, offset)
         offset += 8
         bin_data = bytearray(glb_bytes[offset:offset + chunk1_length])
         
-        buffer_views = gltf.get('bufferViews', [])
         new_bin = bytearray()
+        target_max = max_texture_size if (max_texture_size and max_texture_size > 0) else 1024
         
         for i, bv in enumerate(buffer_views):
             bv_offset = bv.get('byteOffset', 0)
             bv_length = bv.get('byteLength', 0)
             chunk = bin_data[bv_offset:bv_offset + bv_length]
             
-            is_target_webp = False
             target_img = None
             for img in images:
-                if img.get('bufferView') == i and img.get('mimeType') == 'image/webp':
-                    is_target_webp = True
+                if img.get('bufferView') == i:
                     target_img = img
                     break
                     
-            if is_target_webp:
+            if target_img:
+                is_webp = (target_img.get('mimeType') == 'image/webp')
                 try:
                     im = Image.open(io.BytesIO(chunk))
-                    out_buf = io.BytesIO()
+                    orig_len = len(chunk)
+                    
+                    # 1. Downscale if dimensions exceed target_max
+                    if im.width > target_max or im.height > target_max:
+                        im.thumbnail((target_max, target_max), Image.Resampling.LANCZOS)
+                    
+                    # 2. Check if alpha channel actually has transparency
+                    has_transparency = False
                     if im.mode in ('RGBA', 'LA') or (im.mode == 'P' and 'transparency' in im.info):
-                        im.save(out_buf, format='PNG')
+                        if im.mode == 'P':
+                            im = im.convert('RGBA')
+                        try:
+                            alpha = im.split()[-1]
+                            min_a, max_a = alpha.getextrema()
+                            if min_a < 250:
+                                has_transparency = True
+                        except Exception:
+                            has_transparency = True
+                            
+                    out_buf = io.BytesIO()
+                    if has_transparency:
+                        im.save(out_buf, format='PNG', optimize=True)
                         target_img['mimeType'] = 'image/png'
                     else:
-                        im.convert('RGB').save(out_buf, format='JPEG', quality=85)
+                        im.convert('RGB').save(out_buf, format='JPEG', quality=85, optimize=True)
                         target_img['mimeType'] = 'image/jpeg'
-                    new_chunk = out_buf.getvalue()
+                        
+                    optimized_chunk = out_buf.getvalue()
+                    if len(optimized_chunk) < orig_len or is_webp:
+                        new_chunk = optimized_chunk
+                    else:
+                        new_chunk = chunk
                 except Exception as e:
-                    print("Image conversion error:", e)
+                    print("Image optimization notice:", e)
                     new_chunk = chunk
             else:
                 new_chunk = chunk
@@ -156,6 +191,9 @@ def clean_and_enhance_gltf_json(glb_bytes):
         pad = (4 - (len(new_bin) % 4)) % 4
         if pad:
             new_bin.extend(b'\x00' * pad)
+            
+        if 'buffers' in gltf and len(gltf['buffers']) > 0:
+            gltf['buffers'][0]['byteLength'] = len(new_bin)
             
         # Re-link texture source from EXT_texture_webp to root source
         for tex in gltf.get('textures', []):
