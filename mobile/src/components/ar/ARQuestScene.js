@@ -9,6 +9,7 @@ import {
     ViroText,
     ViroAnimations,
     ViroDirectionalLight,
+    ViroBox,
 } from '@reactvision/react-viro';
 import { getDistance, getRhumbLineBearing } from 'geolib';
 
@@ -64,6 +65,11 @@ export default function ARQuestScene(props) {
     const [targetAngle, setTargetAngle] = useState(0);
     const [chevronPositions, setChevronPositions] = useState([]);
     const [hudPosition, setHudPosition] = useState([0, -0.1, -2]);
+    const [modelError, setModelError] = useState(false);
+
+    useEffect(() => {
+        setModelError(false);
+    }, [modelUrl]);
 
     const smoothedAngleRef = useRef(0);
     const hasInitRef = useRef(false);
@@ -272,23 +278,25 @@ export default function ARQuestScene(props) {
 
             {/*
                 ============================================================
-                3. ARRIVED MODE: 3D Miniature Building Model
+                3. ARRIVED MODE: 3D Destination Landmark / Building Model
                 Spawns when user arrives within 25m or inside geofence.
-                Positioned at 2.6m distance with 0.038 scale.
+                Renders 3D GLB model when supported, with resilient 3D
+                Holographic Monument Beacon fallback on WebP/native decode errors.
                 ============================================================
             */}
-            {modelUrl && hasArrived && (
+            {hasArrived && (
                 <ViroNode
-                    position={[0, -0.65, -2.6]}
+                    position={[0, -0.45, -2.6]}
                     dragType="FixedToWorld"
                     onDrag={() => {}}
                 >
+                    {/* Header: Building Name */}
                     <ViroText
-                        text={buildingName || 'Target'}
-                        width={4}
+                        text={buildingName || 'Destination'}
+                        width={5}
                         height={1}
-                        scale={[0.45, 0.45, 0.45]}
-                        position={[0, 0.5, 0]}
+                        scale={[0.42, 0.42, 0.42]}
+                        position={[0, 0.72, 0]}
                         style={{
                             fontFamily: 'Arial',
                             fontSize: 26,
@@ -299,13 +307,89 @@ export default function ARQuestScene(props) {
                         }}
                         materials={['glowArrow']}
                     />
-                    <Viro3DObject
-                        source={{ uri: modelUrl }}
-                        position={[0, 0, 0]}
-                        scale={[0.038, 0.038, 0.038]}
-                        type="GLB"
-                        onError={(e) => console.log('AR Model Load Error:', e)}
+
+                    {/* Subtitle: Arrived Status Badge */}
+                    <ViroText
+                        text="📍 DESTINATION REACHED"
+                        width={4}
+                        height={0.6}
+                        scale={[0.26, 0.26, 0.26]}
+                        position={[0, 0.50, 0]}
+                        style={{
+                            fontFamily: 'Arial',
+                            fontSize: 20,
+                            fontWeight: 'bold',
+                            color: '#E8B923',
+                            textAlign: 'center',
+                            textAlignVertical: 'center',
+                        }}
+                        materials={['glowArrowGold']}
                     />
+
+                    {/* If modelUrl is available and hasn't errored, attempt 3D GLB model */}
+                    {modelUrl && !modelError ? (
+                        <Viro3DObject
+                            source={{ uri: modelUrl }}
+                            position={[0, 0, 0]}
+                            scale={[0.038, 0.038, 0.038]}
+                            type="GLB"
+                            onError={(e) => {
+                                console.warn('AR Model native load failed, falling back to 3D beacon:', e?.nativeEvent?.error || 'Failed to load model');
+                                setModelError(true);
+                            }}
+                        />
+                    ) : (
+                        /* 3D Holographic Campus Landmark Monument */
+                        <ViroNode position={[0, -0.05, 0]}>
+                            {/* Rotating 3D Crystal Gem (Tilted Cube) */}
+                            <ViroNode
+                                rotation={[45, 45, 0]}
+                                animation={{ name: 'spinBeacon', run: true, loop: true }}
+                            >
+                                <ViroBox
+                                    position={[0, 0, 0]}
+                                    scale={[0.26, 0.26, 0.26]}
+                                    materials={['beaconCrystal']}
+                                />
+                            </ViroNode>
+
+                            {/* Outer Ground Ring (Crimson) */}
+                            <ViroPolyline
+                                position={[0, -0.45, 0]}
+                                points={[
+                                    [0, 0, 0.5],
+                                    [0.35, 0, 0.35],
+                                    [0.5, 0, 0],
+                                    [0.35, 0, -0.35],
+                                    [0, 0, -0.5],
+                                    [-0.35, 0, -0.35],
+                                    [-0.5, 0, 0],
+                                    [-0.35, 0, 0.35],
+                                    [0, 0, 0.5],
+                                ]}
+                                thickness={0.03}
+                                materials={['glowArrow']}
+                            />
+
+                            {/* Inner Ground Ring (Gold) */}
+                            <ViroPolyline
+                                position={[0, -0.45, 0]}
+                                points={[
+                                    [0, 0, 0.3],
+                                    [0.21, 0, 0.21],
+                                    [0.3, 0, 0],
+                                    [0.21, 0, -0.21],
+                                    [0, 0, -0.3],
+                                    [-0.21, 0, -0.21],
+                                    [-0.3, 0, 0],
+                                    [-0.21, 0, 0.21],
+                                    [0, 0, 0.3],
+                                ]}
+                                thickness={0.025}
+                                materials={['glowArrowGold']}
+                            />
+                        </ViroNode>
+                    )}
                 </ViroNode>
             )}
         </ViroARScene>
@@ -320,6 +404,14 @@ ViroMaterials.createMaterials({
     },
     glowArrowGold: {
         diffuseColor: '#E8B923',   // WMSU Gold
+        lightingModel: 'Constant',
+    },
+    beaconCrystal: {
+        diffuseColor: '#E8B923',   // Glowing WMSU Gold
+        lightingModel: 'Constant',
+    },
+    beaconBase: {
+        diffuseColor: '#B21830',   // WMSU Crimson Red
         lightingModel: 'Constant',
     },
     textMaterial: {
@@ -339,5 +431,12 @@ ViroAnimations.registerAnimations({
         duration: 1200,
         easing: 'EaseInEaseOut',
         direction: 'Alternate',
+    },
+    spinBeacon: {
+        properties: {
+            rotateY: '+=360',
+        },
+        duration: 4000,
+        loop: true,
     },
 });

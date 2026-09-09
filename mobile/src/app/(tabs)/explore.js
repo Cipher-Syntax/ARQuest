@@ -43,6 +43,7 @@ export default function ExploreScreen() {
     const { unlockedBuildings, attemptUnlock } = useUnlockedBuildings();
     const hasInitialValidationRef = useRef(false);
     const lastValidatedStatusRef = useRef(null);
+    const prefetchedBuildingsRef = useRef(new Set());
     const [validationResult, setValidationResult] = useState(null);
     const [isValidating, setIsValidating] = useState(false);
     const [lastUnlockAttempt, setLastUnlockAttempt] = useState(null);
@@ -267,14 +268,15 @@ export default function ExploreScreen() {
                     prefetchedBuildingsRef.current.add(buildingId);
                     
                     // Fetch building details to get model URL in background
-                    api.get(`/api/buildings/${buildingId}/`).then(bldgRes => {
-                        if (bldgRes.data.success && bldgRes.data.data.model_url) {
+                    api.get(`/api/buildings/${buildingId}/`).then(async (bldgRes) => {
+                        if (bldgRes.data?.success && bldgRes.data.data?.model_url) {
                             const bldgData = bldgRes.data.data;
-                            loadAsset({
-                                id: `building_${bldgData.id}_model`,
-                                version: bldgData.updated_at ? new Date(bldgData.updated_at).getTime() : "1",
-                                file_url: bldgData.model_url
-                            }).catch(e => console.warn('Pre-fetch failed', e));
+                            const assetId = `building_${bldgData.id}_model`;
+                            const version = bldgData.updated_at ? new Date(bldgData.updated_at).getTime() : "1";
+                            const cached = await assetService.isCached(assetId, version, bldgData.model_url);
+                            if (!cached) {
+                                await assetService.downloadAsset(bldgData.model_url, assetId, version);
+                            }
                         }
                     }).catch(err => console.warn("Failed to pre-fetch building assets", err));
                 }
