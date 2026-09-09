@@ -1,0 +1,59 @@
+# Exclude non-mobile monorepo projects
+backend/
+web/
+asset-generator/
+context/
+
+# Exclude dependencies (EAS installs in cloud)
+node_modules/
+**/node_modules/
+
+# Exclude local Expo and Web build artifacts
+.expo/
+**/.expo/
+dist/
+**/dist/
+web-build/
+**/web-build/
+*.tsbuildinfo
+
+# Exclude local generated native Android and iOS folders (prebuild runs on EAS)
+mobile/android/
+mobile/ios/
+**/android/
+**/ios/
+
+# Native Gradle and Build caches
+.gradle/
+**/.gradle/
+.kotlin/
+**/.kotlin/
+**/build/
+**/.cxx/
+
+# Environment Variables
+.env
+.env.*
+.env.local
+!.env.example
+
+# Debug and log files
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# Documentation files
+docs/
+*.md
+!mobile/README.md
+
+# OS and Certificate files
+.DS_Store
+Thumbs.db
+*.pem
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
