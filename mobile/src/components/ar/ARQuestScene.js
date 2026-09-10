@@ -9,6 +9,7 @@ import {
     ViroText,
     ViroAnimations,
     ViroDirectionalLight,
+    ViroBox,
 } from '@reactvision/react-viro';
 import { getDistance, getRhumbLineBearing } from 'geolib';
 
@@ -59,11 +60,37 @@ export default function ARQuestScene(props) {
         nextWaypoint,
         buildingName,
         isArrived = false,
+        onModelLoadingChange,
     } = sceneNavigator.viroAppProps || {};
 
     const [targetAngle, setTargetAngle] = useState(0);
     const [chevronPositions, setChevronPositions] = useState([]);
     const [hudPosition, setHudPosition] = useState([0, -0.1, -2]);
+    const [modelError, setModelError] = useState(false);
+    const [modelLoaded, setModelLoaded] = useState(false);
+
+    // Retain last valid modelUrl and buildingName so background network re-fetches cannot wipe them out mid-session
+    const stableModelUrlRef = useRef(modelUrl);
+    if (modelUrl) {
+        stableModelUrlRef.current = modelUrl;
+    }
+    const effectiveModelUrl = modelUrl || stableModelUrlRef.current;
+
+    const stableBuildingNameRef = useRef(buildingName);
+    if (buildingName) {
+        stableBuildingNameRef.current = buildingName;
+    }
+    const effectiveBuildingName = buildingName || stableBuildingNameRef.current;
+
+    // Only reset model loaded/error if the model URL genuinely changes to a different string
+    const prevModelUrlRef = useRef(effectiveModelUrl);
+    useEffect(() => {
+        if (effectiveModelUrl && effectiveModelUrl !== prevModelUrlRef.current) {
+            prevModelUrlRef.current = effectiveModelUrl;
+            setModelError(false);
+            setModelLoaded(false);
+        }
+    }, [effectiveModelUrl]);
 
     const smoothedAngleRef = useRef(0);
     const hasInitRef = useRef(false);
@@ -85,8 +112,31 @@ export default function ARQuestScene(props) {
             { latitude: targetLat, longitude: targetLng }
         )
         : null;
+
+    // Latched arrival state with hysteresis:
+    // Once arrived (<= 25m or isArrived), remains arrived until user walks far away (> 45m).
+    // This eliminates flickering and disappearing models caused by natural GPS micro-drift.
+    const [latchedArrived, setLatchedArrived] = useState(false);
+
+    useEffect(() => {
+        if (isArrived || (distanceToTarget !== null && distanceToTarget <= 25)) {
+            setLatchedArrived(true);
+        } else if (distanceToTarget !== null && distanceToTarget > 45) {
+            setLatchedArrived(false);
+        }
+    }, [isArrived, distanceToTarget]);
+
     const isNearby = (distanceToTarget !== null && distanceToTarget <= 25) || isArrived;
-    const hasArrived = isArrived || isNearby;
+    const hasArrived = isArrived || isNearby || latchedArrived;
+
+    // Report model loading status to the parent 2D HUD overlay
+    useEffect(() => {
+        if (hasArrived && effectiveModelUrl && !modelLoaded && !modelError) {
+            onModelLoadingChange?.(true);
+        } else {
+            onModelLoadingChange?.(false);
+        }
+    }, [hasArrived, effectiveModelUrl, modelLoaded, modelError, onModelLoadingChange]);
 
     /**
      * Recompute chevron and HUD world positions given a bearing angle and
@@ -176,7 +226,7 @@ export default function ARQuestScene(props) {
         <ViroARScene onCameraTransformUpdate={onCameraTransformUpdate}>
             {/* ── Scene Lighting ── */}
             <ViroAmbientLight color="#ffffff" intensity={1200} />
-            <ViroDirectionalLight color="#ffffff" direction={[0, -1, -1]} castsShadow shadowOpacity={0.4} />
+            <ViroDirectionalLight color="#ffffff" direction={[0, -1, -1]} intensity={800} />
             <ViroDirectionalLight color="#ffffff" direction={[1, 0, 1]} intensity={600} />
             <ViroDirectionalLight color="#ffffff" direction={[-1, 0, 1]} intensity={600} />
             <ViroDirectionalLight color="#ffffff" direction={[0, 1, 0]} intensity={400} />
@@ -272,23 +322,21 @@ export default function ARQuestScene(props) {
 
             {/*
                 ============================================================
-                3. ARRIVED MODE: 3D Miniature Building Model
+                3. ARRIVED MODE: 3D Destination Landmark / Building Model
                 Spawns when user arrives within 25m or inside geofence.
-                Positioned at 2.6m distance with 0.038 scale.
+                Renders 3D GLB model when supported, with resilient 3D
+                Holographic Monument Beacon fallback on WebP/native decode errors.
                 ============================================================
             */}
-            {modelUrl && hasArrived && (
-                <ViroNode
-                    position={[0, -0.65, -2.6]}
-                    dragType="FixedToWorld"
-                    onDrag={() => {}}
-                >
+            {hasArrived && (
+                <ViroNode position={[0, -0.60, -2.6]}>
+                    {/* Header: Building Name (Hovering clearly above the building) */}
                     <ViroText
-                        text={buildingName || 'Target'}
-                        width={4}
+                        text={effectiveBuildingName || 'Destination'}
+                        width={5}
                         height={1}
-                        scale={[0.45, 0.45, 0.45]}
-                        position={[0, 0.5, 0]}
+                        scale={[0.42, 0.42, 0.42]}
+                        position={[0, 1.30, 0]}
                         style={{
                             fontFamily: 'Arial',
                             fontSize: 26,
@@ -299,13 +347,131 @@ export default function ARQuestScene(props) {
                         }}
                         materials={['glowArrow']}
                     />
-                    <Viro3DObject
-                        source={{ uri: modelUrl }}
-                        position={[0, 0, 0]}
-                        scale={[0.038, 0.038, 0.038]}
-                        type="GLB"
-                        onError={(e) => console.log('AR Model Load Error:', e)}
+
+                    {/* Subtitle: Arrived Status Badge */}
+                    <ViroText
+                        text="📍 DESTINATION REACHED"
+                        width={4}
+                        height={0.6}
+                        scale={[0.26, 0.26, 0.26]}
+                        position={[0, 1.05, 0]}
+                        style={{
+                            fontFamily: 'Arial',
+                            fontSize: 20,
+                            fontWeight: 'bold',
+                            color: '#E8B923',
+                            textAlign: 'center',
+                            textAlignVertical: 'center',
+                        }}
+                        materials={['glowArrowGold']}
                     />
+
+                    {/* Concentric Ground Rings Pedestal (Anchor base on the ground) */}
+                    {/* Outer Ground Ring (Crimson) */}
+                    <ViroPolyline
+                        position={[0, 0, 0]}
+                        points={[
+                            [0, 0, 0.6],
+                            [0.42, 0, 0.42],
+                            [0.6, 0, 0],
+                            [0.42, 0, -0.42],
+                            [0, 0, -0.6],
+                            [-0.42, 0, -0.42],
+                            [-0.6, 0, 0],
+                            [-0.42, 0, 0.42],
+                            [0, 0, 0.6],
+                        ]}
+                        thickness={0.03}
+                        materials={['glowArrow']}
+                    />
+
+                    {/* Inner Ground Ring (Gold) */}
+                    <ViroPolyline
+                        position={[0, 0, 0]}
+                        points={[
+                            [0, 0, 0.4],
+                            [0.28, 0, 0.28],
+                            [0.4, 0, 0],
+                            [0.28, 0, -0.28],
+                            [0, 0, -0.4],
+                            [-0.28, 0, -0.28],
+                            [-0.4, 0, 0],
+                            [-0.28, 0, 0.28],
+                            [0, 0, 0.4],
+                        ]}
+                        thickness={0.025}
+                        materials={['glowArrowGold']}
+                    />
+
+                    {/* 3D Building Model (Smooth 360° turntable rotation on top of concentric ground rings) */}
+                    {effectiveModelUrl && !modelError && (
+                        <ViroNode
+                            position={[0, 0, 0]}
+                            animation={{
+                                name: 'rotateModel',
+                                run: modelLoaded,
+                                loop: true,
+                            }}
+                        >
+                            <Viro3DObject
+                                source={{ uri: effectiveModelUrl }}
+                                position={[0, 0, 0]}
+                                scale={[0.038, 0.038, 0.038]}
+                                type="GLB"
+                                onLoadStart={() => {
+                                    console.log('[ARQuestScene] Loading 3D model:', effectiveModelUrl);
+                                }}
+                                onLoadEnd={() => {
+                                    console.log('[ARQuestScene] 3D Model loaded successfully');
+                                    setModelLoaded(true);
+                                }}
+                                onError={(e) => {
+                                    console.warn('[ARQuestScene] AR Model native load failed:', e?.nativeEvent?.error || 'Failed to load model');
+                                    setModelError(true);
+                                }}
+                            />
+                        </ViroNode>
+                    )}
+
+                    {/* While 3D model is loading, show clean gold status text floating above the ground rings */}
+                    {effectiveModelUrl && !modelLoaded && !modelError && (
+                        <ViroText
+                            text="Loading 3D Model..."
+                            width={4}
+                            height={0.5}
+                            scale={[0.22, 0.22, 0.22]}
+                            position={[0, 0.35, 0]}
+                            style={{
+                                fontFamily: 'Arial',
+                                fontSize: 18,
+                                fontWeight: 'bold',
+                                color: '#E8B923',
+                                textAlign: 'center',
+                                textAlignVertical: 'center',
+                            }}
+                            materials={['goldTextMaterial']}
+                        />
+                    )}
+
+                    {/* Fallback text if 3D model fails to decode */}
+                    {modelError && (
+                        <ViroText
+                            text="3D Model Unavailable"
+                            width={4}
+                            height={0.5}
+                            scale={[0.20, 0.20, 0.20]}
+                            position={[0, 0.35, 0]}
+                            style={{
+                                fontFamily: 'Arial',
+                                fontSize: 16,
+                                fontWeight: 'bold',
+                                color: '#B21830',
+                                textAlign: 'center',
+                                textAlignVertical: 'center',
+                            }}
+                            materials={['textMaterial']}
+                        />
+                    )}
                 </ViroNode>
             )}
         </ViroARScene>
@@ -320,6 +486,14 @@ ViroMaterials.createMaterials({
     },
     glowArrowGold: {
         diffuseColor: '#E8B923',   // WMSU Gold
+        lightingModel: 'Constant',
+    },
+    beaconCrystal: {
+        diffuseColor: '#E8B923',   // Glowing WMSU Gold
+        lightingModel: 'Constant',
+    },
+    beaconBase: {
+        diffuseColor: '#B21830',   // WMSU Crimson Red
         lightingModel: 'Constant',
     },
     textMaterial: {
@@ -339,5 +513,20 @@ ViroAnimations.registerAnimations({
         duration: 1200,
         easing: 'EaseInEaseOut',
         direction: 'Alternate',
+    },
+    spinBeacon: {
+        properties: {
+            rotateY: '+=360',
+        },
+        duration: 4000,
+        loop: true,
+    },
+    rotateModel: {
+        properties: {
+            rotateY: '+=360',
+        },
+        duration: 18000, // 18-second smooth continuous 360° turntable rotation from left to right
+        easing: 'Linear',
+        loop: true,
     },
 });

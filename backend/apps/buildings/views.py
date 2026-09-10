@@ -630,7 +630,7 @@ def compress_model_view(request):
         'preset': request.data.get('preset', 'balanced'),
         'simplify_ratio': simplify_ratio,
         'max_texture_size': max_texture_size,
-        'use_draco': parse_bool(request.data.get('use_draco'), True),
+        'use_draco': parse_bool(request.data.get('use_draco'), False),
         'force_double_sided': parse_bool(request.data.get('force_double_sided'), True),
         'force_opaque': parse_bool(request.data.get('force_opaque'), True),
     }

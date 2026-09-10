@@ -32,27 +32,27 @@ const PRESETS = [
         name: "Mobile AR Balanced",
         icon: Zap,
         badge: "Recommended",
-        description: "Optimal balance of visual fidelity and speed for mobile AR & 3D maps.",
-        stats: "~90% - 95% reduction",
-        settings: { simplify_ratio: 0.5, max_texture_size: 1024, use_draco: true },
+        description: "Optimized for Native ARCore 6DoF & 3D Maps. Standard PBR geometry (No Draco) for native mobile AR.",
+        stats: "~85% - 92% reduction",
+        settings: { simplify_ratio: 0.5, max_texture_size: 1024, use_draco: false },
     },
     {
         id: "extreme",
-        name: "Extreme Compression",
+        name: "Extreme Compression (Web Only)",
         icon: Sparkles,
-        badge: "Under 10MB",
-        description: "Aggressive reduction designed for slow mobile network connections.",
+        badge: "Under 5MB",
+        description: "Aggressive reduction with Draco quantization designed for Three.js web viewers.",
         stats: "~95% - 98% reduction",
         settings: { simplify_ratio: 0.25, max_texture_size: 512, use_draco: true },
     },
     {
         id: "high_fidelity",
-        name: "High-Fidelity 3D",
+        name: "High-Fidelity AR",
         icon: ShieldCheck,
         badge: "Accreditor VR",
-        description: "Preserves fine architectural details and 2K textures with clean PBR.",
+        description: "Preserves fine architectural details and 2K textures with clean PBR (No Draco).",
         stats: "~75% - 85% reduction",
-        settings: { simplify_ratio: 0.85, max_texture_size: 2048, use_draco: true },
+        settings: { simplify_ratio: 0.85, max_texture_size: 2048, use_draco: false },
     },
     {
         id: "custom",
@@ -75,7 +75,7 @@ export default function ModelCompressorPage() {
     // Advanced tuning parameters
     const [simplifyRatio, setSimplifyRatio] = useState(0.5);
     const [maxTextureSize, setMaxTextureSize] = useState(1024);
-    const [useDraco, setUseDraco] = useState(true);
+    const [useDraco, setUseDraco] = useState(false);
     const [forceDoubleSided, setForceDoubleSided] = useState(true);
     const [forceOpaque, setForceOpaque] = useState(true);
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -447,7 +447,7 @@ export default function ModelCompressorPage() {
                                                     className="accent-brand rounded"
                                                 />
                                                 <span className="text-xs text-gray-700 font-medium">
-                                                    Apply Google Draco Mesh Compression
+                                                    Apply Google Draco Mesh Compression <span className="text-gray-400">(Keep OFF for Native ARCore 6DoF)</span>
                                                 </span>
                                             </label>
 

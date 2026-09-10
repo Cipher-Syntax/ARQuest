@@ -170,8 +170,9 @@ def compress_3d_model(input_file, options=None):
       4. join        — merge primitives to collapse CAD draw calls
       5. partition   — split oversized primitives into safe chunks (<200k tris)
       6. resize      — downscale high-res 4K/8K textures to mobile resolution
-      7. draco       — Google Draco geometry quantization (the main size killer)
-      8. (enhancement) — enforce double-sided walls for mobile AR
+      7. center      — center model horizontally (X=0, Z=0) and ground at floor (Y=0)
+      8. draco       — Google Draco geometry quantization (the main size killer)
+      9. (enhancement) — enforce double-sided walls for mobile AR
 
     Achieves 80–99% reduction on SketchUp/CAD GLB exports.
     """
@@ -181,22 +182,24 @@ def compress_3d_model(input_file, options=None):
     preset = options.get('preset', 'balanced')
 
     # --- Preset configuration ---
+    # Mobile AR Native (Option A) uses standard uncompressed geometry (No Draco)
+    # for native ViroReact/ARCore 6DoF C++ tinygltf parser compatibility.
     if preset == 'extreme':
         simplify_ratio = float(options.get('simplify_ratio', 0.25))
         max_texture_size = int(options.get('max_texture_size', 512))
-        use_draco = True
+        use_draco = options.get('use_draco', True)
     elif preset == 'high_fidelity':
         simplify_ratio = float(options.get('simplify_ratio', 0.85))
         max_texture_size = int(options.get('max_texture_size', 2048))
-        use_draco = True
+        use_draco = options.get('use_draco', False)
     elif preset == 'custom':
         simplify_ratio = float(options.get('simplify_ratio', 0.5))
         max_texture_size = int(options.get('max_texture_size', 1024) or 1024)
-        use_draco = options.get('use_draco', True)
-    else:  # 'balanced' default
+        use_draco = options.get('use_draco', False)
+    else:  # 'balanced' / 'mobile_ar' default (Mobile AR Balanced — 6DoF Native Ready)
         simplify_ratio = float(options.get('simplify_ratio', 0.5))
         max_texture_size = int(options.get('max_texture_size', 1024))
-        use_draco = True
+        use_draco = options.get('use_draco', False)
 
     force_double_sided = options.get('force_double_sided', True)
     force_opaque = options.get('force_opaque', True)
@@ -296,6 +299,13 @@ def compress_3d_model(input_file, options=None):
                 current_path = step7_tex
                 logs.append(f"✓ Resized textures to max {max_texture_size}x{max_texture_size} px")
 
+        # ── Step 7b: center geometry and ground pivot to floor ───────────────
+        step7b_center = os.path.join(temp_dir, "s7b_centered.glb")
+        rc = _run(['gltf-transform', 'center', '--pivot', 'below', current_path, step7b_center], env, 'center', logs, timeout=180)
+        if rc == 0 and os.path.exists(step7b_center) and os.path.getsize(step7b_center) > 0:
+            current_path = step7b_center
+            logs.append("✓ Centered building geometry horizontally (X=0, Z=0) and grounded foundation (Y=0)")
+
         # ── Step 8: draco (geometry quantization) ────────────────────────────
         if use_draco:
             step8_draco = os.path.join(temp_dir, "s8_draco.glb")
@@ -318,13 +328,13 @@ def compress_3d_model(input_file, options=None):
             try:
                 with open(current_path, 'rb') as f:
                     raw_bytes = f.read()
-                enhanced_bytes = clean_and_enhance_gltf_json(raw_bytes)
+                enhanced_bytes = clean_and_enhance_gltf_json(raw_bytes, max_texture_size=max_texture_size)
                 step9 = os.path.join(temp_dir, "s9_enhanced.glb")
                 with open(step9, 'wb') as f:
                     f.write(enhanced_bytes)
                 if os.path.exists(step9) and os.path.getsize(step9) > 0:
                     current_path = step9
-                    logs.append("✓ Enforced double-sided walls and solid AR opacity")
+                    logs.append("✓ Enforced double-sided walls, solid AR opacity, and optimized textures")
             except Exception as e:
                 logs.append(f"Material sanitation skipped: {str(e)}")
 

@@ -7,6 +7,8 @@ import {
     TouchableOpacity,
     Image,
     Animated,
+    ActivityIndicator,
+    Easing,
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -54,6 +56,32 @@ export default function ARScreen() {
     const [isARSupported, setIsARSupported] = useState(true); // Assume supported; set false if check fails
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
     const [cachedModelUri, setCachedModelUri] = useState(null);
+
+    const navigation = useNavigation();
+    const { targetBuildingId, buildingId } = useLocalSearchParams();
+    const activeTargetId = targetBuildingId || buildingId;
+
+    const [navTargetFull, setNavTargetFull] = useState(null);
+    const [nextWaypoint, setNextWaypoint] = useState(null);
+    const [routeCoordinates, setRouteCoordinates] = useState([]);
+    const [isCameraActive, setIsCameraActive] = useState(false);
+
+    const [isArrivedLatched, setIsArrivedLatched] = useState(false);
+
+    // Stable references to prevent background geofence re-fetches from wiping model/name mid-session
+    const stableModelUrlRef = useRef(null);
+    const candidateModelUrl = (navTargetFull || nearbyBuildingFull)?.model_url;
+    if (candidateModelUrl) {
+        stableModelUrlRef.current = candidateModelUrl;
+    }
+    const effectiveModelUrl = candidateModelUrl || stableModelUrlRef.current;
+
+    const stableBuildingNameRef = useRef(null);
+    const candidateBuildingName = (navTargetFull || nearbyBuildingFull)?.name;
+    if (candidateBuildingName) {
+        stableBuildingNameRef.current = candidateBuildingName;
+    }
+    const effectiveBuildingName = candidateBuildingName || stableBuildingNameRef.current;
 
     useEffect(() => {
         const targetBldg = navTargetFull || nearbyBuildingFull;
@@ -104,18 +132,30 @@ export default function ARScreen() {
     const rankAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
 
+    // 3D Model Loading State in AR
+    const [isArModelLoading, setIsArModelLoading] = useState(false);
+    const loadingShimmerAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (isArModelLoading) {
+            const loop = Animated.loop(
+                Animated.timing(loadingShimmerAnim, {
+                    toValue: 1,
+                    duration: 1200,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                })
+            );
+            loop.start();
+            return () => loop.stop();
+        } else {
+            loadingShimmerAnim.setValue(0);
+        }
+    }, [isArModelLoading]);
+
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
     const { canUseAR } = useRoleAccess();
-
-    const navigation = useNavigation();
-    const { targetBuildingId, buildingId } = useLocalSearchParams();
-    const activeTargetId = targetBuildingId || buildingId;
-
-    const [navTargetFull, setNavTargetFull] = useState(null);
-    const [nextWaypoint, setNextWaypoint] = useState(null);
-    const [routeCoordinates, setRouteCoordinates] = useState([]);
-    const [isCameraActive, setIsCameraActive] = useState(false);
 
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings } = useUnlockedBuildings();
@@ -224,6 +264,10 @@ export default function ARScreen() {
         setBgReady(false);
         setIsScanningQr(false);
         setScannedData(null);
+        setIsArrivedLatched(false);
+        setIsArModelLoading(false);
+        stableModelUrlRef.current = null;
+        stableBuildingNameRef.current = null;
         router.setParams({ targetBuildingId: undefined, buildingId: undefined });
 
         if (navigation?.canGoBack && navigation.canGoBack()) {
@@ -248,6 +292,10 @@ export default function ARScreen() {
                 setBgReady(false);
                 setIsScanningQr(false);
                 setScannedData(null);
+                setIsArrivedLatched(false);
+                setIsArModelLoading(false);
+                stableModelUrlRef.current = null;
+                stableBuildingNameRef.current = null;
                 router.setParams({ targetBuildingId: undefined, buildingId: undefined });
             };
         }, [startTracking, stopTracking])
@@ -388,7 +436,7 @@ export default function ARScreen() {
     };
 
     let arrowAngle = 0;
-    let distanceToTarget = 0;
+    let distanceToTarget = null;
     let turnDirection = null; // 'left' | 'right' | 'ahead'
     const curLat = location?.latitude ?? location?.coords?.latitude;
     const curLng = location?.longitude ?? location?.coords?.longitude;
@@ -402,9 +450,19 @@ export default function ARScreen() {
         );
     }
 
-    const isArrived = navTargetFull
-        ? (distanceToTarget <= 25 || (geofenceStatus?.status === 'inside' && (nearbyBuildingFull?.id === navTargetFull?.id || nearbyBuilding?.id === navTargetFull?.id)))
-        : (geofenceStatus?.status === 'inside');
+    const rawArrived = Boolean(navTargetFull
+        ? ((distanceToTarget !== null && distanceToTarget <= 25) || (geofenceStatus?.status === 'inside' && (nearbyBuildingFull?.id === navTargetFull?.id || nearbyBuilding?.id === navTargetFull?.id)))
+        : (geofenceStatus?.status === 'inside'));
+
+    useEffect(() => {
+        if (rawArrived) {
+            setIsArrivedLatched(true);
+        } else if (distanceToTarget !== null && distanceToTarget > 45 && geofenceStatus?.status !== 'inside') {
+            setIsArrivedLatched(false);
+        }
+    }, [rawArrived, distanceToTarget, geofenceStatus?.status]);
+
+    const isArrived = Boolean(isArrivedLatched || rawArrived);
 
     if (navTargetFull && curLat && curLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
@@ -860,10 +918,11 @@ export default function ARScreen() {
                                         userLat: location?.latitude ?? location?.coords?.latitude,
                                         userLng: location?.longitude ?? location?.coords?.longitude,
                                         userHeading: heading,
-                                        modelUrl: cachedModelUri || (navTargetFull || nearbyBuildingFull)?.model_url,
-                                        buildingName: (navTargetFull || nearbyBuildingFull)?.name,
+                                        modelUrl: effectiveModelUrl,
+                                        buildingName: effectiveBuildingName,
                                         nextWaypoint: nextWaypoint,
                                         isArrived: isArrived,
+                                        onModelLoadingChange: setIsArModelLoading,
                                     }}
                                     style={styles.camera}
                                 />
@@ -926,7 +985,7 @@ export default function ARScreen() {
                         <View style={styles.topOvalShape} />
                         {(() => {
                             const activeBldg = navTargetFull || nearbyBuildingFull || nearbyBuilding;
-                            const dist = Math.round(navTargetFull ? distanceToTarget : (geofenceStatus?.distance_meters || 0));
+                            const dist = Math.round(navTargetFull ? (distanceToTarget || 0) : (geofenceStatus?.distance_meters || 0));
 
                             return (
                                 <View style={styles.topOvalContent}>
@@ -951,9 +1010,35 @@ export default function ARScreen() {
                                         </Text>
                                         
                                         {isArrived ? (
-                                            <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
-                                                ✓ You have arrived!
-                                            </Text>
+                                            isArModelLoading ? (
+                                                <View style={{ marginTop: 2, width: '100%' }}>
+                                                    <View style={styles.modelLoadingRow}>
+                                                        <ActivityIndicator size="small" color="#E8B923" style={{ marginRight: 6 }} />
+                                                        <Text style={[styles.buildingStatus, { color: '#E8B923', fontWeight: 'bold' }]}>
+                                                            Loading 3D Model...
+                                                        </Text>
+                                                    </View>
+                                                    <View style={styles.modelLoadingTrack}>
+                                                        <Animated.View
+                                                            style={[
+                                                                styles.modelLoadingBar,
+                                                                {
+                                                                    transform: [{
+                                                                        translateX: loadingShimmerAnim.interpolate({
+                                                                            inputRange: [0, 1],
+                                                                            outputRange: [-80, 180],
+                                                                        }),
+                                                                    }],
+                                                                },
+                                                            ]}
+                                                        />
+                                                    </View>
+                                                </View>
+                                            ) : (
+                                                <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
+                                                    ✓ You have arrived!
+                                                </Text>
+                                            )
                                         ) : (
                                             <>
                                                 <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
@@ -1780,5 +1865,23 @@ const styles = StyleSheet.create({
         right: 16,
         zIndex: 50,
         alignItems: 'center',
+    },
+    modelLoadingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    modelLoadingTrack: {
+        height: 4,
+        width: '100%',
+        backgroundColor: 'rgba(232, 185, 35, 0.25)',
+        borderRadius: 2,
+        overflow: 'hidden',
+        marginTop: 4,
+    },
+    modelLoadingBar: {
+        height: '100%',
+        width: 80,
+        backgroundColor: '#E8B923',
+        borderRadius: 2,
     },
 });
