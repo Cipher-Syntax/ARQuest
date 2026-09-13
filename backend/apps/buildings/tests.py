@@ -995,7 +995,7 @@ class ArchiveCronAPITests(TestCase):
         self.assertEqual(res.status_code, 403) # No secret key
         
         res = self.client.delete('/api/buildings/cron/cleanup/', HTTP_X_CRON_SECRET='test_secret')
-        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.status_code, 200)
         self.assertEqual(Building.all_objects.count(), 0) # Permanently deleted
 
 

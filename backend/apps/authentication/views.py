@@ -19,9 +19,11 @@ from .serializers import (
 from .models import User, EmailOTP
 
 class OTPRateThrottle(AnonRateThrottle):
+    scope = 'auth_otp'
     rate = '3/minute'
 
 class LoginRateThrottle(AnonRateThrottle):
+    scope = 'auth_login'
     rate = '10/minute'
 
 
