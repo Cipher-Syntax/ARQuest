@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.core.cache import cache
 from rest_framework.test import APIClient
 from rest_framework import status
 from .models import User
@@ -88,6 +89,7 @@ class UserModelTestCase(TestCase):
 
 class LoginTestCase(TestCase):
     def setUp(self):
+        cache.clear()
         self.client = APIClient()
         self.user = User.objects.create_user(
             username='testuser',
@@ -142,6 +144,7 @@ class LoginTestCase(TestCase):
 
 class LogoutTestCase(TestCase):
     def setUp(self):
+        cache.clear()
         self.client = APIClient()
         self.user = User.objects.create_user(
             username='testuser',
@@ -218,6 +221,7 @@ class CurrentUserTestCase(TestCase):
 
 class TokenRefreshTestCase(TestCase):
     def setUp(self):
+        cache.clear()
         self.client = APIClient()
         self.user = User.objects.create_user(
             username='testuser',
@@ -378,6 +382,7 @@ class ChangePasswordTestCase(TestCase):
 
 class DeactivationAndReactivationTestCase(TestCase):
     def setUp(self):
+        cache.clear()
         self.client = APIClient()
         self.user = User.objects.create_user(
             username='deact_user',
