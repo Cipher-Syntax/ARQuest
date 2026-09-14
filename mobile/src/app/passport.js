@@ -18,28 +18,39 @@ import {
     Building2,
     Check,
     Search,
+    Camera,
 } from "lucide-react-native";
 import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "../services";
 import theme from "../theme/tokens";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
+import ARPostcardModal from "../components/ar/ARPostcardModal";
 
-const PassportStampCard = React.memo(({ building, isUnlocked }) => {
+const PassportStampCard = React.memo(({ building, isUnlocked, photoData, onOpenPostcard }) => {
+    const displayImage = photoData?.photoUri || building.image_url;
+
     return (
-        <View
+        <TouchableOpacity
             style={[
                 styles.stampCard,
                 isUnlocked
                     ? styles.stampCardUnlocked
                     : styles.stampCardLocked,
             ]}
+            onPress={() => {
+                if (photoData?.photoUri) {
+                    onOpenPostcard({ building, photoUri: photoData.photoUri });
+                }
+            }}
+            activeOpacity={photoData?.photoUri ? 0.75 : 1}
         >
             <View style={styles.imageContainer}>
-                {building.image_url ? (
+                {displayImage ? (
                     <Image
                         source={{
-                            uri: building.image_url,
+                            uri: displayImage,
                         }}
                         style={[
                             styles.buildingImage,
@@ -53,6 +64,14 @@ const PassportStampCard = React.memo(({ building, isUnlocked }) => {
                             size={28}
                             color={isUnlocked ? theme.colors.primary : theme.colors.textMuted}
                         />
+                    </View>
+                )}
+
+                {/* AR Snap Badge */}
+                {photoData?.photoUri && (
+                    <View style={styles.arSnapBadge}>
+                        <Camera size={9} color="#FFFFFF" style={{ marginRight: 3 }} />
+                        <Text style={styles.arSnapBadgeText}>AR SNAP</Text>
                     </View>
                 )}
 
@@ -100,7 +119,7 @@ const PassportStampCard = React.memo(({ building, isUnlocked }) => {
                     </Text>
                 </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 });
 
@@ -108,6 +127,8 @@ export default function PassportScreen() {
     const { user } = useAuth();
     const [buildings, setBuildings] = useState([]);
     const [unlockedIds, setUnlockedIds] = useState(new Set());
+    const [passportPhotos, setPassportPhotos] = useState({});
+    const [selectedPostcard, setSelectedPostcard] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [filter, setFilter] = useState("all"); // 'all' | 'visited' | 'unvisited'
@@ -129,6 +150,15 @@ export default function PassportScreen() {
                         .map((b) => b.id),
                 );
                 setUnlockedIds(unlocked);
+            }
+
+            try {
+                const rawPhotos = await AsyncStorage.getItem("@passport_photos");
+                if (rawPhotos) {
+                    setPassportPhotos(JSON.parse(rawPhotos));
+                }
+            } catch (photoErr) {
+                console.warn("Failed to load stored passport photos:", photoErr);
             }
         } catch (error) {
             console.error("Failed to fetch passport data:", error);
@@ -268,9 +298,11 @@ export default function PassportScreen() {
             <PassportStampCard
                 building={item}
                 isUnlocked={unlockedIds.has(item.id)}
+                photoData={passportPhotos[item.id]}
+                onOpenPostcard={setSelectedPostcard}
             />
         ),
-        [unlockedIds]
+        [unlockedIds, passportPhotos]
     );
 
     const renderEmpty = () => {
@@ -337,6 +369,20 @@ export default function PassportScreen() {
                         tintColor={theme.colors.primary}
                     />
                 }
+            />
+
+            {/* AR Postcard Preview Modal */}
+            <ARPostcardModal
+                visible={!!selectedPostcard}
+                photoUri={selectedPostcard?.photoUri}
+                building={selectedPostcard?.building}
+                location={{
+                    latitude: selectedPostcard?.building?.latitude,
+                    longitude: selectedPostcard?.building?.longitude,
+                }}
+                user={user}
+                expBonus={0}
+                onClose={() => setSelectedPostcard(null)}
             />
         </SafeAreaView>
     );
@@ -545,6 +591,24 @@ const styles = StyleSheet.create({
         fontSize: 9,
         color: theme.colors.textMuted,
         letterSpacing: 0.4,
+    },
+    arSnapBadge: {
+        position: "absolute",
+        top: 6,
+        left: 6,
+        backgroundColor: "rgba(127, 3, 3, 0.9)",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 4,
+        zIndex: 5,
+    },
+    arSnapBadgeText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 8,
+        color: "#FFFFFF",
+        letterSpacing: 0.5,
     },
     cardFooter: {
         padding: 10,
