@@ -49,7 +49,6 @@ export default function ARScreen() {
     const [capturing, setCapturing] = useState(false);
     const [postcardPhotoUri, setPostcardPhotoUri] = useState(null);
     const [isPostcardModalVisible, setIsPostcardModalVisible] = useState(false);
-    const [postcardExpAwarded, setPostcardExpAwarded] = useState(false);
     const [isScanningQr, setIsScanningQr] = useState(false);
     const [isCameraTransitioning, setIsCameraTransitioning] = useState(false);
     const [scannedData, setScannedData] = useState(null);
@@ -826,11 +825,6 @@ export default function ARScreen() {
             snapshotUri = `file://${snapshotUri}`;
         }
 
-        // 4. Award student EXP bonus if student
-        if (user?.role === "student" && !postcardExpAwarded) {
-            setPostcardExpAwarded(true);
-        }
-
         setPostcardPhotoUri(snapshotUri);
         setIsPostcardModalVisible(true);
     };
@@ -1124,7 +1118,6 @@ export default function ARScreen() {
                 building={navTargetFull || nearbyBuildingFull}
                 location={location}
                 user={user}
-                expBonus={postcardExpAwarded ? 15 : 0}
                 onClose={() => setIsPostcardModalVisible(false)}
             />
 
