@@ -29,7 +29,7 @@ import { checkARSupport } from "../../utils/ar-hardware-check";
 import { getUpcomingWaypoint } from "../../utils/geo-ar";
 import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
-import BrandedSelfieFrame from "../../components/ar/BrandedSelfieFrame";
+import ARPostcardModal from "../../components/ar/ARPostcardModal";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
 import { fonts } from "../../constants/typography";
@@ -47,9 +47,9 @@ export default function ARScreen() {
     const [nearbyBuildingFull, setNearbyBuildingFull] = useState(null);
     const [geofenceStatus, setGeofenceStatus] = useState(null);
     const [capturing, setCapturing] = useState(false);
-    const [capturedBg, setCapturedBg] = useState(null);
-    const [bgReady, setBgReady] = useState(false);
-    const [modelReady, setModelReady] = useState(true);
+    const [postcardPhotoUri, setPostcardPhotoUri] = useState(null);
+    const [isPostcardModalVisible, setIsPostcardModalVisible] = useState(false);
+    const [postcardExpAwarded, setPostcardExpAwarded] = useState(false);
     const [isScanningQr, setIsScanningQr] = useState(false);
     const [isCameraTransitioning, setIsCameraTransitioning] = useState(false);
     const [scannedData, setScannedData] = useState(null);
@@ -155,6 +155,8 @@ export default function ARScreen() {
 
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
+    const viroNavRef = useRef(null);
+    const flashAnim = useRef(new Animated.Value(0)).current;
     const { canUseAR } = useRoleAccess();
 
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
@@ -260,8 +262,9 @@ export default function ARScreen() {
         setNavTargetFull(null);
         setNextWaypoint(null);
         setRouteCoordinates([]);
-        setCapturedBg(null);
-        setBgReady(false);
+        setCapturing(false);
+        setIsPostcardModalVisible(false);
+        setPostcardPhotoUri(null);
         setIsScanningQr(false);
         setScannedData(null);
         setIsArrivedLatched(false);
@@ -288,8 +291,9 @@ export default function ARScreen() {
                 setNavTargetFull(null);
                 setNextWaypoint(null);
                 setRouteCoordinates([]);
-                setCapturedBg(null);
-                setBgReady(false);
+                setCapturing(false);
+                setIsPostcardModalVisible(false);
+                setPostcardPhotoUri(null);
                 setIsScanningQr(false);
                 setScannedData(null);
                 setIsArrivedLatched(false);
@@ -744,84 +748,92 @@ export default function ARScreen() {
         }
     };
 
-    const handleCaptureSelfie = async () => {
-        if (!nearbyBuildingFull || !cameraRef.current) {
+    const handleCaptureArSnapshot = async () => {
+        if (capturing) return;
+        setCapturing(true);
+
+        // 1. Immediate shutter feedback: sound & camera flash
+        try {
+            SoundManager.play("trivia_correct");
+        } catch {
+            // Non-fatal
+        }
+
+        flashAnim.setValue(1);
+        Animated.timing(flashAnim, {
+            toValue: 0,
+            duration: 350,
+            useNativeDriver: true,
+        }).start();
+
+        let snapshotUri = null;
+
+        // 2. Capture native 3D AR view from ViroARSceneNavigator if active
+        if (!isScanningQr && viroNavRef.current) {
+            try {
+                const fileName = `wmsu_ar_snap_${Date.now()}`;
+                const takeFn =
+                    viroNavRef.current.takeScreenshot ||
+                    viroNavRef.current._takeScreenshot;
+
+                if (typeof takeFn === "function") {
+                    const res = await takeFn.call(viroNavRef.current, fileName, false);
+                    if (res && res.success && res.url) {
+                        snapshotUri = res.url;
+                    }
+                }
+            } catch (viroErr) {
+                console.warn("Viro native screenshot failed, attempting fallback:", viroErr);
+            }
+        }
+
+        // 3. Fallback: if scanning QR or Viro screenshot not available
+        if (!snapshotUri) {
+            try {
+                if (isScanningQr && cameraRef.current?.takePictureAsync) {
+                    const photo = await cameraRef.current.takePictureAsync({
+                        quality: 0.9,
+                        base64: false,
+                    });
+                    snapshotUri = photo?.uri;
+                } else if (arViewRef.current) {
+                    snapshotUri = await captureRef(arViewRef, {
+                        format: "jpg",
+                        quality: 0.9,
+                    });
+                }
+            } catch (fallbackErr) {
+                console.error("Fallback snapshot capture error:", fallbackErr);
+            }
+        }
+
+        setCapturing(false);
+
+        if (!snapshotUri) {
             Alert(
-                "No Building",
-                "Get closer to a building to take a branded selfie!",
+                "Capture Failed",
+                "Unable to capture AR view. Please ensure camera permissions are active and try again."
             );
             return;
         }
 
-        try {
-            // Reset readiness state
-            setBgReady(false);
-            const has3DModel = isModelVisible && nearbyBuildingFull?.model_url;
-            setModelReady(!has3DModel); // If no 3D model, it's immediately ready
-            setCapturing(true); // Hide controls, show frame
-
-            // Take native photo to use as the static background
-            const photo = await cameraRef.current.takePictureAsync({
-                quality: 1,
-                base64: false,
-            });
-
-            // Setting this triggers the Image component to mount over the live camera
-            setCapturedBg(photo.uri);
-        } catch (error) {
-            console.error("Selfie capture error:", error);
-            Alert("Error", "Failed to capture photo");
-            setCapturing(false);
+        // Ensure proper URI formatting
+        if (
+            !snapshotUri.startsWith("file://") &&
+            !snapshotUri.startsWith("content://") &&
+            !snapshotUri.startsWith("http")
+        ) {
+            snapshotUri = `file://${snapshotUri}`;
         }
-    };
 
-    const onBackgroundImageLoad = () => {
-        setBgReady(true);
-    };
-
-    // Trigger the final composite capture when both layers are completely rendered
-    useEffect(() => {
-        if (capturing && bgReady && modelReady) {
-            // Small delay guarantees React Native layout passes are completely finished
-            setTimeout(async () => {
-                try {
-                    if (!arViewRef.current) return;
-
-                    // Capture the parent wrapper containing the Image + 3D Model + Overlays
-                    const compositeUri = await captureRef(arViewRef, {
-                        format: "jpg",
-                        quality: 0.9,
-                    });
-
-                    let permissionResponse = mediaPermission;
-                    if (!permissionResponse?.granted) {
-                        permissionResponse = await requestMediaPermission();
-                    }
-
-                    if (permissionResponse.granted) {
-                        await MediaLibrary.saveToLibraryAsync(compositeUri);
-                        Alert(
-                            "Success",
-                            "Branded selfie saved to your gallery!",
-                        );
-                    } else {
-                        Alert(
-                            "Permission Denied",
-                            "Need media library permissions to save the photo.",
-                        );
-                    }
-                } catch (captureError) {
-                    console.error("Composite capture error:", captureError);
-                    Alert("Error", "Failed to composite the AR elements.");
-                } finally {
-                    // Cleanup: restore live camera feed and UI controls
-                    setCapturedBg(null);
-                    setCapturing(false);
-                    setBgReady(false);
-                }
-            }, 300);
+        // 4. Award student EXP bonus if student
+        if (user?.role === "student" && !postcardExpAwarded) {
+            setPostcardExpAwarded(true);
         }
-    }, [capturing, bgReady, modelReady]);
+
+        setPostcardPhotoUri(snapshotUri);
+        setIsPostcardModalVisible(true);
+    };
 
     if (!canUseAR) {
         return (
@@ -890,55 +902,47 @@ export default function ARScreen() {
                 style={styles.captureContainer}
                 collapsable={false}
             >
-                {/* 1. Base Layer: Flexed Camera View or Static Captured Image */}
-                {capturedBg ? (
-                    <Image
-                        source={{ uri: capturedBg }}
-                        style={styles.camera}
-                        resizeMode="cover"
-                        onLoad={onBackgroundImageLoad}
-                    />
-                ) : (
-                    isCameraActive && !isCameraTransitioning && (
-                        <ErrorBoundary
-                            title="AR Camera Interrupted"
-                            message="The camera or AR session was temporarily suspended. Tap to retry."
-                            onReset={() => {
-                                setIsCameraActive(false);
-                                setTimeout(() => setIsCameraActive(true), 200);
-                            }}
-                        >
-                            {!isScanningQr ? (
-                                <ViroARSceneNavigator
-                                    autofocus={true}
-                                    initialScene={{ scene: ARQuestScene }}
-                                    viroAppProps={{
-                                        targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
-                                        targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
-                                        userLat: location?.latitude ?? location?.coords?.latitude,
-                                        userLng: location?.longitude ?? location?.coords?.longitude,
-                                        userHeading: heading,
-                                        modelUrl: effectiveModelUrl,
-                                        buildingName: effectiveBuildingName,
-                                        nextWaypoint: nextWaypoint,
-                                        isArrived: isArrived,
-                                        onModelLoadingChange: setIsArModelLoading,
-                                    }}
-                                    style={styles.camera}
-                                />
-                            ) : (
-                                <CameraView
-                                    style={styles.camera}
-                                    facing="back"
-                                    ref={cameraRef}
-                                    onBarcodeScanned={handleBarCodeScanned}
-                                    barcodeScannerSettings={{
-                                        barcodeTypes: ["qr"],
-                                    }}
-                                />
-                            )}
-                        </ErrorBoundary>
-                    )
+                {/* 1. Base Layer: Live AR Camera / QR Scanner */}
+                {isCameraActive && !isCameraTransitioning && (
+                    <ErrorBoundary
+                        title="AR Camera Interrupted"
+                        message="The camera or AR session was temporarily suspended. Tap to retry."
+                        onReset={() => {
+                            setIsCameraActive(false);
+                            setTimeout(() => setIsCameraActive(true), 200);
+                        }}
+                    >
+                        {!isScanningQr ? (
+                            <ViroARSceneNavigator
+                                ref={viroNavRef}
+                                autofocus={true}
+                                initialScene={{ scene: ARQuestScene }}
+                                viroAppProps={{
+                                    targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
+                                    targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
+                                    userLat: location?.latitude ?? location?.coords?.latitude,
+                                    userLng: location?.longitude ?? location?.coords?.longitude,
+                                    userHeading: heading,
+                                    modelUrl: effectiveModelUrl,
+                                    buildingName: effectiveBuildingName,
+                                    nextWaypoint: nextWaypoint,
+                                    isArrived: isArrived,
+                                    onModelLoadingChange: setIsArModelLoading,
+                                }}
+                                style={styles.camera}
+                            />
+                        ) : (
+                            <CameraView
+                                style={styles.camera}
+                                facing="back"
+                                ref={cameraRef}
+                                onBarcodeScanned={handleBarCodeScanned}
+                                barcodeScannerSettings={{
+                                    barcodeTypes: ["qr"],
+                                }}
+                            />
+                        )}
+                    </ErrorBoundary>
                 )}
 
                 {/* 2. Middle Layer removed (Model moved into targetCard) */}
@@ -1098,15 +1102,31 @@ export default function ARScreen() {
                     </View>
                 )}
 
-                {/* 4. Top Layer: Absolute Frame */}
-                <BrandedSelfieFrame
-                    buildingName={
-                        (navTargetFull || nearbyBuildingFull)?.name || "Unknown Building"
-                    }
-                    visible={capturing}
+                {/* Camera shutter flash animation */}
+                <Animated.View
+                    pointerEvents="none"
+                    style={[
+                        StyleSheet.absoluteFillObject,
+                        {
+                            backgroundColor: "#FFFFFF",
+                            opacity: flashAnim,
+                            zIndex: 9999,
+                        },
+                    ]}
                 />
             </View>
             {/* --- END CAPTURE TARGET --- */}
+
+            {/* --- AR POSTCARD MODAL --- */}
+            <ARPostcardModal
+                visible={isPostcardModalVisible}
+                photoUri={postcardPhotoUri}
+                building={navTargetFull || nearbyBuildingFull}
+                location={location}
+                user={user}
+                expBonus={postcardExpAwarded ? 15 : 0}
+                onClose={() => setIsPostcardModalVisible(false)}
+            />
 
 
 
@@ -1190,9 +1210,18 @@ export default function ARScreen() {
                         </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.captureButton} onPress={handleCaptureSelfie}>
+                    <TouchableOpacity
+                        style={styles.captureButton}
+                        onPress={handleCaptureArSnapshot}
+                        disabled={capturing}
+                        activeOpacity={0.7}
+                    >
                         <View style={styles.captureButtonInner}>
-                            <CameraIcon size={28} color={theme.colors.primary} />
+                            {capturing ? (
+                                <ActivityIndicator size="small" color={theme.colors.primary} />
+                            ) : (
+                                <CameraIcon size={28} color={theme.colors.primary} />
+                            )}
                         </View>
                     </TouchableOpacity>
                 </View>
