@@ -14,18 +14,13 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
 import {
     Download,
-    BookOpen,
-    Sparkles,
     X,
     MapPin,
     Calendar,
     Award,
     Check,
-    CheckCircle2,
 } from "lucide-react-native";
 import { colors, radius } from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
@@ -40,7 +35,6 @@ export default function ARPostcardModal({
     building,
     location,
     user,
-    expBonus = 15,
     onClose,
 }) {
     const [scaleAnim] = useState(() => new Animated.Value(0.85));
@@ -49,7 +43,6 @@ export default function ARPostcardModal({
 
     const [isSaving, setIsSaving] = useState(false);
     const [savedToGallery, setSavedToGallery] = useState(false);
-    const [savedToPassport, setSavedToPassport] = useState(false);
 
     useEffect(() => {
         if (visible) {
@@ -69,20 +62,11 @@ export default function ARPostcardModal({
                     useNativeDriver: true,
                 }),
             ]).start();
-
-            if (expBonus > 0 && user?.role === "student") {
-                try {
-                    SoundManager.play("badge_earned");
-                } catch {
-                    // Audio playback non-fatal
-                }
-            }
         }
-    }, [visible, expBonus, user?.role, scaleAnim, opacityAnim]);
+    }, [visible, scaleAnim, opacityAnim]);
 
     const handleCloseModal = () => {
         setSavedToGallery(false);
-        setSavedToPassport(false);
         onClose?.();
     };
 
@@ -132,7 +116,7 @@ export default function ARPostcardModal({
                 return;
             }
 
-            // Attempt to capture the styled digital postcard card composite
+            // Attempt to capture the styled digital postcard composite
             let targetUri = photoUri;
             if (postcardCardRef.current) {
                 try {
@@ -163,43 +147,6 @@ export default function ARPostcardModal({
         }
     };
 
-    const handleSaveToPassport = async () => {
-        if (savedToPassport) {
-            // If already saved, navigate to passport
-            onClose();
-            router.push("/passport");
-            return;
-        }
-
-        try {
-            const bldgId = building?.id || "unknown";
-            const storageKey = "@passport_photos";
-            const raw = await AsyncStorage.getItem(storageKey);
-            const current = raw ? JSON.parse(raw) : {};
-
-            current[bldgId] = {
-                photoUri: photoUri,
-                buildingId: bldgId,
-                buildingName: buildingName,
-                buildingCode: buildingCode,
-                date: formattedDate,
-                time: formattedTime,
-                coords: coordString,
-            };
-
-            await AsyncStorage.setItem(storageKey, JSON.stringify(current));
-            setSavedToPassport(true);
-            try {
-                SoundManager.play("building_unlock");
-            } catch {
-                // Non-fatal
-            }
-        } catch (error) {
-            console.error("Save to passport error:", error);
-            Alert.alert("Error", "Failed to save photo to your Campus Passport.");
-        }
-    };
-
     return (
         <Modal
             transparent
@@ -218,16 +165,6 @@ export default function ARPostcardModal({
                         },
                     ]}
                 >
-                    {/* Top EXP Award Banner (Student gamification) */}
-                    {expBonus > 0 && user?.role === "student" && (
-                        <View style={styles.expBanner}>
-                            <Sparkles size={16} color="#F1C40F" style={{ marginRight: 6 }} />
-                            <Text style={styles.expBannerText}>
-                                +{expBonus} EXP AR DISCOVERY REWARD!
-                            </Text>
-                        </View>
-                    )}
-
                     {/* Close Icon (Top Right) */}
                     <TouchableOpacity
                         style={styles.closeButton}
@@ -334,15 +271,15 @@ export default function ARPostcardModal({
                     </View>
                     {/* --- END POSTCARD --- */}
 
-                    {/* Actions Row */}
-                    <View style={styles.actionsRow}>
+                    {/* Actions Area */}
+                    <View style={styles.actionsArea}>
                         {/* Save to Gallery Button */}
                         <TouchableOpacity
                             style={[
-                                styles.actionButton,
+                                styles.saveButton,
                                 savedToGallery
-                                    ? styles.actionButtonSuccess
-                                    : styles.actionButtonPrimary,
+                                    ? styles.saveButtonSuccess
+                                    : styles.saveButtonPrimary,
                             ]}
                             onPress={handleSaveToGallery}
                             disabled={isSaving}
@@ -352,50 +289,26 @@ export default function ARPostcardModal({
                                 <ActivityIndicator size="small" color="#FFFFFF" />
                             ) : savedToGallery ? (
                                 <>
-                                    <Check size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                                    <Text style={styles.actionButtonText}>SAVED TO GALLERY</Text>
+                                    <Check size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                                    <Text style={styles.saveButtonText}>SAVED TO GALLERY ✓</Text>
                                 </>
                             ) : (
                                 <>
-                                    <Download size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                                    <Text style={styles.actionButtonText}>SAVE TO GALLERY</Text>
+                                    <Download size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                                    <Text style={styles.saveButtonText}>SAVE POSTCARD TO GALLERY</Text>
                                 </>
                             )}
                         </TouchableOpacity>
 
-                        {/* Save to Passport Button */}
+                        {/* Dismiss Button */}
                         <TouchableOpacity
-                            style={[
-                                styles.actionButton,
-                                savedToPassport
-                                    ? styles.actionButtonPassportView
-                                    : styles.actionButtonSecondary,
-                            ]}
-                            onPress={handleSaveToPassport}
-                            activeOpacity={0.8}
+                            style={styles.doneButton}
+                            onPress={handleCloseModal}
+                            activeOpacity={0.7}
                         >
-                            {savedToPassport ? (
-                                <>
-                                    <CheckCircle2 size={16} color="#059669" style={{ marginRight: 6 }} />
-                                    <Text style={styles.actionButtonPassportViewText}>VIEW PASSPORT</Text>
-                                </>
-                            ) : (
-                                <>
-                                    <BookOpen size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                                    <Text style={styles.actionButtonText}>ADD TO PASSPORT</Text>
-                                </>
-                            )}
+                            <Text style={styles.doneButtonText}>DONE & RETURN TO AR</Text>
                         </TouchableOpacity>
                     </View>
-
-                    {/* Dismiss Button */}
-                    <TouchableOpacity
-                        style={styles.doneButton}
-                        onPress={handleCloseModal}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.doneButtonText}>DONE & RETURN TO AR</Text>
-                    </TouchableOpacity>
                 </Animated.View>
             </View>
         </Modal>
@@ -426,23 +339,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         zIndex: 20,
-    },
-    expBanner: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#5E0202",
-        borderColor: "#F1C40F",
-        borderWidth: 1,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: radius.md,
-        marginBottom: 12,
-    },
-    expBannerText: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        color: "#F1C40F",
-        letterSpacing: 1,
     },
     postcardFrame: {
         width: CARD_WIDTH,
@@ -498,7 +394,7 @@ const styles = StyleSheet.create({
     },
     photoContainer: {
         width: "100%",
-        height: 210,
+        height: 220,
         backgroundColor: "#1A1A1A",
         position: "relative",
     },
@@ -633,49 +529,34 @@ const styles = StyleSheet.create({
         color: "#7F0303",
         marginTop: 1,
     },
-    actionsRow: {
-        flexDirection: "row",
-        gap: 8,
+    actionsArea: {
         width: CARD_WIDTH,
         marginTop: 14,
+        alignItems: "center",
     },
-    actionButton: {
-        flex: 1,
+    saveButton: {
+        width: "100%",
         flexDirection: "row",
-        height: 44,
+        height: 48,
         borderRadius: radius.md,
         justifyContent: "center",
         alignItems: "center",
-        paddingHorizontal: 8,
+        paddingHorizontal: 16,
     },
-    actionButtonPrimary: {
+    saveButtonPrimary: {
         backgroundColor: "#7F0303",
     },
-    actionButtonSuccess: {
+    saveButtonSuccess: {
         backgroundColor: "#059669",
     },
-    actionButtonSecondary: {
-        backgroundColor: "#123B44",
-    },
-    actionButtonPassportView: {
-        backgroundColor: "#E6F4EA",
-        borderWidth: 1,
-        borderColor: "#059669",
-    },
-    actionButtonText: {
+    saveButtonText: {
         fontFamily: fonts.heading.bold,
-        fontSize: 11,
+        fontSize: 13,
         color: "#FFFFFF",
-        letterSpacing: 0.5,
-    },
-    actionButtonPassportViewText: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 11,
-        color: "#059669",
-        letterSpacing: 0.5,
+        letterSpacing: 0.8,
     },
     doneButton: {
-        marginTop: 10,
+        marginTop: 12,
         paddingVertical: 10,
         paddingHorizontal: 20,
     },
