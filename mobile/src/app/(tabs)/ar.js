@@ -18,7 +18,7 @@ import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
 import { router, useLocalSearchParams, useFocusEffect, useNavigation } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
-import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native";
+import { X, Camera as CameraIcon, QrCode, Navigation, AlertTriangle, Smartphone } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
@@ -111,10 +111,18 @@ export default function ARScreen() {
     }, []);
 
     useEffect(() => {
-        checkARSupport().then(supported => {
-            setIsARSupported(supported);
-            if (!supported) setShowUnsupportedModal(true);
-        });
+        checkARSupport()
+            .then((supported) => {
+                setIsARSupported(supported);
+                if (!supported) {
+                    setShowUnsupportedModal(true);
+                    setIsScanningQr(true);
+                }
+            })
+            .catch((err) => {
+                console.log("checkARSupport error:", err);
+                setIsARSupported(true);
+            });
     }, []);
 
 
@@ -305,26 +313,58 @@ export default function ARScreen() {
     );
 
     const DeviceNotSupportedModal = () => (
-        showUnsupportedModal && (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 999 }]}>
-                <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 16, width: '80%', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.colors.primary, marginBottom: 12 }}>Device Not Supported</Text>
-                    <Text style={{ textAlign: 'center', color: theme.colors.textSecondary, marginBottom: 20, lineHeight: 22 }}>
-                        Your device does not support native Spatial AR (ARCore/ARKit). 
-                        Please use the 2D Map and the standard QR Scanner for your quests.
-                    </Text>
-                    <TouchableOpacity 
-                        style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
-                        onPress={() => {
-                            setShowUnsupportedModal(false);
-                            router.push("/maps");
-                        }}
-                    >
-                        <Text style={{ color: 'white', fontWeight: 'bold' }}>Go to 2D Map</Text>
-                    </TouchableOpacity>
+        showUnsupportedModal ? (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: 24 }]}>
+                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 6, width: '100%', maxWidth: 360, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 10 }}>
+                    {/* Header Ribbon */}
+                    <View style={{ backgroundColor: theme.colors.primary, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <AlertTriangle size={20} color="#FFD700" />
+                        <Text style={{ fontFamily: fonts.heading.bold, color: '#FFFFFF', fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                            Spatial AR Not Supported
+                        </Text>
+                    </View>
+
+                    {/* Content */}
+                    <View style={{ padding: 20 }}>
+                        <Text style={{ fontFamily: fonts.body.bold, color: theme.colors.textPrimary, fontSize: 14, marginBottom: 8 }}>
+                            Google ARCore Not Detected
+                        </Text>
+                        <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 20 }}>
+                            Your device does not support native Spatial AR tracking. You can still navigate using the Campus 2D Map and scan building QR codes to complete quests.
+                        </Text>
+
+                        {/* Action Buttons */}
+                        <View style={{ gap: 10 }}>
+                            <TouchableOpacity 
+                                style={{ backgroundColor: theme.colors.primary, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
+                                onPress={() => {
+                                    setShowUnsupportedModal(false);
+                                    router.push("/(tabs)/buildings");
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={{ fontFamily: fonts.heading.bold, color: '#FFFFFF', fontSize: 12, letterSpacing: 1 }}>
+                                    GO TO CAMPUS MAP
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity 
+                                style={{ backgroundColor: 'transparent', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border }}
+                                onPress={() => {
+                                    setShowUnsupportedModal(false);
+                                    toggleQrScanner(true);
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 11, letterSpacing: 0.5 }}>
+                                    USE QR SCANNER INSTEAD
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </View>
-        )
+        ) : null
     );
 
     useEffect(() => {
@@ -832,7 +872,6 @@ export default function ARScreen() {
     if (!canUseAR) {
         return (
             <View style={styles.container}>
-              <DeviceNotSupportedModal />
                 <View style={styles.permissionContainer}>
                     <CameraIcon size={64} color={theme.colors.textMuted} />
                     <Text style={styles.permissionTitle}>
@@ -906,7 +945,7 @@ export default function ARScreen() {
                             setTimeout(() => setIsCameraActive(true), 200);
                         }}
                     >
-                        {!isScanningQr ? (
+                        {!isScanningQr && isARSupported ? (
                             <ViroARSceneNavigator
                                 ref={viroNavRef}
                                 autofocus={true}
@@ -1120,6 +1159,9 @@ export default function ARScreen() {
                 user={user}
                 onClose={() => setIsPostcardModalVisible(false)}
             />
+
+            {/* --- DEVICE NOT SUPPORTED MODAL --- */}
+            <DeviceNotSupportedModal />
 
 
 
