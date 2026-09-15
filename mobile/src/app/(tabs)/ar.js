@@ -266,6 +266,7 @@ export default function ARScreen() {
     const handleExit = useCallback(() => {
         setIsCameraActive(false);
         stopTracking();
+        startTracking({ highFrequency: false });
         setNavTargetFull(null);
         setNextWaypoint(null);
         setRouteCoordinates([]);
@@ -290,11 +291,12 @@ export default function ARScreen() {
     useFocusEffect(
         React.useCallback(() => {
             setIsCameraActive(true);
-            startTracking();
+            startTracking({ highFrequency: true });
 
             return () => {
                 setIsCameraActive(false);
                 stopTracking();
+                startTracking({ highFrequency: false });
                 setNavTargetFull(null);
                 setNextWaypoint(null);
                 setRouteCoordinates([]);

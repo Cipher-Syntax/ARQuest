@@ -107,13 +107,40 @@ export const getUpcomingWaypoint = (coords, userLat, userLng) => {
         }
     }
 
-    // Determine the next waypoint ahead of the user:
-    // If the user has progressed past 80% of segment i and there is a subsequent segment,
-    // look ahead to coords[bestIdx + 2] to smoothly anticipate turns.
-    // Otherwise, direct the user to the end of the current segment: coords[bestIdx + 1].
+    // Candidate target is at least the end of the current segment: coords[bestIdx + 1]
     let targetIdx = bestIdx + 1;
-    if (bestT > 0.80 && bestIdx + 2 < coords.length) {
-        targetIdx = bestIdx + 2;
+
+    // Strict forward-progression gating:
+    // If user has overshot the candidate node along the path direction, or is within 4.5m
+    // catchment of that node, advance to the subsequent node ahead.
+    while (targetIdx < coords.length) {
+        const targetLng = coords[targetIdx][0];
+        const targetLat = coords[targetIdx][1];
+
+        const distMeters = getDistance(
+            { latitude: userLat, longitude: userLng },
+            { latitude: targetLat, longitude: targetLng }
+        );
+
+        // Vector from previous node to target node (direction of path travel)
+        const prevLng = coords[targetIdx - 1][0];
+        const prevLat = coords[targetIdx - 1][1];
+        const segDx = targetLng - prevLng;
+        const segDy = targetLat - prevLat;
+
+        // Vector from user to target node
+        const uDx = targetLng - px;
+        const uDy = targetLat - py;
+
+        // Dot product: if <= 0, the target node is geometrically behind the user in the direction of path travel
+        const dot = segDx * uDx + segDy * uDy;
+
+        // If target is within 4.5m catchment OR has been overshot (dot <= 0), and there is a subsequent node ahead:
+        if ((distMeters <= 4.5 || dot <= 0) && targetIdx + 1 < coords.length) {
+            targetIdx++;
+        } else {
+            break;
+        }
     }
 
     const targetCoord = coords[Math.min(targetIdx, coords.length - 1)];

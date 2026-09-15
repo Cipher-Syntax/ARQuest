@@ -20,6 +20,7 @@ export const LocationProvider = ({ children }) => {
     isTrackingRef.current = isTracking;
     const permissionStatusRef = useRef(permissionStatus);
     permissionStatusRef.current = permissionStatus;
+    const currentTrackingIntervalRef = useRef(3000);
 
     const checkPermission = useCallback(async () => {
         try {
@@ -63,7 +64,7 @@ export const LocationProvider = ({ children }) => {
         }
     }, []);
 
-    const startTracking = useCallback(async () => {
+    const startTracking = useCallback(async (options = {}) => {
         let currentPerm = permissionStatusRef.current;
         if (currentPerm !== "granted") {
             try {
@@ -86,6 +87,10 @@ export const LocationProvider = ({ children }) => {
             }
         }
 
+        const isHighFrequency = Boolean(options?.highFrequency);
+        const targetDistanceInterval = isHighFrequency ? 1.5 : 5;
+        const targetTimeInterval = isHighFrequency ? 1000 : 3000;
+
         try {
             if (!isTrackingRef.current) {
                 setIsTracking(true);
@@ -95,13 +100,19 @@ export const LocationProvider = ({ children }) => {
                 setError(null);
             }
 
-            // Avoid re-subscribing if already active
+            // Re-subscribe if switching frequency modes
+            if (watchSubscription.current && currentTrackingIntervalRef.current !== targetTimeInterval) {
+                watchSubscription.current.remove();
+                watchSubscription.current = null;
+            }
+
             if (!watchSubscription.current) {
+                currentTrackingIntervalRef.current = targetTimeInterval;
                 watchSubscription.current = await Location.watchPositionAsync(
                     {
                         accuracy: Location.Accuracy.High,
-                        distanceInterval: 5,
-                        timeInterval: 3000,
+                        distanceInterval: targetDistanceInterval,
+                        timeInterval: targetTimeInterval,
                     },
                     (newLocation) => {
                         const accuracy = newLocation.coords.accuracy;
