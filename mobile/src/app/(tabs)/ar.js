@@ -59,6 +59,7 @@ export default function ARScreen() {
     const navigation = useNavigation();
     const { targetBuildingId, buildingId } = useLocalSearchParams();
     const activeTargetId = targetBuildingId || buildingId;
+    const isTargetMode = Boolean(activeTargetId);
 
     const [navTargetFull, setNavTargetFull] = useState(null);
     const [nextWaypoint, setNextWaypoint] = useState(null);
@@ -67,23 +68,34 @@ export default function ARScreen() {
 
     const [isArrivedLatched, setIsArrivedLatched] = useState(false);
 
+    // Reset arrival latch and stable references whenever navigation target changes
+    useEffect(() => {
+        setIsArrivedLatched(false);
+        stableModelUrlRef.current = null;
+        stableBuildingNameRef.current = null;
+    }, [activeTargetId]);
+
+    // Active building target: In target navigation mode, ONLY use navTargetFull.
+    // Never fall back to the building where the user is currently standing.
+    const activeTarget = navTargetFull || (!isTargetMode ? nearbyBuildingFull : null);
+
     // Stable references to prevent background geofence re-fetches from wiping model/name mid-session
     const stableModelUrlRef = useRef(null);
-    const candidateModelUrl = (navTargetFull || nearbyBuildingFull)?.model_url;
+    const candidateModelUrl = activeTarget?.model_url;
     if (candidateModelUrl) {
         stableModelUrlRef.current = candidateModelUrl;
     }
-    const effectiveModelUrl = candidateModelUrl || stableModelUrlRef.current;
+    const effectiveModelUrl = candidateModelUrl || (isTargetMode ? null : stableModelUrlRef.current);
 
     const stableBuildingNameRef = useRef(null);
-    const candidateBuildingName = (navTargetFull || nearbyBuildingFull)?.name;
+    const candidateBuildingName = activeTarget?.name;
     if (candidateBuildingName) {
         stableBuildingNameRef.current = candidateBuildingName;
     }
-    const effectiveBuildingName = candidateBuildingName || stableBuildingNameRef.current;
+    const effectiveBuildingName = candidateBuildingName || (isTargetMode ? (navTargetFull?.name || "Loading Destination...") : stableBuildingNameRef.current);
 
     useEffect(() => {
-        const targetBldg = navTargetFull || nearbyBuildingFull;
+        const targetBldg = navTargetFull || (!isTargetMode ? nearbyBuildingFull : null);
         if (targetBldg && targetBldg.model_url) {
             const assetId = `building_${targetBldg.id}_model`;
             const version = targetBldg.updated_at ? new Date(targetBldg.updated_at).getTime() : "1";
@@ -100,7 +112,7 @@ export default function ARScreen() {
         } else {
             setCachedModelUri(null);
         }
-    }, [navTargetFull?.id, nearbyBuildingFull?.id, navTargetFull?.model_url, nearbyBuildingFull?.model_url]);
+    }, [navTargetFull?.id, isTargetMode ? null : nearbyBuildingFull?.id, navTargetFull?.model_url, isTargetMode ? null : nearbyBuildingFull?.model_url]);
 
     const toggleQrScanner = useCallback((enable) => {
         setIsCameraTransitioning(true);
@@ -436,21 +448,17 @@ export default function ARScreen() {
 
     useEffect(() => {
         if (activeTargetId) {
-            if (nearbyBuildingFull && nearbyBuildingFull.id === activeTargetId) {
-                setNavTargetFull(nearbyBuildingFull);
-            } else {
-                api.get(`/api/buildings/${activeTargetId}/`)
-                    .then((res) => {
-                        if (res.data.success) {
-                            setNavTargetFull(res.data.data);
-                        }
-                    })
-                    .catch((err) => console.error("Error fetching nav target", err));
-            }
+            api.get(`/api/buildings/${activeTargetId}/`)
+                .then((res) => {
+                    if (res.data.success) {
+                        setNavTargetFull(res.data.data);
+                    }
+                })
+                .catch((err) => console.error("Error fetching nav target", err));
         } else {
             setNavTargetFull(null);
         }
-    }, [activeTargetId, nearbyBuildingFull]);
+    }, [activeTargetId]);
 
     const getBearing = (lat1, lon1, lat2, lon2) => {
         const toRad = (val) => (val * Math.PI) / 180;
@@ -495,17 +503,31 @@ export default function ARScreen() {
         );
     }
 
-    const rawArrived = Boolean(navTargetFull
-        ? ((distanceToTarget !== null && distanceToTarget <= 25) || (geofenceStatus?.status === 'inside' && (nearbyBuildingFull?.id === navTargetFull?.id || nearbyBuilding?.id === navTargetFull?.id)))
+    // Destination geofence check: True ONLY if inside the actual destination building geofence
+    const isInsideDestination = Boolean(
+        isTargetMode &&
+        geofenceStatus?.status === 'inside' &&
+        (String(nearbyBuildingFull?.id) === String(activeTargetId) || String(nearbyBuilding?.id) === String(activeTargetId))
+    );
+
+    // In target navigation mode: user is arrived ONLY if they reached the destination (distance <= 25m or inside destination geofence)
+    // In free exploration mode: arrived when inside any campus building geofence
+    const rawArrived = Boolean(isTargetMode
+        ? (navTargetFull && distanceToTarget !== null && (distanceToTarget <= 25 || isInsideDestination))
         : (geofenceStatus?.status === 'inside'));
 
     useEffect(() => {
         if (rawArrived) {
             setIsArrivedLatched(true);
-        } else if (distanceToTarget !== null && distanceToTarget > 45 && geofenceStatus?.status !== 'inside') {
+        } else if (isTargetMode) {
+            // In target navigation mode: unlatch when far from destination and not inside destination
+            if (distanceToTarget !== null && distanceToTarget > 45 && !isInsideDestination) {
+                setIsArrivedLatched(false);
+            }
+        } else if (geofenceStatus?.status !== 'inside') {
             setIsArrivedLatched(false);
         }
-    }, [rawArrived, distanceToTarget, geofenceStatus?.status]);
+    }, [rawArrived, distanceToTarget, isInsideDestination, isTargetMode, geofenceStatus?.status]);
 
     const isArrived = Boolean(isArrivedLatched || rawArrived);
 
@@ -953,8 +975,8 @@ export default function ARScreen() {
                                 autofocus={true}
                                 initialScene={{ scene: ARQuestScene }}
                                 viroAppProps={{
-                                    targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
-                                    targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
+                                    targetLat: navTargetFull?.latitude || (!isTargetMode ? nearbyBuildingFull?.latitude : undefined),
+                                    targetLng: navTargetFull?.longitude || (!isTargetMode ? nearbyBuildingFull?.longitude : undefined),
                                     userLat: location?.latitude ?? location?.coords?.latitude,
                                     userLng: location?.longitude ?? location?.coords?.longitude,
                                     userHeading: heading,
@@ -1019,12 +1041,12 @@ export default function ARScreen() {
                 )}
 
                 {/* --- Top Oval Header (Solid White Curve) --- */}
-                {(navTargetFull || nearbyBuilding) && (
+                {(navTargetFull || (!isTargetMode && (nearbyBuildingFull || nearbyBuilding))) && (
                     <View style={styles.topOvalContainer}>
                         <View style={styles.topOvalShape} />
                         {(() => {
-                            const activeBldg = navTargetFull || nearbyBuildingFull || nearbyBuilding;
-                            const dist = Math.round(navTargetFull ? (distanceToTarget || 0) : (geofenceStatus?.distance_meters || 0));
+                            const activeBldg = navTargetFull || (!isTargetMode ? (nearbyBuildingFull || nearbyBuilding) : null);
+                            const dist = Math.round(isTargetMode ? (distanceToTarget || 0) : (geofenceStatus?.distance_meters || 0));
 
                             return (
                                 <View style={styles.topOvalContent}>

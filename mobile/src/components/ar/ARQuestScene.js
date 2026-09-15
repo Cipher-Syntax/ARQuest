@@ -118,6 +118,11 @@ export default function ARQuestScene(props) {
     // This eliminates flickering and disappearing models caused by natural GPS micro-drift.
     const [latchedArrived, setLatchedArrived] = useState(false);
 
+    // Reset latched arrival whenever destination coordinates change
+    useEffect(() => {
+        setLatchedArrived(false);
+    }, [targetLat, targetLng]);
+
     useEffect(() => {
         if (isArrived || (distanceToTarget !== null && distanceToTarget <= 25)) {
             setLatchedArrived(true);
