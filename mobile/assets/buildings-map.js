@@ -118,6 +118,20 @@ export const mapHtmlString = `<!DOCTYPE html>
         let ARQUEST_API_BASE = "__ARQUEST_API_BASE__";
         let ARQUEST_AUTH_TOKEN = "__ARQUEST_AUTH_TOKEN__";
         const WMSU_CENTER = [122.0605, 6.9122]; // Lng, Lat
+        // Strict WMSU camera panning bounds (SW, NE) matching admin web bounds
+        const WMSU_BOUNDS = [
+            [122.0545, 6.9075], // SW [lng, lat]
+            [122.0675, 6.9175], // NE [lng, lat]
+        ];
+
+        // WMSU Campus Perimeter (clockwise hole coordinates)
+        const WMSU_CAMPUS_PERIMETER = [
+            [122.0570, 6.9092],
+            [122.0570, 6.9162],
+            [122.0655, 6.9162],
+            [122.0655, 6.9092],
+            [122.0570, 6.9092]
+        ];
 
         let map = null;
         let markers = [];
@@ -200,6 +214,9 @@ export const mapHtmlString = `<!DOCTYPE html>
                     style: 'mapbox://styles/mapbox/streets-v12',
                     center: WMSU_CENTER,
                     zoom: 16.5,
+                    minZoom: 15.2,
+                    maxZoom: 19.5,
+                    maxBounds: WMSU_BOUNDS,
                     pitch: 45,
                     bearing: -15,
                     attributionControl: false
@@ -256,6 +273,78 @@ export const mapHtmlString = `<!DOCTYPE html>
                         }
                     } catch (e) {
                         console.log('3D buildings layer notice:', e);
+                    }
+
+                    // Gray out / mask all areas outside WMSU campus boundaries
+                    if (!map.getSource('wmsu-mask')) {
+                        map.addSource('wmsu-mask', {
+                            type: 'geojson',
+                            data: {
+                                type: 'FeatureCollection',
+                                features: [{
+                                    type: 'Feature',
+                                    properties: {},
+                                    geometry: {
+                                        type: 'Polygon',
+                                        coordinates: [
+                                            // Outer globe ring
+                                            [
+                                                [-180, -90],
+                                                [180, -90],
+                                                [180, 90],
+                                                [-180, 90],
+                                                [-180, -90]
+                                            ],
+                                            // Inner WMSU campus hole
+                                            WMSU_CAMPUS_PERIMETER
+                                        ]
+                                    }
+                                }]
+                            }
+                        });
+                    }
+
+                    if (!map.getLayer('wmsu-mask-fill')) {
+                        map.addLayer({
+                            id: 'wmsu-mask-fill',
+                            type: 'fill',
+                            source: 'wmsu-mask',
+                            paint: {
+                                'fill-color': '#111827',
+                                'fill-opacity': 0.60
+                            }
+                        });
+                    }
+
+                    // Institutional red boundary line around WMSU perimeter
+                    if (!map.getSource('wmsu-boundary')) {
+                        map.addSource('wmsu-boundary', {
+                            type: 'geojson',
+                            data: {
+                                type: 'FeatureCollection',
+                                features: [{
+                                    type: 'Feature',
+                                    properties: {},
+                                    geometry: {
+                                        type: 'LineString',
+                                        coordinates: WMSU_CAMPUS_PERIMETER
+                                    }
+                                }]
+                            }
+                        });
+                    }
+
+                    if (!map.getLayer('wmsu-boundary-line')) {
+                        map.addLayer({
+                            id: 'wmsu-boundary-line',
+                            type: 'line',
+                            source: 'wmsu-boundary',
+                            paint: {
+                                'line-color': '#B21830',
+                                'line-width': 2.5,
+                                'line-dasharray': [3, 2]
+                            }
+                        });
                     }
 
                     // Add route sources and layers
@@ -367,7 +456,10 @@ export const mapHtmlString = `<!DOCTYPE html>
                         }
                     }
 
-                    boundsCoords.push(userCoords);
+                    if (uLng >= WMSU_BOUNDS[0][0] && uLng <= WMSU_BOUNDS[1][0] &&
+                        uLat >= WMSU_BOUNDS[0][1] && uLat <= WMSU_BOUNDS[1][1]) {
+                        boundsCoords.push(userCoords);
+                    }
                 }
             }
 
