@@ -115,6 +115,7 @@ export const LocationProvider = ({ children }) => {
                         timeInterval: targetTimeInterval,
                     },
                     (newLocation) => {
+                        const accuracy = newLocation?.coords?.accuracy ?? 0;
                         // Hysteresis for weak GPS signal:
                         // Trigger weak alert only when accuracy degrades past 65m.
                         // Clear weak alert only when accuracy solidly recovers below 45m.
