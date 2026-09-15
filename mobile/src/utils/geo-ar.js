@@ -56,6 +56,78 @@ export const gpsToARCoordinates = (userLat, userLng, targetLat, targetLng, userH
 };
 
 /**
+ * Snaps the user's raw GPS coordinates to the closest point along the campus walkway polyline
+ * (map-matching), eliminating GPS multipath reflections from nearby building walls.
+ *
+ * @param {Array<[number, number]>} coords - Polyline coordinate pairs [[lng, lat], ...]
+ * @param {number} userLat - User's raw GPS latitude
+ * @param {number} userLng - User's raw GPS longitude
+ * @param {number} maxSnapMeters - Maximum perpendicular distance (in meters) to snap. Default 25m.
+ * @returns {{ latitude: number, longitude: number, isSnapped: boolean, distance: number }} Snapped GPS coordinates
+ */
+export const snapToWalkway = (coords, userLat, userLng, maxSnapMeters = 25) => {
+    if (!coords || !Array.isArray(coords) || coords.length < 2 || userLat == null || userLng == null) {
+        return { latitude: userLat, longitude: userLng, isSnapped: false, distance: 0 };
+    }
+
+    const px = userLng;
+    const py = userLat;
+    let bestDist2 = Infinity;
+    let bestQ = null;
+
+    // Evaluate against walkway segments (prefer real walkway geometry when available)
+    const startSegment = coords.length >= 3 ? 1 : 0;
+
+    for (let i = startSegment; i < coords.length - 1; i++) {
+        const ax = coords[i][0];
+        const ay = coords[i][1];
+        const bx = coords[i + 1][0];
+        const by = coords[i + 1][1];
+
+        const dx = bx - ax;
+        const dy = by - ay;
+        const ab2 = dx * dx + dy * dy;
+        let t = 0;
+        if (ab2 > 0) {
+            t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / ab2));
+        }
+        const qx = ax + t * dx;
+        const qy = ay + t * dy;
+        const dist2 = (px - qx) * (px - qx) + (py - qy) * (py - qy);
+
+        if (dist2 < bestDist2) {
+            bestDist2 = dist2;
+            bestQ = [qx, qy];
+        }
+    }
+
+    if (!bestQ) {
+        return { latitude: userLat, longitude: userLng, isSnapped: false, distance: 0 };
+    }
+
+    const distMeters = getDistance(
+        { latitude: userLat, longitude: userLng },
+        { latitude: bestQ[1], longitude: bestQ[0] }
+    );
+
+    if (distMeters <= maxSnapMeters) {
+        return {
+            latitude: bestQ[1],
+            longitude: bestQ[0],
+            isSnapped: true,
+            distance: distMeters,
+        };
+    }
+
+    return {
+        latitude: userLat,
+        longitude: userLng,
+        isSnapped: false,
+        distance: distMeters,
+    };
+};
+
+/**
  * Determines the next immediate waypoint (GPS coordinate) along a route polyline
  * that the user should be directed toward in AR.
  *
@@ -82,8 +154,11 @@ export const getUpcomingWaypoint = (coords, userLat, userLng) => {
     let bestIdx = 0;
     let bestT = 0;
 
-    // Find the closest path segment [i, i+1] to the user's coordinates
-    for (let i = 0; i < coords.length - 1; i++) {
+    // If route has >= 3 points, start search at segment 1 to evaluate against real authored walkways
+    // rather than the artificial segment 0 connecting user's initial GPS to start_node.
+    const startIdx = coords.length >= 3 ? 1 : 0;
+
+    for (let i = startIdx; i < coords.length - 1; i++) {
         const ax = coords[i][0];
         const ay = coords[i][1];
         const bx = coords[i + 1][0];
@@ -110,9 +185,18 @@ export const getUpcomingWaypoint = (coords, userLat, userLng) => {
     // Candidate target is at least the end of the current segment: coords[bestIdx + 1]
     let targetIdx = bestIdx + 1;
 
+    // Final destination coordinate
+    const finalCoord = coords[coords.length - 1];
+    const userDistToFinal = getDistance(
+        { latitude: userLat, longitude: userLng },
+        { latitude: finalCoord[1], longitude: finalCoord[0] }
+    );
+
     // Strict forward-progression gating:
-    // If user has overshot the candidate node along the path direction, or is within 4.5m
-    // catchment of that node, advance to the subsequent node ahead.
+    // Advance targetIdx forward if:
+    // 1. User is within 4.5m catchment of candidate node.
+    // 2. Or candidate node is geometrically behind user along path direction (dot <= 0).
+    // 3. Or user is already closer to the final destination than the candidate node (smart start-node skip).
     while (targetIdx < coords.length) {
         const targetLng = coords[targetIdx][0];
         const targetLat = coords[targetIdx][1];
@@ -135,8 +219,15 @@ export const getUpcomingWaypoint = (coords, userLat, userLng) => {
         // Dot product: if <= 0, the target node is geometrically behind the user in the direction of path travel
         const dot = segDx * uDx + segDy * uDy;
 
-        // If target is within 4.5m catchment OR has been overshot (dot <= 0), and there is a subsequent node ahead:
-        if ((distMeters <= 4.5 || dot <= 0) && targetIdx + 1 < coords.length) {
+        // Destination progress: if target node is farther from destination than the user is (with 3.5m deadband)
+        const targetDistToFinal = getDistance(
+            { latitude: targetLat, longitude: targetLng },
+            { latitude: finalCoord[1], longitude: finalCoord[0] }
+        );
+        const isBehindUserTowardsDestination = userDistToFinal < (targetDistToFinal - 3.5);
+
+        // If target is reached (<= 4.5m), overshot (dot <= 0), or geometrically behind towards destination:
+        if ((distMeters <= 4.5 || dot <= 0 || isBehindUserTowardsDestination) && targetIdx + 1 < coords.length) {
             targetIdx++;
         } else {
             break;

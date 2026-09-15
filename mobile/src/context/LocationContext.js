@@ -115,8 +115,11 @@ export const LocationProvider = ({ children }) => {
                         timeInterval: targetTimeInterval,
                     },
                     (newLocation) => {
-                        const accuracy = newLocation.coords.accuracy;
-                        const isWeak = accuracy > 50; // Aligned with backend weak_signal threshold (>50m)
+                        // Hysteresis for weak GPS signal:
+                        // Trigger weak alert only when accuracy degrades past 65m.
+                        // Clear weak alert only when accuracy solidly recovers below 45m.
+                        const wasWeak = lastErrorRef.current === "Weak GPS Signal. Please step outside or use QR code fallback.";
+                        const isWeak = wasWeak ? (accuracy > 45) : (accuracy > 65);
                         const isMocked = newLocation.mocked === true;
 
                         if (isMocked) {

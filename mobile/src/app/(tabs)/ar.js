@@ -26,7 +26,7 @@ import { geofencingService, assetService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
 import { checkARSupport } from "../../utils/ar-hardware-check";
-import { getUpcomingWaypoint } from "../../utils/geo-ar";
+import { getUpcomingWaypoint, snapToWalkway } from "../../utils/geo-ar";
 import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
 import ARPostcardModal from "../../components/ar/ARPostcardModal";
@@ -46,6 +46,8 @@ export default function ARScreen() {
     const [nearbyBuilding, setNearbyBuilding] = useState(null);
     const [nearbyBuildingFull, setNearbyBuildingFull] = useState(null);
     const [geofenceStatus, setGeofenceStatus] = useState(null);
+    const lastGeofenceCheckTimeRef = useRef(0);
+    const consecutiveOutsideCountRef = useRef(0);
     const [capturing, setCapturing] = useState(false);
     const [postcardPhotoUri, setPostcardPhotoUri] = useState(null);
     const [isPostcardModalVisible, setIsPostcardModalVisible] = useState(false);
@@ -490,14 +492,27 @@ export default function ARScreen() {
 
     let arrowAngle = 0;
     let distanceToTarget = null;
-    let turnDirection = null; // 'left' | 'right' | 'ahead'
+    let turnDirection = null; // 'left' | 'right' | 'around' | 'ahead'
     const curLat = location?.latitude ?? location?.coords?.latitude;
     const curLng = location?.longitude ?? location?.coords?.longitude;
 
-    if (navTargetFull && curLat && curLng) {
+    // Pathway Snapping (Map-Matching): Snaps user position to the nearest campus walkway segment
+    // within 25m, smoothing out GPS multipath reflections and satellite jumps from building walls.
+    const effectiveUserCoords = useMemo(() => {
+        if (!curLat || !curLng) return null;
+        if (routeCoordinates && routeCoordinates.length >= 2) {
+            return snapToWalkway(routeCoordinates, curLat, curLng, 25);
+        }
+        return { latitude: curLat, longitude: curLng, isSnapped: false };
+    }, [curLat, curLng, routeCoordinates]);
+
+    const navUserLat = effectiveUserCoords?.latitude ?? curLat;
+    const navUserLng = effectiveUserCoords?.longitude ?? curLng;
+
+    if (navTargetFull && navUserLat && navUserLng) {
         distanceToTarget = getDistance(
-            curLat,
-            curLng,
+            navUserLat,
+            navUserLng,
             navTargetFull.latitude,
             navTargetFull.longitude
         );
@@ -531,13 +546,13 @@ export default function ARScreen() {
 
     const isArrived = Boolean(isArrivedLatched || rawArrived);
 
-    if (navTargetFull && curLat && curLng && heading !== undefined && heading !== null && !isArrived) {
+    if (navTargetFull && navUserLat && navUserLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
         const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
 
         const bearing = getBearing(
-            curLat,
-            curLng,
+            navUserLat,
+            navUserLng,
             targetLat,
             targetLng
         );
@@ -547,7 +562,11 @@ export default function ARScreen() {
 
         // Camera FOV is ~75° (±37.5°). The 3D arrow is visible within ±45°.
         // Only show turn indicators when the target is genuinely off-screen (|diff| > 45°).
-        if (diff < -45) {
+        // Display "TURN AROUND" when the target is behind the user (|diff| > 135°),
+        // preventing rapid left/right oscillation from compass micro-jitter.
+        if (Math.abs(diff) > 135) {
+            turnDirection = 'around';
+        } else if (diff < -45) {
             turnDirection = 'left';
         } else if (diff > 45) {
             turnDirection = 'right';
@@ -716,6 +735,11 @@ export default function ARScreen() {
 
     const checkGeofenceStatus = async () => {
         if (!location) return;
+        const now = Date.now();
+        // Throttle geofence backend checks to at most once every 2500ms to avoid network thrashing
+        if (now - lastGeofenceCheckTimeRef.current < 2500) return;
+        lastGeofenceCheckTimeRef.current = now;
+
         try {
             const status = await geofencingService.validateLocation(
                 location.latitude,
@@ -724,9 +748,14 @@ export default function ARScreen() {
             );
             setGeofenceStatus(status);
             if (status?.building) {
+                consecutiveOutsideCountRef.current = 0;
                 setNearbyBuilding(status.building);
             } else {
-                setNearbyBuilding(null);
+                consecutiveOutsideCountRef.current += 1;
+                // Require 2 consecutive outside checks before clearing nearbyBuilding
+                if (consecutiveOutsideCountRef.current >= 2) {
+                    setNearbyBuilding(null);
+                }
             }
         } catch (error) {
             if (error?.response?.data?.error?.code === "SPOOFING_DETECTED") {
@@ -977,8 +1006,8 @@ export default function ARScreen() {
                                 viroAppProps={{
                                     targetLat: navTargetFull?.latitude || (!isTargetMode ? nearbyBuildingFull?.latitude : undefined),
                                     targetLng: navTargetFull?.longitude || (!isTargetMode ? nearbyBuildingFull?.longitude : undefined),
-                                    userLat: location?.latitude ?? location?.coords?.latitude,
-                                    userLng: location?.longitude ?? location?.coords?.longitude,
+                                    userLat: navUserLat,
+                                    userLng: navUserLng,
                                     userHeading: heading,
                                     modelUrl: effectiveModelUrl,
                                     buildingName: effectiveBuildingName,
@@ -1135,6 +1164,12 @@ export default function ARScreen() {
                 {/* Off-screen Compass Turn Indicators */}
                 {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
                     <>
+                        {turnDirection === 'around' && (
+                            <View style={styles.turnIndicatorAround} pointerEvents="none">
+                                <Ionicons name="refresh" size={18} color="#FFFFFF" />
+                                <Text style={styles.turnIndicatorText}>TURN AROUND</Text>
+                            </View>
+                        )}
                         {turnDirection === 'left' && (
                             <View style={styles.turnIndicatorLeft} pointerEvents="none">
                                 <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
@@ -1936,6 +1971,26 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
+        zIndex: 40,
+    },
+    turnIndicatorAround: {
+        position: 'absolute',
+        bottom: 110,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(178, 24, 48, 0.92)',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 24,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
         shadowRadius: 6,
         elevation: 8,
         zIndex: 40,
