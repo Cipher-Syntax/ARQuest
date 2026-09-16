@@ -845,15 +845,43 @@ export default function ExploreScreen() {
                                                 )}
                                             </View>
                                             {!quest.is_completed && (
-                                                <View style={styles.compassContainer}>
-                                                    <Ionicons
-                                                        name="gift"
-                                                        size={20}
-                                                        color={theme.colors.primary}
-                                                    />
-                                                    <Text style={styles.compassText}>
-                                                        Reward: {quest.reward_points} EXP
-                                                    </Text>
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                                                    <View style={[styles.compassContainer, { marginTop: 0 }]}>
+                                                        <Ionicons
+                                                            name="gift"
+                                                            size={18}
+                                                            color={theme.colors.primary}
+                                                        />
+                                                        <Text style={styles.compassText}>
+                                                            Reward: {quest.reward_points} EXP
+                                                        </Text>
+                                                    </View>
+                                                    <TouchableOpacity
+                                                        style={{
+                                                            backgroundColor: theme.colors.primary,
+                                                            paddingHorizontal: 12,
+                                                            paddingVertical: 6,
+                                                            borderRadius: 6,
+                                                            flexDirection: 'row',
+                                                            alignItems: 'center',
+                                                            gap: 4,
+                                                        }}
+                                                        onPress={() =>
+                                                            router.push({
+                                                                pathname: "/(tabs)/ar",
+                                                                params: {
+                                                                    targetBuildingId: quest.target_building,
+                                                                    questId: quest.id,
+                                                                }
+                                                            })
+                                                        }
+                                                        activeOpacity={0.8}
+                                                    >
+                                                        <Ionicons name="compass" size={14} color="#FFF" />
+                                                        <Text style={{ fontFamily: fonts.heading.bold, color: '#FFF', fontSize: 11, letterSpacing: 0.5 }}>
+                                                            START MISSION
+                                                        </Text>
+                                                    </TouchableOpacity>
                                                 </View>
                                             )}
                                         </View>

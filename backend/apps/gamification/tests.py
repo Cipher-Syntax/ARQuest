@@ -88,3 +88,65 @@ class QuestAPITestCase(TestCase):
         self.assertEqual(res.status_code, 200)
         quest.refresh_from_db()
         self.assertEqual(quest.difficulty, 'HARD')
+
+    def test_student_active_quests_response_structure(self):
+        student = User.objects.create_user(
+            username='active_quest_student',
+            email='student_active@wmsu.edu.ph',
+            password='password123',
+            role=User.Role.STUDENT
+        )
+        Quest.objects.create(
+            title='CCS Daily Mission',
+            hint='Visit the CCS lobby',
+            target_building=self.building,
+            reward_points=50,
+            difficulty='EASY',
+            is_active=True
+        )
+        self.client.force_authenticate(user=student)
+        res = self.client.get('/api/gamification/quests/active/')
+        self.assertEqual(res.status_code, 200)
+        res_data = res.json()
+        self.assertTrue(res_data.get('success'))
+        data = res_data.get('data')
+        self.assertIn('quests', data)
+        self.assertIn('weekly_progress', data)
+        self.assertTrue(len(data['quests']) > 0)
+        self.assertEqual(data['quests'][0]['title'], 'CCS Daily Mission')
+
+    def test_student_complete_quest_awards_exp_and_prevents_duplicate(self):
+        student = User.objects.create_user(
+            username='quest_completer_student',
+            email='completer@wmsu.edu.ph',
+            password='password123',
+            role=User.Role.STUDENT
+        )
+        initial_points = student.exploration_points
+        quest = Quest.objects.create(
+            title='Reach Engineering Lab',
+            hint='Second floor lab',
+            target_building=self.building,
+            reward_points=75,
+            difficulty='EASY',
+            is_active=True
+        )
+        self.client.force_authenticate(user=student)
+
+        # 1. Complete quest
+        res = self.client.post(f'/api/gamification/quests/{quest.id}/complete/')
+        self.assertEqual(res.status_code, 200)
+        res_data = res.json()
+        self.assertTrue(res_data.get('success'))
+        data = res_data.get('data')
+        self.assertIn('total_points', data)
+        self.assertEqual(data['total_points'], initial_points + 75)
+
+        student.refresh_from_db()
+        self.assertEqual(student.exploration_points, initial_points + 75)
+
+        # 2. Duplicate completion attempt should return 400
+        res_dup = self.client.post(f'/api/gamification/quests/{quest.id}/complete/')
+        self.assertEqual(res_dup.status_code, 400)
+        self.assertFalse(res_dup.json().get('success'))
+

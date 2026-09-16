@@ -336,7 +336,10 @@ export default function HomeScreen() {
                                                     onPress={() =>
                                                         router.push({
                                                             pathname: "/(tabs)/ar",
-                                                            params: { targetBuildingId: quest.target_building }
+                                                            params: {
+                                                                targetBuildingId: quest.target_building,
+                                                                questId: quest.id,
+                                                            }
                                                         })
                                                     }
                                                 >

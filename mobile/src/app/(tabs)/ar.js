@@ -59,7 +59,7 @@ export default function ARScreen() {
     const [cachedModelUri, setCachedModelUri] = useState(null);
 
     const navigation = useNavigation();
-    const { targetBuildingId, buildingId } = useLocalSearchParams();
+    const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
     const activeTargetId = targetBuildingId || buildingId;
     const isTargetMode = Boolean(activeTargetId);
 
@@ -152,6 +152,19 @@ export default function ARScreen() {
     const badgeAnim = useRef(new Animated.Value(0)).current;
     const rankAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
+
+    const fetchQuests = useCallback(async () => {
+        if (user?.role !== "student") return;
+        try {
+            const res = await api.get("/api/gamification/quests/active/");
+            if (res.data.success) {
+                const quests = res.data.data?.quests || (Array.isArray(res.data.data) ? res.data.data : []);
+                setActiveQuests(quests);
+            }
+        } catch (error) {
+            console.error("Error fetching quests", error);
+        }
+    }, [user?.role]);
 
     // 3D Model Loading State in AR
     const [isArModelLoading, setIsArModelLoading] = useState(false);
@@ -293,7 +306,7 @@ export default function ARScreen() {
         setIsArModelLoading(false);
         stableModelUrlRef.current = null;
         stableBuildingNameRef.current = null;
-        router.setParams({ targetBuildingId: undefined, buildingId: undefined });
+        router.setParams({ targetBuildingId: undefined, buildingId: undefined, questId: undefined });
 
         if (navigation?.canGoBack && navigation.canGoBack()) {
             navigation.goBack();
@@ -306,6 +319,7 @@ export default function ARScreen() {
         React.useCallback(() => {
             setIsCameraActive(true);
             startTracking({ highFrequency: true });
+            fetchQuests();
 
             return () => {
                 setIsCameraActive(false);
@@ -323,9 +337,9 @@ export default function ARScreen() {
                 setIsArModelLoading(false);
                 stableModelUrlRef.current = null;
                 stableBuildingNameRef.current = null;
-                router.setParams({ targetBuildingId: undefined, buildingId: undefined });
+                router.setParams({ targetBuildingId: undefined, buildingId: undefined, questId: undefined });
             };
-        }, [startTracking, stopTracking])
+        }, [startTracking, stopTracking, fetchQuests])
     );
 
     const DeviceNotSupportedModal = () => (
@@ -384,19 +398,8 @@ export default function ARScreen() {
     );
 
     useEffect(() => {
-        const fetchQuests = async () => {
-            if (user?.role !== "student") return;
-            try {
-                const res = await api.get("/api/gamification/quests/active/");
-                if (res.data.success) {
-                    setActiveQuests(res.data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching quests", error);
-            }
-        };
         fetchQuests();
-    }, [user?.role]);
+    }, [fetchQuests]);
 
     useEffect(() => {
         Animated.loop(
@@ -441,12 +444,29 @@ export default function ARScreen() {
     };
 
     const safeActiveQuests = Array.isArray(activeQuests) ? activeQuests : [];
-    const matchingQuest = safeActiveQuests.find(
-        (q) =>
-            nearbyBuildingFull &&
-            q.target_building === nearbyBuildingFull.id &&
-            !q.is_completed,
-    );
+    const matchingQuest = safeActiveQuests.find((q) => {
+        if (q.is_completed) return false;
+        // 1. Explicit questId from route params
+        if (questId && String(q.id) === String(questId)) {
+            return true;
+        }
+        // 2. Navigation target building
+        if (navTargetFull?.id && String(q.target_building) === String(navTargetFull.id)) {
+            return true;
+        }
+        // 3. Navigation target ID from route params
+        if (activeTargetId && String(q.target_building) === String(activeTargetId)) {
+            return true;
+        }
+        // 4. Geofence nearby building
+        if (nearbyBuildingFull?.id && String(q.target_building) === String(nearbyBuildingFull.id)) {
+            return true;
+        }
+        if (nearbyBuilding?.id && String(q.target_building) === String(nearbyBuilding.id)) {
+            return true;
+        }
+        return false;
+    });
 
     useEffect(() => {
         if (activeTargetId) {
@@ -693,6 +713,8 @@ export default function ARScreen() {
                 JSON.stringify(err) ||
                 "Unknown error occurred.";
             Alert("Error", errorMessage);
+        } finally {
+            setIsClaiming(false);
         }
     };
 
@@ -1143,12 +1165,29 @@ export default function ARScreen() {
                                         {/* Gamified Claim / Info Button — ONLY when physically arrived at this target */}
                                         {!capturing && !triviaModalVisible && isArrived && (
                                             user?.role === 'student' && matchingQuest ? (
-                                                <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
-                                                    <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                                                    <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
+                                                <TouchableOpacity 
+                                                    style={[styles.claimQuestBtn, { backgroundColor: '#B21830' }]} 
+                                                    onPress={handleClaimQuest}
+                                                    disabled={isClaiming}
+                                                    activeOpacity={0.8}
+                                                >
+                                                    {isClaiming ? (
+                                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                                    ) : (
+                                                        <>
+                                                            <Ionicons name="gift" size={16} color="#FFD700" />
+                                                            <Text style={styles.claimQuestBtnText}>
+                                                                CLAIM REWARD (+{matchingQuest.reward_points || 50} EXP)
+                                                            </Text>
+                                                        </>
+                                                    )}
                                                 </TouchableOpacity>
                                             ) : activeBldg ? (
-                                                <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
+                                                <TouchableOpacity 
+                                                    style={styles.claimQuestBtn} 
+                                                    onPress={handleViewTriviaOnly}
+                                                    activeOpacity={0.8}
+                                                >
                                                     <Ionicons name="information-circle" size={16} color="#FFFFFF" />
                                                     <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
                                                 </TouchableOpacity>
@@ -1251,7 +1290,7 @@ export default function ARScreen() {
                                 />
                                 <Text style={styles.triviaTitle}>
                                     {user?.role === "student" && claimedQuest
-                                        ? "New Discovery"
+                                        ? "MISSION COMPLETED!"
                                         : "Building Information"}
                                 </Text>
                             </View>
