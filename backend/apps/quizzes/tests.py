@@ -169,3 +169,87 @@ class QuizQuestionAPITestCase(TestCase):
         }
         res = self.client.post('/api/buildings/quiz-questions/', payload, format='json')
         self.assertEqual(res.status_code, 403)
+
+    def test_submit_quiz_answer_correct_awards_exp_and_gain_exp(self):
+        question = QuizQuestion.objects.create(
+            building=self.building,
+            question='What is 2+2?',
+            option_a='3',
+            option_b='4',
+            option_c='5',
+            option_d='6',
+            correct_option='B',
+            exp_reward=50
+        )
+        self.client.force_authenticate(user=self.student)
+        initial_exp = self.student.exploration_points
+        payload = {
+            'question_id': str(question.id),
+            'selected_option': 'B'
+        }
+        res = self.client.post('/api/buildings/quiz/answer/', payload, format='json')
+        self.assertEqual(res.status_code, 200)
+        res_data = res.json()
+        self.assertTrue(res_data.get('success'))
+        data = res_data.get('data')
+        self.assertTrue(data['is_correct'])
+        self.assertEqual(data['correct_option'], 'B')
+        self.assertEqual(data['exp_awarded'], 50)
+
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.exploration_points, initial_exp + 50)
+
+    def test_submit_quiz_answer_incorrect_awards_zero_exp(self):
+        question = QuizQuestion.objects.create(
+            building=self.building,
+            question='What is 2+2?',
+            option_a='3',
+            option_b='4',
+            option_c='5',
+            option_d='6',
+            correct_option='B',
+            exp_reward=50
+        )
+        self.client.force_authenticate(user=self.student)
+        initial_exp = self.student.exploration_points
+        payload = {
+            'question_id': str(question.id),
+            'selected_option': 'A'
+        }
+        res = self.client.post('/api/buildings/quiz/answer/', payload, format='json')
+        self.assertEqual(res.status_code, 200)
+        res_data = res.json()
+        self.assertTrue(res_data.get('success'))
+        data = res_data.get('data')
+        self.assertFalse(data['is_correct'])
+        self.assertEqual(data['correct_option'], 'B')
+        self.assertEqual(data['exp_awarded'], 0)
+
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.exploration_points, initial_exp)
+
+    def test_submit_quiz_answer_already_correct_returns_error(self):
+        question = QuizQuestion.objects.create(
+            building=self.building,
+            question='What is 2+2?',
+            option_a='3',
+            option_b='4',
+            option_c='5',
+            option_d='6',
+            correct_option='B',
+            exp_reward=50
+        )
+        self.client.force_authenticate(user=self.student)
+        payload = {
+            'question_id': str(question.id),
+            'selected_option': 'B'
+        }
+        # First submission
+        res1 = self.client.post('/api/buildings/quiz/answer/', payload, format='json')
+        self.assertEqual(res1.status_code, 200)
+
+        # Second submission
+        res2 = self.client.post('/api/buildings/quiz/answer/', payload, format='json')
+        self.assertEqual(res2.status_code, 400)
+        self.assertFalse(res2.json().get('success'))
+
