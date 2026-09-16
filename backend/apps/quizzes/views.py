@@ -119,6 +119,9 @@ class QuizQuestionDetailView(APIView):
             return success_response(serializer.data)
         return error_response(ErrorCodes.INVALID_INPUT, 'Invalid data', details=serializer.errors)
 
+    def patch(self, request, pk):
+        return self.put(request, pk)
+
     def delete(self, request, pk):
         if not request.user.is_admin_role:
             return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
