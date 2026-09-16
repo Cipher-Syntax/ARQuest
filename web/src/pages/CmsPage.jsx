@@ -40,7 +40,7 @@ export default function CmsPage() {
     const [formTitle, setFormTitle] = useState("");
     const [formHint, setFormHint] = useState("");
     const [formReward, setFormReward] = useState(50);
-    const [formDifficulty, setFormDifficulty] = useState("easy");
+    const [formDifficulty, setFormDifficulty] = useState("EASY");
     const [formFact, setFormFact] = useState("");
     const [formExpiresAt, setFormExpiresAt] = useState("");
 
@@ -239,7 +239,7 @@ export default function CmsPage() {
         setFormHint("");
         setFormHint("");
         setFormFact("");
-        setFormDifficulty("easy");
+        setFormDifficulty("EASY");
         setFormExpiresAt("");
         setFormQuestion("");
         setFormOptionA("");
@@ -583,9 +583,9 @@ export default function CmsPage() {
                                                             onChange={(e) => setFormDifficulty(e.target.value)}
                                                             className="w-full p-2.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#B21830]/20 focus:border-[#B21830] outline-none bg-white"
                                                         >
-                                                            <option value="easy">Easy</option>
-                                                            <option value="medium">Medium</option>
-                                                            <option value="hard">Hard</option>
+                                                            <option value="EASY">Easy</option>
+                                                            <option value="MEDIUM">Medium</option>
+                                                            <option value="HARD">Hard</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -985,7 +985,9 @@ export default function CmsPage() {
                                                                                 quest.reward_points,
                                                                             );
                                                                             setFormDifficulty(
-                                                                                quest.difficulty || "easy",
+                                                                                quest.difficulty
+                                                                                    ? quest.difficulty.toUpperCase()
+                                                                                    : "EASY",
                                                                             );
                                                                             setFormExpiresAt(
                                                                                 quest.expires_at

@@ -64,11 +64,12 @@ class AnswerQuizView(APIView):
                 request.user.gain_exp(question.exp_reward)
                 exp_awarded = question.exp_reward
                 
-                from apps.gamification.utils import check_and_award_point_badges
-                newly_earned_badges = check_and_award_point_badges(request.user)
+                from apps.gamification.views import check_and_award_badges
+                newly_earned_badges = check_and_award_badges(request.user)
                 
         return success_response({
             'is_correct': is_correct,
+            'correct_option': question.correct_option,
             'exp_awarded': exp_awarded,
             'newly_earned_badges': newly_earned_badges
         })
@@ -118,6 +119,9 @@ class QuizQuestionDetailView(APIView):
             serializer.save()
             return success_response(serializer.data)
         return error_response(ErrorCodes.INVALID_INPUT, 'Invalid data', details=serializer.errors)
+
+    def patch(self, request, pk):
+        return self.put(request, pk)
 
     def delete(self, request, pk):
         if not request.user.is_admin_role:

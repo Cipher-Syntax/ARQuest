@@ -33,6 +33,12 @@ class QuestSerializer(serializers.ModelSerializer):
 		model = Quest
 		fields = ['id', 'title', 'hint', 'target_building', 'target_building_name', 'reward_points', 'difficulty', 'is_completed', 'expires_at']
 
+	def to_internal_value(self, data):
+		if isinstance(data, dict) and 'difficulty' in data and isinstance(data['difficulty'], str):
+			data = data.copy()
+			data['difficulty'] = data['difficulty'].upper()
+		return super().to_internal_value(data)
+
 	def get_is_completed(self, obj):
 		completed_ids = self.context.get('completed_quest_ids')
 		if completed_ids is not None:

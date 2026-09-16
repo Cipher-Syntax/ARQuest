@@ -364,7 +364,7 @@ def quest_list_create(request):
         return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
 
-@api_view(['PATCH', 'DELETE'])
+@api_view(['PATCH', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def quest_detail(request, id):
     if not request.user.is_admin_role:
@@ -374,7 +374,7 @@ def quest_detail(request, id):
     except Quest.DoesNotExist:
         return error_response(ErrorCodes.NOT_FOUND, 'Quest not found', status_code=status.HTTP_404_NOT_FOUND)
 
-    if request.method == 'PATCH':
+    if request.method in ['PATCH', 'PUT']:
         serializer = QuestSerializer(quest, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()

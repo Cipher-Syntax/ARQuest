@@ -1,5 +1,5 @@
 // src/app/(tabs)/ar.js
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
     View,
     Text,
@@ -18,7 +18,7 @@ import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
 import { router, useLocalSearchParams, useFocusEffect, useNavigation } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
-import { X, Camera as CameraIcon, QrCode, Navigation } from "lucide-react-native";
+import { X, Camera as CameraIcon, QrCode, Navigation, AlertTriangle, Smartphone } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
@@ -26,7 +26,7 @@ import { geofencingService, assetService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
 import { checkARSupport } from "../../utils/ar-hardware-check";
-import { getUpcomingWaypoint } from "../../utils/geo-ar";
+import { getUpcomingWaypoint, snapToWalkway } from "../../utils/geo-ar";
 import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
 import ARPostcardModal from "../../components/ar/ARPostcardModal";
@@ -46,6 +46,8 @@ export default function ARScreen() {
     const [nearbyBuilding, setNearbyBuilding] = useState(null);
     const [nearbyBuildingFull, setNearbyBuildingFull] = useState(null);
     const [geofenceStatus, setGeofenceStatus] = useState(null);
+    const lastGeofenceCheckTimeRef = useRef(0);
+    const consecutiveOutsideCountRef = useRef(0);
     const [capturing, setCapturing] = useState(false);
     const [postcardPhotoUri, setPostcardPhotoUri] = useState(null);
     const [isPostcardModalVisible, setIsPostcardModalVisible] = useState(false);
@@ -57,8 +59,9 @@ export default function ARScreen() {
     const [cachedModelUri, setCachedModelUri] = useState(null);
 
     const navigation = useNavigation();
-    const { targetBuildingId, buildingId } = useLocalSearchParams();
+    const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
     const activeTargetId = targetBuildingId || buildingId;
+    const isTargetMode = Boolean(activeTargetId);
 
     const [navTargetFull, setNavTargetFull] = useState(null);
     const [nextWaypoint, setNextWaypoint] = useState(null);
@@ -67,23 +70,34 @@ export default function ARScreen() {
 
     const [isArrivedLatched, setIsArrivedLatched] = useState(false);
 
+    // Reset arrival latch and stable references whenever navigation target changes
+    useEffect(() => {
+        setIsArrivedLatched(false);
+        stableModelUrlRef.current = null;
+        stableBuildingNameRef.current = null;
+    }, [activeTargetId]);
+
+    // Active building target: In target navigation mode, ONLY use navTargetFull.
+    // Never fall back to the building where the user is currently standing.
+    const activeTarget = navTargetFull || (!isTargetMode ? nearbyBuildingFull : null);
+
     // Stable references to prevent background geofence re-fetches from wiping model/name mid-session
     const stableModelUrlRef = useRef(null);
-    const candidateModelUrl = (navTargetFull || nearbyBuildingFull)?.model_url;
+    const candidateModelUrl = activeTarget?.model_url;
     if (candidateModelUrl) {
         stableModelUrlRef.current = candidateModelUrl;
     }
-    const effectiveModelUrl = candidateModelUrl || stableModelUrlRef.current;
+    const effectiveModelUrl = candidateModelUrl || (isTargetMode ? null : stableModelUrlRef.current);
 
     const stableBuildingNameRef = useRef(null);
-    const candidateBuildingName = (navTargetFull || nearbyBuildingFull)?.name;
+    const candidateBuildingName = activeTarget?.name;
     if (candidateBuildingName) {
         stableBuildingNameRef.current = candidateBuildingName;
     }
-    const effectiveBuildingName = candidateBuildingName || stableBuildingNameRef.current;
+    const effectiveBuildingName = candidateBuildingName || (isTargetMode ? (navTargetFull?.name || "Loading Destination...") : stableBuildingNameRef.current);
 
     useEffect(() => {
-        const targetBldg = navTargetFull || nearbyBuildingFull;
+        const targetBldg = navTargetFull || (!isTargetMode ? nearbyBuildingFull : null);
         if (targetBldg && targetBldg.model_url) {
             const assetId = `building_${targetBldg.id}_model`;
             const version = targetBldg.updated_at ? new Date(targetBldg.updated_at).getTime() : "1";
@@ -100,7 +114,7 @@ export default function ARScreen() {
         } else {
             setCachedModelUri(null);
         }
-    }, [navTargetFull?.id, nearbyBuildingFull?.id, navTargetFull?.model_url, nearbyBuildingFull?.model_url]);
+    }, [navTargetFull?.id, isTargetMode ? null : nearbyBuildingFull?.id, navTargetFull?.model_url, isTargetMode ? null : nearbyBuildingFull?.model_url]);
 
     const toggleQrScanner = useCallback((enable) => {
         setIsCameraTransitioning(true);
@@ -111,10 +125,18 @@ export default function ARScreen() {
     }, []);
 
     useEffect(() => {
-        checkARSupport().then(supported => {
-            setIsARSupported(supported);
-            if (!supported) setShowUnsupportedModal(true);
-        });
+        checkARSupport()
+            .then((supported) => {
+                setIsARSupported(supported);
+                if (!supported) {
+                    setShowUnsupportedModal(true);
+                    setIsScanningQr(true);
+                }
+            })
+            .catch((err) => {
+                console.log("checkARSupport error:", err);
+                setIsARSupported(true);
+            });
     }, []);
 
 
@@ -130,6 +152,19 @@ export default function ARScreen() {
     const badgeAnim = useRef(new Animated.Value(0)).current;
     const rankAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
+
+    const fetchQuests = useCallback(async () => {
+        if (user?.role !== "student") return;
+        try {
+            const res = await api.get("/api/gamification/quests/active/");
+            if (res.data.success) {
+                const quests = res.data.data?.quests || (Array.isArray(res.data.data) ? res.data.data : []);
+                setActiveQuests(quests);
+            }
+        } catch (error) {
+            console.error("Error fetching quests", error);
+        }
+    }, [user?.role]);
 
     // 3D Model Loading State in AR
     const [isArModelLoading, setIsArModelLoading] = useState(false);
@@ -258,6 +293,7 @@ export default function ARScreen() {
     const handleExit = useCallback(() => {
         setIsCameraActive(false);
         stopTracking();
+        startTracking({ highFrequency: false });
         setNavTargetFull(null);
         setNextWaypoint(null);
         setRouteCoordinates([]);
@@ -270,7 +306,7 @@ export default function ARScreen() {
         setIsArModelLoading(false);
         stableModelUrlRef.current = null;
         stableBuildingNameRef.current = null;
-        router.setParams({ targetBuildingId: undefined, buildingId: undefined });
+        router.setParams({ targetBuildingId: undefined, buildingId: undefined, questId: undefined });
 
         if (navigation?.canGoBack && navigation.canGoBack()) {
             navigation.goBack();
@@ -282,11 +318,13 @@ export default function ARScreen() {
     useFocusEffect(
         React.useCallback(() => {
             setIsCameraActive(true);
-            startTracking();
+            startTracking({ highFrequency: true });
+            fetchQuests();
 
             return () => {
                 setIsCameraActive(false);
                 stopTracking();
+                startTracking({ highFrequency: false });
                 setNavTargetFull(null);
                 setNextWaypoint(null);
                 setRouteCoordinates([]);
@@ -299,48 +337,69 @@ export default function ARScreen() {
                 setIsArModelLoading(false);
                 stableModelUrlRef.current = null;
                 stableBuildingNameRef.current = null;
-                router.setParams({ targetBuildingId: undefined, buildingId: undefined });
+                router.setParams({ targetBuildingId: undefined, buildingId: undefined, questId: undefined });
             };
-        }, [startTracking, stopTracking])
+        }, [startTracking, stopTracking, fetchQuests])
     );
 
     const DeviceNotSupportedModal = () => (
-        showUnsupportedModal && (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 999 }]}>
-                <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 16, width: '80%', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.colors.primary, marginBottom: 12 }}>Device Not Supported</Text>
-                    <Text style={{ textAlign: 'center', color: theme.colors.textSecondary, marginBottom: 20, lineHeight: 22 }}>
-                        Your device does not support native Spatial AR (ARCore/ARKit). 
-                        Please use the 2D Map and the standard QR Scanner for your quests.
-                    </Text>
-                    <TouchableOpacity 
-                        style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
-                        onPress={() => {
-                            setShowUnsupportedModal(false);
-                            router.push("/maps");
-                        }}
-                    >
-                        <Text style={{ color: 'white', fontWeight: 'bold' }}>Go to 2D Map</Text>
-                    </TouchableOpacity>
+        showUnsupportedModal ? (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: 24 }]}>
+                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 6, width: '100%', maxWidth: 360, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 10 }}>
+                    {/* Header Ribbon */}
+                    <View style={{ backgroundColor: theme.colors.primary, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <AlertTriangle size={20} color="#FFD700" />
+                        <Text style={{ fontFamily: fonts.heading.bold, color: '#FFFFFF', fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                            Spatial AR Not Supported
+                        </Text>
+                    </View>
+
+                    {/* Content */}
+                    <View style={{ padding: 20 }}>
+                        <Text style={{ fontFamily: fonts.body.bold, color: theme.colors.textPrimary, fontSize: 14, marginBottom: 8 }}>
+                            Google ARCore Not Detected
+                        </Text>
+                        <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 20 }}>
+                            Your device does not support native Spatial AR tracking. You can still navigate using the Campus 2D Map and scan building QR codes to complete quests.
+                        </Text>
+
+                        {/* Action Buttons */}
+                        <View style={{ gap: 10 }}>
+                            <TouchableOpacity 
+                                style={{ backgroundColor: theme.colors.primary, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
+                                onPress={() => {
+                                    setShowUnsupportedModal(false);
+                                    router.push("/(tabs)/buildings");
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={{ fontFamily: fonts.heading.bold, color: '#FFFFFF', fontSize: 12, letterSpacing: 1 }}>
+                                    GO TO CAMPUS MAP
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity 
+                                style={{ backgroundColor: 'transparent', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border }}
+                                onPress={() => {
+                                    setShowUnsupportedModal(false);
+                                    toggleQrScanner(true);
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 11, letterSpacing: 0.5 }}>
+                                    USE QR SCANNER INSTEAD
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </View>
-        )
+        ) : null
     );
 
     useEffect(() => {
-        const fetchQuests = async () => {
-            if (user?.role !== "student") return;
-            try {
-                const res = await api.get("/api/gamification/quests/active/");
-                if (res.data.success) {
-                    setActiveQuests(res.data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching quests", error);
-            }
-        };
         fetchQuests();
-    }, [user?.role]);
+    }, [fetchQuests]);
 
     useEffect(() => {
         Animated.loop(
@@ -385,30 +444,43 @@ export default function ARScreen() {
     };
 
     const safeActiveQuests = Array.isArray(activeQuests) ? activeQuests : [];
-    const matchingQuest = safeActiveQuests.find(
-        (q) =>
-            nearbyBuildingFull &&
-            q.target_building === nearbyBuildingFull.id &&
-            !q.is_completed,
-    );
+    const matchingQuest = safeActiveQuests.find((q) => {
+        if (q.is_completed) return false;
+        // 1. Explicit questId from route params
+        if (questId && String(q.id) === String(questId)) {
+            return true;
+        }
+        // 2. Navigation target building
+        if (navTargetFull?.id && String(q.target_building) === String(navTargetFull.id)) {
+            return true;
+        }
+        // 3. Navigation target ID from route params
+        if (activeTargetId && String(q.target_building) === String(activeTargetId)) {
+            return true;
+        }
+        // 4. Geofence nearby building
+        if (nearbyBuildingFull?.id && String(q.target_building) === String(nearbyBuildingFull.id)) {
+            return true;
+        }
+        if (nearbyBuilding?.id && String(q.target_building) === String(nearbyBuilding.id)) {
+            return true;
+        }
+        return false;
+    });
 
     useEffect(() => {
         if (activeTargetId) {
-            if (nearbyBuildingFull && nearbyBuildingFull.id === activeTargetId) {
-                setNavTargetFull(nearbyBuildingFull);
-            } else {
-                api.get(`/api/buildings/${activeTargetId}/`)
-                    .then((res) => {
-                        if (res.data.success) {
-                            setNavTargetFull(res.data.data);
-                        }
-                    })
-                    .catch((err) => console.error("Error fetching nav target", err));
-            }
+            api.get(`/api/buildings/${activeTargetId}/`)
+                .then((res) => {
+                    if (res.data.success) {
+                        setNavTargetFull(res.data.data);
+                    }
+                })
+                .catch((err) => console.error("Error fetching nav target", err));
         } else {
             setNavTargetFull(null);
         }
-    }, [activeTargetId, nearbyBuildingFull]);
+    }, [activeTargetId]);
 
     const getBearing = (lat1, lon1, lat2, lon2) => {
         const toRad = (val) => (val * Math.PI) / 180;
@@ -440,40 +512,67 @@ export default function ARScreen() {
 
     let arrowAngle = 0;
     let distanceToTarget = null;
-    let turnDirection = null; // 'left' | 'right' | 'ahead'
+    let turnDirection = null; // 'left' | 'right' | 'around' | 'ahead'
     const curLat = location?.latitude ?? location?.coords?.latitude;
     const curLng = location?.longitude ?? location?.coords?.longitude;
 
-    if (navTargetFull && curLat && curLng) {
+    // Pathway Snapping (Map-Matching): Snaps user position to the nearest campus walkway segment
+    // within 25m, smoothing out GPS multipath reflections and satellite jumps from building walls.
+    const effectiveUserCoords = useMemo(() => {
+        if (!curLat || !curLng) return null;
+        if (routeCoordinates && routeCoordinates.length >= 2) {
+            return snapToWalkway(routeCoordinates, curLat, curLng, 25);
+        }
+        return { latitude: curLat, longitude: curLng, isSnapped: false };
+    }, [curLat, curLng, routeCoordinates]);
+
+    const navUserLat = effectiveUserCoords?.latitude ?? curLat;
+    const navUserLng = effectiveUserCoords?.longitude ?? curLng;
+
+    if (navTargetFull && navUserLat && navUserLng) {
         distanceToTarget = getDistance(
-            curLat,
-            curLng,
+            navUserLat,
+            navUserLng,
             navTargetFull.latitude,
             navTargetFull.longitude
         );
     }
 
-    const rawArrived = Boolean(navTargetFull
-        ? ((distanceToTarget !== null && distanceToTarget <= 25) || (geofenceStatus?.status === 'inside' && (nearbyBuildingFull?.id === navTargetFull?.id || nearbyBuilding?.id === navTargetFull?.id)))
+    // Destination geofence check: True ONLY if inside the actual destination building geofence
+    const isInsideDestination = Boolean(
+        isTargetMode &&
+        geofenceStatus?.status === 'inside' &&
+        (String(nearbyBuildingFull?.id) === String(activeTargetId) || String(nearbyBuilding?.id) === String(activeTargetId))
+    );
+
+    // In target navigation mode: user is arrived ONLY if they reached the destination (distance <= 25m or inside destination geofence)
+    // In free exploration mode: arrived when inside any campus building geofence
+    const rawArrived = Boolean(isTargetMode
+        ? (navTargetFull && distanceToTarget !== null && (distanceToTarget <= 25 || isInsideDestination))
         : (geofenceStatus?.status === 'inside'));
 
     useEffect(() => {
         if (rawArrived) {
             setIsArrivedLatched(true);
-        } else if (distanceToTarget !== null && distanceToTarget > 45 && geofenceStatus?.status !== 'inside') {
+        } else if (isTargetMode) {
+            // In target navigation mode: unlatch when far from destination and not inside destination
+            if (distanceToTarget !== null && distanceToTarget > 45 && !isInsideDestination) {
+                setIsArrivedLatched(false);
+            }
+        } else if (geofenceStatus?.status !== 'inside') {
             setIsArrivedLatched(false);
         }
-    }, [rawArrived, distanceToTarget, geofenceStatus?.status]);
+    }, [rawArrived, distanceToTarget, isInsideDestination, isTargetMode, geofenceStatus?.status]);
 
     const isArrived = Boolean(isArrivedLatched || rawArrived);
 
-    if (navTargetFull && curLat && curLng && heading !== undefined && heading !== null && !isArrived) {
+    if (navTargetFull && navUserLat && navUserLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
         const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
 
         const bearing = getBearing(
-            curLat,
-            curLng,
+            navUserLat,
+            navUserLng,
             targetLat,
             targetLng
         );
@@ -483,7 +582,11 @@ export default function ARScreen() {
 
         // Camera FOV is ~75° (±37.5°). The 3D arrow is visible within ±45°.
         // Only show turn indicators when the target is genuinely off-screen (|diff| > 45°).
-        if (diff < -45) {
+        // Display "TURN AROUND" when the target is behind the user (|diff| > 135°),
+        // preventing rapid left/right oscillation from compass micro-jitter.
+        if (Math.abs(diff) > 135) {
+            turnDirection = 'around';
+        } else if (diff < -45) {
             turnDirection = 'left';
         } else if (diff > 45) {
             turnDirection = 'right';
@@ -610,6 +713,8 @@ export default function ARScreen() {
                 JSON.stringify(err) ||
                 "Unknown error occurred.";
             Alert("Error", errorMessage);
+        } finally {
+            setIsClaiming(false);
         }
     };
 
@@ -652,6 +757,11 @@ export default function ARScreen() {
 
     const checkGeofenceStatus = async () => {
         if (!location) return;
+        const now = Date.now();
+        // Throttle geofence backend checks to at most once every 2500ms to avoid network thrashing
+        if (now - lastGeofenceCheckTimeRef.current < 2500) return;
+        lastGeofenceCheckTimeRef.current = now;
+
         try {
             const status = await geofencingService.validateLocation(
                 location.latitude,
@@ -660,9 +770,14 @@ export default function ARScreen() {
             );
             setGeofenceStatus(status);
             if (status?.building) {
+                consecutiveOutsideCountRef.current = 0;
                 setNearbyBuilding(status.building);
             } else {
-                setNearbyBuilding(null);
+                consecutiveOutsideCountRef.current += 1;
+                // Require 2 consecutive outside checks before clearing nearbyBuilding
+                if (consecutiveOutsideCountRef.current >= 2) {
+                    setNearbyBuilding(null);
+                }
             }
         } catch (error) {
             if (error?.response?.data?.error?.code === "SPOOFING_DETECTED") {
@@ -832,7 +947,6 @@ export default function ARScreen() {
     if (!canUseAR) {
         return (
             <View style={styles.container}>
-              <DeviceNotSupportedModal />
                 <View style={styles.permissionContainer}>
                     <CameraIcon size={64} color={theme.colors.textMuted} />
                     <Text style={styles.permissionTitle}>
@@ -906,16 +1020,16 @@ export default function ARScreen() {
                             setTimeout(() => setIsCameraActive(true), 200);
                         }}
                     >
-                        {!isScanningQr ? (
+                        {!isScanningQr && isARSupported ? (
                             <ViroARSceneNavigator
                                 ref={viroNavRef}
                                 autofocus={true}
                                 initialScene={{ scene: ARQuestScene }}
                                 viroAppProps={{
-                                    targetLat: navTargetFull?.latitude || nearbyBuildingFull?.latitude,
-                                    targetLng: navTargetFull?.longitude || nearbyBuildingFull?.longitude,
-                                    userLat: location?.latitude ?? location?.coords?.latitude,
-                                    userLng: location?.longitude ?? location?.coords?.longitude,
+                                    targetLat: navTargetFull?.latitude || (!isTargetMode ? nearbyBuildingFull?.latitude : undefined),
+                                    targetLng: navTargetFull?.longitude || (!isTargetMode ? nearbyBuildingFull?.longitude : undefined),
+                                    userLat: navUserLat,
+                                    userLng: navUserLng,
                                     userHeading: heading,
                                     modelUrl: effectiveModelUrl,
                                     buildingName: effectiveBuildingName,
@@ -978,12 +1092,12 @@ export default function ARScreen() {
                 )}
 
                 {/* --- Top Oval Header (Solid White Curve) --- */}
-                {(navTargetFull || nearbyBuilding) && (
+                {(navTargetFull || (!isTargetMode && (nearbyBuildingFull || nearbyBuilding))) && (
                     <View style={styles.topOvalContainer}>
                         <View style={styles.topOvalShape} />
                         {(() => {
-                            const activeBldg = navTargetFull || nearbyBuildingFull || nearbyBuilding;
-                            const dist = Math.round(navTargetFull ? (distanceToTarget || 0) : (geofenceStatus?.distance_meters || 0));
+                            const activeBldg = navTargetFull || (!isTargetMode ? (nearbyBuildingFull || nearbyBuilding) : null);
+                            const dist = Math.round(isTargetMode ? (distanceToTarget || 0) : (geofenceStatus?.distance_meters || 0));
 
                             return (
                                 <View style={styles.topOvalContent}>
@@ -1051,12 +1165,29 @@ export default function ARScreen() {
                                         {/* Gamified Claim / Info Button — ONLY when physically arrived at this target */}
                                         {!capturing && !triviaModalVisible && isArrived && (
                                             user?.role === 'student' && matchingQuest ? (
-                                                <TouchableOpacity style={styles.claimQuestBtn} onPress={handleClaimQuest}>
-                                                    <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                                                    <Text style={styles.claimQuestBtnText}>REVEAL DISCOVERY</Text>
+                                                <TouchableOpacity 
+                                                    style={[styles.claimQuestBtn, { backgroundColor: '#B21830' }]} 
+                                                    onPress={handleClaimQuest}
+                                                    disabled={isClaiming}
+                                                    activeOpacity={0.8}
+                                                >
+                                                    {isClaiming ? (
+                                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                                    ) : (
+                                                        <>
+                                                            <Ionicons name="gift" size={16} color="#FFD700" />
+                                                            <Text style={styles.claimQuestBtnText}>
+                                                                CLAIM REWARD (+{matchingQuest.reward_points || 50} EXP)
+                                                            </Text>
+                                                        </>
+                                                    )}
                                                 </TouchableOpacity>
                                             ) : activeBldg ? (
-                                                <TouchableOpacity style={styles.claimQuestBtn} onPress={handleViewTriviaOnly}>
+                                                <TouchableOpacity 
+                                                    style={styles.claimQuestBtn} 
+                                                    onPress={handleViewTriviaOnly}
+                                                    activeOpacity={0.8}
+                                                >
                                                     <Ionicons name="information-circle" size={16} color="#FFFFFF" />
                                                     <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
                                                 </TouchableOpacity>
@@ -1072,6 +1203,12 @@ export default function ARScreen() {
                 {/* Off-screen Compass Turn Indicators */}
                 {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
                     <>
+                        {turnDirection === 'around' && (
+                            <View style={styles.turnIndicatorAround} pointerEvents="none">
+                                <Ionicons name="refresh" size={18} color="#FFFFFF" />
+                                <Text style={styles.turnIndicatorText}>TURN AROUND</Text>
+                            </View>
+                        )}
                         {turnDirection === 'left' && (
                             <View style={styles.turnIndicatorLeft} pointerEvents="none">
                                 <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
@@ -1121,6 +1258,9 @@ export default function ARScreen() {
                 onClose={() => setIsPostcardModalVisible(false)}
             />
 
+            {/* --- DEVICE NOT SUPPORTED MODAL --- */}
+            <DeviceNotSupportedModal />
+
 
 
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
@@ -1150,7 +1290,7 @@ export default function ARScreen() {
                                 />
                                 <Text style={styles.triviaTitle}>
                                     {user?.role === "student" && claimedQuest
-                                        ? "New Discovery"
+                                        ? "MISSION COMPLETED!"
                                         : "Building Information"}
                                 </Text>
                             </View>
@@ -1870,6 +2010,26 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
+        zIndex: 40,
+    },
+    turnIndicatorAround: {
+        position: 'absolute',
+        bottom: 110,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(178, 24, 48, 0.92)',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 24,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
         shadowRadius: 6,
         elevation: 8,
         zIndex: 40,

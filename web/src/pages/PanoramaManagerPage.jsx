@@ -554,7 +554,7 @@ const PanoramaManagerPage = () => {
                         left: 0,
                         width: "100vw",
                         height: "100vh",
-                        background: "rgba(0,0,0,0.95)",
+                        background: "#f8fafc",
                         zIndex: 99999,
                         display: "flex",
                         flexDirection: "column",

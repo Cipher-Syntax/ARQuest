@@ -118,6 +118,11 @@ export default function ARQuestScene(props) {
     // This eliminates flickering and disappearing models caused by natural GPS micro-drift.
     const [latchedArrived, setLatchedArrived] = useState(false);
 
+    // Reset latched arrival whenever destination coordinates change
+    useEffect(() => {
+        setLatchedArrived(false);
+    }, [targetLat, targetLng]);
+
     useEffect(() => {
         if (isArrived || (distanceToTarget !== null && distanceToTarget <= 25)) {
             setLatchedArrived(true);
@@ -146,25 +151,25 @@ export default function ARQuestScene(props) {
     const recomputeNavPositions = useCallback((angle, camPos) => {
         const rad = (angle * Math.PI) / 180;
         const [cx, cy, cz] = camPos;
-        const distances = [1.0, 1.8, 2.6, 3.4];
+        const distances = [1.2, 2.4];
         const chevrons = distances.map((d) => ({
             x: cx + d * Math.sin(rad),
-            y: cy - 0.9,
+            y: cy - 0.85,
             z: cz - d * Math.cos(rad),
             angle,
         }));
         setChevronPositions(chevrons);
         setHudPosition([
-            cx + 2.0 * Math.sin(rad),
+            cx + 2.2 * Math.sin(rad),
             cy - 0.1,
-            cz - 2.0 * Math.cos(rad),
+            cz - 2.2 * Math.cos(rad),
         ]);
     }, []);
 
     /**
      * Camera world-space transform update from ARCore/ARKit.
-     * Decoupled: Throttled to ~4 Hz (250ms) AND distance delta (>= 35cm)
-     * to eliminate 30Hz React Native JS state thrashing and GC pauses.
+     * Throttled to ~4 Hz (250ms) AND distance delta (>= 24cm)
+     * so chevrons smoothly lead the user forward as they walk.
      */
     const onCameraTransformUpdate = useCallback((camTransform) => {
         const pos = camTransform.cameraTransform.position;
@@ -179,8 +184,8 @@ export default function ARQuestScene(props) {
         const [lx, ly, lz] = lastAnchorPosRef.current;
         const distSq = (pos[0] - lx) ** 2 + (pos[1] - ly) ** 2 + (pos[2] - lz) ** 2;
 
-        // Only recompute if user physically walked >= 35cm or 1.5s elapsed
-        if (distSq >= 0.12 || timeDelta >= 1500) {
+        // Recompute if user physically walked >= 24cm or 800ms elapsed
+        if (distSq >= 0.06 || timeDelta >= 800) {
             lastRecomputeTimeRef.current = now;
             lastAnchorPosRef.current = [pos[0], pos[1], pos[2]];
             recomputeNavPositions(lastAngleRef.current, pos);
@@ -246,7 +251,7 @@ export default function ARQuestScene(props) {
                     key={`nav-chevron-${index}`}
                     position={[chev.x, chev.y, chev.z]}
                     rotation={[0, -chev.angle, 0]}
-                    scale={[0.7 - index * 0.08, 0.7 - index * 0.08, 0.7 - index * 0.08]}
+                    scale={[0.72 - index * 0.1, 0.72 - index * 0.1, 0.72 - index * 0.1]}
                 >
                     {/* Glowing Chevron Wings (Polyline) */}
                     <ViroPolyline
@@ -287,22 +292,13 @@ export default function ARQuestScene(props) {
                     rotation={[0, -targetAngle, 0]}
                     animation={{ name: 'hover', run: true, loop: true }}
                 >
-                    {/* Floating Direction Arrow */}
-                    <ViroText
-                        text="▲"
-                        scale={[0.35, 0.35, 0.35]}
-                        position={[0, 0.38, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: '#B21830' }}
-                        materials={['glowArrow']}
-                    />
-
                     {/* Target Building Name - Big Crimson Glow */}
                     <ViroText
                         text={buildingName || 'Destination'}
                         width={8}
                         height={1}
                         scale={[0.34, 0.34, 0.34]}
-                        position={[0, 0.14, 0]}
+                        position={[0, 0.16, 0]}
                         style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
                         materials={['glowArrow']}
                     />
@@ -313,7 +309,7 @@ export default function ARQuestScene(props) {
                         width={6}
                         height={1}
                         scale={[0.24, 0.24, 0.24]}
-                        position={[0, -0.08, 0]}
+                        position={[0, -0.06, 0]}
                         style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
                         materials={['glowArrow']}
                     />

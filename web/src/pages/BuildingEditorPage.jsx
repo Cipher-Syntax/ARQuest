@@ -1300,7 +1300,7 @@ const BuildingEditorPage = () => {
                         left: 0,
                         width: "100vw",
                         height: "100vh",
-                        background: "rgba(0,0,0,0.95)",
+                        background: "#f8fafc",
                         zIndex: 9999,
                         display: "flex",
                         flexDirection: "column",
@@ -1308,33 +1308,34 @@ const BuildingEditorPage = () => {
                 >
                     <div
                         style={{
-                            padding: "15px 25px",
+                            padding: "14px 24px",
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
-                            background: "#111",
-                            borderBottom: `1px solid ${theme.colors.border}`,
+                            background: theme.colors.primary,
+                            borderBottom: "1px solid rgba(255,255,255,0.15)",
                         }}
                     >
                         <div>
                             <h2
                                 style={{
-                                    color: "white",
+                                    color: "#ffffff",
                                     margin: 0,
-                                    fontSize: "20px",
+                                    fontSize: "18px",
+                                    fontWeight: "700",
+                                    letterSpacing: "0.5px",
                                 }}
                             >
-                                Interactive 3D Hotspot Editor
+                                Interactive 3D Hotspot Editor: {building.name}
                             </h2>
                             <p
                                 style={{
-                                    color: "#aaa",
-                                    margin: "5px 0 0 0",
-                                    fontSize: "13px",
+                                    color: "rgba(255,255,255,0.85)",
+                                    margin: "4px 0 0 0",
+                                    fontSize: "12px",
                                 }}
                             >
-                                Double-click anywhere on the model to place a
-                                hotspot.
+                                Double-click anywhere on the model to place or edit an information hotspot.
                             </p>
                         </div>
                         <button
@@ -1344,10 +1345,11 @@ const BuildingEditorPage = () => {
                                 background: theme.colors.error,
                                 color: "white",
                                 border: "none",
-                                padding: "8px 20px",
+                                padding: "8px 18px",
                                 borderRadius: "4px",
                                 cursor: "pointer",
                                 fontWeight: "bold",
+                                fontSize: "12px",
                             }}
                         >
                             Close Editor (Without Saving)

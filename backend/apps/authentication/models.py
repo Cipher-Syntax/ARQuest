@@ -94,6 +94,19 @@ class User(AbstractUser):
 
         return bonus_exp
 
+    @transaction.atomic
+    def gain_exp(self, amount):
+        """
+        Atomically increments user's exploration points and returns the updated value.
+        """
+        if not amount or amount <= 0:
+            return self.exploration_points
+        fresh_self = type(self).objects.select_for_update().get(pk=self.pk)
+        fresh_self.exploration_points += int(amount)
+        fresh_self.save(update_fields=['exploration_points'])
+        self.exploration_points = fresh_self.exploration_points
+        return self.exploration_points
+
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
 
