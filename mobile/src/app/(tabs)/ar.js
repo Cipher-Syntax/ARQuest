@@ -152,6 +152,10 @@ export default function ARScreen() {
     const badgeAnim = useRef(new Animated.Value(0)).current;
     const rankAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
+    // Frosted bottom ribbon: slides up from bottom edge when navigation is active
+    const navRibbonAnim = useRef(new Animated.Value(100)).current;
+    // Turn indicator glow pulse (border opacity animation)
+    const ribbonPulseAnim = useRef(new Animated.Value(0)).current;
 
     const fetchQuests = useCallback(async () => {
         if (user?.role !== "student") return;
@@ -187,9 +191,44 @@ export default function ARScreen() {
         }
     }, [isArModelLoading]);
 
+    // Animate the frosted bottom ribbon: slides in when navigating, out when arrived/no target
+    useEffect(() => {
+        const shouldShow = Boolean(navTargetFull && !isArrivedLatched);
+        Animated.spring(navRibbonAnim, {
+            toValue: shouldShow ? 0 : 120,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 10,
+        }).start();
+    }, [navTargetFull, isArrivedLatched]);
+
+    // Continuous pulsing border glow on turn indicators (loop opacity 0→1→0)
+    useEffect(() => {
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(ribbonPulseAnim, {
+                    toValue: 1,
+                    duration: 700,
+                    easing: Easing.ease,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(ribbonPulseAnim, {
+                    toValue: 0.2,
+                    duration: 700,
+                    easing: Easing.ease,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        loop.start();
+        return () => loop.stop();
+    }, []);
+
+
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
     const viroNavRef = useRef(null);
+
     const flashAnim = useRef(new Animated.Value(0)).current;
     const { canUseAR } = useRoleAccess();
 
@@ -1200,29 +1239,104 @@ export default function ARScreen() {
                     </View>
                 )}
 
-                {/* Off-screen Compass Turn Indicators */}
+
+                {/* ── Enhanced Animated Turn Indicators (Option 5 — Pulsing Glow Arrows) ── */}
                 {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
                     <>
                         {turnDirection === 'around' && (
-                            <View style={styles.turnIndicatorAround} pointerEvents="none">
-                                <Ionicons name="refresh" size={18} color="#FFFFFF" />
+                            <Animated.View
+                                style={[styles.turnIndicatorAround, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
+                                pointerEvents="none"
+                            >
+                                <Ionicons name="refresh" size={20} color="#FFFFFF" />
                                 <Text style={styles.turnIndicatorText}>TURN AROUND</Text>
-                            </View>
+                            </Animated.View>
                         )}
                         {turnDirection === 'left' && (
-                            <View style={styles.turnIndicatorLeft} pointerEvents="none">
-                                <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
+                            <Animated.View
+                                style={[styles.turnIndicatorLeft, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
+                                pointerEvents="none"
+                            >
+                                <Animated.View style={{ opacity: ribbonPulseAnim }}>
+                                    <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+                                </Animated.View>
+                                <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
                                 <Text style={styles.turnIndicatorText}>TURN LEFT</Text>
-                            </View>
+                            </Animated.View>
                         )}
                         {turnDirection === 'right' && (
-                            <View style={styles.turnIndicatorRight} pointerEvents="none">
+                            <Animated.View
+                                style={[styles.turnIndicatorRight, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
+                                pointerEvents="none"
+                            >
                                 <Text style={styles.turnIndicatorText}>TURN RIGHT</Text>
-                                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-                            </View>
+                                <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+                                <Animated.View style={{ opacity: ribbonPulseAnim }}>
+                                    <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+                                </Animated.View>
+                            </Animated.View>
                         )}
                     </>
                 )}
+
+                {/* ── Frosted Bottom Navigation Ribbon (Option 3 — Apple Maps Walking Style) ── */}
+                {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
+                    <Animated.View
+                        style={[styles.navRibbon, { transform: [{ translateY: navRibbonAnim }] }]}
+                        pointerEvents="none"
+                    >
+                        {/* Direction chevron + label */}
+                        <View style={styles.navRibbonLeft}>
+                            {turnDirection === 'left' && (
+                                <>
+                                    <Ionicons name="arrow-back-circle" size={30} color="#FFFFFF" />
+                                    <View style={styles.navRibbonTextGroup}>
+                                        <Text style={styles.navRibbonDirection}>TURN LEFT</Text>
+                                        <Text style={styles.navRibbonSub}>ahead on path</Text>
+                                    </View>
+                                </>
+                            )}
+                            {turnDirection === 'right' && (
+                                <>
+                                    <Ionicons name="arrow-forward-circle" size={30} color="#FFFFFF" />
+                                    <View style={styles.navRibbonTextGroup}>
+                                        <Text style={styles.navRibbonDirection}>TURN RIGHT</Text>
+                                        <Text style={styles.navRibbonSub}>ahead on path</Text>
+                                    </View>
+                                </>
+                            )}
+                            {turnDirection === 'around' && (
+                                <>
+                                    <Ionicons name="refresh-circle" size={30} color="#FFD700" />
+                                    <View style={styles.navRibbonTextGroup}>
+                                        <Text style={[styles.navRibbonDirection, { color: '#FFD700' }]}>TURN AROUND</Text>
+                                        <Text style={styles.navRibbonSub}>destination is behind you</Text>
+                                    </View>
+                                </>
+                            )}
+                            {turnDirection === 'ahead' && (
+                                <>
+                                    <Ionicons name="navigate" size={28} color="#00E5FF" />
+                                    <View style={styles.navRibbonTextGroup}>
+                                        <Text style={[styles.navRibbonDirection, { color: '#00E5FF' }]}>STRAIGHT AHEAD</Text>
+                                        <Text style={styles.navRibbonSub}>keep walking forward</Text>
+                                    </View>
+                                </>
+                            )}
+                        </View>
+                        {/* Distance + destination chip on the right */}
+                        <View style={styles.navRibbonRight}>
+                            <Text style={styles.navRibbonDistance}>
+                                {distanceToTarget !== null ? `${Math.round(distanceToTarget)}m` : '--'}
+                            </Text>
+                            <Text style={styles.navRibbonDest} numberOfLines={1}>
+                                {navTargetFull?.name || 'Destination'}
+                            </Text>
+                        </View>
+                    </Animated.View>
+                )}
+
+
 
                 {/* 3. Reticle Overlays */}
                 {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
@@ -1980,66 +2094,134 @@ const styles = StyleSheet.create({
     },
     turnIndicatorLeft: {
         position: 'absolute',
-        left: 16,
-        top: '48%',
+        left: 12,
+        top: '46%',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        backgroundColor: 'rgba(178, 24, 48, 0.9)',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
+        gap: 2,
+        backgroundColor: 'rgba(178, 24, 48, 0.92)',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.3)',
+        shadowColor: '#B21830',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
+        elevation: 10,
         zIndex: 40,
     },
     turnIndicatorRight: {
         position: 'absolute',
-        right: 16,
-        top: '48%',
+        right: 12,
+        top: '46%',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        backgroundColor: 'rgba(178, 24, 48, 0.9)',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
+        gap: 2,
+        backgroundColor: 'rgba(178, 24, 48, 0.92)',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.3)',
+        shadowColor: '#B21830',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
+        elevation: 10,
         zIndex: 40,
     },
     turnIndicatorAround: {
         position: 'absolute',
-        bottom: 110,
+        bottom: 170,
         alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: 'rgba(178, 24, 48, 0.92)',
-        paddingVertical: 10,
+        backgroundColor: 'rgba(178, 24, 48, 0.94)',
+        paddingVertical: 12,
         paddingHorizontal: 20,
-        borderRadius: 24,
-        borderWidth: 1.5,
+        borderRadius: 28,
+        borderWidth: 2,
         borderColor: 'rgba(255, 255, 255, 0.4)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 6,
-        elevation: 8,
+        shadowColor: '#B21830',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.7,
+        shadowRadius: 14,
+        elevation: 10,
         zIndex: 40,
     },
     turnIndicatorText: {
         fontFamily: fonts.heading.bold,
         color: '#FFFFFF',
-        fontSize: 12,
-        letterSpacing: 1,
+        fontSize: 13,
+        letterSpacing: 1.5,
     },
+    // ── Frosted Bottom Navigation Ribbon ──────────────────────────────────────
+    navRibbon: {
+        position: 'absolute',
+        bottom: 90,          // Sits just above the bottom tab bar cutout
+        left: 16,
+        right: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(15, 65, 74, 0.88)',  // #0F414A (ARQuest teal) at 88% opacity
+        borderRadius: 18,
+        paddingVertical: 14,
+        paddingHorizontal: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 229, 255, 0.35)',     // color-ar-highlight at low opacity
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 14,
+        zIndex: 45,
+        overflow: 'hidden',
+    },
+    navRibbonLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        flex: 1,
+    },
+    navRibbonTextGroup: {
+        flexDirection: 'column',
+        gap: 2,
+    },
+    navRibbonDirection: {
+        fontFamily: fonts.heading.bold,
+        color: '#FFFFFF',
+        fontSize: 14,
+        letterSpacing: 1.5,
+    },
+    navRibbonSub: {
+        fontFamily: fonts.body.regular,
+        color: 'rgba(255,255,255,0.65)',
+        fontSize: 11,
+        letterSpacing: 0.3,
+    },
+    navRibbonRight: {
+        alignItems: 'flex-end',
+        minWidth: 72,
+    },
+    navRibbonDistance: {
+        fontFamily: fonts.heading.bold,
+        color: '#00E5FF',               // color-ar-highlight
+        fontSize: 22,
+        letterSpacing: -0.5,
+    },
+    navRibbonDest: {
+        fontFamily: fonts.body.regular,
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 10,
+        letterSpacing: 0.5,
+        maxWidth: 90,
+        textAlign: 'right',
+    },
+
     gpsBanner: {
         position: 'absolute',
         top: 90,

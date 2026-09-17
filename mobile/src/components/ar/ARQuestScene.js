@@ -151,12 +151,14 @@ export default function ARQuestScene(props) {
     const recomputeNavPositions = useCallback((angle, camPos) => {
         const rad = (angle * Math.PI) / 180;
         const [cx, cy, cz] = camPos;
-        const distances = [1.2, 2.4];
-        const chevrons = distances.map((d) => ({
+        // 3 chevrons at 1.2m, 2.4m, 3.8m — longer runway feel
+        const distances = [1.2, 2.4, 3.8];
+        const chevrons = distances.map((d, i) => ({
             x: cx + d * Math.sin(rad),
             y: cy - 0.85,
             z: cz - d * Math.cos(rad),
             angle,
+            pulseOffset: i * 400,  // stagger pulse by 400ms per step → "flowing forward" effect
         }));
         setChevronPositions(chevrons);
         setHudPosition([
@@ -165,6 +167,7 @@ export default function ARQuestScene(props) {
             cz - 2.2 * Math.cos(rad),
         ]);
     }, []);
+
 
     /**
      * Camera world-space transform update from ARCore/ARKit.
@@ -251,7 +254,13 @@ export default function ARQuestScene(props) {
                     key={`nav-chevron-${index}`}
                     position={[chev.x, chev.y, chev.z]}
                     rotation={[0, -chev.angle, 0]}
-                    scale={[0.72 - index * 0.1, 0.72 - index * 0.1, 0.72 - index * 0.1]}
+                    scale={[0.72 - index * 0.11, 0.72 - index * 0.11, 0.72 - index * 0.11]}
+                    animation={{
+                        name: 'pulseChevron',
+                        run: true,
+                        loop: true,
+                        delay: chev.pulseOffset,  // staggered start → runway-lights forward flow
+                    }}
                 >
                     {/* Glowing Chevron Wings (Polyline) */}
                     <ViroPolyline
@@ -276,6 +285,7 @@ export default function ARQuestScene(props) {
                     />
                 </ViroNode>
             ))}
+
 
             {/*
                 ============================================================
@@ -525,4 +535,18 @@ ViroAnimations.registerAnimations({
         easing: 'Linear',
         loop: true,
     },
+    // Pulsing scale animation for ground runway chevrons.
+    // Each chevron receives a staggered `delay` matching its pulseOffset,
+    // so the pulse ripples forward (1st→2nd→3rd) like airport runway lights.
+    pulseChevron: {
+        properties: {
+            scaleX: '+=0.18',
+            scaleY: '+=0.18',
+            scaleZ: '+=0.18',
+        },
+        duration: 900,
+        easing: 'EaseInEaseOut',
+        direction: 'Alternate',
+    },
 });
+
