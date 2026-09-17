@@ -154,20 +154,20 @@ export default function ARQuestScene(props) {
     const recomputeNavPositions = useCallback((angle, camPos) => {
         const rad = (angle * Math.PI) / 180;
         const [cx, cy, cz] = camPos;
-        // 3 chevrons at 1.2m, 2.4m, 3.8m — longer runway feel
-        const distances = [1.2, 2.4, 3.8];
-        const chevrons = distances.map((d, i) => ({
-            x: cx + d * Math.sin(rad),
+        // Single large road-marking arrow planted 1.8m ahead of the user.
+        // The arrow assembly itself is wide at the base and tapers to the tip,
+        // giving the road-painting perspective effect toward the building.
+        setChevronPositions([{
+            x: cx + 1.8 * Math.sin(rad),
             y: cy - 0.85,
-            z: cz - d * Math.cos(rad),
+            z: cz - 1.8 * Math.cos(rad),
             angle,
-            pulseOffset: i * 400,  // stagger pulse by 400ms per step → "flowing forward" effect
-        }));
-        setChevronPositions(chevrons);
+            pulseOffset: 0,
+        }]);
         setHudPosition([
-            cx + 2.2 * Math.sin(rad),
+            cx + 3.5 * Math.sin(rad),
             cy - 0.1,
-            cz - 2.2 * Math.cos(rad),
+            cz - 3.5 * Math.cos(rad),
         ]);
     }, []);
 
@@ -254,10 +254,10 @@ export default function ARQuestScene(props) {
             */}
             {!hasArrived && chevronPositions.map((chev, index) => (
                 <ViroNode
-                    key={`nav-chevron-${index}`}
+                    key={`nav-arrow-${index}`}
                     position={[chev.x, chev.y, chev.z]}
                     rotation={[0, -chev.angle, 0]}
-                    scale={[0.72 - index * 0.11, 0.72 - index * 0.11, 0.72 - index * 0.11]}
+                    scale={[1.4, 1.4, 1.4]}
                     animation={{
                         name: 'pulseChevron',
                         run: true,
@@ -266,40 +266,74 @@ export default function ARQuestScene(props) {
                     }}
                 >
                     {/*
-                     * SOLID BOX ARROW (Option A)
-                     * Three ViroBox primitives assembled as a floor navigation arrow.
-                     * Arrow tip points forward (-Z). Flat on the ground (Y very thin).
+                     * TAPERED ROAD-MARKING ARROW
                      *
-                     *      ╲  ╱   ← Left + Right wing boxes (Gold, rotated ±38°)
-                     *       \/
-                     *       ||    ← Shaft box (Crimson, straight)
-                     *       ||
+                     * Mimics the perspective of a road/floor navigation marking:
+                     * wide at the base (near user's feet), tapering to a narrow
+                     * point toward the building — exactly like highway road paint.
+                     *
+                     * All geometry is flat on the ground (Y = 0.04 height).
+                     * Arrow tip points forward (-Z / away from user).
+                     *
+                     *       ╲    ╱      ← Arrowhead wings (Gold, wide, rotated ±40°)
+                     *        ╲  ╱
+                     *         \/
+                     *         ||  ← Shaft slab 4 — narrowest (0.16 wide)
+                     *        ||||
+                     *        |||| ← Shaft slab 3 (0.28 wide)
+                     *       ||||||
+                     *       |||||| ← Shaft slab 2 (0.40 wide)
+                     *      ||||||||
+                     *      |||||||| ← Shaft slab 1 — widest at user's feet (0.54 wide)
+                     *        [YOU]
                      */}
 
-                    {/* Shaft — narrow crimson rectangle, body of the arrow */}
+                    {/* ── Shaft Slab 1 — widest, closest to user ── */}
                     <ViroBox
-                        position={[0, 0, 0.16]}
-                        scale={[0.11, 0.04, 0.38]}
+                        position={[0, 0, 0.62]}
+                        scale={[0.54, 0.04, 0.22]}
                         materials={['glowArrow']}
                     />
 
-                    {/* Left arrowhead wing — gold box rotated outward */}
+                    {/* ── Shaft Slab 2 ── */}
                     <ViroBox
-                        position={[-0.17, 0, -0.10]}
-                        rotation={[0, -38, 0]}
-                        scale={[0.11, 0.04, 0.30]}
+                        position={[0, 0, 0.38]}
+                        scale={[0.40, 0.04, 0.22]}
+                        materials={['glowArrow']}
+                    />
+
+                    {/* ── Shaft Slab 3 ── */}
+                    <ViroBox
+                        position={[0, 0, 0.14]}
+                        scale={[0.28, 0.04, 0.22]}
+                        materials={['glowArrow']}
+                    />
+
+                    {/* ── Shaft Slab 4 — narrowest, just before arrowhead ── */}
+                    <ViroBox
+                        position={[0, 0, -0.10]}
+                        scale={[0.16, 0.04, 0.22]}
+                        materials={['glowArrow']}
+                    />
+
+                    {/* ── Arrowhead: Left wing (Gold) ── */}
+                    <ViroBox
+                        position={[-0.30, 0, -0.34]}
+                        rotation={[0, -40, 0]}
+                        scale={[0.16, 0.04, 0.40]}
                         materials={['glowArrowGold']}
                     />
 
-                    {/* Right arrowhead wing — gold box rotated outward */}
+                    {/* ── Arrowhead: Right wing (Gold) ── */}
                     <ViroBox
-                        position={[0.17, 0, -0.10]}
-                        rotation={[0, 38, 0]}
-                        scale={[0.11, 0.04, 0.30]}
+                        position={[0.30, 0, -0.34]}
+                        rotation={[0, 40, 0]}
+                        scale={[0.16, 0.04, 0.40]}
                         materials={['glowArrowGold']}
                     />
                 </ViroNode>
             ))}
+
 
 
 
