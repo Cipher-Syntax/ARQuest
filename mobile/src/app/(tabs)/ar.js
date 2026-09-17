@@ -152,8 +152,6 @@ export default function ARScreen() {
     const badgeAnim = useRef(new Animated.Value(0)).current;
     const rankAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
-    // Frosted bottom ribbon: slides up from bottom edge when navigation is active
-    const navRibbonAnim = useRef(new Animated.Value(100)).current;
     // Turn indicator glow pulse (border opacity animation)
     const ribbonPulseAnim = useRef(new Animated.Value(0)).current;
 
@@ -190,17 +188,6 @@ export default function ARScreen() {
             loadingShimmerAnim.setValue(0);
         }
     }, [isArModelLoading]);
-
-    // Animate the frosted bottom ribbon: slides in when navigating, out when arrived/no target
-    useEffect(() => {
-        const shouldShow = Boolean(navTargetFull && !isArrivedLatched);
-        Animated.spring(navRibbonAnim, {
-            toValue: shouldShow ? 0 : 120,
-            useNativeDriver: true,
-            tension: 80,
-            friction: 10,
-        }).start();
-    }, [navTargetFull, isArrivedLatched]);
 
     // Continuous pulsing border glow on turn indicators (loop opacity 0→1→0)
     useEffect(() => {
@@ -1279,65 +1266,6 @@ export default function ARScreen() {
                     </>
                 )}
 
-                {/* ── Frosted Bottom Navigation Ribbon (Option 3 — Apple Maps Walking Style) ── */}
-                {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
-                    <Animated.View
-                        style={[styles.navRibbon, { transform: [{ translateY: navRibbonAnim }] }]}
-                        pointerEvents="none"
-                    >
-                        {/* Direction chevron + label */}
-                        <View style={styles.navRibbonLeft}>
-                            {turnDirection === 'left' && (
-                                <>
-                                    <Ionicons name="arrow-back-circle" size={30} color="#FFFFFF" />
-                                    <View style={styles.navRibbonTextGroup}>
-                                        <Text style={styles.navRibbonDirection}>TURN LEFT</Text>
-                                        <Text style={styles.navRibbonSub}>ahead on path</Text>
-                                    </View>
-                                </>
-                            )}
-                            {turnDirection === 'right' && (
-                                <>
-                                    <Ionicons name="arrow-forward-circle" size={30} color="#FFFFFF" />
-                                    <View style={styles.navRibbonTextGroup}>
-                                        <Text style={styles.navRibbonDirection}>TURN RIGHT</Text>
-                                        <Text style={styles.navRibbonSub}>ahead on path</Text>
-                                    </View>
-                                </>
-                            )}
-                            {turnDirection === 'around' && (
-                                <>
-                                    <Ionicons name="refresh-circle" size={30} color="#FFD700" />
-                                    <View style={styles.navRibbonTextGroup}>
-                                        <Text style={[styles.navRibbonDirection, { color: '#FFD700' }]}>TURN AROUND</Text>
-                                        <Text style={styles.navRibbonSub}>destination is behind you</Text>
-                                    </View>
-                                </>
-                            )}
-                            {turnDirection === 'ahead' && (
-                                <>
-                                    <Ionicons name="navigate" size={28} color="#00E5FF" />
-                                    <View style={styles.navRibbonTextGroup}>
-                                        <Text style={[styles.navRibbonDirection, { color: '#00E5FF' }]}>STRAIGHT AHEAD</Text>
-                                        <Text style={styles.navRibbonSub}>keep walking forward</Text>
-                                    </View>
-                                </>
-                            )}
-                        </View>
-                        {/* Distance + destination chip on the right */}
-                        <View style={styles.navRibbonRight}>
-                            <Text style={styles.navRibbonDistance}>
-                                {distanceToTarget !== null ? `${Math.round(distanceToTarget)}m` : '--'}
-                            </Text>
-                            <Text style={styles.navRibbonDest} numberOfLines={1}>
-                                {navTargetFull?.name || 'Destination'}
-                            </Text>
-                        </View>
-                    </Animated.View>
-                )}
-
-
-
                 {/* 3. Reticle Overlays */}
                 {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
                 {isScanningQr && (
@@ -2134,7 +2062,7 @@ const styles = StyleSheet.create({
     },
     turnIndicatorAround: {
         position: 'absolute',
-        bottom: 170,
+        bottom: 110,
         alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
@@ -2158,69 +2086,7 @@ const styles = StyleSheet.create({
         fontSize: 13,
         letterSpacing: 1.5,
     },
-    // ── Frosted Bottom Navigation Ribbon ──────────────────────────────────────
-    navRibbon: {
-        position: 'absolute',
-        bottom: 90,          // Sits just above the bottom tab bar cutout
-        left: 16,
-        right: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: 'rgba(15, 65, 74, 0.88)',  // #0F414A (ARQuest teal) at 88% opacity
-        borderRadius: 18,
-        paddingVertical: 14,
-        paddingHorizontal: 18,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 229, 255, 0.35)',     // color-ar-highlight at low opacity
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        elevation: 14,
-        zIndex: 45,
-        overflow: 'hidden',
-    },
-    navRibbonLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        flex: 1,
-    },
-    navRibbonTextGroup: {
-        flexDirection: 'column',
-        gap: 2,
-    },
-    navRibbonDirection: {
-        fontFamily: fonts.heading.bold,
-        color: '#FFFFFF',
-        fontSize: 14,
-        letterSpacing: 1.5,
-    },
-    navRibbonSub: {
-        fontFamily: fonts.body.regular,
-        color: 'rgba(255,255,255,0.65)',
-        fontSize: 11,
-        letterSpacing: 0.3,
-    },
-    navRibbonRight: {
-        alignItems: 'flex-end',
-        minWidth: 72,
-    },
-    navRibbonDistance: {
-        fontFamily: fonts.heading.bold,
-        color: '#00E5FF',               // color-ar-highlight
-        fontSize: 22,
-        letterSpacing: -0.5,
-    },
-    navRibbonDest: {
-        fontFamily: fonts.body.regular,
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 10,
-        letterSpacing: 0.5,
-        maxWidth: 90,
-        textAlign: 'right',
-    },
+
 
     gpsBanner: {
         position: 'absolute',
