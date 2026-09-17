@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+
 import {
     ViroARScene,
     Viro3DObject,
@@ -11,6 +12,8 @@ import {
     ViroDirectionalLight,
     ViroBox,
 } from '@reactvision/react-viro';
+
+
 import { getDistance, getRhumbLineBearing } from 'geolib';
 
 /**
@@ -259,32 +262,45 @@ export default function ARQuestScene(props) {
                         name: 'pulseChevron',
                         run: true,
                         loop: true,
-                        delay: chev.pulseOffset,  // staggered start → runway-lights forward flow
+                        delay: chev.pulseOffset,
                     }}
                 >
-                    {/* Glowing Chevron Wings (Polyline) */}
-                    <ViroPolyline
-                        position={[0, 0, 0]}
-                        points={[
-                            [-0.22, 0, 0.22],
-                            [0, 0, -0.05],
-                            [0.22, 0, 0.22]
-                        ]}
-                        thickness={0.06}
+                    {/*
+                     * SOLID BOX ARROW (Option A)
+                     * Three ViroBox primitives assembled as a floor navigation arrow.
+                     * Arrow tip points forward (-Z). Flat on the ground (Y very thin).
+                     *
+                     *      ╲  ╱   ← Left + Right wing boxes (Gold, rotated ±38°)
+                     *       \/
+                     *       ||    ← Shaft box (Crimson, straight)
+                     *       ||
+                     */}
+
+                    {/* Shaft — narrow crimson rectangle, body of the arrow */}
+                    <ViroBox
+                        position={[0, 0, 0.16]}
+                        scale={[0.11, 0.04, 0.38]}
                         materials={['glowArrow']}
                     />
-                    {/* Central Arrow Shaft - Gold/Yellow */}
-                    <ViroPolyline
-                        position={[0, 0, 0]}
-                        points={[
-                            [0, 0, 0.3],
-                            [0, 0, -0.05]
-                        ]}
-                        thickness={0.05}
+
+                    {/* Left arrowhead wing — gold box rotated outward */}
+                    <ViroBox
+                        position={[-0.17, 0, -0.10]}
+                        rotation={[0, -38, 0]}
+                        scale={[0.11, 0.04, 0.30]}
+                        materials={['glowArrowGold']}
+                    />
+
+                    {/* Right arrowhead wing — gold box rotated outward */}
+                    <ViroBox
+                        position={[0.17, 0, -0.10]}
+                        rotation={[0, 38, 0]}
+                        scale={[0.11, 0.04, 0.30]}
                         materials={['glowArrowGold']}
                     />
                 </ViroNode>
             ))}
+
 
 
             {/*
