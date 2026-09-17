@@ -11,6 +11,7 @@ import {
     ViroAnimations,
     ViroDirectionalLight,
     ViroBox,
+    ViroImage,
 } from '@reactvision/react-viro';
 
 
@@ -257,7 +258,7 @@ export default function ARQuestScene(props) {
                     key={`nav-arrow-${index}`}
                     position={[chev.x, chev.y, chev.z]}
                     rotation={[0, -chev.angle, 0]}
-                    scale={[1.4, 1.4, 1.4]}
+                    scale={[1.0, 1.0, 1.0]}
                     animation={{
                         name: 'pulseChevron',
                         run: true,
@@ -266,70 +267,19 @@ export default function ARQuestScene(props) {
                     }}
                 >
                     {/*
-                     * TAPERED ROAD-MARKING ARROW
+                     * AUTHENTIC ROAD-MARKING NAVIGATION ARROW
                      *
-                     * Mimics the perspective of a road/floor navigation marking:
-                     * wide at the base (near user's feet), tapering to a narrow
-                     * point toward the building — exactly like highway road paint.
-                     *
-                     * All geometry is flat on the ground (Y = 0.04 height).
-                     * Arrow tip points forward (-Z / away from user).
-                     *
-                     *       ╲    ╱      ← Arrowhead wings (Gold, wide, rotated ±40°)
-                     *        ╲  ╱
-                     *         \/
-                     *         ||  ← Shaft slab 4 — narrowest (0.16 wide)
-                     *        ||||
-                     *        |||| ← Shaft slab 3 (0.28 wide)
-                     *       ||||||
-                     *       |||||| ← Shaft slab 2 (0.40 wide)
-                     *      ||||||||
-                     *      |||||||| ← Shaft slab 1 — widest at user's feet (0.54 wide)
-                     *        [YOU]
+                     * Smooth continuous highway & campus walkway navigation marking.
+                     * Wide at user's feet, tapering cleanly forward into a sharp arrowhead.
+                     * Pure vector-rendered, anti-aliased, zero Minecraft pixel blocks.
                      */}
-
-                    {/* ── Shaft Slab 1 — widest, closest to user ── */}
-                    <ViroBox
-                        position={[0, 0, 0.62]}
-                        scale={[0.54, 0.04, 0.22]}
-                        materials={['glowArrow']}
-                    />
-
-                    {/* ── Shaft Slab 2 ── */}
-                    <ViroBox
-                        position={[0, 0, 0.38]}
-                        scale={[0.40, 0.04, 0.22]}
-                        materials={['glowArrow']}
-                    />
-
-                    {/* ── Shaft Slab 3 ── */}
-                    <ViroBox
-                        position={[0, 0, 0.14]}
-                        scale={[0.28, 0.04, 0.22]}
-                        materials={['glowArrow']}
-                    />
-
-                    {/* ── Shaft Slab 4 — narrowest, just before arrowhead ── */}
-                    <ViroBox
-                        position={[0, 0, -0.10]}
-                        scale={[0.16, 0.04, 0.22]}
-                        materials={['glowArrow']}
-                    />
-
-                    {/* ── Arrowhead: Left wing (Gold) ── */}
-                    <ViroBox
-                        position={[-0.30, 0, -0.34]}
-                        rotation={[0, -40, 0]}
-                        scale={[0.16, 0.04, 0.40]}
-                        materials={['glowArrowGold']}
-                    />
-
-                    {/* ── Arrowhead: Right wing (Gold) ── */}
-                    <ViroBox
-                        position={[0.30, 0, -0.34]}
-                        rotation={[0, 40, 0]}
-                        scale={[0.16, 0.04, 0.40]}
-                        materials={['glowArrowGold']}
+                    <ViroImage
+                        source={require('../../../assets/images/nav-road-arrow-collegiate.png')}
+                        rotation={[-90, 0, 0]}
+                        width={1.3}
+                        height={2.6}
+                        position={[0, 0, 0]}
+                        format="RGBA8"
                     />
                 </ViroNode>
             ))}
@@ -590,11 +540,11 @@ ViroAnimations.registerAnimations({
     // so the pulse ripples forward (1st→2nd→3rd) like airport runway lights.
     pulseChevron: {
         properties: {
-            scaleX: '+=0.18',
-            scaleY: '+=0.18',
-            scaleZ: '+=0.18',
+            scaleX: '+=0.10',
+            scaleY: '+=0.10',
+            scaleZ: '+=0.10',
         },
-        duration: 900,
+        duration: 1200,
         easing: 'EaseInEaseOut',
         direction: 'Alternate',
     },
