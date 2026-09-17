@@ -2062,7 +2062,7 @@ const styles = StyleSheet.create({
     },
     turnIndicatorAround: {
         position: 'absolute',
-        bottom: 110,
+        top: '46%',
         alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
