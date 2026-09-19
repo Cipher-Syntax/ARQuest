@@ -81,20 +81,32 @@ function SidebarContent({
     const checkScroll = () => {
         if (navRef.current) {
             const { scrollTop, scrollHeight, clientHeight } = navRef.current;
-            setCanScrollUp(scrollTop > 0);
-            setCanScrollDown(scrollTop + clientHeight < scrollHeight - 1);
+            setCanScrollUp(scrollTop > 4);
+            setCanScrollDown(scrollTop + clientHeight < scrollHeight - 6);
+        }
+    };
+
+    const scrollUp = () => {
+        if (navRef.current) {
+            navRef.current.scrollBy({ top: -220, behavior: "smooth" });
+        }
+    };
+
+    const scrollDown = () => {
+        if (navRef.current) {
+            navRef.current.scrollBy({ top: 220, behavior: "smooth" });
         }
     };
 
     useEffect(() => {
         // Give it a tiny delay to allow initial layout to settle
-        const timer = setTimeout(checkScroll, 100);
+        const timer = setTimeout(checkScroll, 120);
         window.addEventListener("resize", checkScroll);
         return () => {
             clearTimeout(timer);
             window.removeEventListener("resize", checkScroll);
         };
-    }, []);
+    }, [isCollapsed]);
 
     return (
         <div className="flex flex-col h-full bg-brand relative transition-all duration-300">
@@ -139,64 +151,91 @@ function SidebarContent({
                 )}
             </button>
 
-            <nav 
-                ref={navRef}
-                onScroll={checkScroll}
-                className="flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-none pb-8 relative"
-            >
-                {NAV_GROUPS.map((group, i) => (
-                    <div key={i} className="space-y-1.5">
-                        {!isCollapsed && (
-                            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2 px-3 animate-in fade-in">
-                                {group.label}
-                            </p>
-                        )}
-                        {group.items.map(({ to, icon: Icon, label }) => (
-                            <NavLink
-                                key={to}
-                                to={to}
-                                onClick={onMobileClose}
-                                title={isCollapsed ? label : ""}
-                                className={({ isActive }) =>
-                                    `relative flex items-center rounded-md text-sm font-semibold transition-all duration-200 group
-              ${isCollapsed ? "justify-center px-2 py-3" : "px-4 py-3 gap-3"}
-              ${
-                  isActive
-                      ? "text-white"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
-              }`
-                                }
-                            >
-                                {({ isActive }) => (
-                                    <>
-                                        <Icon
-                                            size={18}
-                                            className={`shrink-0 transition-colors ${isActive ? "text-white" : "text-white/70 group-hover:text-white"}`}
-                                        />
-                                        {!isCollapsed && (
-                                            <span className="animate-in fade-in duration-300">
-                                                {label}
-                                            </span>
-                                        )}
-                                        {isActive && (
-                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-white rounded-r-md shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                                        )}
-                                    </>
-                                )}
-                            </NavLink>
-                        ))}
-                    </div>
-                ))}
-            </nav>
-
-            {/* Scroll Indicator */}
-            {(canScrollDown || canScrollUp) && (
-                <div 
-                    className={`absolute bottom-4 ${isCollapsed ? 'right-1/2 translate-x-1/2' : 'right-4'} bg-white/20 text-white rounded-full p-1.5 shadow-sm backdrop-blur-sm pointer-events-none transition-all duration-300 animate-bounce z-50`}
+            {/* Scroll Container with Edge Gradient Fades */}
+            <div className="relative flex-1 min-h-0 flex flex-col">
+                {/* Top Edge Gradient Fade + Micro Chevron */}
+                <button
+                    type="button"
+                    onClick={scrollUp}
+                    aria-label="Scroll navigation up"
+                    className={`absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-brand via-brand/85 to-transparent z-20 flex items-start justify-center pt-1.5 transition-opacity duration-300 ${
+                        canScrollUp
+                            ? "opacity-100 pointer-events-auto cursor-pointer"
+                            : "opacity-0 pointer-events-none"
+                    }`}
                 >
-                    {canScrollDown ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </div>
-            )}
+                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-full p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                        <ChevronUp size={14} className="stroke-[2.5]" />
+                    </div>
+                </button>
+
+                {/* Scrollable Navigation */}
+                <nav 
+                    ref={navRef}
+                    onScroll={checkScroll}
+                    className="flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-none pb-8"
+                >
+                    {NAV_GROUPS.map((group, i) => (
+                        <div key={i} className="space-y-1.5">
+                            {!isCollapsed && (
+                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2 px-3 animate-in fade-in">
+                                    {group.label}
+                                </p>
+                            )}
+                            {group.items.map(({ to, icon: Icon, label }) => (
+                                <NavLink
+                                    key={to}
+                                    to={to}
+                                    onClick={onMobileClose}
+                                    title={isCollapsed ? label : ""}
+                                    className={({ isActive }) =>
+                                        `relative flex items-center rounded-md text-sm font-semibold transition-all duration-200 group
+                  ${isCollapsed ? "justify-center px-2 py-3" : "px-4 py-3 gap-3"}
+                  ${
+                      isActive
+                          ? "text-white"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
+                  }`
+                                    }
+                                >
+                                    {({ isActive }) => (
+                                        <>
+                                            <Icon
+                                                size={18}
+                                                className={`shrink-0 transition-colors ${isActive ? "text-white" : "text-white/70 group-hover:text-white"}`}
+                                            />
+                                            {!isCollapsed && (
+                                                <span className="animate-in fade-in duration-300">
+                                                    {label}
+                                                </span>
+                                            )}
+                                            {isActive && (
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-white rounded-r-md shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                                            )}
+                                        </>
+                                    )}
+                                </NavLink>
+                            ))}
+                        </div>
+                    ))}
+                </nav>
+
+                {/* Bottom Edge Gradient Fade + Micro Chevron */}
+                <button
+                    type="button"
+                    onClick={scrollDown}
+                    aria-label="Scroll navigation down"
+                    className={`absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-brand via-brand/85 to-transparent z-20 flex items-end justify-center pb-1.5 transition-opacity duration-300 ${
+                        canScrollDown
+                            ? "opacity-100 pointer-events-auto cursor-pointer"
+                            : "opacity-0 pointer-events-none"
+                    }`}
+                >
+                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-full p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                        <ChevronDown size={14} className="stroke-[2.5]" />
+                    </div>
+                </button>
+            </div>
         </div>
     );
 }
