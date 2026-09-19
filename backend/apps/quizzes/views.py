@@ -2,13 +2,16 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.db import transaction
+from django.utils import timezone
 
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
 from apps.authentication.permissions import IsStudentRole
 from apps.buildings.models import Building
-from .models import QuizQuestion, UserQuizProgress
+from .models import QuizQuestion, UserQuizProgress, QuizAttemptLog
 from .serializers import QuizQuestionSerializer
+
+DAILY_QUIZ_LIMIT = 3
 
 class BuildingQuizView(APIView):
     permission_classes = [IsAuthenticated, IsStudentRole]
@@ -19,16 +22,45 @@ class BuildingQuizView(APIView):
         except Building.DoesNotExist:
             return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
-        answered_ids = UserQuizProgress.objects.filter(user=request.user, is_correct=True).values_list('question_id', flat=True)
-        questions = list(QuizQuestion.objects.filter(building=building, is_active=True).exclude(id__in=answered_ids))
+        today = timezone.localdate()
+        daily_completed = QuizAttemptLog.objects.filter(
+            user=request.user,
+            building=building,
+            created_at__date=today
+        ).count()
         
-        if not questions:
-            return success_response([])
+        is_locked = (daily_completed >= DAILY_QUIZ_LIMIT)
+        
+        answered_ids = UserQuizProgress.objects.filter(user=request.user, is_correct=True).values_list('question_id', flat=True)
+        all_unanswered = list(QuizQuestion.objects.filter(building=building, is_active=True).exclude(id__in=answered_ids))
+        all_completed = (len(all_unanswered) == 0)
+        
+        if is_locked or all_completed:
+            return success_response({
+                'questions': [],
+                'daily_completed': min(daily_completed, DAILY_QUIZ_LIMIT),
+                'daily_limit': DAILY_QUIZ_LIMIT,
+                'is_locked': is_locked,
+                'all_completed': all_completed,
+                'building_id': str(building.id),
+                'building_name': building.name,
+            })
             
+        remaining_slots = max(0, DAILY_QUIZ_LIMIT - daily_completed)
         import random
-        random.shuffle(questions)
-        serializer = QuizQuestionSerializer(questions, many=True)
-        return success_response(serializer.data)
+        random.shuffle(all_unanswered)
+        selected_questions = all_unanswered[:remaining_slots]
+        
+        serializer = QuizQuestionSerializer(selected_questions, many=True)
+        return success_response({
+            'questions': serializer.data,
+            'daily_completed': daily_completed,
+            'daily_limit': DAILY_QUIZ_LIMIT,
+            'is_locked': False,
+            'all_completed': False,
+            'building_id': str(building.id),
+            'building_name': building.name,
+        })
 
 
 class AnswerQuizView(APIView):
@@ -42,9 +74,22 @@ class AnswerQuizView(APIView):
             return error_response(ErrorCodes.INVALID_INPUT, 'question_id and selected_option are required')
             
         try:
-            question = QuizQuestion.objects.get(id=question_id, is_active=True)
+            question = QuizQuestion.objects.select_related('building').get(id=question_id, is_active=True)
         except QuizQuestion.DoesNotExist:
             return error_response(ErrorCodes.NOT_FOUND, 'Question not found', status_code=status.HTTP_404_NOT_FOUND)
+            
+        today = timezone.localdate()
+        daily_count = QuizAttemptLog.objects.filter(
+            user=request.user,
+            building=question.building,
+            created_at__date=today
+        ).count()
+        
+        if daily_count >= DAILY_QUIZ_LIMIT:
+            return error_response(
+                ErrorCodes.VALIDATION_ERROR,
+                f"You have reached the daily limit of {DAILY_QUIZ_LIMIT} quiz questions for {question.building.name}. Please come back tomorrow or visit another building!"
+            )
             
         is_correct = (selected_option.upper() == question.correct_option.upper())
         exp_awarded = 0
@@ -67,12 +112,26 @@ class AnswerQuizView(APIView):
                 from apps.gamification.views import check_and_award_badges
                 newly_earned_badges = check_and_award_badges(request.user)
                 
+            QuizAttemptLog.objects.create(
+                user=request.user,
+                building=question.building,
+                question=question,
+                selected_option=selected_option.upper(),
+                is_correct=is_correct,
+                exp_awarded=exp_awarded,
+            )
+            
+        new_daily_count = daily_count + 1
         return success_response({
             'is_correct': is_correct,
             'correct_option': question.correct_option,
             'exp_awarded': exp_awarded,
-            'newly_earned_badges': newly_earned_badges
+            'newly_earned_badges': newly_earned_badges,
+            'daily_completed': new_daily_count,
+            'daily_limit': DAILY_QUIZ_LIMIT,
+            'is_locked': (new_daily_count >= DAILY_QUIZ_LIMIT),
         })
+
 
 
 class QuizQuestionListView(APIView):

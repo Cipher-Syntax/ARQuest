@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+
 import {
     ViroARScene,
     Viro3DObject,
@@ -10,7 +11,10 @@ import {
     ViroAnimations,
     ViroDirectionalLight,
     ViroBox,
+    ViroImage,
 } from '@reactvision/react-viro';
+
+
 import { getDistance, getRhumbLineBearing } from 'geolib';
 
 /**
@@ -151,20 +155,23 @@ export default function ARQuestScene(props) {
     const recomputeNavPositions = useCallback((angle, camPos) => {
         const rad = (angle * Math.PI) / 180;
         const [cx, cy, cz] = camPos;
-        const distances = [1.2, 2.4];
-        const chevrons = distances.map((d) => ({
-            x: cx + d * Math.sin(rad),
+        // Single large road-marking arrow planted 1.8m ahead of the user.
+        // The arrow assembly itself is wide at the base and tapers to the tip,
+        // giving the road-painting perspective effect toward the building.
+        setChevronPositions([{
+            x: cx + 1.8 * Math.sin(rad),
             y: cy - 0.85,
-            z: cz - d * Math.cos(rad),
+            z: cz - 1.8 * Math.cos(rad),
             angle,
-        }));
-        setChevronPositions(chevrons);
+            pulseOffset: 0,
+        }]);
         setHudPosition([
-            cx + 2.2 * Math.sin(rad),
+            cx + 3.5 * Math.sin(rad),
             cy - 0.1,
-            cz - 2.2 * Math.cos(rad),
+            cz - 3.5 * Math.cos(rad),
         ]);
     }, []);
+
 
     /**
      * Camera world-space transform update from ARCore/ARKit.
@@ -248,34 +255,37 @@ export default function ARQuestScene(props) {
             */}
             {!hasArrived && chevronPositions.map((chev, index) => (
                 <ViroNode
-                    key={`nav-chevron-${index}`}
+                    key={`nav-arrow-${index}`}
                     position={[chev.x, chev.y, chev.z]}
                     rotation={[0, -chev.angle, 0]}
-                    scale={[0.72 - index * 0.1, 0.72 - index * 0.1, 0.72 - index * 0.1]}
+                    scale={[1.0, 1.0, 1.0]}
+                    animation={{
+                        name: 'pulseChevron',
+                        run: true,
+                        loop: true,
+                        delay: chev.pulseOffset,
+                    }}
                 >
-                    {/* Glowing Chevron Wings (Polyline) */}
-                    <ViroPolyline
+                    {/*
+                     * AUTHENTIC ROAD-MARKING NAVIGATION ARROW
+                     *
+                     * Smooth continuous highway & campus walkway navigation marking.
+                     * Wide at user's feet, tapering cleanly forward into a sharp arrowhead.
+                     * Pure vector-rendered, anti-aliased, zero Minecraft pixel blocks.
+                     */}
+                    <ViroImage
+                        source={require('../../../assets/images/nav-road-arrow-collegiate.png')}
+                        rotation={[-90, 0, 0]}
+                        width={1.3}
+                        height={2.6}
                         position={[0, 0, 0]}
-                        points={[
-                            [-0.22, 0, 0.22],
-                            [0, 0, -0.05],
-                            [0.22, 0, 0.22]
-                        ]}
-                        thickness={0.06}
-                        materials={['glowArrow']}
-                    />
-                    {/* Central Arrow Shaft - Gold/Yellow */}
-                    <ViroPolyline
-                        position={[0, 0, 0]}
-                        points={[
-                            [0, 0, 0.3],
-                            [0, 0, -0.05]
-                        ]}
-                        thickness={0.05}
-                        materials={['glowArrowGold']}
+                        format="RGBA8"
                     />
                 </ViroNode>
             ))}
+
+
+
 
             {/*
                 ============================================================
@@ -525,4 +535,18 @@ ViroAnimations.registerAnimations({
         easing: 'Linear',
         loop: true,
     },
+    // Pulsing scale animation for ground runway chevrons.
+    // Each chevron receives a staggered `delay` matching its pulseOffset,
+    // so the pulse ripples forward (1st→2nd→3rd) like airport runway lights.
+    pulseChevron: {
+        properties: {
+            scaleX: '+=0.10',
+            scaleY: '+=0.10',
+            scaleZ: '+=0.10',
+        },
+        duration: 1200,
+        easing: 'EaseInEaseOut',
+        direction: 'Alternate',
+    },
 });
+

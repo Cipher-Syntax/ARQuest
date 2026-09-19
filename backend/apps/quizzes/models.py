@@ -47,3 +47,21 @@ class UserQuizProgress(models.Model):
     class Meta:
         db_table = 'buildings_userquizprogress'
         unique_together = ('user', 'question')
+
+
+class QuizAttemptLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quiz_attempts')
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='quiz_attempts')
+    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE, related_name='attempts')
+    selected_option = models.CharField(max_length=1)
+    is_correct = models.BooleanField(default=False)
+    exp_awarded = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'buildings_quizattemptlog'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.building.name} - {'Correct' if self.is_correct else 'Wrong'} ({self.created_at})"
+

@@ -152,6 +152,8 @@ export default function ARScreen() {
     const badgeAnim = useRef(new Animated.Value(0)).current;
     const rankAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
+    // Turn indicator glow pulse (border opacity animation)
+    const ribbonPulseAnim = useRef(new Animated.Value(0)).current;
 
     const fetchQuests = useCallback(async () => {
         if (user?.role !== "student") return;
@@ -187,9 +189,33 @@ export default function ARScreen() {
         }
     }, [isArModelLoading]);
 
+    // Continuous pulsing border glow on turn indicators (loop opacity 0→1→0)
+    useEffect(() => {
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(ribbonPulseAnim, {
+                    toValue: 1,
+                    duration: 700,
+                    easing: Easing.ease,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(ribbonPulseAnim, {
+                    toValue: 0.2,
+                    duration: 700,
+                    easing: Easing.ease,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        loop.start();
+        return () => loop.stop();
+    }, []);
+
+
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
     const viroNavRef = useRef(null);
+
     const flashAnim = useRef(new Animated.Value(0)).current;
     const { canUseAR } = useRoleAccess();
 
@@ -1200,26 +1226,42 @@ export default function ARScreen() {
                     </View>
                 )}
 
-                {/* Off-screen Compass Turn Indicators */}
+
+                {/* ── Enhanced Animated Turn Indicators (Option 5 — Pulsing Glow Arrows) ── */}
                 {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
                     <>
                         {turnDirection === 'around' && (
-                            <View style={styles.turnIndicatorAround} pointerEvents="none">
-                                <Ionicons name="refresh" size={18} color="#FFFFFF" />
+                            <Animated.View
+                                style={[styles.turnIndicatorAround, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
+                                pointerEvents="none"
+                            >
+                                <Ionicons name="refresh" size={20} color="#FFFFFF" />
                                 <Text style={styles.turnIndicatorText}>TURN AROUND</Text>
-                            </View>
+                            </Animated.View>
                         )}
                         {turnDirection === 'left' && (
-                            <View style={styles.turnIndicatorLeft} pointerEvents="none">
-                                <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
+                            <Animated.View
+                                style={[styles.turnIndicatorLeft, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
+                                pointerEvents="none"
+                            >
+                                <Animated.View style={{ opacity: ribbonPulseAnim }}>
+                                    <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+                                </Animated.View>
+                                <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
                                 <Text style={styles.turnIndicatorText}>TURN LEFT</Text>
-                            </View>
+                            </Animated.View>
                         )}
                         {turnDirection === 'right' && (
-                            <View style={styles.turnIndicatorRight} pointerEvents="none">
+                            <Animated.View
+                                style={[styles.turnIndicatorRight, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
+                                pointerEvents="none"
+                            >
                                 <Text style={styles.turnIndicatorText}>TURN RIGHT</Text>
-                                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-                            </View>
+                                <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+                                <Animated.View style={{ opacity: ribbonPulseAnim }}>
+                                    <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+                                </Animated.View>
+                            </Animated.View>
                         )}
                     </>
                 )}
@@ -1980,66 +2022,72 @@ const styles = StyleSheet.create({
     },
     turnIndicatorLeft: {
         position: 'absolute',
-        left: 16,
-        top: '48%',
+        left: 12,
+        top: '46%',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        backgroundColor: 'rgba(178, 24, 48, 0.9)',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
+        gap: 2,
+        backgroundColor: 'rgba(178, 24, 48, 0.92)',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.3)',
+        shadowColor: '#B21830',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
+        elevation: 10,
         zIndex: 40,
     },
     turnIndicatorRight: {
         position: 'absolute',
-        right: 16,
-        top: '48%',
+        right: 12,
+        top: '46%',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        backgroundColor: 'rgba(178, 24, 48, 0.9)',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
+        gap: 2,
+        backgroundColor: 'rgba(178, 24, 48, 0.92)',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.3)',
+        shadowColor: '#B21830',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
+        elevation: 10,
         zIndex: 40,
     },
     turnIndicatorAround: {
         position: 'absolute',
-        bottom: 110,
+        top: '46%',
         alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: 'rgba(178, 24, 48, 0.92)',
-        paddingVertical: 10,
+        backgroundColor: 'rgba(178, 24, 48, 0.94)',
+        paddingVertical: 12,
         paddingHorizontal: 20,
-        borderRadius: 24,
-        borderWidth: 1.5,
+        borderRadius: 28,
+        borderWidth: 2,
         borderColor: 'rgba(255, 255, 255, 0.4)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 6,
-        elevation: 8,
+        shadowColor: '#B21830',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.7,
+        shadowRadius: 14,
+        elevation: 10,
         zIndex: 40,
     },
     turnIndicatorText: {
         fontFamily: fonts.heading.bold,
         color: '#FFFFFF',
-        fontSize: 12,
-        letterSpacing: 1,
+        fontSize: 13,
+        letterSpacing: 1.5,
     },
+
+
     gpsBanner: {
         position: 'absolute',
         top: 90,
