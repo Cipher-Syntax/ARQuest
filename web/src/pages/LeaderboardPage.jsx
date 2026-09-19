@@ -107,6 +107,7 @@ export default function LeaderboardPage({ hideHeader }) {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [activeFilter, setActiveFilter] = useState("all"); // "all" | "above_avg" | "legends"
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const itemsPerPage = 10;
@@ -126,43 +127,6 @@ export default function LeaderboardPage({ hideHeader }) {
         fetchLeaderboard();
     }, []);
 
-    const filteredUsers = useMemo(() => {
-        const term = searchTerm.toLowerCase().trim();
-        if (!term) return users;
-        return users.filter((user) => {
-            const first = user.first_name?.toLowerCase() || "";
-            const last = user.last_name?.toLowerCase() || "";
-            const username = user.username?.toLowerCase() || "";
-            const email = user.email?.toLowerCase() || "";
-            const rankTitle =
-                getRankDetails(user.exploration_points, user.rank_info)
-                    .title.toLowerCase();
-            return (
-                first.includes(term) ||
-                last.includes(term) ||
-                username.includes(term) ||
-                email.includes(term) ||
-                rankTitle.includes(term)
-            );
-        });
-    }, [users, searchTerm]);
-
-    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-    const paginatedUsers = filteredUsers.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage,
-    );
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm]);
-
-    // Top 3 Podium Students (Always based on overall standings)
-    const top3 = useMemo(() => users.slice(0, 3), [users]);
-    const firstPlace = top3[0] || null;
-    const secondPlace = top3[1] || null;
-    const thirdPlace = top3[2] || null;
-
     // Leaderboard Summary Metrics
     const metrics = useMemo(() => {
         if (!users.length) {
@@ -180,6 +144,52 @@ export default function LeaderboardPage({ hideHeader }) {
         ).length;
         return { totalStudents, topScore, avgScore, legendsCount };
     }, [users]);
+
+    const avgRankDetails = useMemo(
+        () => getRankDetails(metrics.avgScore),
+        [metrics.avgScore],
+    );
+
+    const filteredUsers = useMemo(() => {
+        let list = users;
+        if (activeFilter === "above_avg") {
+            list = list.filter(
+                (u) => (u.exploration_points || 0) >= metrics.avgScore,
+            );
+        } else if (activeFilter === "legends") {
+            list = list.filter((u) => (u.exploration_points || 0) >= 2000);
+        }
+
+        const term = searchTerm.toLowerCase().trim();
+        if (!term) return list;
+
+        return list.filter((user) => {
+            const first = user.first_name?.toLowerCase() || "";
+            const last = user.last_name?.toLowerCase() || "";
+            const username = user.username?.toLowerCase() || "";
+            const email = user.email?.toLowerCase() || "";
+            const rankTitle =
+                getRankDetails(user.exploration_points, user.rank_info)
+                    .title.toLowerCase();
+            return (
+                first.includes(term) ||
+                last.includes(term) ||
+                username.includes(term) ||
+                email.includes(term) ||
+                rankTitle.includes(term)
+            );
+        });
+    }, [users, searchTerm, activeFilter, metrics.avgScore]);
+
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const paginatedUsers = filteredUsers.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage,
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, activeFilter]);
 
     // Export CSV Report Functionality
     const handleExportCSV = () => {
@@ -222,6 +232,12 @@ export default function LeaderboardPage({ hideHeader }) {
         document.body.removeChild(link);
     };
 
+    // Top 3 Podium Students (Always based on overall standings)
+    const top3 = useMemo(() => users.slice(0, 3), [users]);
+    const firstPlace = top3[0] || null;
+    const secondPlace = top3[1] || null;
+    const thirdPlace = top3[2] || null;
+
     return (
         <div className="space-y-6">
             {!hideHeader && (
@@ -236,9 +252,18 @@ export default function LeaderboardPage({ hideHeader }) {
                 </div>
             )}
 
-            {/* KPI Summary Metric Cards */}
+            {/* KPI Summary Metric Cards with Interactive Filters */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <Card className="p-4 sm:p-5 flex items-center gap-3.5 border-brand-border/70 hover:shadow-md transition-shadow">
+                {/* Total Explorers */}
+                <Card
+                    onClick={() => setActiveFilter("all")}
+                    className={`p-4 sm:p-5 flex items-center gap-3.5 border transition-all cursor-pointer ${
+                        activeFilter === "all"
+                            ? "border-brand ring-2 ring-brand/15 bg-brand-light/30 shadow-sm"
+                            : "border-brand-border/70 hover:shadow-md"
+                    }`}
+                    title="Click to view all student explorers"
+                >
                     <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
                         <Users size={22} />
                     </div>
@@ -249,10 +274,22 @@ export default function LeaderboardPage({ hideHeader }) {
                         <p className="text-xl sm:text-2xl font-extrabold text-gray-900 font-hud">
                             {metrics.totalStudents}
                         </p>
+                        <span className="text-[10px] font-semibold text-gray-400 block mt-0.5">
+                            All registered
+                        </span>
                     </div>
                 </Card>
 
-                <Card className="p-4 sm:p-5 flex items-center gap-3.5 border-brand-border/70 hover:shadow-md transition-shadow">
+                {/* Top Campus Score */}
+                <Card
+                    onClick={() => {
+                        if (firstPlace) {
+                            setSelectedStudent({ ...firstPlace, rank: 1 });
+                        }
+                    }}
+                    className="p-4 sm:p-5 flex items-center gap-3.5 border border-brand-border/70 hover:shadow-md transition-all cursor-pointer"
+                    title="Click to view #1 champion profile"
+                >
                     <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                         <Trophy size={22} />
                     </div>
@@ -263,10 +300,26 @@ export default function LeaderboardPage({ hideHeader }) {
                         <p className="text-xl sm:text-2xl font-extrabold text-gray-900 font-hud">
                             {metrics.topScore.toLocaleString()} XP
                         </p>
+                        <span className="text-[10px] font-bold text-amber-600 block mt-0.5">
+                            🏆 #1 Champion
+                        </span>
                     </div>
                 </Card>
 
-                <Card className="p-4 sm:p-5 flex items-center gap-3.5 border-brand-border/70 hover:shadow-md transition-shadow">
+                {/* Average Points with Typical Rank & Filter */}
+                <Card
+                    onClick={() =>
+                        setActiveFilter((prev) =>
+                            prev === "above_avg" ? "all" : "above_avg",
+                        )
+                    }
+                    className={`p-4 sm:p-5 flex items-center gap-3.5 border transition-all cursor-pointer ${
+                        activeFilter === "above_avg"
+                            ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40 shadow-sm"
+                            : "border-brand-border/70 hover:shadow-md"
+                    }`}
+                    title="Click to filter students scoring above campus average"
+                >
                     <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                         <TrendingUp size={22} />
                     </div>
@@ -277,10 +330,27 @@ export default function LeaderboardPage({ hideHeader }) {
                         <p className="text-xl sm:text-2xl font-extrabold text-gray-900 font-hud">
                             {metrics.avgScore.toLocaleString()} XP
                         </p>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-0.5">
+                            <span>{avgRankDetails.icon}</span>
+                            <span>Typical: {avgRankDetails.title}</span>
+                        </span>
                     </div>
                 </Card>
 
-                <Card className="p-4 sm:p-5 flex items-center gap-3.5 border-brand-border/70 hover:shadow-md transition-shadow">
+                {/* Campus Legends with Filter */}
+                <Card
+                    onClick={() =>
+                        setActiveFilter((prev) =>
+                            prev === "legends" ? "all" : "legends",
+                        )
+                    }
+                    className={`p-4 sm:p-5 flex items-center gap-3.5 border transition-all cursor-pointer ${
+                        activeFilter === "legends"
+                            ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/40 shadow-sm"
+                            : "border-brand-border/70 hover:shadow-md"
+                    }`}
+                    title="Click to filter Campus Legends (≥ 2,000 XP)"
+                >
                     <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
                         <Crown size={22} />
                     </div>
@@ -291,12 +361,44 @@ export default function LeaderboardPage({ hideHeader }) {
                         <p className="text-xl sm:text-2xl font-extrabold text-gray-900 font-hud">
                             {metrics.legendsCount}
                         </p>
+                        <span className="text-[10px] font-bold text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-0.5">
+                            <span>👑</span>
+                            <span>Max Tier (≥2k XP)</span>
+                        </span>
                     </div>
                 </Card>
             </div>
 
+            {/* Active Filter Notification Banner */}
+            {activeFilter !== "all" && (
+                <div className="flex items-center justify-between bg-white border border-brand-border px-4 py-2.5 rounded-xl shadow-xs text-xs">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+                        <span className="font-semibold text-gray-700">
+                            Filtering:{" "}
+                            <strong className="text-brand">
+                                {activeFilter === "above_avg"
+                                    ? `Students scoring above campus average (≥ ${metrics.avgScore.toLocaleString()} XP)`
+                                    : "Campus Legends only (≥ 2,000 XP)"}
+                            </strong>
+                        </span>
+                        <span className="text-gray-400 font-medium">
+                            • {filteredUsers.length} student
+                            {filteredUsers.length === 1 ? "" : "s"} found
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setActiveFilter("all")}
+                        className="text-brand hover:underline font-bold text-xs cursor-pointer flex items-center gap-1"
+                    >
+                        <span>Show All</span>
+                    </button>
+                </div>
+            )}
+
             {/* TOP 3 HIERARCHY OLYMPIC PODIUM (Before Search Bar) */}
-            {top3.length > 0 && !searchTerm && (
+            {top3.length > 0 && !searchTerm && activeFilter === "all" && (
                 <div className="bg-gradient-to-b from-white via-brand-light/30 to-white rounded-2xl border border-brand-border/80 p-5 sm:p-8 shadow-sm">
                     <div className="text-center mb-6 sm:mb-8">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-light text-brand text-xs font-bold tracking-widest uppercase rounded-full border border-brand-border font-hud">
