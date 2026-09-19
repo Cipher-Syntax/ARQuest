@@ -24,6 +24,7 @@ import FeedbackPage from "../pages/FeedbackPage";
 import HistoryPage from "../pages/HistoryPage";
 import ModelCompressorPage from "../pages/ModelCompressorPage";
 import NavigationPage from "../pages/NavigationPage";
+import NotFound from "../pages/NotFound";
 
 const App = () => {
     return (
@@ -74,6 +75,7 @@ const App = () => {
                         <Route path="compressor" element={<ModelCompressorPage />} />
                         <Route path="navigation" element={<NavigationPage />} />
                     </Route>
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </AuthProvider>
         </BrowserRouter>
