@@ -286,8 +286,8 @@ function DepartmentModal({ isOpen, onClose, onSuccess, editingDepartment }) {
                             {isLoading
                                 ? "Saving..."
                                 : isEdit
-                                  ? "Save Changes"
-                                  : "Create College"}
+                                    ? "Save Changes"
+                                    : "Create College"}
                         </Button>
                     </div>
                 </form>

@@ -1,7 +1,11 @@
 import React from "react";
+import { AuthProvider } from "../hooks/useAuth";
 
-const Provider = () => {
-    return <div>Provider</div>;
+const Provider = ({ children }) => {
+    return (
+        <AuthProvider>{children}</AuthProvider>
+    )
+
 };
 
 export default Provider;
