@@ -171,6 +171,20 @@
             .floating-label.portal-label::after {
                 border-color: #00e5ff transparent transparent transparent;
             }
+            /* ── Spawn Fade-In Overlay ─────────────────────────────── */
+            #spawn-fade {
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: #000;
+                opacity: 1;
+                pointer-events: none;
+                z-index: 300;
+                transition: opacity 0.7s ease-out;
+            }
+            #spawn-fade.faded {
+                opacity: 0;
+            }
+
             /* ── Gyroscope mode indicator pill ─────────────────────── */
 
             #gyro-indicator {
@@ -270,6 +284,9 @@
         </div>
         
         <div id="floating-labels"></div>
+
+        <!-- Spawn fade-in overlay: covers scene during spawn, fades out once positioned -->
+        <div id="spawn-fade"></div>
 
         <canvas id="canvas"></canvas>
 
@@ -647,56 +664,141 @@
                         worldBounds.min.y -= 10;
                         worldBounds.max.y += 10;
 
-                        // ── Smart Ground Floor Spawn Point Detection ──────────────────────────
+                        // ── Smart Ground Floor Spawn Point Detection ─────────────────
                         let spawnX = center.x;
                         let spawnY = box.min.y + 1.6;
                         let spawnZ = center.z;
+                        let spawnFacingAngle = 0; // will be overwritten by smart-facing
 
-                        // 1. If building has hotspots, prefer the first hotspot as spawn location
+                        // 1. If building has hotspots, prefer the first hotspot (intentional admin placement)
                         if (window.buildingHotspots && window.buildingHotspots.length > 0) {
                             const firstSpot = window.buildingHotspots[0];
                             spawnX = Number(firstSpot.x);
                             spawnY = Number(firstSpot.y) + 1.6;
                             spawnZ = Number(firstSpot.z);
                         } else {
-                            // 2. Otherwise raycast downwards from above and select the LOWEST floor (Ground Floor)
+                            // 2. Grid Raycast — cast 5×5 = 25 rays across the building footprint.
+                            //    Handles L-shapes, courtyards, and buildings where the center is open air.
+                            //    Each ray is spaced at 20% of the building's X/Z dimensions.
                             const spawnRaycaster = new THREE.Raycaster();
-                            const topOrigin = new THREE.Vector3(center.x, box.max.y + 5, center.z);
-                            spawnRaycaster.set(topOrigin, new THREE.Vector3(0, -1, 0));
-                            const hits = spawnRaycaster.intersectObject(model, true);
-                            
-                            if (hits.length > 0) {
-                                // Sort by lowest Y to find the Ground Floor surface instead of the rooftop
-                                const sortedByLowestY = hits.slice().sort((a, b) => a.point.y - b.point.y);
-                                const groundHit = sortedByLowestY.find(hit => hit.point.y >= box.min.y - 0.2) || sortedByLowestY[0];
-                                spawnX = groundHit.point.x;
-                                spawnY = groundHit.point.y + 1.6; // Human eye height on ground floor
-                                spawnZ = groundHit.point.z;
+                            const downDir = new THREE.Vector3(0, -1, 0);
+                            const GRID = 5; // 5×5 grid
+                            const allFloorHits = [];
+
+                            for (let gx = 0; gx < GRID; gx++) {
+                                for (let gz = 0; gz < GRID; gz++) {
+                                    // Sample points evenly from 10%–90% of the footprint (avoid edges)
+                                    const px = box.min.x + size.x * (0.1 + (gx / (GRID - 1)) * 0.8);
+                                    const pz = box.min.z + size.z * (0.1 + (gz / (GRID - 1)) * 0.8);
+                                    const origin = new THREE.Vector3(px, box.max.y + 5, pz);
+                                    spawnRaycaster.set(origin, downDir);
+                                    const hits = spawnRaycaster.intersectObject(model, true);
+
+                                    // 3. Floor Cluster Filter — discard underground slabs and rooftops.
+                                    //    Only keep hits in the lowest 2m band above the true model floor.
+                                    const trueFloor = box.min.y + 0.05; // above any foundation slab
+                                    const floorBandTop = trueFloor + 2.0; // 2m band = ground floor only
+                                    hits.forEach(h => {
+                                        if (h.point.y >= trueFloor && h.point.y <= floorBandTop) {
+                                            allFloorHits.push(h.point);
+                                        }
+                                    });
+                                }
+                            }
+
+                            if (allFloorHits.length > 0) {
+                                // Pick the average position of all valid floor hits as the spawn center.
+                                // More hits = denser area = more reliable interior location (majority vote).
+                                const avgX = allFloorHits.reduce((s, p) => s + p.x, 0) / allFloorHits.length;
+                                const avgY = allFloorHits.reduce((s, p) => s + p.y, 0) / allFloorHits.length;
+                                const avgZ = allFloorHits.reduce((s, p) => s + p.z, 0) / allFloorHits.length;
+                                spawnX = avgX;
+                                spawnY = avgY + 1.6; // human eye height
+                                spawnZ = avgZ;
                             } else {
-                                // Try offsets around the building entrance
-                                const offsets = [[0, 0], [0, size.z * 0.3], [size.x * 0.2, 0], [-size.x * 0.2, 0]];
+                                // Fallback: brute-force 4 cardinal offsets if grid found nothing
+                                const offsets = [
+                                    [0, 0],
+                                    [0,  size.z * 0.3],
+                                    [0, -size.z * 0.3],
+                                    [ size.x * 0.2, 0],
+                                    [-size.x * 0.2, 0],
+                                ];
+                                let found = false;
                                 for (const [dx, dz] of offsets) {
-                                    topOrigin.set(center.x + dx, box.max.y + 5, center.z + dz);
-                                    spawnRaycaster.set(topOrigin, new THREE.Vector3(0, -1, 0));
-                                    const offHits = spawnRaycaster.intersectObject(model, true);
-                                    if (offHits.length > 0) {
-                                        const sorted = offHits.slice().sort((a, b) => a.point.y - b.point.y);
-                                        const ground = sorted.find(h => h.point.y >= box.min.y - 0.2) || sorted[0];
-                                        spawnX = ground.point.x;
-                                        spawnY = ground.point.y + 1.6;
-                                        spawnZ = ground.point.z;
+                                    const origin = new THREE.Vector3(center.x + dx, box.max.y + 5, center.z + dz);
+                                    spawnRaycaster.set(origin, downDir);
+                                    const hits = spawnRaycaster.intersectObject(model, true);
+                                    const trueFloor = box.min.y + 0.05;
+                                    const valid = hits.filter(h => h.point.y >= trueFloor);
+                                    if (valid.length > 0) {
+                                        const lowest = valid.sort((a, b) => a.point.y - b.point.y)[0];
+                                        spawnX = lowest.point.x;
+                                        spawnY = lowest.point.y + 1.6;
+                                        spawnZ = lowest.point.z;
+                                        found = true;
                                         break;
                                     }
                                 }
+                                // Last resort: use bounding box floor
+                                if (!found) {
+                                    spawnX = center.x;
+                                    spawnY = box.min.y + 1.6;
+                                    spawnZ = center.z;
+                                }
                             }
+                        }
+
+                        // 4. Smart Facing Direction — fire 8 short raycasts around spawn point.
+                        //    Pick the direction with the MOST free space so player faces into the room.
+                        {
+                            const facingRaycaster = new THREE.Raycaster();
+                            facingRaycaster.far = 4.0;
+                            const spawnEye = new THREE.Vector3(spawnX, spawnY, spawnZ);
+                            const DIRECTIONS_8 = [0, 45, 90, 135, 180, 225, 270, 315]; // degrees
+                            let bestAngle = 0;
+                            let bestDist  = -1;
+
+                            DIRECTIONS_8.forEach(deg => {
+                                const rad = THREE.MathUtils.degToRad(deg);
+                                const dir = new THREE.Vector3(Math.sin(rad), 0, Math.cos(rad));
+                                facingRaycaster.set(spawnEye, dir);
+                                const hits = facingRaycaster.intersectObject(model, true);
+                                const dist = hits.length > 0 ? hits[0].distance : facingRaycaster.far;
+                                if (dist > bestDist) {
+                                    bestDist  = dist;
+                                    bestAngle = rad;
+                                }
+                            });
+                            spawnFacingAngle = bestAngle;
                         }
 
                         // Store default safe spawn position for void recovery
                         window.safeSpawnPos = new THREE.Vector3(spawnX, spawnY, spawnZ);
 
+                        // Position camera at spawn point
                         camera.position.set(spawnX, spawnY, spawnZ);
-                        controls.target.set(spawnX, spawnY, spawnZ - 0.01);
+
+                        // Face the most-open direction instead of always -Z
+                        const facingTarget = new THREE.Vector3(
+                            spawnX + Math.sin(spawnFacingAngle),
+                            spawnY,
+                            spawnZ + Math.cos(spawnFacingAngle),
+                        );
+                        controls.target.copy(facingTarget);
                         controls.update();
+
+                        // Trigger spawn fade-in: black overlay fades out smoothly after 1 rendered frame
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                const fadeEl = document.getElementById('spawn-fade');
+                                if (fadeEl) {
+                                    fadeEl.classList.add('faded');
+                                    // Remove from DOM after transition so it doesn't block pointer events
+                                    fadeEl.addEventListener('transitionend', () => fadeEl.remove(), { once: true });
+                                }
+                            });
+                        });
 
                         // Safety ground plane under model so the player never falls into the void
                         const groundGeom = new THREE.PlaneGeometry(Math.max(2000, size.x * 10), Math.max(2000, size.z * 10));
