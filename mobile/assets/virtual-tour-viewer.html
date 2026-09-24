@@ -1203,9 +1203,10 @@
                             }
                         }
                     } else {
-                        // Downward Raycast for Floor Height (Stairs / Gravity - only runs when moving or airborne)
-                        const isMoving = (moveForward !== 0 || moveRight !== 0 || velocityY !== 0);
-                        if (!ghostMode && isMoving) {
+                        // Downward Raycast for Floor Height (Stairs / Gravity)
+                        // Runs when moving OR airborne — gravity must apply even when joystick is released mid-air
+                        const isActiveOrAirborne = (moveForward !== 0 || moveRight !== 0 || velocityY !== 0);
+                        if (!ghostMode && isActiveOrAirborne) {
                             const origin = camera.position.clone();
                             origin.y += 0.8; // Cast from eye level downwards
                             floorRaycaster.set(origin, downVector);
@@ -1326,8 +1327,42 @@
                                 !ghostMode &&
                                 Math.min(eyeDist, waistDist) < COLLISION_DISTANCE
                             ) {
-                                transX = 0;
-                                transZ = 0;
+                                // ── Wall Sliding (axis-split collision) ──────────────────
+                                // Instead of a hard full-stop, test each axis independently.
+                                // This lets the player slide along walls when moving at an angle.
+                                let canX = true;
+                                let canZ = true;
+
+                                // Test X-only movement
+                                if (Math.abs(transX) > 0.0001) {
+                                    const xDir = new THREE.Vector3(Math.sign(transX), 0, 0);
+                                    wallRaycaster.set(camera.position, xDir);
+                                    const xEye = wallRaycaster.intersectObject(model, true).filter(isSolid);
+                                    wallRaycaster.set(waistOrigin, xDir);
+                                    const xWaist = wallRaycaster.intersectObject(model, true).filter(isSolid);
+                                    const xDist = Math.min(
+                                        xEye.length > 0 ? xEye[0].distance : Infinity,
+                                        xWaist.length > 0 ? xWaist[0].distance : Infinity
+                                    );
+                                    if (xDist < COLLISION_DISTANCE) canX = false;
+                                }
+
+                                // Test Z-only movement
+                                if (Math.abs(transZ) > 0.0001) {
+                                    const zDir = new THREE.Vector3(0, 0, Math.sign(transZ));
+                                    wallRaycaster.set(camera.position, zDir);
+                                    const zEye = wallRaycaster.intersectObject(model, true).filter(isSolid);
+                                    wallRaycaster.set(waistOrigin, zDir);
+                                    const zWaist = wallRaycaster.intersectObject(model, true).filter(isSolid);
+                                    const zDist = Math.min(
+                                        zEye.length > 0 ? zEye[0].distance : Infinity,
+                                        zWaist.length > 0 ? zWaist[0].distance : Infinity
+                                    );
+                                    if (zDist < COLLISION_DISTANCE) canZ = false;
+                                }
+
+                                if (!canX) transX = 0;
+                                if (!canZ) transZ = 0;
                             }
                         }
 
