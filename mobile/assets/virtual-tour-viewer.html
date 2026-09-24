@@ -60,6 +60,7 @@
                 font-family: system-ui;
                 font-weight: bold;
                 z-index: 100;
+                display: none;
             }
             #camera-zone {
                 position: absolute;
@@ -315,7 +316,7 @@
                 receivedCount: 0,
                 fallbackUrl: null,
             };
-            const MOVE_SPEED = 0.18;
+            let MOVE_SPEED = 0.18;
             const COLLISION_DISTANCE = 0.38;
             const floorRaycaster = new THREE.Raycaster();
             floorRaycaster.far = 4.0;
@@ -1552,6 +1553,59 @@
             }
 
 
+            function resetToEntrance() {
+                if (!window.safeSpawnPos || !camera || !controls) return;
+                camera.position.copy(window.safeSpawnPos);
+                velocityY = 0;
+                moveForward = 0;
+                moveRight = 0;
+
+                // Run 8-direction raycast to find the most open facing direction
+                const facingRaycaster = new THREE.Raycaster();
+                facingRaycaster.far = 4.0;
+                const spawnEye = camera.position.clone();
+                const DIRECTIONS_8 = [0, 45, 90, 135, 180, 225, 270, 315];
+                let bestAngle = 0;
+                let bestDist = -1;
+                DIRECTIONS_8.forEach((deg) => {
+                    const rad = THREE.MathUtils.degToRad(deg);
+                    const dir = new THREE.Vector3(Math.sin(rad), 0, Math.cos(rad));
+                    facingRaycaster.set(spawnEye, dir);
+                    const hits = facingRaycaster.intersectObject(model, true);
+                    const dist = hits.length > 0 ? hits[0].distance : facingRaycaster.far;
+                    if (dist > bestDist) {
+                        bestDist = dist;
+                        bestAngle = rad;
+                    }
+                });
+                const facingTarget = new THREE.Vector3(
+                    camera.position.x + Math.sin(bestAngle),
+                    camera.position.y,
+                    camera.position.z + Math.cos(bestAngle),
+                );
+                controls.target.copy(facingTarget);
+                controls.update();
+
+                // Smooth fade-in overlay transition
+                let fadeEl = document.getElementById("spawn-fade");
+                if (!fadeEl) {
+                    fadeEl = document.createElement("div");
+                    fadeEl.id = "spawn-fade";
+                    document.body.appendChild(fadeEl);
+                }
+                fadeEl.classList.remove("faded");
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        fadeEl.classList.add("faded");
+                        fadeEl.addEventListener(
+                            "transitionend",
+                            () => fadeEl.remove(),
+                            { once: true },
+                        );
+                    });
+                });
+            }
+
             // ── Message Handlers (window + document for Android WebView) ──
             function handleIncomingMessage(data) {
                 if (data.type === "model_chunk_start") {
@@ -1606,6 +1660,31 @@
                         data.gamma,
                         data.orientAngle,
                     );
+                } else if (data.type === "reset_entrance") {
+                    resetToEntrance();
+                } else if (data.type === "set_control_mode") {
+                    controlMode = data.mode || "joystick";
+                    if (data.mode === "gyroscope") {
+                        startGyroscope();
+                    } else {
+                        gyroEnabled = false;
+                        const gyroInd = document.getElementById("gyro-indicator");
+                        if (gyroInd) gyroInd.style.display = "none";
+                        const camZone = document.getElementById("camera-zone");
+                        if (camZone) camZone.style.pointerEvents = "auto";
+                        const inst = document.getElementById("instructions");
+                        if (inst) inst.innerHTML = "Drag right side to look<br />Use joystick to move";
+                        if (controls) controls.enabled = true;
+                    }
+                } else if (data.type === "set_speed") {
+                    MOVE_SPEED = Number(data.speed) || 0.18;
+                } else if (data.type === "set_sensitivity") {
+                    if (controls) controls.rotateSpeed = Number(data.sensitivity) || 0.85;
+                } else if (data.type === "set_labels_visible") {
+                    const labelsEl = document.getElementById("floating-labels");
+                    if (labelsEl) labelsEl.style.display = data.visible ? "block" : "none";
+                } else if (data.type === "set_ghost_mode") {
+                    ghostMode = Boolean(data.enabled);
                 } else if (data.type === "dispose") {
                     dispose();
                 }
