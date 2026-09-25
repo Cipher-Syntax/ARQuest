@@ -9,6 +9,7 @@ import {
     Animated,
     ActivityIndicator,
     Easing,
+    Modal,
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -602,6 +603,11 @@ export default function ARScreen() {
     // Center Arrival Modal: Triggers for ~3.5 seconds when arriving at destination
     useEffect(() => {
         if (isArrived) {
+            try {
+                SoundManager.play("building_unlock");
+            } catch {
+                // Non-fatal if audio fails
+            }
             setShowArrivalModal(true);
             Animated.timing(arrivalModalAnim, {
                 toValue: 1,
@@ -1326,58 +1332,6 @@ export default function ARScreen() {
                     </>
                 )}
 
-                {/* ── Center Arrival Modal (Pops up for ~3.5s upon arrival) ── */}
-                {showArrivalModal && !isScanningQr && !capturing && !triviaModalVisible && (
-                    <Animated.View
-                        style={[
-                            styles.arrivalModalContainer,
-                            {
-                                opacity: arrivalModalAnim,
-                                transform: [
-                                    {
-                                        scale: arrivalModalAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.85, 1],
-                                        }),
-                                    },
-                                ],
-                            },
-                        ]}
-                        pointerEvents="box-none"
-                    >
-                        <TouchableOpacity
-                            style={styles.arrivalModalCard}
-                            activeOpacity={0.9}
-                            onPress={handleDismissArrivalModal}
-                        >
-                            {/* Glowing Pin Badge */}
-                            <View style={styles.arrivalModalIconWrap}>
-                                <Ionicons name="location" size={26} color="#E8B923" />
-                            </View>
-
-                            <Text style={styles.arrivalModalTagline}>CAMPUS LANDMARK REACHED</Text>
-                            <Text style={styles.arrivalModalTitle}>YOU HAVE ARRIVED</Text>
-
-                            <View style={styles.arrivalModalBldgWrap}>
-                                <Text style={styles.arrivalModalBldgName} numberOfLines={2}>
-                                    {effectiveBuildingName || activeBldg?.name || 'Destination'}
-                                </Text>
-                            </View>
-
-                            {/* Loading subtext with spinner */}
-                            <View style={styles.arrivalModalLoaderRow}>
-                                <ActivityIndicator size="small" color="#E8B923" style={{ marginRight: 8 }} />
-                                <Text style={styles.arrivalModalLoaderText}>
-                                    Wait for 3D model to load...
-                                </Text>
-                            </View>
-
-                            {/* Dismiss hint */}
-                            <Text style={styles.arrivalModalDismissHint}>Tap to dismiss</Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-                )}
-
                 {/* 3. Reticle Overlays */}
                 {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
                 {isScanningQr && (
@@ -1414,6 +1368,97 @@ export default function ARScreen() {
 
             {/* --- DEVICE NOT SUPPORTED MODAL --- */}
             <DeviceNotSupportedModal />
+
+            {/* --- REWARD-STYLE CENTER ARRIVAL MODAL (Native Window Centered) --- */}
+            <Modal
+                transparent={true}
+                visible={Boolean(showArrivalModal && !isScanningQr && !capturing && !triviaModalVisible)}
+                animationType="none"
+                statusBarTranslucent={true}
+                onRequestClose={handleDismissArrivalModal}
+            >
+                <View style={styles.arrivalModalOverlay}>
+                    {/* Backdrop touch to dismiss */}
+                    <TouchableOpacity
+                        style={StyleSheet.absoluteFillObject}
+                        activeOpacity={1}
+                        onPress={handleDismissArrivalModal}
+                    />
+
+                    <Animated.View
+                        style={[
+                            styles.arrivalRewardCard,
+                            {
+                                opacity: arrivalModalAnim,
+                                transform: [
+                                    {
+                                        scale: arrivalModalAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.85, 1],
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    >
+                        <TouchableOpacity
+                            activeOpacity={1}
+                            style={styles.arrivalRewardCardInner}
+                            onPress={handleDismissArrivalModal}
+                        >
+                            {/* Glowing Trophy Badge */}
+                            <View style={styles.arrivalRewardTrophyWrap}>
+                                <Ionicons name="trophy" size={32} color="#FFD700" />
+                            </View>
+
+                            {/* Banner Tag */}
+                            <View style={styles.arrivalRewardBanner}>
+                                <Ionicons name="sparkles" size={12} color="#FFD700" style={{ marginRight: 5 }} />
+                                <Text style={styles.arrivalRewardTagline}>DESTINATION REACHED</Text>
+                                <Ionicons name="sparkles" size={12} color="#FFD700" style={{ marginLeft: 5 }} />
+                            </View>
+
+                            <Text style={styles.arrivalRewardTitle}>YOU HAVE ARRIVED</Text>
+
+                            {/* Building Plaque / Certificate Box */}
+                            <View style={styles.arrivalRewardBldgPlaque}>
+                                <Ionicons name="location-sharp" size={18} color="#FFD700" style={{ marginRight: 6 }} />
+                                <Text style={styles.arrivalRewardBldgName} numberOfLines={2}>
+                                    {effectiveBuildingName || (navTargetFull || nearbyBuildingFull)?.name || 'Destination'}
+                                </Text>
+                            </View>
+
+                            {/* Gamified Reward / Discovery Pill */}
+                            {user?.role === 'student' && matchingQuest ? (
+                                <View style={styles.arrivalRewardExpPill}>
+                                    <Ionicons name="gift" size={16} color="#FFD700" style={{ marginRight: 6 }} />
+                                    <Text style={styles.arrivalRewardExpText}>
+                                        MISSION AVAILABLE: +{matchingQuest.reward_points || 50} EXP
+                                    </Text>
+                                </View>
+                            ) : (
+                                <View style={styles.arrivalRewardBadgePill}>
+                                    <Ionicons name="ribbon" size={15} color="#00E5FF" style={{ marginRight: 6 }} />
+                                    <Text style={styles.arrivalRewardBadgeText}>
+                                        CAMPUS LANDMARK UNLOCKED
+                                    </Text>
+                                </View>
+                            )}
+
+                            {/* Model Loading Status Indicator */}
+                            <View style={styles.arrivalRewardLoaderBox}>
+                                <ActivityIndicator size="small" color="#FFD700" style={{ marginRight: 8 }} />
+                                <Text style={styles.arrivalRewardLoaderText}>
+                                    Wait for 3D model to load...
+                                </Text>
+                            </View>
+
+                            {/* Dismiss Hint */}
+                            <Text style={styles.arrivalRewardDismissHint}>Tap anywhere to continue</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+            </Modal>
 
 
 
@@ -2198,87 +2243,148 @@ const styles = StyleSheet.create({
         fontSize: 13,
         letterSpacing: 1.5,
     },
-    arrivalModalContainer: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 60,
-        backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    },
-    arrivalModalCard: {
-        width: '84%',
-        maxWidth: 330,
-        backgroundColor: 'rgba(7, 42, 48, 0.96)',
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: '#E8B923',
-        paddingVertical: 22,
+    arrivalModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.72)",
+        justifyContent: "center",
+        alignItems: "center",
         paddingHorizontal: 20,
-        alignItems: 'center',
-        shadowColor: '#E8B923',
+    },
+    arrivalRewardCard: {
+        width: "88%",
+        maxWidth: 340,
+        backgroundColor: "rgba(24, 6, 12, 0.98)",
+        borderRadius: 24,
+        borderWidth: 2,
+        borderColor: "#E8B923",
+        shadowColor: "#FFD700",
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 18,
-        elevation: 12,
+        shadowOpacity: 0.75,
+        shadowRadius: 22,
+        elevation: 20,
+        overflow: "hidden",
     },
-    arrivalModalIconWrap: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        backgroundColor: 'rgba(232, 185, 35, 0.15)',
-        borderWidth: 1.5,
-        borderColor: '#E8B923',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10,
+    arrivalRewardCardInner: {
+        paddingVertical: 24,
+        paddingHorizontal: 20,
+        alignItems: "center",
     },
-    arrivalModalTagline: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 10,
-        color: '#00E5FF',
-        letterSpacing: 1.5,
-        textTransform: 'uppercase',
-        marginBottom: 4,
+    arrivalRewardTrophyWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: "rgba(232, 185, 35, 0.18)",
+        borderWidth: 2,
+        borderColor: "#FFD700",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 12,
+        shadowColor: "#FFD700",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.9,
+        shadowRadius: 14,
+        elevation: 8,
     },
-    arrivalModalTitle: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 20,
-        color: '#FFFFFF',
-        letterSpacing: 1.5,
-        textAlign: 'center',
+    arrivalRewardBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(232, 185, 35, 0.15)",
+        borderWidth: 1,
+        borderColor: "rgba(232, 185, 35, 0.4)",
+        borderRadius: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 12,
         marginBottom: 8,
     },
-    arrivalModalBldgWrap: {
-        backgroundColor: 'rgba(18, 59, 68, 0.8)',
+    arrivalRewardTagline: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 10,
+        color: "#FFD700",
+        letterSpacing: 1.5,
+        textTransform: "uppercase",
+    },
+    arrivalRewardTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 22,
+        color: "#FFFFFF",
+        letterSpacing: 2,
+        textAlign: "center",
+        marginBottom: 14,
+    },
+    arrivalRewardBldgPlaque: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(178, 24, 48, 0.35)",
         borderWidth: 1,
-        borderColor: '#2C5A63',
-        borderRadius: 10,
-        paddingVertical: 8,
+        borderColor: "#B21830",
+        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        marginBottom: 12,
+        width: "100%",
+    },
+    arrivalRewardBldgName: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 15,
+        color: "#FFFFFF",
+        textAlign: "center",
+        flexShrink: 1,
+    },
+    arrivalRewardExpPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(255, 215, 0, 0.15)",
+        borderWidth: 1,
+        borderColor: "#FFD700",
+        borderRadius: 20,
+        paddingVertical: 6,
         paddingHorizontal: 14,
         marginBottom: 14,
-        width: '100%',
-        alignItems: 'center',
     },
-    arrivalModalBldgName: {
+    arrivalRewardExpText: {
         fontFamily: fonts.heading.bold,
-        fontSize: 14,
-        color: '#E8B923',
-        textAlign: 'center',
-    },
-    arrivalModalLoaderRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 10,
-    },
-    arrivalModalLoaderText: {
         fontSize: 12,
-        color: '#C9D6DA',
-        fontWeight: '600',
+        color: "#FFD700",
+        letterSpacing: 0.5,
     },
-    arrivalModalDismissHint: {
-        fontSize: 10,
-        color: '#8AA3AA',
+    arrivalRewardBadgePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 229, 255, 0.12)",
+        borderWidth: 1,
+        borderColor: "rgba(0, 229, 255, 0.35)",
+        borderRadius: 20,
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        marginBottom: 14,
+    },
+    arrivalRewardBadgeText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 11,
+        color: "#00E5FF",
+        letterSpacing: 0.8,
+    },
+    arrivalRewardLoaderBox: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+        borderRadius: 8,
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        marginBottom: 12,
+    },
+    arrivalRewardLoaderText: {
+        fontSize: 12,
+        color: "#E8B923",
+        fontWeight: "600",
+    },
+    arrivalRewardDismissHint: {
+        fontSize: 11,
+        color: "#8AA3AA",
         letterSpacing: 0.5,
     },
 
