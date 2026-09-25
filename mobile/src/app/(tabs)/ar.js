@@ -1266,6 +1266,29 @@ export default function ARScreen() {
                     </>
                 )}
 
+                {/* ── Center Arrival Badge (Pulsing Glow Pill at Screen Center) ── */}
+                {isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
+                    <Animated.View
+                        style={[
+                            styles.arrivedCenterBadge,
+                            {
+                                borderColor: ribbonPulseAnim.interpolate({
+                                    inputRange: [0.2, 1],
+                                    outputRange: ['rgba(232, 185, 35, 0.4)', 'rgba(232, 185, 35, 1.0)'],
+                                }),
+                                shadowOpacity: ribbonPulseAnim.interpolate({
+                                    inputRange: [0.2, 1],
+                                    outputRange: [0.3, 0.8],
+                                }),
+                            },
+                        ]}
+                        pointerEvents="none"
+                    >
+                        <Ionicons name="checkmark-circle" size={20} color="#E8B923" />
+                        <Text style={styles.arrivedCenterText}>YOU HAVE ARRIVED</Text>
+                    </Animated.View>
+                )}
+
                 {/* 3. Reticle Overlays */}
                 {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
                 {isScanningQr && (
@@ -2084,6 +2107,32 @@ const styles = StyleSheet.create({
         fontFamily: fonts.heading.bold,
         color: '#FFFFFF',
         fontSize: 13,
+        letterSpacing: 1.5,
+    },
+    arrivedCenterBadge: {
+        position: 'absolute',
+        top: '46%',
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(15, 65, 74, 0.94)',
+        paddingVertical: 12,
+        paddingHorizontal: 22,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: '#E8B923',
+        shadowColor: '#E8B923',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 14,
+        elevation: 10,
+        zIndex: 40,
+    },
+    arrivedCenterText: {
+        fontFamily: fonts.heading.bold,
+        color: '#FFFFFF',
+        fontSize: 14,
         letterSpacing: 1.5,
     },
 
