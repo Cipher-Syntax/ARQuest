@@ -155,6 +155,11 @@ export default function ARScreen() {
     // Turn indicator glow pulse (border opacity animation)
     const ribbonPulseAnim = useRef(new Animated.Value(0)).current;
 
+    // Center Arrival Modal states & animation
+    const [showArrivalModal, setShowArrivalModal] = useState(false);
+    const arrivalModalAnim = useRef(new Animated.Value(0)).current;
+    const arrivalTimerRef = useRef(null);
+
     const fetchQuests = useCallback(async () => {
         if (user?.role !== "student") return;
         try {
@@ -167,6 +172,8 @@ export default function ARScreen() {
             console.error("Error fetching quests", error);
         }
     }, [user?.role]);
+
+
 
     // 3D Model Loading State in AR
     const [isArModelLoading, setIsArModelLoading] = useState(false);
@@ -591,6 +598,59 @@ export default function ARScreen() {
     }, [rawArrived, distanceToTarget, isInsideDestination, isTargetMode, geofenceStatus?.status]);
 
     const isArrived = Boolean(isArrivedLatched || rawArrived);
+
+    // Center Arrival Modal: Triggers for ~3.5 seconds when arriving at destination
+    useEffect(() => {
+        if (isArrived) {
+            setShowArrivalModal(true);
+            Animated.timing(arrivalModalAnim, {
+                toValue: 1,
+                duration: 350,
+                easing: Easing.out(Easing.back(1.5)),
+                useNativeDriver: true,
+            }).start();
+
+            if (arrivalTimerRef.current) {
+                clearTimeout(arrivalTimerRef.current);
+            }
+
+            arrivalTimerRef.current = setTimeout(() => {
+                Animated.timing(arrivalModalAnim, {
+                    toValue: 0,
+                    duration: 400,
+                    easing: Easing.in(Easing.ease),
+                    useNativeDriver: true,
+                }).start(() => {
+                    setShowArrivalModal(false);
+                });
+            }, 3500);
+        } else {
+            if (arrivalTimerRef.current) {
+                clearTimeout(arrivalTimerRef.current);
+            }
+            setShowArrivalModal(false);
+            arrivalModalAnim.setValue(0);
+        }
+
+        return () => {
+            if (arrivalTimerRef.current) {
+                clearTimeout(arrivalTimerRef.current);
+            }
+        };
+    }, [isArrived]);
+
+    const handleDismissArrivalModal = () => {
+        if (arrivalTimerRef.current) {
+            clearTimeout(arrivalTimerRef.current);
+        }
+        Animated.timing(arrivalModalAnim, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+        }).start(() => {
+            setShowArrivalModal(false);
+        });
+    };
 
     if (navTargetFull && navUserLat && navUserLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
@@ -1266,26 +1326,55 @@ export default function ARScreen() {
                     </>
                 )}
 
-                {/* ── Center Arrival Badge (Pulsing Glow Pill at Screen Center) ── */}
-                {isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
+                {/* ── Center Arrival Modal (Pops up for ~3.5s upon arrival) ── */}
+                {showArrivalModal && !isScanningQr && !capturing && !triviaModalVisible && (
                     <Animated.View
                         style={[
-                            styles.arrivedCenterBadge,
+                            styles.arrivalModalContainer,
                             {
-                                borderColor: ribbonPulseAnim.interpolate({
-                                    inputRange: [0.2, 1],
-                                    outputRange: ['rgba(232, 185, 35, 0.4)', 'rgba(232, 185, 35, 1.0)'],
-                                }),
-                                shadowOpacity: ribbonPulseAnim.interpolate({
-                                    inputRange: [0.2, 1],
-                                    outputRange: [0.3, 0.8],
-                                }),
+                                opacity: arrivalModalAnim,
+                                transform: [
+                                    {
+                                        scale: arrivalModalAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.85, 1],
+                                        }),
+                                    },
+                                ],
                             },
                         ]}
-                        pointerEvents="none"
+                        pointerEvents="box-none"
                     >
-                        <Ionicons name="checkmark-circle" size={20} color="#E8B923" />
-                        <Text style={styles.arrivedCenterText}>YOU HAVE ARRIVED</Text>
+                        <TouchableOpacity
+                            style={styles.arrivalModalCard}
+                            activeOpacity={0.9}
+                            onPress={handleDismissArrivalModal}
+                        >
+                            {/* Glowing Pin Badge */}
+                            <View style={styles.arrivalModalIconWrap}>
+                                <Ionicons name="location" size={26} color="#E8B923" />
+                            </View>
+
+                            <Text style={styles.arrivalModalTagline}>CAMPUS LANDMARK REACHED</Text>
+                            <Text style={styles.arrivalModalTitle}>YOU HAVE ARRIVED</Text>
+
+                            <View style={styles.arrivalModalBldgWrap}>
+                                <Text style={styles.arrivalModalBldgName} numberOfLines={2}>
+                                    {effectiveBuildingName || activeBldg?.name || 'Destination'}
+                                </Text>
+                            </View>
+
+                            {/* Loading subtext with spinner */}
+                            <View style={styles.arrivalModalLoaderRow}>
+                                <ActivityIndicator size="small" color="#E8B923" style={{ marginRight: 8 }} />
+                                <Text style={styles.arrivalModalLoaderText}>
+                                    Wait for 3D model to load...
+                                </Text>
+                            </View>
+
+                            {/* Dismiss hint */}
+                            <Text style={styles.arrivalModalDismissHint}>Tap to dismiss</Text>
+                        </TouchableOpacity>
                     </Animated.View>
                 )}
 
@@ -2109,31 +2198,88 @@ const styles = StyleSheet.create({
         fontSize: 13,
         letterSpacing: 1.5,
     },
-    arrivedCenterBadge: {
-        position: 'absolute',
-        top: '46%',
-        alignSelf: 'center',
-        flexDirection: 'row',
+    arrivalModalContainer: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 8,
-        backgroundColor: 'rgba(15, 65, 74, 0.94)',
-        paddingVertical: 12,
-        paddingHorizontal: 22,
-        borderRadius: 28,
+        zIndex: 60,
+        backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    },
+    arrivalModalCard: {
+        width: '84%',
+        maxWidth: 330,
+        backgroundColor: 'rgba(7, 42, 48, 0.96)',
+        borderRadius: 20,
         borderWidth: 2,
         borderColor: '#E8B923',
+        paddingVertical: 22,
+        paddingHorizontal: 20,
+        alignItems: 'center',
         shadowColor: '#E8B923',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.6,
-        shadowRadius: 14,
-        elevation: 10,
-        zIndex: 40,
+        shadowRadius: 18,
+        elevation: 12,
     },
-    arrivedCenterText: {
+    arrivalModalIconWrap: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: 'rgba(232, 185, 35, 0.15)',
+        borderWidth: 1.5,
+        borderColor: '#E8B923',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    arrivalModalTagline: {
         fontFamily: fonts.heading.bold,
-        color: '#FFFFFF',
-        fontSize: 14,
+        fontSize: 10,
+        color: '#00E5FF',
         letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    arrivalModalTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 20,
+        color: '#FFFFFF',
+        letterSpacing: 1.5,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    arrivalModalBldgWrap: {
+        backgroundColor: 'rgba(18, 59, 68, 0.8)',
+        borderWidth: 1,
+        borderColor: '#2C5A63',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        marginBottom: 14,
+        width: '100%',
+        alignItems: 'center',
+    },
+    arrivalModalBldgName: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 14,
+        color: '#E8B923',
+        textAlign: 'center',
+    },
+    arrivalModalLoaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 10,
+    },
+    arrivalModalLoaderText: {
+        fontSize: 12,
+        color: '#C9D6DA',
+        fontWeight: '600',
+    },
+    arrivalModalDismissHint: {
+        fontSize: 10,
+        color: '#8AA3AA',
+        letterSpacing: 0.5,
     },
 
 
