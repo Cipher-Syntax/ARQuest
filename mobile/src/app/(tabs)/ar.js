@@ -60,6 +60,7 @@ export default function ARScreen() {
     const [cachedModelUri, setCachedModelUri] = useState(null);
     const [claimErrorModalVisible, setClaimErrorModalVisible] = useState(false);
     const [claimErrorMessage, setClaimErrorMessage] = useState("");
+    const [claimTargetQuest, setClaimTargetQuest] = useState(null);
 
     const navigation = useNavigation();
     const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
@@ -689,19 +690,28 @@ export default function ARScreen() {
         }
     }
 
-    const handleClaimQuest = async () => {
-        if (!matchingQuest || isClaiming) return;
+    const handleClaimQuest = async (questOverride = null) => {
+        // Prevent React Native event object from being treated as questOverride
+        const validOverride = (questOverride && typeof questOverride === 'object' && questOverride.id && !questOverride.nativeEvent)
+            ? questOverride
+            : null;
+        const validClaimTarget = (claimTargetQuest && claimTargetQuest.id) ? claimTargetQuest : null;
+        const validMatching = (matchingQuest && matchingQuest.id) ? matchingQuest : null;
+        const targetQuest = validOverride || validClaimTarget || validMatching;
+        if (!targetQuest || !targetQuest.id || isClaiming) return;
+        setClaimTargetQuest(targetQuest);
         setIsClaiming(true);
         try {
             const res = await api.post(
-                `/api/gamification/quests/${matchingQuest.id}/complete/`,
+                `/api/gamification/quests/${targetQuest.id}/complete/`,
             );
             if (res.data.success) {
                 SoundManager.play("quest_complete");
-                setClaimedQuest(matchingQuest);
+                setClaimedQuest(targetQuest);
+                setClaimTargetQuest(null);
                 setActiveQuests((prev) =>
                     (Array.isArray(prev) ? prev : []).map((q) =>
-                        q.id === matchingQuest.id
+                        q.id === targetQuest.id
                             ? { ...q, is_completed: true }
                             : q,
                     ),
@@ -801,12 +811,22 @@ export default function ARScreen() {
             }
         } catch (err) {
             console.error("CLAIM QUEST ERROR:", err);
-            const errorMessage =
-                err?.data?.error ||
-                err?.data?.detail ||
-                err?.message ||
-                (typeof err === "string" ? err : null) ||
-                "The server took too long to respond. Please check your connection and retry.";
+            let errorMessage = "The server took too long to respond. Please check your connection and retry.";
+            if (typeof err?.data === "string" && err.data.includes("<html")) {
+                if (err.status === 404) {
+                    errorMessage = "Quest could not be located on the server (404).";
+                } else if (err.status >= 500) {
+                    errorMessage = "Server error encountered (500). Please try again shortly.";
+                }
+            } else if (err?.data?.error) {
+                errorMessage = err.data.error;
+            } else if (err?.data?.detail) {
+                errorMessage = err.data.detail;
+            } else if (err?.message) {
+                errorMessage = err.message;
+            } else if (typeof err === "string") {
+                errorMessage = err;
+            }
             setClaimErrorMessage(errorMessage);
             setClaimErrorModalVisible(true);
         } finally {
@@ -815,6 +835,7 @@ export default function ARScreen() {
     };
 
     const handleViewTriviaOnly = async () => {
+        setClaimedQuest(null); // Ensure clean trivia view without previous quest completion badge
         const activeBldg = navTargetFull || nearbyBuildingFull;
         if (!activeBldg) return;
         try {
@@ -848,7 +869,10 @@ export default function ARScreen() {
             toValue: 400,
             duration: 250,
             useNativeDriver: true,
-        }).start(() => setTriviaModalVisible(false));
+        }).start(() => {
+            setTriviaModalVisible(false);
+            setClaimedQuest(null);
+        });
     };
 
     const checkGeofenceStatus = async () => {
@@ -1263,7 +1287,7 @@ export default function ARScreen() {
                                             user?.role === 'student' && matchingQuest ? (
                                                 <TouchableOpacity 
                                                     style={[styles.claimQuestBtn, { backgroundColor: '#B21830' }]} 
-                                                    onPress={handleClaimQuest}
+                                                    onPress={() => handleClaimQuest(matchingQuest)}
                                                     disabled={isClaiming}
                                                     activeOpacity={0.8}
                                                 >
@@ -1492,11 +1516,11 @@ export default function ARScreen() {
                         </Text>
 
                         {/* Active Quest Context Pill */}
-                        {matchingQuest && (
+                        {(claimTargetQuest || matchingQuest) && (
                             <View style={styles.claimErrorQuestPill}>
                                 <Ionicons name="gift-outline" size={16} color="#FFD700" style={{ marginRight: 6 }} />
                                 <Text style={styles.claimErrorQuestText} numberOfLines={1}>
-                                    {matchingQuest.title || "Campus Quest"} (+{matchingQuest.reward_points || 50} EXP)
+                                    {(claimTargetQuest || matchingQuest).title || "Campus Quest"} (+{(claimTargetQuest || matchingQuest).reward_points || 50} EXP)
                                 </Text>
                             </View>
                         )}
@@ -1515,7 +1539,7 @@ export default function ARScreen() {
                                 style={styles.claimErrorRetryBtn}
                                 onPress={() => {
                                     setClaimErrorModalVisible(false);
-                                    handleClaimQuest();
+                                    handleClaimQuest(claimTargetQuest || matchingQuest);
                                 }}
                                 disabled={isClaiming}
                                 activeOpacity={0.8}
