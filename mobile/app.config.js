@@ -11,6 +11,7 @@ export default {
         updates: {
             url: "https://u.expo.dev/a93fe083-ea87-495c-b5fc-74424c017742"
         },
+        platforms: ["android", "ios"],
         runtimeVersion: {
             policy: "appVersion"
         },
