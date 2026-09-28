@@ -71,41 +71,12 @@ api.interceptors.response.use(
             // We throw an object that matches the previous error structure the UI expects
             throw { status: error.response.status, data: error.response.data };
         }
-        // The request was made but no response was received
+        // The request was made but no response was received (Network timeout, offline, unreachable host)
         else if (error.request) {
-            const method = originalRequest.method?.toUpperCase();
-            const url = originalRequest.url || "";
-
-            // Auto-queue offline gamification actions
-            if (
-                method === "POST" &&
-                (url.includes("/gamification/quests/") ||
-                    url.includes("/buildings/unlock/"))
-            ) {
-                const {
-                    offlineQueueService,
-                } = require("./core/offlineQueueService");
-                const data = originalRequest.data
-                    ? JSON.parse(originalRequest.data)
-                    : null;
-                await offlineQueueService.enqueueRequest(url, method, data);
-
-                // Fake success so the UI doesn't crash or block the user
-                return {
-                    data: {
-                        success: true,
-                        data: {
-                            message: "Queued offline",
-                            newly_earned_badges: [],
-                            rank_info: null,
-                        },
-                    },
-                };
-            }
-
             throw {
+                status: 0,
                 data: {
-                    detail: "Network error. Please check your connection.",
+                    detail: "Network connection lost. Please check your connection and retry.",
                 },
             };
         }
