@@ -60,6 +60,7 @@ export default function ARScreen() {
     const [cachedModelUri, setCachedModelUri] = useState(null);
     const [claimErrorModalVisible, setClaimErrorModalVisible] = useState(false);
     const [claimErrorMessage, setClaimErrorMessage] = useState("");
+    const [claimTargetQuest, setClaimTargetQuest] = useState(null);
 
     const navigation = useNavigation();
     const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
@@ -689,19 +690,22 @@ export default function ARScreen() {
         }
     }
 
-    const handleClaimQuest = async () => {
-        if (!matchingQuest || isClaiming) return;
+    const handleClaimQuest = async (questOverride = null) => {
+        const targetQuest = questOverride || claimTargetQuest || matchingQuest;
+        if (!targetQuest || isClaiming) return;
+        setClaimTargetQuest(targetQuest);
         setIsClaiming(true);
         try {
             const res = await api.post(
-                `/api/gamification/quests/${matchingQuest.id}/complete/`,
+                `/api/gamification/quests/${targetQuest.id}/complete/`,
             );
             if (res.data.success) {
                 SoundManager.play("quest_complete");
-                setClaimedQuest(matchingQuest);
+                setClaimedQuest(targetQuest);
+                setClaimTargetQuest(null);
                 setActiveQuests((prev) =>
                     (Array.isArray(prev) ? prev : []).map((q) =>
-                        q.id === matchingQuest.id
+                        q.id === targetQuest.id
                             ? { ...q, is_completed: true }
                             : q,
                     ),
@@ -815,6 +819,7 @@ export default function ARScreen() {
     };
 
     const handleViewTriviaOnly = async () => {
+        setClaimedQuest(null); // Ensure clean trivia view without previous quest completion badge
         const activeBldg = navTargetFull || nearbyBuildingFull;
         if (!activeBldg) return;
         try {
@@ -848,7 +853,10 @@ export default function ARScreen() {
             toValue: 400,
             duration: 250,
             useNativeDriver: true,
-        }).start(() => setTriviaModalVisible(false));
+        }).start(() => {
+            setTriviaModalVisible(false);
+            setClaimedQuest(null);
+        });
     };
 
     const checkGeofenceStatus = async () => {
@@ -1492,11 +1500,11 @@ export default function ARScreen() {
                         </Text>
 
                         {/* Active Quest Context Pill */}
-                        {matchingQuest && (
+                        {(claimTargetQuest || matchingQuest) && (
                             <View style={styles.claimErrorQuestPill}>
                                 <Ionicons name="gift-outline" size={16} color="#FFD700" style={{ marginRight: 6 }} />
                                 <Text style={styles.claimErrorQuestText} numberOfLines={1}>
-                                    {matchingQuest.title || "Campus Quest"} (+{matchingQuest.reward_points || 50} EXP)
+                                    {(claimTargetQuest || matchingQuest).title || "Campus Quest"} (+{(claimTargetQuest || matchingQuest).reward_points || 50} EXP)
                                 </Text>
                             </View>
                         )}
@@ -1515,7 +1523,7 @@ export default function ARScreen() {
                                 style={styles.claimErrorRetryBtn}
                                 onPress={() => {
                                     setClaimErrorModalVisible(false);
-                                    handleClaimQuest();
+                                    handleClaimQuest(claimTargetQuest);
                                 }}
                                 disabled={isClaiming}
                                 activeOpacity={0.8}
