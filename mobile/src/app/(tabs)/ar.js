@@ -691,8 +691,14 @@ export default function ARScreen() {
     }
 
     const handleClaimQuest = async (questOverride = null) => {
-        const targetQuest = questOverride || claimTargetQuest || matchingQuest;
-        if (!targetQuest || isClaiming) return;
+        // Prevent React Native event object from being treated as questOverride
+        const validOverride = (questOverride && typeof questOverride === 'object' && questOverride.id && !questOverride.nativeEvent)
+            ? questOverride
+            : null;
+        const validClaimTarget = (claimTargetQuest && claimTargetQuest.id) ? claimTargetQuest : null;
+        const validMatching = (matchingQuest && matchingQuest.id) ? matchingQuest : null;
+        const targetQuest = validOverride || validClaimTarget || validMatching;
+        if (!targetQuest || !targetQuest.id || isClaiming) return;
         setClaimTargetQuest(targetQuest);
         setIsClaiming(true);
         try {
@@ -805,12 +811,22 @@ export default function ARScreen() {
             }
         } catch (err) {
             console.error("CLAIM QUEST ERROR:", err);
-            const errorMessage =
-                err?.data?.error ||
-                err?.data?.detail ||
-                err?.message ||
-                (typeof err === "string" ? err : null) ||
-                "The server took too long to respond. Please check your connection and retry.";
+            let errorMessage = "The server took too long to respond. Please check your connection and retry.";
+            if (typeof err?.data === "string" && err.data.includes("<html")) {
+                if (err.status === 404) {
+                    errorMessage = "Quest could not be located on the server (404).";
+                } else if (err.status >= 500) {
+                    errorMessage = "Server error encountered (500). Please try again shortly.";
+                }
+            } else if (err?.data?.error) {
+                errorMessage = err.data.error;
+            } else if (err?.data?.detail) {
+                errorMessage = err.data.detail;
+            } else if (err?.message) {
+                errorMessage = err.message;
+            } else if (typeof err === "string") {
+                errorMessage = err;
+            }
             setClaimErrorMessage(errorMessage);
             setClaimErrorModalVisible(true);
         } finally {
@@ -1271,7 +1287,7 @@ export default function ARScreen() {
                                             user?.role === 'student' && matchingQuest ? (
                                                 <TouchableOpacity 
                                                     style={[styles.claimQuestBtn, { backgroundColor: '#B21830' }]} 
-                                                    onPress={handleClaimQuest}
+                                                    onPress={() => handleClaimQuest(matchingQuest)}
                                                     disabled={isClaiming}
                                                     activeOpacity={0.8}
                                                 >
@@ -1523,7 +1539,7 @@ export default function ARScreen() {
                                 style={styles.claimErrorRetryBtn}
                                 onPress={() => {
                                     setClaimErrorModalVisible(false);
-                                    handleClaimQuest(claimTargetQuest);
+                                    handleClaimQuest(claimTargetQuest || matchingQuest);
                                 }}
                                 disabled={isClaiming}
                                 activeOpacity={0.8}
