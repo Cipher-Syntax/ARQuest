@@ -1,6 +1,10 @@
 # Dependencies (EAS Build installs dependencies automatically in the cloud)
 node_modules/
 
+# Explicitly ensure context modules are packaged
+!src/context/
+!src/context/**
+
 # Local Expo & Web build artifacts
 .expo/
 dist/

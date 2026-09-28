@@ -356,14 +356,14 @@ export default function ARQuestScene(props) {
 
                     {/* Subtitle: Arrived Status Badge */}
                     <ViroText
-                        text="📍 DESTINATION REACHED"
-                        width={4}
-                        height={0.6}
-                        scale={[0.26, 0.26, 0.26]}
+                        text="📍 YOU HAVE ARRIVED"
+                        width={5}
+                        height={0.8}
+                        scale={[0.28, 0.28, 0.28]}
                         position={[0, 1.05, 0]}
                         style={{
                             fontFamily: 'Arial',
-                            fontSize: 20,
+                            fontSize: 22,
                             fontWeight: 'bold',
                             color: '#E8B923',
                             textAlign: 'center',

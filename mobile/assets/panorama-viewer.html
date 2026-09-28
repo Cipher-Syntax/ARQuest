@@ -119,6 +119,53 @@
             let maxFov = 75;
             let maxLat = 0;
 
+            // ── Gyroscope state (Native Bridge) ────────────────────────────
+            // Android WebViews never fire deviceorientation events.
+            // React Native reads DeviceMotion natively and posts gyro_data here.
+            
+            let gyroEnabled = false;
+            const _zee = new THREE.Vector3(0, 0, 1);
+            const _eu  = new THREE.Euler();
+            const _q0  = new THREE.Quaternion();
+            const _q1  = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+            const _latestGyroQuat   = new THREE.Quaternion();
+            const _targetPanoQuat   = new THREE.Quaternion();
+            let   _yawOffset        = null;
+            let   _gyroDataReceived = false;
+            let   _touchOverride    = false; // user dragging overrides gyro temporarily
+
+            function onGyroData(alphaDeg, betaDeg, gammaDeg, orientAngleDeg) {
+                if (!gyroEnabled) return;
+                const alpha  = THREE.MathUtils.degToRad(alphaDeg);
+                const beta   = THREE.MathUtils.degToRad(betaDeg);
+                const gamma  = THREE.MathUtils.degToRad(gammaDeg);
+                const orient = THREE.MathUtils.degToRad(orientAngleDeg || 90);
+
+                _eu.set(beta, alpha, -gamma, "YXZ");
+                _latestGyroQuat.setFromEuler(_eu);
+                _latestGyroQuat.multiply(_q1);
+                _latestGyroQuat.multiply(_q0.setFromAxisAngle(_zee, -orient));
+
+                // Calibrate yaw once so view starts where the panorama was already facing
+                if (!_yawOffset && camera) {
+                    const vCam = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    const vDev = new THREE.Vector3(0, 0, -1).applyQuaternion(_latestGyroQuat);
+                    vCam.y = 0; vDev.y = 0;
+                    if (vCam.lengthSq() > 0.001) vCam.normalize(); else vCam.set(0, 0, -1);
+                    if (vDev.lengthSq() > 0.001) vDev.normalize(); else vDev.set(0, 0, -1);
+                    const angle = Math.atan2(vCam.x, vCam.z) - Math.atan2(vDev.x, vDev.z);
+                    _yawOffset = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+                }
+                _gyroDataReceived = true;
+            }
+
+            function applyGyroToPanorama() {
+                if (!gyroEnabled || !camera || !_yawOffset || !_gyroDataReceived || _touchOverride) return;
+                _targetPanoQuat.multiplyQuaternions(_yawOffset, _latestGyroQuat);
+                // Smooth slerp — 0.10 gives a stable, floaty panorama feel
+                camera.quaternion.slerp(_targetPanoQuat, 0.10);
+            }
+
             function init(imageUrl, hotspots) {
                 currentHotspots = hotspots || [];
 
@@ -262,6 +309,7 @@
                         initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
                     } else if (e.touches.length === 1) {
                         isDragging = true;
+                        _touchOverride = true; // Finger on screen: gyro paused
                         previousMousePosition = {
                             x: e.touches[0].clientX,
                             y: e.touches[0].clientY,
@@ -301,6 +349,7 @@
 
                 canvas.addEventListener("touchend", () => {
                     isDragging = false;
+                    _touchOverride = false; // Finger lifted: gyro resumes
                 });
 
                 canvas.addEventListener("click", (e) => {
@@ -415,15 +464,21 @@
 
             function animate() {
                 animFrameId = requestAnimationFrame(animate);
-                const phi = THREE.MathUtils.degToRad(90 - lat);
-                const theta = THREE.MathUtils.degToRad(lon - 90); // Offset by 90 to match Web
-                
-                const cameraTarget = new THREE.Vector3(
-                    500 * Math.sin(phi) * Math.cos(theta),
-                    500 * Math.cos(phi),
-                    500 * Math.sin(phi) * Math.sin(theta)
-                );
-                camera.lookAt(cameraTarget);
+
+                if (gyroEnabled && _gyroDataReceived && !_touchOverride) {
+                    // Gyroscope mode: let the sensor data drive the camera directly
+                    applyGyroToPanorama();
+                } else {
+                    // Touch-drag mode (or gyro disabled): use lon/lat look direction
+                    const phi = THREE.MathUtils.degToRad(90 - lat);
+                    const theta = THREE.MathUtils.degToRad(lon - 90); // Offset by 90 to match Web
+                    const cameraTarget = new THREE.Vector3(
+                        500 * Math.sin(phi) * Math.cos(theta),
+                        500 * Math.cos(phi),
+                        500 * Math.sin(phi) * Math.sin(theta)
+                    );
+                    camera.lookAt(cameraTarget);
+                }
 
                 // Animation and floating labels
                 const time = Date.now() * 0.005;
@@ -531,7 +586,16 @@
             function handleIncomingMessage(data) {
                 if (data.type === "init") {
                     init(data.imageUrl, data.hotspots);
+                } else if (data.type === "gyro_start") {
+                    // Gyroscope mode activated for panorama — reset calibration
+                    gyroEnabled = true;
+                    _yawOffset = null;
+                    _gyroDataReceived = false;
+                } else if (data.type === "gyro_data") {
+                    // Native sensor data bridged from React Native expo-sensors DeviceMotion
+                    onGyroData(data.alpha, data.beta, data.gamma, data.orientAngle);
                 } else if (data.type === "dispose") {
+                    gyroEnabled = false;
                     dispose();
                 }
             }

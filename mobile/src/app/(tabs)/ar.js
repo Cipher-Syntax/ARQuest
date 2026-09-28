@@ -9,6 +9,7 @@ import {
     Animated,
     ActivityIndicator,
     Easing,
+    Modal,
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -18,7 +19,7 @@ import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
 import { router, useLocalSearchParams, useFocusEffect, useNavigation } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
-import { X, Camera as CameraIcon, QrCode, Navigation, AlertTriangle, Smartphone } from "lucide-react-native";
+import { X, Camera as CameraIcon, QrCode, Navigation, AlertTriangle, Smartphone, RefreshCw } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
@@ -57,6 +58,8 @@ export default function ARScreen() {
     const [isARSupported, setIsARSupported] = useState(true); // Assume supported; set false if check fails
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
     const [cachedModelUri, setCachedModelUri] = useState(null);
+    const [claimErrorModalVisible, setClaimErrorModalVisible] = useState(false);
+    const [claimErrorMessage, setClaimErrorMessage] = useState("");
 
     const navigation = useNavigation();
     const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
@@ -155,6 +158,11 @@ export default function ARScreen() {
     // Turn indicator glow pulse (border opacity animation)
     const ribbonPulseAnim = useRef(new Animated.Value(0)).current;
 
+    // Center Arrival Modal states & animation
+    const [showArrivalModal, setShowArrivalModal] = useState(false);
+    const arrivalModalAnim = useRef(new Animated.Value(0)).current;
+    const arrivalTimerRef = useRef(null);
+
     const fetchQuests = useCallback(async () => {
         if (user?.role !== "student") return;
         try {
@@ -167,6 +175,8 @@ export default function ARScreen() {
             console.error("Error fetching quests", error);
         }
     }, [user?.role]);
+
+
 
     // 3D Model Loading State in AR
     const [isArModelLoading, setIsArModelLoading] = useState(false);
@@ -592,6 +602,64 @@ export default function ARScreen() {
 
     const isArrived = Boolean(isArrivedLatched || rawArrived);
 
+    // Center Arrival Modal: Triggers for ~3.5 seconds when arriving at destination
+    useEffect(() => {
+        if (isArrived) {
+            try {
+                SoundManager.play("building_unlock");
+            } catch {
+                // Non-fatal if audio fails
+            }
+            setShowArrivalModal(true);
+            Animated.timing(arrivalModalAnim, {
+                toValue: 1,
+                duration: 350,
+                easing: Easing.out(Easing.back(1.5)),
+                useNativeDriver: true,
+            }).start();
+
+            if (arrivalTimerRef.current) {
+                clearTimeout(arrivalTimerRef.current);
+            }
+
+            arrivalTimerRef.current = setTimeout(() => {
+                Animated.timing(arrivalModalAnim, {
+                    toValue: 0,
+                    duration: 400,
+                    easing: Easing.in(Easing.ease),
+                    useNativeDriver: true,
+                }).start(() => {
+                    setShowArrivalModal(false);
+                });
+            }, 3500);
+        } else {
+            if (arrivalTimerRef.current) {
+                clearTimeout(arrivalTimerRef.current);
+            }
+            setShowArrivalModal(false);
+            arrivalModalAnim.setValue(0);
+        }
+
+        return () => {
+            if (arrivalTimerRef.current) {
+                clearTimeout(arrivalTimerRef.current);
+            }
+        };
+    }, [isArrived]);
+
+    const handleDismissArrivalModal = () => {
+        if (arrivalTimerRef.current) {
+            clearTimeout(arrivalTimerRef.current);
+        }
+        Animated.timing(arrivalModalAnim, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+        }).start(() => {
+            setShowArrivalModal(false);
+        });
+    };
+
     if (navTargetFull && navUserLat && navUserLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
         const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
@@ -728,7 +796,8 @@ export default function ARScreen() {
                     useNativeDriver: true,
                 }).start();
             } else {
-                Alert("Error", res.data.error || "Failed to claim quest.");
+                setClaimErrorMessage(res?.data?.error || "Failed to complete quest.");
+                setClaimErrorModalVisible(true);
             }
         } catch (err) {
             console.error("CLAIM QUEST ERROR:", err);
@@ -736,9 +805,10 @@ export default function ARScreen() {
                 err?.data?.error ||
                 err?.data?.detail ||
                 err?.message ||
-                JSON.stringify(err) ||
-                "Unknown error occurred.";
-            Alert("Error", errorMessage);
+                (typeof err === "string" ? err : null) ||
+                "The server took too long to respond. Please check your connection and retry.";
+            setClaimErrorMessage(errorMessage);
+            setClaimErrorModalVisible(true);
         } finally {
             setIsClaiming(false);
         }
@@ -1302,6 +1372,167 @@ export default function ARScreen() {
 
             {/* --- DEVICE NOT SUPPORTED MODAL --- */}
             <DeviceNotSupportedModal />
+
+            {/* --- REWARD-STYLE CENTER ARRIVAL MODAL (Native Window Centered) --- */}
+            <Modal
+                transparent={true}
+                visible={Boolean(showArrivalModal && !isScanningQr && !capturing && !triviaModalVisible)}
+                animationType="none"
+                statusBarTranslucent={true}
+                onRequestClose={handleDismissArrivalModal}
+            >
+                <View style={styles.arrivalModalOverlay}>
+                    {/* Backdrop touch to dismiss */}
+                    <TouchableOpacity
+                        style={StyleSheet.absoluteFillObject}
+                        activeOpacity={1}
+                        onPress={handleDismissArrivalModal}
+                    />
+
+                    <Animated.View
+                        style={[
+                            styles.arrivalRewardCard,
+                            {
+                                opacity: arrivalModalAnim,
+                                transform: [
+                                    {
+                                        scale: arrivalModalAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.85, 1],
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    >
+                        <TouchableOpacity
+                            activeOpacity={1}
+                            style={styles.arrivalRewardCardInner}
+                            onPress={handleDismissArrivalModal}
+                        >
+                            {/* Glowing Trophy Badge */}
+                            <View style={styles.arrivalRewardTrophyWrap}>
+                                <Ionicons name="trophy" size={32} color="#FFD700" />
+                            </View>
+
+                            {/* Banner Tag */}
+                            <View style={styles.arrivalRewardBanner}>
+                                <Ionicons name="sparkles" size={12} color="#FFD700" style={{ marginRight: 5 }} />
+                                <Text style={styles.arrivalRewardTagline}>DESTINATION REACHED</Text>
+                                <Ionicons name="sparkles" size={12} color="#FFD700" style={{ marginLeft: 5 }} />
+                            </View>
+
+                            <Text style={styles.arrivalRewardTitle}>YOU HAVE ARRIVED</Text>
+
+                            {/* Building Plaque / Certificate Box */}
+                            <View style={styles.arrivalRewardBldgPlaque}>
+                                <Ionicons name="location-sharp" size={18} color="#FFD700" style={{ marginRight: 6 }} />
+                                <Text style={styles.arrivalRewardBldgName} numberOfLines={2}>
+                                    {effectiveBuildingName || (navTargetFull || nearbyBuildingFull)?.name || 'Destination'}
+                                </Text>
+                            </View>
+
+                            {/* Gamified Reward / Discovery Pill */}
+                            {user?.role === 'student' && matchingQuest ? (
+                                <View style={styles.arrivalRewardExpPill}>
+                                    <Ionicons name="gift" size={16} color="#FFD700" style={{ marginRight: 6 }} />
+                                    <Text style={styles.arrivalRewardExpText}>
+                                        MISSION AVAILABLE: +{matchingQuest.reward_points || 50} EXP
+                                    </Text>
+                                </View>
+                            ) : (
+                                <View style={styles.arrivalRewardBadgePill}>
+                                    <Ionicons name="ribbon" size={15} color="#00E5FF" style={{ marginRight: 6 }} />
+                                    <Text style={styles.arrivalRewardBadgeText}>
+                                        CAMPUS LANDMARK UNLOCKED
+                                    </Text>
+                                </View>
+                            )}
+
+                            {/* Model Loading Status Indicator */}
+                            <View style={styles.arrivalRewardLoaderBox}>
+                                <ActivityIndicator size="small" color="#FFD700" style={{ marginRight: 8 }} />
+                                <Text style={styles.arrivalRewardLoaderText}>
+                                    Wait for 3D model to load...
+                                </Text>
+                            </View>
+
+                            {/* Dismiss Hint */}
+                            <Text style={styles.arrivalRewardDismissHint}>Tap anywhere to continue</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+            </Modal>
+
+            {/* --- QUEST CLAIM ERROR & RETRY MODAL (TC_AR_05 Step 3 Compliance) --- */}
+            <Modal
+                transparent={true}
+                visible={claimErrorModalVisible}
+                animationType="fade"
+                statusBarTranslucent={true}
+                onRequestClose={() => setClaimErrorModalVisible(false)}
+            >
+                <View style={styles.claimErrorOverlay}>
+                    <TouchableOpacity
+                        style={StyleSheet.absoluteFillObject}
+                        activeOpacity={1}
+                        onPress={() => setClaimErrorModalVisible(false)}
+                    />
+                    <View style={styles.claimErrorCard}>
+                        {/* Warning/Alert Icon Badge */}
+                        <View style={styles.claimErrorIconWrap}>
+                            <AlertTriangle size={30} color="#F1C40F" />
+                        </View>
+
+                        <Text style={styles.claimErrorTagline}>QUEST CLAIM INTERRUPTED</Text>
+                        <Text style={styles.claimErrorTitle}>Connection Issue</Text>
+
+                        <Text style={styles.claimErrorMessage}>
+                            {claimErrorMessage || "The server took too long to respond. Tap Retry to resend your claim without losing progress."}
+                        </Text>
+
+                        {/* Active Quest Context Pill */}
+                        {matchingQuest && (
+                            <View style={styles.claimErrorQuestPill}>
+                                <Ionicons name="gift-outline" size={16} color="#FFD700" style={{ marginRight: 6 }} />
+                                <Text style={styles.claimErrorQuestText} numberOfLines={1}>
+                                    {matchingQuest.title || "Campus Quest"} (+{matchingQuest.reward_points || 50} EXP)
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Action Buttons Row */}
+                        <View style={styles.claimErrorButtonRow}>
+                            <TouchableOpacity
+                                style={styles.claimErrorDismissBtn}
+                                onPress={() => setClaimErrorModalVisible(false)}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.claimErrorDismissText}>DISMISS</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.claimErrorRetryBtn}
+                                onPress={() => {
+                                    setClaimErrorModalVisible(false);
+                                    handleClaimQuest();
+                                }}
+                                disabled={isClaiming}
+                                activeOpacity={0.8}
+                            >
+                                {isClaiming ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <>
+                                        <RefreshCw size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                        <Text style={styles.claimErrorRetryText}>RETRY CLAIM</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
 
 
@@ -2086,6 +2317,150 @@ const styles = StyleSheet.create({
         fontSize: 13,
         letterSpacing: 1.5,
     },
+    arrivalModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.72)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+    },
+    arrivalRewardCard: {
+        width: "88%",
+        maxWidth: 340,
+        backgroundColor: "rgba(24, 6, 12, 0.98)",
+        borderRadius: 24,
+        borderWidth: 2,
+        borderColor: "#E8B923",
+        shadowColor: "#FFD700",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.75,
+        shadowRadius: 22,
+        elevation: 20,
+        overflow: "hidden",
+    },
+    arrivalRewardCardInner: {
+        paddingVertical: 24,
+        paddingHorizontal: 20,
+        alignItems: "center",
+    },
+    arrivalRewardTrophyWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: "rgba(232, 185, 35, 0.18)",
+        borderWidth: 2,
+        borderColor: "#FFD700",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 12,
+        shadowColor: "#FFD700",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.9,
+        shadowRadius: 14,
+        elevation: 8,
+    },
+    arrivalRewardBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(232, 185, 35, 0.15)",
+        borderWidth: 1,
+        borderColor: "rgba(232, 185, 35, 0.4)",
+        borderRadius: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        marginBottom: 8,
+    },
+    arrivalRewardTagline: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 10,
+        color: "#FFD700",
+        letterSpacing: 1.5,
+        textTransform: "uppercase",
+    },
+    arrivalRewardTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 22,
+        color: "#FFFFFF",
+        letterSpacing: 2,
+        textAlign: "center",
+        marginBottom: 14,
+    },
+    arrivalRewardBldgPlaque: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(178, 24, 48, 0.35)",
+        borderWidth: 1,
+        borderColor: "#B21830",
+        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        marginBottom: 12,
+        width: "100%",
+    },
+    arrivalRewardBldgName: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 15,
+        color: "#FFFFFF",
+        textAlign: "center",
+        flexShrink: 1,
+    },
+    arrivalRewardExpPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(255, 215, 0, 0.15)",
+        borderWidth: 1,
+        borderColor: "#FFD700",
+        borderRadius: 20,
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        marginBottom: 14,
+    },
+    arrivalRewardExpText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 12,
+        color: "#FFD700",
+        letterSpacing: 0.5,
+    },
+    arrivalRewardBadgePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 229, 255, 0.12)",
+        borderWidth: 1,
+        borderColor: "rgba(0, 229, 255, 0.35)",
+        borderRadius: 20,
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        marginBottom: 14,
+    },
+    arrivalRewardBadgeText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 11,
+        color: "#00E5FF",
+        letterSpacing: 0.8,
+    },
+    arrivalRewardLoaderBox: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+        borderRadius: 8,
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        marginBottom: 12,
+    },
+    arrivalRewardLoaderText: {
+        fontSize: 12,
+        color: "#E8B923",
+        fontWeight: "600",
+    },
+    arrivalRewardDismissHint: {
+        fontSize: 11,
+        color: "#8AA3AA",
+        letterSpacing: 0.5,
+    },
 
 
     gpsBanner: {
@@ -2113,5 +2488,127 @@ const styles = StyleSheet.create({
         width: 80,
         backgroundColor: '#E8B923',
         borderRadius: 2,
+    },
+    claimErrorOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.78)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        zIndex: 200,
+    },
+    claimErrorCard: {
+        width: "90%",
+        maxWidth: 360,
+        backgroundColor: "rgba(7, 42, 48, 0.98)",
+        borderRadius: 22,
+        borderWidth: 1.5,
+        borderColor: "rgba(232, 185, 35, 0.65)",
+        paddingVertical: 24,
+        paddingHorizontal: 20,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.55,
+        shadowRadius: 18,
+        elevation: 20,
+    },
+    claimErrorIconWrap: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: "rgba(241, 196, 15, 0.15)",
+        borderWidth: 1.5,
+        borderColor: "#F1C40F",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    claimErrorTagline: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 11,
+        color: "#F1C40F",
+        letterSpacing: 1.5,
+        textTransform: "uppercase",
+        marginBottom: 4,
+    },
+    claimErrorTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 20,
+        color: "#FFFFFF",
+        letterSpacing: 1,
+        textAlign: "center",
+        marginBottom: 8,
+    },
+    claimErrorMessage: {
+        fontFamily: fonts.body.regular,
+        fontSize: 13,
+        color: "#C9D6DA",
+        textAlign: "center",
+        lineHeight: 19,
+        marginBottom: 14,
+    },
+    claimErrorQuestPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(18, 59, 68, 0.85)",
+        borderWidth: 1,
+        borderColor: "#2C5A63",
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        marginBottom: 18,
+        width: "100%",
+    },
+    claimErrorQuestText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 12,
+        color: "#FFD700",
+        letterSpacing: 0.5,
+        flexShrink: 1,
+    },
+    claimErrorButtonRow: {
+        flexDirection: "row",
+        gap: 10,
+        width: "100%",
+    },
+    claimErrorDismissBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        borderWidth: 1,
+        borderColor: "#2C5A63",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    claimErrorDismissText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 12,
+        color: "#8AA3AA",
+        letterSpacing: 1,
+    },
+    claimErrorRetryBtn: {
+        flex: 1.4,
+        paddingVertical: 12,
+        borderRadius: 10,
+        backgroundColor: "#B21830",
+        borderWidth: 1,
+        borderColor: "#FFD700",
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#B21830",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        elevation: 4,
+    },
+    claimErrorRetryText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 12,
+        color: "#FFFFFF",
+        letterSpacing: 1,
     },
 });

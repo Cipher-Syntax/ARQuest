@@ -45,6 +45,16 @@ export default function VirtualTourViewerScreen() {
     const [panoramaData, setPanoramaData] = useState(null);
     const [nearbyScene, setNearbyScene] = useState(null);
     const [showRoomModal, setShowRoomModal] = useState(false);
+    // In-Game Tour Settings States
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [currentControlMode, setCurrentControlMode] = useState(
+        controlMode || "joystick",
+    );
+    const [walkSpeed, setWalkSpeed] = useState(0.18);
+    const [lookSensitivity, setLookSensitivity] = useState(0.85);
+    const [showLabels, setShowLabels] = useState(true);
+    const [ghostModeActive, setGhostModeActive] = useState(false);
+
     const webViewRef = useRef(null);
     const hasInitializedRef = useRef(false);
 
@@ -263,7 +273,7 @@ export default function VirtualTourViewerScreen() {
             const extraData = {
                 hotspots: liveHotspots,
                 panoramaScenes: panoramaData?.scenes || [],
-                controlMode: controlMode || "joystick",
+                controlMode: currentControlMode || "joystick",
             };
 
             try {
@@ -390,7 +400,7 @@ export default function VirtualTourViewerScreen() {
     // We also include the real screen orientation angle (from expo-screen-orientation)
     // because window.screen.orientation.angle always returns 0 inside Android WebViews.
     useEffect(() => {
-        if (controlMode !== "gyroscope") return;
+        if (currentControlMode !== "gyroscope") return;
 
         let active = true;
 
@@ -469,7 +479,64 @@ export default function VirtualTourViewerScreen() {
                 gyroSubscriptionRef.current = null;
             }
         };
-    }, [controlMode, webViewReady]);
+    }, [currentControlMode, webViewReady]);
+
+    // ── In-Game Settings Handlers ─────────────────────────────────
+    const handleResetEntrance = () => {
+        setShowSettingsModal(false);
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(
+                JSON.stringify({ type: "reset_entrance" }),
+            );
+        }
+    };
+
+    const handleToggleControlMode = (mode) => {
+        setCurrentControlMode(mode);
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(
+                JSON.stringify({ type: "set_control_mode", mode: mode }),
+            );
+        }
+    };
+
+    const handleChangeSpeed = (speed) => {
+        setWalkSpeed(speed);
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(
+                JSON.stringify({ type: "set_speed", speed: speed }),
+            );
+        }
+    };
+
+    const handleChangeSensitivity = (sens) => {
+        setLookSensitivity(sens);
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(
+                JSON.stringify({ type: "set_sensitivity", sensitivity: sens }),
+            );
+        }
+    };
+
+    const handleToggleLabels = () => {
+        const nextVal = !showLabels;
+        setShowLabels(nextVal);
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(
+                JSON.stringify({ type: "set_labels_visible", visible: nextVal }),
+            );
+        }
+    };
+
+    const handleToggleGhostMode = () => {
+        const nextVal = !ghostModeActive;
+        setGhostModeActive(nextVal);
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(
+                JSON.stringify({ type: "set_ghost_mode", enabled: nextVal }),
+            );
+        }
+    };
 
     // ── WebView → RN message handler ──────────────────────────────
     const handleMessage = (event) => {
@@ -586,7 +653,18 @@ export default function VirtualTourViewerScreen() {
                     </Text>
                 </TouchableOpacity>
 
-
+                {/* In-Game Settings Button */}
+                <TouchableOpacity
+                    style={styles.floatingSettingsButton}
+                    onPress={() => setShowSettingsModal(true)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons
+                        name="settings-outline"
+                        size={20}
+                        color={theme.colors.arHighlight}
+                    />
+                </TouchableOpacity>
 
                 {/* Floating Back Button */}
                 <TouchableOpacity
@@ -607,7 +685,7 @@ export default function VirtualTourViewerScreen() {
                     {buildingName || "UNKNOWN"}
                 </Text>
                 <Text style={styles.hudSubtitle}>
-                    {controlMode === "gyroscope"
+                    {currentControlMode === "gyroscope"
                         ? "GYROSCOPE MODE ACTIVE"
                         : "VIRTUAL TOUR ACTIVE"}
                 </Text>
@@ -726,6 +804,321 @@ export default function VirtualTourViewerScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* In-Game Tour Settings Modal */}
+            <Modal
+                visible={showSettingsModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowSettingsModal(false)}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={[styles.modalCard, styles.settingsModalCard]}>
+                        {/* Header */}
+                        <View style={styles.modalHeader}>
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 8,
+                                }}
+                            >
+                                <Ionicons
+                                    name="settings-sharp"
+                                    size={20}
+                                    color={theme.colors.arHighlight}
+                                />
+                                <Text style={styles.modalTitle}>
+                                    TOUR SETTINGS
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setShowSettingsModal(false)}
+                                style={styles.modalCloseBtn}
+                            >
+                                <Ionicons name="close" size={20} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView
+                            style={styles.settingsScroll}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            {/* 1. Quick Action: Reset to Entrance */}
+                            <TouchableOpacity
+                                style={styles.resetEntranceBtn}
+                                onPress={handleResetEntrance}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons
+                                    name="enter-outline"
+                                    size={20}
+                                    color="#000"
+                                />
+                                <Text style={styles.resetEntranceText}>
+                                    RESET TO ENTRANCE
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* 2. Navigation Mode Selector */}
+                            <View style={styles.settingGroup}>
+                                <Text style={styles.settingLabel}>
+                                    NAVIGATION CONTROLS
+                                </Text>
+                                <View style={styles.segmentContainer}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.segmentButton,
+                                            currentControlMode === "joystick" &&
+                                                styles.segmentButtonActive,
+                                        ]}
+                                        onPress={() =>
+                                            handleToggleControlMode("joystick")
+                                        }
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons
+                                            name="game-controller-outline"
+                                            size={16}
+                                            color={
+                                                currentControlMode === "joystick"
+                                                    ? "#000"
+                                                    : "#C9D6DA"
+                                            }
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.segmentText,
+                                                currentControlMode ===
+                                                    "joystick" &&
+                                                    styles.segmentTextActive,
+                                            ]}
+                                        >
+                                            JOYSTICK
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.segmentButton,
+                                            currentControlMode === "gyroscope" &&
+                                                styles.segmentButtonActive,
+                                        ]}
+                                        onPress={() =>
+                                            handleToggleControlMode("gyroscope")
+                                        }
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons
+                                            name="phone-portrait-outline"
+                                            size={16}
+                                            color={
+                                                currentControlMode ===
+                                                "gyroscope"
+                                                    ? "#000"
+                                                    : "#C9D6DA"
+                                            }
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.segmentText,
+                                                currentControlMode ===
+                                                    "gyroscope" &&
+                                                    styles.segmentTextActive,
+                                            ]}
+                                        >
+                                            GYROSCOPE
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* 3. Walk Speed */}
+                            <View style={styles.settingGroup}>
+                                <Text style={styles.settingLabel}>
+                                    WALKING SPEED
+                                </Text>
+                                <View style={styles.segmentContainer}>
+                                    {[
+                                        { label: "SLOW", val: 0.12 },
+                                        { label: "NORMAL", val: 0.18 },
+                                        { label: "FAST", val: 0.28 },
+                                    ].map((opt) => (
+                                        <TouchableOpacity
+                                            key={opt.label}
+                                            style={[
+                                                styles.segmentButton,
+                                                walkSpeed === opt.val &&
+                                                    styles.segmentButtonActive,
+                                            ]}
+                                            onPress={() =>
+                                                handleChangeSpeed(opt.val)
+                                            }
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.segmentText,
+                                                    walkSpeed === opt.val &&
+                                                        styles.segmentTextActive,
+                                                ]}
+                                            >
+                                                {opt.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* 4. Look Sensitivity */}
+                            <View style={styles.settingGroup}>
+                                <Text style={styles.settingLabel}>
+                                    LOOK SENSITIVITY
+                                </Text>
+                                <View style={styles.segmentContainer}>
+                                    {[
+                                        { label: "0.6× LOW", val: 0.5 },
+                                        { label: "1.0× MID", val: 0.85 },
+                                        { label: "1.4× HIGH", val: 1.25 },
+                                    ].map((opt) => (
+                                        <TouchableOpacity
+                                            key={opt.label}
+                                            style={[
+                                                styles.segmentButton,
+                                                lookSensitivity === opt.val &&
+                                                    styles.segmentButtonActive,
+                                            ]}
+                                            onPress={() =>
+                                                handleChangeSensitivity(
+                                                    opt.val,
+                                                )
+                                            }
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.segmentText,
+                                                    lookSensitivity ===
+                                                        opt.val &&
+                                                        styles.segmentTextActive,
+                                                ]}
+                                            >
+                                                {opt.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* 5. Toggles Row */}
+                            <View style={styles.settingTogglesRow}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.toggleItem,
+                                        showLabels && styles.toggleItemActive,
+                                    ]}
+                                    onPress={handleToggleLabels}
+                                    activeOpacity={0.75}
+                                >
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.toggleItemTitle}>
+                                            Room Labels
+                                        </Text>
+                                        <Text style={styles.toggleItemSub}>
+                                            Floating NPC tags
+                                        </Text>
+                                    </View>
+                                    <Ionicons
+                                        name={
+                                            showLabels
+                                                ? "checkbox"
+                                                : "square-outline"
+                                        }
+                                        size={22}
+                                        color={
+                                            showLabels
+                                                ? theme.colors.arHighlight
+                                                : "#8AA3AA"
+                                        }
+                                    />
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[
+                                        styles.toggleItem,
+                                        ghostModeActive &&
+                                            styles.toggleItemGhost,
+                                    ]}
+                                    onPress={handleToggleGhostMode}
+                                    activeOpacity={0.75}
+                                >
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.toggleItemTitle}>
+                                            Ghost Mode
+                                        </Text>
+                                        <Text style={styles.toggleItemSub}>
+                                            Pass through walls
+                                        </Text>
+                                    </View>
+                                    <Ionicons
+                                        name={
+                                            ghostModeActive
+                                                ? "radio-button-on"
+                                                : "radio-button-off"
+                                        }
+                                        size={22}
+                                        color={
+                                            ghostModeActive
+                                                ? "#FF4444"
+                                                : "#8AA3AA"
+                                        }
+                                    />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* 6. Controls Cheatsheet Card */}
+                            <View style={styles.cheatsheetCard}>
+                                <Text style={styles.cheatsheetTitle}>
+                                    QUICK EXPLORATION GUIDE
+                                </Text>
+                                <View style={styles.cheatsheetGrid}>
+                                    <View style={styles.cheatItem}>
+                                        <Text style={styles.cheatEmoji}>
+                                            🕹️
+                                        </Text>
+                                        <Text style={styles.cheatText}>
+                                            Left: Walk / strafe
+                                        </Text>
+                                    </View>
+                                    <View style={styles.cheatItem}>
+                                        <Text style={styles.cheatEmoji}>
+                                            👆
+                                        </Text>
+                                        <Text style={styles.cheatText}>
+                                            Right: Drag to look
+                                        </Text>
+                                    </View>
+                                    <View style={styles.cheatItem}>
+                                        <Text style={styles.cheatEmoji}>
+                                            🎯
+                                        </Text>
+                                        <Text style={styles.cheatText}>
+                                            Tap Floor: Teleport
+                                        </Text>
+                                    </View>
+                                    <View style={styles.cheatItem}>
+                                        <Text style={styles.cheatEmoji}>
+                                            🚪
+                                        </Text>
+                                        <Text style={styles.cheatText}>
+                                            Cyan Badge: 360° photo
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -789,6 +1182,16 @@ const styles = StyleSheet.create({
     },
 
     floatingBackButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    floatingSettingsButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
@@ -943,6 +1346,150 @@ const styles = StyleSheet.create({
         color: "#00E5FF",
         marginTop: 2,
         letterSpacing: 1,
+    },
+    // In-Game Settings Modal Styles
+    settingsModalCard: {
+        width: "85%",
+        maxWidth: 540,
+        maxHeight: "88%",
+    },
+    settingsScroll: {
+        maxHeight: 280,
+    },
+    resetEntranceBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        backgroundColor: "#00E5FF",
+        paddingVertical: 11,
+        borderRadius: 10,
+        marginBottom: 14,
+        shadowColor: "#00E5FF",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        elevation: 4,
+    },
+    resetEntranceText: {
+        color: "#000",
+        fontWeight: "900",
+        fontSize: 12,
+        letterSpacing: 1.5,
+    },
+    settingGroup: {
+        marginBottom: 12,
+    },
+    settingLabel: {
+        fontSize: 10,
+        fontWeight: "800",
+        color: "#00E5FF",
+        letterSpacing: 1.5,
+        marginBottom: 6,
+    },
+    segmentContainer: {
+        flexDirection: "row",
+        backgroundColor: "#123B44",
+        borderWidth: 1,
+        borderColor: "#2C5A63",
+        borderRadius: 10,
+        padding: 3,
+        gap: 4,
+    },
+    segmentButton: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 5,
+        paddingVertical: 8,
+        borderRadius: 7,
+    },
+    segmentButtonActive: {
+        backgroundColor: "#00E5FF",
+    },
+    segmentText: {
+        fontSize: 11,
+        fontWeight: "800",
+        color: "#C9D6DA",
+        letterSpacing: 1,
+    },
+    segmentTextActive: {
+        color: "#000",
+    },
+    settingTogglesRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginBottom: 12,
+    },
+    toggleItem: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#123B44",
+        borderWidth: 1,
+        borderColor: "#2C5A63",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 10,
+    },
+    toggleItemActive: {
+        borderColor: "#00E5FF",
+    },
+    toggleItemGhost: {
+        borderColor: "#FF4444",
+        backgroundColor: "rgba(255, 68, 68, 0.12)",
+    },
+    toggleItemTitle: {
+        fontSize: 12,
+        fontWeight: "bold",
+        color: "#FFFFFF",
+    },
+    toggleItemSub: {
+        fontSize: 9,
+        color: "#8AA3AA",
+        marginTop: 2,
+    },
+    cheatsheetCard: {
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+        borderWidth: 1,
+        borderColor: "#2C5A63",
+        borderRadius: 10,
+        padding: 10,
+        marginTop: 4,
+        marginBottom: 6,
+    },
+    cheatsheetTitle: {
+        fontSize: 10,
+        fontWeight: "900",
+        color: "#00E5FF",
+        letterSpacing: 1.5,
+        marginBottom: 6,
+        textAlign: "center",
+    },
+    cheatsheetGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 6,
+    },
+    cheatItem: {
+        width: "48%",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 6,
+    },
+    cheatEmoji: {
+        fontSize: 13,
+    },
+    cheatText: {
+        fontSize: 9.5,
+        color: "#C9D6DA",
+        flex: 1,
     },
 });
 

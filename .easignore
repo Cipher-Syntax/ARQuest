@@ -1,8 +1,10 @@
 # Exclude non-mobile monorepo projects
-backend/
-web/
-asset-generator/
-context/
+/backend/
+/web/
+/asset-generator/
+/context/
+!mobile/src/context/
+!mobile/src/context/**
 
 # Exclude dependencies (EAS installs in cloud)
 node_modules/
@@ -44,7 +46,7 @@ yarn-error.*
 *.log
 
 # Documentation files
-docs/
+/docs/
 *.md
 !mobile/README.md
 
