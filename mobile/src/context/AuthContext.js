@@ -100,6 +100,55 @@ export const AuthProvider = ({ children }) => {
         }
     }, [checkToken]);
 
+    const register = useCallback(async (formData) => {
+        setIsLoading(true);
+        try {
+            const response = await api.post("/api/auth/register/", formData);
+            return response.data;
+        } catch (err) {
+            // Re-throw structured error so register.js can parse field errors
+            if (err.response) {
+                const thrownErr = new Error("Registration failed");
+                thrownErr.data = err.response.data?.data || err.response.data;
+                throw thrownErr;
+            }
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const verifyOTP = useCallback(async (email, otp) => {
+        setIsLoading(true);
+        try {
+            const response = await api.post("/api/auth/verify-otp/", { email, otp });
+            return response.data;
+        } catch (err) {
+            if (err.response) {
+                const thrownErr = new Error("OTP verification failed");
+                thrownErr.data = err.response.data?.data || err.response.data;
+                throw thrownErr;
+            }
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const resendOTP = useCallback(async (email) => {
+        try {
+            const response = await api.post("/api/auth/resend-otp/", { email });
+            return response.data;
+        } catch (err) {
+            if (err.response) {
+                const thrownErr = new Error("Resend OTP failed");
+                thrownErr.data = err.response.data?.data || err.response.data;
+                throw thrownErr;
+            }
+            throw err;
+        }
+    }, []);
+
     const logout = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -150,10 +199,13 @@ export const AuthProvider = ({ children }) => {
     const actionsValue = useMemo(() => ({
         login,
         logout,
+        register,
+        verifyOTP,
+        resendOTP,
         checkToken,
         showStreakModal,
         hideStreakModal,
-    }), [login, logout, checkToken, showStreakModal, hideStreakModal]);
+    }), [login, logout, register, verifyOTP, resendOTP, checkToken, showStreakModal, hideStreakModal]);
 
     return (
         <AuthStateContext.Provider value={stateValue}>

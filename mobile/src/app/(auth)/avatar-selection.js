@@ -11,6 +11,7 @@ import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useRouter } from "expo-router";
 import { AVATARS } from "../../constants/Avatars";
 import { api } from "../../services";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AvatarSelectionScreen() {
     const [selectedId, setSelectedId] = useState(null);
@@ -23,7 +24,14 @@ export default function AvatarSelectionScreen() {
         }
 
         try {
-            await api.patch("/api/auth/me/", { avatar_id: selectedId });
+            const res = await api.patch("/api/auth/me/", { avatar_id: selectedId });
+            const savedUser = res?.data?.data?.user;
+
+            // Reset tutorial flag so the new user receives the onboarding guide upon entering tabs
+            if (savedUser?.id) {
+                await AsyncStorage.removeItem(`@tutorial_completed_${savedUser.id}`);
+            }
+            await AsyncStorage.removeItem("@tutorial_completed");
 
             // Successfully updated, go to dashboard
             router.replace("/(tabs)");

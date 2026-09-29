@@ -98,6 +98,35 @@ export default function LoginScreen() {
             }
 
             setIsDeactivated(false);
+
+            // Email not yet verified — send user back to OTP screen to verify/resend
+            // Backend now returns: error.details = { email_not_verified: true, email: "...", detail: "..." }
+            const errDetails = err?.data?.error?.details || err?.data?.details || err?.data?.error || {};
+            const isUnverified =
+                errDetails?.email_not_verified === true ||
+                err?.data?.error?.code === "email_not_verified" ||
+                err?.data?.error?.message?.toLowerCase()?.includes("email not verified") ||
+                err?.data?.message?.toLowerCase()?.includes("email not verified");
+
+            if (isUnverified) {
+                let unverifiedEmail = errDetails?.email || "";
+                if (!unverifiedEmail) {
+                    const rawMsg = typeof err?.data?.error?.message === 'string' ? err.data.error.message : (typeof err?.data?.message === 'string' ? err.data.message : '');
+                    const match = rawMsg.match(/['"]email['"]:\s*\[?ErrorDetail\(string=['"]([^'"]+)['"]/);
+                    if (match) {
+                        unverifiedEmail = match[1];
+                    }
+                }
+                router.replace({
+                    pathname: "/(auth)/verify-otp",
+                    params: {
+                        username,
+                        email: unverifiedEmail,
+                    },
+                });
+                return;
+            }
+
             let serverMessage =
                 err?.data?.error?.message ||
                 err?.data?.error ||

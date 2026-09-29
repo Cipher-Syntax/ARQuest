@@ -260,10 +260,13 @@ BACKEND_URL = config('BACKEND_URL')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 ANYMAIL = {
+    # anymail v10+ uses BREVO_API_KEY (Sendinblue rebranded to Brevo)
+    "BREVO_API_KEY": config('ANYMAIL_API_KEY', default=''),
+    # Keep legacy key for backward compat
     "SENDINBLUE_API_KEY": config('ANYMAIL_API_KEY', default=''),
 }
-# Hardcoded to force Django to use Anymail API instead of default localhost SMTP
-EMAIL_BACKEND = 'anymail.backends.sendinblue.EmailBackend'
+# Use the current non-deprecated Brevo backend
+EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 ADMIN_SUPPORT = config('ADMIN_SUPPORT')
 
