@@ -155,20 +155,19 @@ export default function ARQuestScene(props) {
     const recomputeNavPositions = useCallback((angle, camPos) => {
         const rad = (angle * Math.PI) / 180;
         const [cx, cy, cz] = camPos;
-        // Single large road-marking arrow planted 1.8m ahead of the user.
-        // The arrow assembly itself is wide at the base and tapers to the tip,
-        // giving the road-painting perspective effect toward the building.
+        // Compact pedestrian dashed walking arrow planted 1.35m ahead of the user.
+        // Subtle human-stride scale so it never dominates the screen.
         setChevronPositions([{
-            x: cx + 1.8 * Math.sin(rad),
+            x: cx + 1.35 * Math.sin(rad),
             y: cy - 0.85,
-            z: cz - 1.8 * Math.cos(rad),
+            z: cz - 1.35 * Math.cos(rad),
             angle,
             pulseOffset: 0,
         }]);
         setHudPosition([
-            cx + 3.5 * Math.sin(rad),
+            cx + 3.0 * Math.sin(rad),
             cy - 0.1,
-            cz - 3.5 * Math.cos(rad),
+            cz - 3.0 * Math.cos(rad),
         ]);
     }, []);
 
@@ -267,17 +266,17 @@ export default function ARQuestScene(props) {
                     }}
                 >
                     {/*
-                     * AUTHENTIC ROAD-MARKING NAVIGATION ARROW
+                     * PEDESTRIAN DASHED WALKING ARROW
                      *
-                     * Smooth continuous highway & campus walkway navigation marking.
-                     * Wide at user's feet, tapering cleanly forward into a sharp arrowhead.
-                     * Pure vector-rendered, anti-aliased, zero Minecraft pixel blocks.
+                     * Compact human-scale broken arrow with dashed walking path
+                     * and aerodynamic chevron head (Google Maps walking style).
+                     * WMSU Crimson core with Gold outline and ambient ground shadow.
                      */}
                     <ViroImage
-                        source={require('../../../assets/images/nav-road-arrow-collegiate.png')}
+                        source={require('../../../assets/images/nav-walking-dashed-arrow.png')}
                         rotation={[-90, 0, 0]}
-                        width={1.3}
-                        height={2.6}
+                        width={0.45}
+                        height={0.90}
                         position={[0, 0, 0]}
                         format="RGBA8"
                     />
@@ -540,9 +539,9 @@ ViroAnimations.registerAnimations({
     // so the pulse ripples forward (1st→2nd→3rd) like airport runway lights.
     pulseChevron: {
         properties: {
-            scaleX: '+=0.10',
-            scaleY: '+=0.10',
-            scaleZ: '+=0.10',
+            scaleX: '+=0.04',
+            scaleY: '+=0.04',
+            scaleZ: '+=0.04',
         },
         duration: 1200,
         easing: 'EaseInEaseOut',
