@@ -300,36 +300,41 @@ export default function AdminOnboardingTour() {
 
     return (
         <div className="fixed inset-0 z-[100] pointer-events-auto">
-            {/* Dark Scrim Overlay */}
+            {/* Click outside backdrop catcher */}
             <div
                 onClick={handleClose}
-                className="fixed inset-0 bg-gray-950/70 backdrop-blur-xs transition-opacity duration-300"
+                className="fixed inset-0 z-[99] cursor-pointer"
             />
 
-            {/* Glowing Spotlight Indicator on Sidebar Item */}
-            {targetRect && (
-                <>
-                    <div
-                        style={{
-                            top: targetRect.top - 4,
-                            left: targetRect.left - 4,
-                            width: targetRect.width + 8,
-                            height: targetRect.height + 8,
-                        }}
-                        className="fixed z-[101] rounded-md ring-4 ring-white ring-offset-2 ring-offset-brand shadow-[0_0_20px_rgba(255,255,255,0.7)] pointer-events-none transition-all duration-300 animate-pulse"
-                    />
+            {/* Crystal-Clear Spotlight Cutout Window (Zero Blur, 100% Sharp Focus on Sidebar Item) */}
+            {targetRect ? (
+                <div
+                    style={{
+                        top: targetRect.top - 4,
+                        left: targetRect.left - 4,
+                        width: targetRect.width + 8,
+                        height: targetRect.height + 8,
+                        boxShadow:
+                            "0 0 0 9999px rgba(10, 10, 15, 0.75), 0 0 25px rgba(255, 255, 255, 0.5)",
+                    }}
+                    className="fixed z-[100] rounded-md border-2 border-white ring-2 ring-brand/80 pointer-events-none transition-all duration-300"
+                />
+            ) : (
+                <div
+                    onClick={handleClose}
+                    className="fixed inset-0 z-[100] bg-gray-950/75 transition-opacity duration-300"
+                />
+            )}
 
-                    {/* Pulsing Beacon Pill at sidebar item's right border */}
-                    {isDesktop && (
-                        <div
-                            style={{
-                                top: targetRect.top + targetRect.height / 2 - 5,
-                                left: targetRect.right + 2,
-                            }}
-                            className="fixed z-[102] w-2.5 h-2.5 bg-white rounded-full ring-4 ring-brand/80 shadow-md animate-ping pointer-events-none transition-all duration-300"
-                        />
-                    )}
-                </>
+            {/* Pulsing Beacon Pill at sidebar item's right border */}
+            {targetRect && isDesktop && (
+                <div
+                    style={{
+                        top: targetRect.top + targetRect.height / 2 - 5,
+                        left: targetRect.right + 2,
+                    }}
+                    className="fixed z-[102] w-2.5 h-2.5 bg-white rounded-full ring-4 ring-brand shadow-md animate-ping pointer-events-none transition-all duration-300"
+                />
             )}
 
             {/* Floating Speech Bubble Tooltip Card */}
