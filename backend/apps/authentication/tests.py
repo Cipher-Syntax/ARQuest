@@ -100,7 +100,8 @@ class LoginTestCase(TestCase):
             username='inactive',
             password='testpass123',
             role='student',
-            is_active=False
+            is_active=False,
+            email_verified=True
         )
     
     def test_login_success_with_valid_credentials(self):
@@ -135,11 +136,9 @@ class LoginTestCase(TestCase):
             'password': 'testpass123'
         })
         
-        # Django's authenticate() returns None for inactive users
-        # So the error is "Invalid username or password"
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(response.data['success'])
-        self.assertEqual(response.data['error']['code'], 'invalid_credentials')
+        self.assertEqual(response.data['error']['code'], 'account_deactivated')
 
 
 class LogoutTestCase(TestCase):

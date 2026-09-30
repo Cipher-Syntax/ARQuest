@@ -17,4 +17,16 @@ export const userService = {
         const response = await api.delete(`/api/auth/users/professional/${id}/`);
         return response.data;
     },
+    getArchivedVisitors: async () => {
+        const response = await api.get("/api/auth/users/archived/");
+        return response.data.data;
+    },
+    restoreVisitor: async (id) => {
+        const response = await api.post(`/api/auth/users/${id}/restore/`);
+        return response.data;
+    },
+    hardDeleteVisitor: async (id) => {
+        const response = await api.delete(`/api/auth/users/${id}/hard-delete/`);
+        return response.data;
+    },
 };

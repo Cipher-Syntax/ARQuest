@@ -16,7 +16,7 @@ import UsersContainer from "../pages/UsersContainer";
 import ProfessionalsPage from "../pages/ProfessionalsPage";
 import SettingsPage from "../pages/SettingsPage";
 import DepartmentsPage from "../pages/DepartmentsPage";
-import ArchivePage from "../pages/ArchivePage";
+import RecycleBinPage from "../pages/RecycleBinPage";
 import FeedbackPage from "../pages/FeedbackPage";
 import HistoryPage from "../pages/HistoryPage";
 import ModelCompressorPage from "../pages/ModelCompressorPage";
@@ -68,7 +68,8 @@ const AppRoutes = () => {
                     element={<UserManagementPage defaultTab="visitors" />}
                 />
                 <Route path="settings" element={<SettingsPage />} />
-                <Route path="archives" element={<ArchivePage />} />
+                <Route path="recycle-bin" element={<RecycleBinPage />} />
+                <Route path="archives" element={<RecycleBinPage />} />
                 <Route path="feedback" element={<FeedbackPage />} />
                 <Route path="history" element={<HistoryPage />} />
                 <Route path="compressor" element={<ModelCompressorPage />} />

@@ -6,7 +6,7 @@ class TriviaFactSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TriviaFact
-        fields = ['id', 'building', 'building_name', 'fact', 'is_active', 'created_at', 'updated_at']
+        fields = ['id', 'building', 'building_name', 'fact', 'is_active', 'created_at', 'updated_at', 'deleted_at']
 
 class QuizQuestionSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='building.name', read_only=True)

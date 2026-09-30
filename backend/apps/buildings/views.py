@@ -594,6 +594,18 @@ def cron_cleanup(request):
     count = old_buildings.count()
     for b in old_buildings:
         b.hard_delete()
+
+    from apps.gamification.models import Quest
+    from apps.quizzes.models import TriviaFact
+    old_quests = Quest.all_objects.filter(deleted_at__lt=threshold)
+    count += old_quests.count()
+    for q in old_quests:
+        q.hard_delete()
+
+    old_trivias = TriviaFact.all_objects.filter(deleted_at__lt=threshold)
+    count += old_trivias.count()
+    for t in old_trivias:
+        t.hard_delete()
         
     return Response({"success": True, "deleted": count}, status=200)
 

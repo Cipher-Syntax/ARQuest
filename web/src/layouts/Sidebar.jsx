@@ -12,7 +12,7 @@ import {
     Target,
     ChevronLeft,
     ChevronRight,
-    ArchiveRestore,
+    Trash2,
     Activity,
     ChevronDown,
     ChevronUp,
@@ -51,7 +51,7 @@ const NAV_GROUPS = [
         items: [
             { to: "/feedback", icon: HelpCircle, label: "Feedback & Issues" },
             { to: "/history", icon: Activity, label: "History & Logs" },
-            { to: "/archives", icon: ArchiveRestore, label: "Archives" },
+            { to: "/recycle-bin", icon: Trash2, label: "Recycle Bin" },
             { to: "/settings", icon: Settings, label: "Settings" },
         ],
     },
