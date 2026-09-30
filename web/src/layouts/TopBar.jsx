@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Search, User, LogOut, Settings, ShieldCheck } from "lucide-react";
+import { Bell, Search, User, LogOut, Settings, ShieldCheck, HelpCircle } from "lucide-react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import NotificationDropdown from "../components/layout/NotificationDropdown";
 import { useAuth } from "../hooks/useAuth";
 import { Modal, Button } from "../components/ui";
+import { triggerAdminTour } from "../components/common/AdminOnboardingTour";
 
 export default function TopBar({ user }) {
     const location = useLocation();
@@ -39,13 +40,24 @@ export default function TopBar({ user }) {
                     <div className="w-12 lg:hidden" />
                 </div>
 
-                <div className="flex items-center gap-3 lg:gap-6">
+                <div className="flex items-center gap-2.5 lg:gap-4">
+                    {/* Platform Guide Tour Trigger */}
+                    <button
+                        type="button"
+                        onClick={triggerAdminTour}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 hover:text-brand bg-white border border-brand-border rounded-md hover:bg-brand-light/40 transition-all shadow-2xs active:scale-98"
+                        title="Open ARQuest Platform Guide & Onboarding Tour"
+                    >
+                        <HelpCircle size={15} className="text-brand shrink-0" />
+                        <span className="hidden sm:inline">Guide</span>
+                    </button>
+
                     <NotificationDropdown />
 
                     <div className="relative" ref={dropdownRef}>
                         <button 
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className={`flex items-center gap-3 pl-4 border-l border-brand-border hover:bg-gray-50 transition-colors p-1.5 rounded-xl text-left ${isDropdownOpen ? 'bg-gray-50' : ''}`}
+                            className={`flex items-center gap-3 pl-4 border-l border-brand-border hover:bg-gray-50 transition-colors p-1.5 rounded-md text-left ${isDropdownOpen ? 'bg-gray-50' : ''}`}
                         >
                             <div className="text-right hidden sm:block">
                                 <p className="text-sm font-bold text-gray-900 leading-none">
@@ -61,7 +73,7 @@ export default function TopBar({ user }) {
                         </button>
 
                         {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-72 bg-white z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="absolute right-0 mt-2 w-72 bg-white z-50 overflow-hidden rounded-md border border-brand-border shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
                                 {/* Profile Header */}
                                 <div className="flex flex-col items-center justify-center pt-6 pb-4 px-5">
                                     <div className="w-16 h-16 rounded-full flex items-center justify-center bg-brand/5 text-brand mb-3">
@@ -75,8 +87,19 @@ export default function TopBar({ user }) {
                                     </div>
                                 </div>
 
-                                {/* Quick Settings */}
-                                <div className="py-2">
+                                {/* Quick Settings & Guide */}
+                                <div className="py-2 border-t border-gray-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsDropdownOpen(false);
+                                            triggerAdminTour();
+                                        }}
+                                        className="w-full flex items-center justify-start gap-3 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-brand transition-colors text-left"
+                                    >
+                                        <HelpCircle size={16} className="text-gray-400" />
+                                        Platform Guide & Tour
+                                    </button>
                                     <Link 
                                         to="/settings"
                                         onClick={() => setIsDropdownOpen(false)}
