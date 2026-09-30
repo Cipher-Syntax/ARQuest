@@ -21,6 +21,7 @@ import FeedbackPage from "../pages/FeedbackPage";
 import HistoryPage from "../pages/HistoryPage";
 import ModelCompressorPage from "../pages/ModelCompressorPage";
 import NavigationPage from "../pages/NavigationPage";
+import CampusMapPage from "../pages/CampusMapPage";
 import NotFound from "../pages/NotFound";
 
 
@@ -51,7 +52,8 @@ const AppRoutes = () => {
                     path="buildings/:id/edit"
                     element={<BuildingEditorPage />}
                 />
-                <Route path="geofences" element={<GeofencesPage />} />
+                <Route path="campus-map" element={<CampusMapPage />} />
+                <Route path="geofences" element={<CampusMapPage />} />
                 <Route path="media" element={<MediaPage />} />
                 <Route path="panoramas" element={<PanoramasPage />} />
                 <Route
@@ -69,7 +71,7 @@ const AppRoutes = () => {
                 <Route path="feedback" element={<FeedbackPage />} />
                 <Route path="history" element={<HistoryPage />} />
                 <Route path="compressor" element={<ModelCompressorPage />} />
-                <Route path="navigation" element={<NavigationPage />} />
+                <Route path="navigation" element={<CampusMapPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
         </Routes>

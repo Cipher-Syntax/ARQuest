@@ -18,7 +18,6 @@ import {
     ChevronDown,
     ChevronUp,
     Box,
-    Navigation,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -33,8 +32,7 @@ const NAV_GROUPS = [
         label: "Campus Map",
         items: [
             { to: "/buildings", icon: Building2, label: "Buildings" },
-            { to: "/geofences", icon: Map, label: "Geofences" },
-            { to: "/navigation", icon: Navigation, label: "Walking Paths" },
+            { to: "/campus-map", icon: Map, label: "Campus Map" },
         ],
     },
     {
