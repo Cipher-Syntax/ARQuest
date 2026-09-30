@@ -182,6 +182,22 @@ def login(request):
                 status_code=status.HTTP_403_FORBIDDEN,
                 details={'account_deactivated': True}
             )
+        if 'email_not_verified' in errors:
+            email_val = errors.get('email')
+            if isinstance(email_val, list):
+                email_val = email_val[0]
+            detail = errors.get('detail')
+            if isinstance(detail, list):
+                detail = detail[0]
+            return error_response(
+                code='email_not_verified',
+                message=str(detail or 'Email not verified. Please verify your email before logging in.'),
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={
+                    'email_not_verified': True,
+                    'email': str(email_val or ''),
+                }
+            )
         if 'non_field_errors' in errors:
             non_field = errors['non_field_errors'][0]
             if isinstance(non_field, dict) and non_field.get('account_deactivated'):
@@ -190,6 +206,16 @@ def login(request):
                     message=non_field.get('detail', 'Your account is deactivated.'),
                     status_code=status.HTTP_403_FORBIDDEN,
                     details={'account_deactivated': True}
+                )
+            if isinstance(non_field, dict) and non_field.get('email_not_verified'):
+                return error_response(
+                    code='email_not_verified',
+                    message=str(non_field.get('detail', 'Email not verified. Please verify your email before logging in.')),
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={
+                        'email_not_verified': True,
+                        'email': str(non_field.get('email', '')),
+                    }
                 )
             error_message = str(non_field)
         else:

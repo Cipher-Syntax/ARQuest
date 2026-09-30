@@ -226,6 +226,10 @@ export default function OnboardingTutorial() {
 
     const steps = getTutorialSteps(user?.role);
 
+    const getStorageKey = () => {
+        return user?.id ? `@tutorial_completed_${user.id}` : "@tutorial_completed";
+    };
+
     useEffect(() => {
         checkTutorialStatus();
 
@@ -240,14 +244,14 @@ export default function OnboardingTutorial() {
         });
 
         return () => sub.remove();
-    }, [user?.role]);
+    }, [user?.id, user?.role]);
 
     const checkTutorialStatus = async () => {
         try {
-            const hasCompleted = await AsyncStorage.getItem(
-                "@tutorial_completed",
-            );
+            const key = getStorageKey();
+            const hasCompleted = await AsyncStorage.getItem(key);
             if (hasCompleted !== "true") {
+                setCurrentStep(0);
                 setIsVisible(true);
                 Animated.timing(fadeAnim, {
                     toValue: 1,
@@ -283,6 +287,8 @@ export default function OnboardingTutorial() {
                 useNativeDriver: true,
             }).start(async () => {
                 setIsVisible(false);
+                const key = getStorageKey();
+                await AsyncStorage.setItem(key, "true");
                 await AsyncStorage.setItem("@tutorial_completed", "true");
             });
         }

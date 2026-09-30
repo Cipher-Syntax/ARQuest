@@ -54,13 +54,15 @@ export default function RegisterScreen() {
             setError("");
             setFieldErrors({});
 
-            await register(formData);
-            
+            const responseData = await register(formData);
+            // Backend returns the email in success data — pass it to the OTP screen
+            const returnedEmail = responseData?.data?.email || formData.email;
+
             router.replace({
                 pathname: "/(auth)/verify-otp",
                 params: { 
                     username: formData.username,
-                    email: formData.email,
+                    email: returnedEmail,
                 }
             });
         } catch (err) {

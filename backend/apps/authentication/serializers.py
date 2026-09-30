@@ -118,7 +118,11 @@ class LoginSerializer(serializers.Serializer):
         candidate = User.objects.filter(models.Q(username__iexact=username) | models.Q(email__iexact=username)).first()
         if candidate and candidate.check_password(password):
             if not candidate.email_verified:
-                raise serializers.ValidationError('Email not verified. Please verify your email before logging in.')
+                raise serializers.ValidationError({
+                    'email_not_verified': True,
+                    'email': candidate.email,
+                    'detail': 'Email not verified. Please verify your email before logging in.'
+                })
             
             if not candidate.is_active:
                 if reactivate:

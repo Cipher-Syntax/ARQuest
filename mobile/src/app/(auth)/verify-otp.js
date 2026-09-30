@@ -22,20 +22,30 @@ export default function VerifyOTP() {
     const params = useLocalSearchParams();
     const { verifyOTP, resendOTP, isLoading } = useAuth();
 
-    const email = params?.email || "your email";
+    const email = params?.email || "";
     const username = params?.username;
+    const cameFromLogin = !params?.email; // no email = redirected from login due to unverified account
 
     const [otp, setOtp] = useState("");
     const [error, setError] = useState("");
-    const [message, setMessage] = useState("");
+    const [message, setMessage] = useState(
+        cameFromLogin ? "Your email isn't verified yet. A new code has been sent to your registered email." : ""
+    );
     const [isResending, setIsResending] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
 
+    // Auto-resend code when arriving from login redirect (email is present but user has no fresh OTP)
     useEffect(() => {
-        if (!username || !email) {
+        if (!username) {
             router.replace("/(auth)/login");
+            return;
         }
-    }, [username, email]);
+        if (cameFromLogin && email) {
+            resendOTP(email).catch(() => {
+                // Non-fatal — user can still tap "Resend Code" manually
+            });
+        }
+    }, []);
 
     const handleVerify = async () => {
         if (!otp || otp.length !== 6) {
@@ -48,7 +58,7 @@ export default function VerifyOTP() {
             setMessage("");
             setFieldErrors({});
 
-            await verifyOTP(username, otp);
+            await verifyOTP(email, otp);
             router.replace("/(tabs)");
         } catch (err) {
             console.log("OTP verification error:", err);
@@ -76,7 +86,7 @@ export default function VerifyOTP() {
         setMessage("");
         
         try {
-            await resendOTP(username);
+            await resendOTP(email);
             setMessage("A new code has been sent to your email.");
             setOtp("");
         } catch (err) {
@@ -112,7 +122,9 @@ export default function VerifyOTP() {
                         <View style={styles.headerContainer}>
                             <Text style={styles.welcomeText}>Verification</Text>
                             <Text style={styles.subtitleText}>
-                                Enter the 6-digit code sent to {email}
+                                {email
+                                    ? `Enter the 6-digit code sent to ${email}`
+                                    : "Enter the 6-digit verification code sent to your email"}
                             </Text>
                         </View>
 
@@ -133,7 +145,6 @@ export default function VerifyOTP() {
                                         }}
                                         keyboardType="numeric"
                                         maxLength={6}
-                                        textAlign="center"
                                     />
                                 </View>
                                 {fieldErrors.otp && (
@@ -255,11 +266,12 @@ const styles = StyleSheet.create({
     },
     input: {
         fontFamily: fonts.heading.bold,
-        flex: 1,
+        width: '100%',
         fontSize: 28,
         color: '#0F172A',
         height: '100%',
         letterSpacing: 8,
+        textAlign: 'center',
     },
     errorText: {
         color: '#EF4444',
