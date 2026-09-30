@@ -35,7 +35,7 @@ const NAV_GROUPS = [
         ],
     },
     {
-        label: "Content & Media",
+        label: "Tools",
         items: [
             { to: "/compressor", icon: Box, label: "3D Model Compressor" },
         ],
