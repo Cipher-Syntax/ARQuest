@@ -1,202 +1,125 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
     Compass,
+    LayoutDashboard,
     Building2,
     Map,
     Box,
     Users,
     Trash2,
-    Sparkles,
     ChevronLeft,
     ChevronRight,
     X,
     CheckCircle2,
-    ArrowRight,
     HelpCircle,
+    Sparkles,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 const TOUR_STEPS = [
     {
-        badge: "CAMPUS PLATFORM",
+        targetId: "tour-sidebar-header",
+        badge: "WELCOME",
         badgeColor: "bg-red-50 text-brand border-brand/30",
         icon: Compass,
         title: "Welcome to ARQuest Admin",
-        subtitle: "The Operating System for Campus Navigation & Digital Twin Management",
+        subtitle: "Campus Navigation & Digital Twin Operating System",
         description:
-            "ARQuest allows administrators to digitize campus facilities, map pedestrian pathways, deploy 3D models, and manage real-time gamified exploration for students and visitors.",
+            "This sidebar is your control center for managing university geospatial data, 3D architectural assets, pedestrian routing, and student gamification.",
         points: [
-            {
-                emoji: "🏛️",
-                title: "Digital Twin Authoring",
-                desc: "Manage building profiles, 3D architecture, and interactive floor plans.",
-            },
-            {
-                emoji: "📱",
-                title: "Live Mobile Synchronization",
-                desc: "All facilities, geofences, and paths sync instantly to the ARQuest mobile app.",
-            },
-            {
-                emoji: "🎓",
-                title: "Gamified Campus Life",
-                desc: "Engage students with arrival missions, quizzes, badges, and campus rankings.",
-            },
+            "🏛️ Author building records and campus digital twin models",
+            "🚶 Draw walkable pathways for mobile turn-by-turn navigation",
+            "🎓 Track student exploration points (XP) and daily missions",
         ],
     },
     {
+        targetId: "tour-nav-dashboard",
+        badge: "OVERVIEW",
+        badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
+        icon: LayoutDashboard,
+        title: "Dashboard & Live Analytics",
+        subtitle: "Campus overview, system metrics, and quick actions",
+        description:
+            "Get high-level visibility across campus facilities, monitor visitor unlock counts, and review real-time student activity logs.",
+        points: [
+            "📊 Track total buildings, active models, and registered students",
+            "📈 Inspect recent check-in trends and daily mission completion",
+            "⚠️ Monitor maintenance mode and system operational alerts",
+        ],
+    },
+    {
+        targetId: "tour-nav-buildings",
         badge: "CAMPUS MAP",
         badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
         icon: Building2,
         title: "Buildings & 3D Facilities",
-        subtitle: "Author campus landmarks with precise geospatial coordinates",
+        subtitle: "Author campus facilities with precise GPS coordinates",
         description:
-            "Every campus building features mandatory coordinates, publishing states, and interactive 3D model support for mobile AR viewports.",
+            "Every building is anchored with mandatory coordinates, 3D model configuration, and publishing visibility controls.",
         points: [
-            {
-                emoji: "📍",
-                title: "Mandatory GPS Coordinates",
-                desc: "Latitude and Longitude anchor real-time AR markers and map pins on campus.",
-            },
-            {
-                emoji: "📦",
-                title: "3D Model Integration",
-                desc: "Upload `.glb` CAD architecture with real-time thumbnail regeneration.",
-            },
-            {
-                emoji: "🚦",
-                title: "Publishing Controls",
-                desc: "Seamlessly switch buildings between Visible, Maintenance, Hidden, and Draft.",
-            },
+            "📍 Mandatory Latitude & Longitude for AR and map placement",
+            "📦 Upload Draco-compressed .glb models for AR inspection",
+            "🚦 Toggle status: Visible, Maintenance, Hidden, or Draft",
         ],
     },
     {
-        badge: "GEODATA & PATHS",
+        targetId: "tour-nav-campus-map",
+        badge: "CAMPUS MAP",
         badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
         icon: Map,
         title: "Campus Map & Pathways",
-        subtitle: "Unified 2-way mode switcher for geofences and walkable routes",
+        subtitle: "2-way mode switcher for geofences and pathway networks",
         description:
-            "Manage physical arrival boundaries and author pedestrian pathway networks to guide students between university colleges and landmarks.",
+            "Switch between configuring arrival detection radiuses around buildings and authoring connected walking routes.",
         points: [
-            {
-                emoji: "⭕",
-                title: "Map (Arrival Geofences)",
-                desc: "Set arrival detection radiuses around buildings to trigger mobile discoveries.",
-            },
-            {
-                emoji: "🚶",
-                title: "Pathway Network Canvas",
-                desc: "Drop entrance, walkway, and POI waypoints to create connected walking routes.",
-            },
-            {
-                emoji: "🧭",
-                title: "Shortest-Path AR Routing",
-                desc: "Mobile AR utilizes this graph network to draw turn-by-turn walking arrows.",
-            },
+            "⭕ Map (Arrival Geofences): Set detection radiuses for arrivals",
+            "🚶 Pathway Network: Drop entrance, walkway, and POI waypoints",
+            "🧭 Graph Routing: Mobile AR computes shortest paths for users",
         ],
     },
     {
-        badge: "OPTIMIZATION TOOL",
+        targetId: "tour-nav-compressor",
+        badge: "TOOLS",
         badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
         icon: Box,
         title: "3D Model Compressor",
-        subtitle: "High-performance mesh and texture compression for mobile devices",
+        subtitle: "Draco geometry optimization for mobile 60 FPS performance",
         description:
-            "Optimize large university architectural CAD models with Draco geometry decimation, reducing file sizes from 500 MB down to mobile-friendly ≤25 MB targets.",
+            "Optimize large CAD and 3D architectural files, reducing sizes from 500 MB down to mobile targets under 25 MB.",
         points: [
-            {
-                emoji: "⚡",
-                title: "Automated Mesh Decimation",
-                desc: "Reduces heavy polygon counts while preserving building contours and facades.",
-            },
-            {
-                emoji: "📊",
-                title: "Before & After Analytics",
-                desc: "Inspect mesh metrics, texture sizing, and compression ratios in real time.",
-            },
-            {
-                emoji: "🔗",
-                title: "1-Click Assignment",
-                desc: "Assign compressed `.glb` files directly to existing campus buildings.",
-            },
+            "⚡ Automatic Draco mesh decimation and texture optimization",
+            "📊 Real-time before/after polygon and memory analytics",
+            "🔗 1-Click assignment directly to campus buildings",
         ],
     },
     {
+        targetId: "tour-nav-users",
         badge: "USERS & ACCOUNTS",
         badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
         icon: Users,
         title: "User Management Directory",
         subtitle: "All Accounts, Student Rankings, and Visitor Access",
         description:
-            "Oversee all platform accounts in a unified 3-way management hub with real-time role filtering and gamification tracking.",
+            "Unified 3-way switcher: browse All Accounts (Students, Visitors, Guests, Admins), inspect student leaderboard XP, and provision visitor credentials.",
         points: [
-            {
-                emoji: "👥",
-                title: "All Accounts Directory",
-                desc: "Search, filter, and inspect Students, Visitors, Guests, and Administrators.",
-            },
-            {
-                emoji: "🏆",
-                title: "Student Exploration Rankings",
-                desc: "Track exploration XP, login streaks, rank tiers, and top campus explorers.",
-            },
-            {
-                emoji: "🎫",
-                title: "Visitor Credentials",
-                desc: "Create and provision dedicated credentials for campus accreditors and evaluators.",
-            },
+            "👥 All Accounts: Directory with live role filtering & search",
+            "🏆 Student Rankings: Gamification leaderboard and podium",
+            "🎫 Visitors: Generate credentials for campus accreditors",
         ],
     },
     {
+        targetId: "tour-nav-recycle-bin",
         badge: "SYSTEM & ADMIN",
         badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
         icon: Trash2,
         title: "Recycle Bin & Safe Holding",
-        subtitle: "Multi-category 30-day temporary holding area with 1-click recovery",
+        subtitle: "30-day temporary holding area with 1-click recovery",
         description:
-            "Deleted campus entities are safely preserved in the Recycle Bin with a 30-day retention countdown before automated permanent cleanup.",
+            "Deleted Buildings, Visitor Accounts, Quests, and Trivias are held safely for 30 days before automated permanent cron cleanup.",
         points: [
-            {
-                emoji: "🛡️",
-                title: "Unified Holding Area",
-                desc: "Safely holds deleted Buildings, Visitor Accounts, Quests, and Trivias.",
-            },
-            {
-                emoji: "⏱️",
-                title: "30-Day Retention Badges",
-                desc: "Warning badges count down remaining days, highlighting urgent items (≤7 days).",
-            },
-            {
-                emoji: "🔄",
-                title: "Instant Restore & Hard Delete",
-                desc: "Restore entities back to active state or permanently purge with confirmation.",
-            },
-        ],
-    },
-    {
-        badge: "CONNECTED FEATURES",
-        badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
-        icon: Sparkles,
-        title: "More Features Hub",
-        subtitle: "Virtual tours, 3D hotspots, and quests inside the Building Editor",
-        description:
-            "After saving any building, the More Features hub lets you directly author immersive 360° panoramas, interactive 3D anchors, and student challenges.",
-        points: [
-            {
-                emoji: "📸",
-                title: "360° Virtual Tours",
-                desc: "Upload equirectangular panoramas and configure walkthrough hotlinks.",
-            },
-            {
-                emoji: "🎯",
-                title: "3D Hotspots Editor",
-                desc: "Place interactive speech bubbles inside 3D models with daylight lighting.",
-            },
-            {
-                emoji: "🎁",
-                title: "Quests & Trivias",
-                desc: "Manage building missions, clues, and educational trivia questions.",
-            },
+            "🛡️ Multi-entity safety holding area for all deleted records",
+            "⏱️ 30-day countdown badge warns before automated purging",
+            "🔄 1-Click Restore to active status or permanent deletion",
         ],
     },
 ];
@@ -206,10 +129,79 @@ export default function AdminOnboardingTour() {
     const [isOpen, setIsOpen] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [dontShowAgain, setDontShowAgain] = useState(false);
+    const [targetRect, setTargetRect] = useState(null);
+    const [cardPos, setCardPos] = useState({ top: 100, left: 280, pointerTop: 24 });
+    const cardRef = useRef(null);
 
     const storageKey = user?.id
         ? `@arquest_web_tutorial_completed_${user.id}`
         : "@arquest_web_tutorial_completed_guest";
+
+    const updatePosition = useCallback(() => {
+        const step = TOUR_STEPS[currentStep];
+        if (!step) return;
+
+        const el = document.getElementById(step.targetId);
+        if (el) {
+            // Scroll target into view if needed
+            el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+
+            const rect = el.getBoundingClientRect();
+            setTargetRect({
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height,
+                bottom: rect.bottom,
+                right: rect.right,
+            });
+
+            // Calculate card position on desktop (placing speech bubble right of sidebar)
+            const isDesktop = window.innerWidth >= 1024;
+            const cardHeight = cardRef.current ? cardRef.current.offsetHeight : 340;
+            const viewportHeight = window.innerHeight;
+
+            if (isDesktop) {
+                // Speech bubble sits on the right of the sidebar item
+                const left = Math.min(rect.right + 20, window.innerWidth - 440);
+                
+                // Align speech bubble vertically centered with the target item
+                const targetCenterY = rect.top + rect.height / 2;
+                let top = targetCenterY - 60; // offset slightly above center
+                
+                // Keep inside screen boundaries
+                if (top + cardHeight > viewportHeight - 20) {
+                    top = Math.max(20, viewportHeight - cardHeight - 20);
+                }
+                if (top < 20) {
+                    top = 20;
+                }
+
+                // Pointer arrow relative to card top
+                const pointerTop = Math.max(
+                    18,
+                    Math.min(targetCenterY - top - 10, cardHeight - 34)
+                );
+
+                setCardPos({ top, left, pointerTop });
+            } else {
+                // Mobile/Tablet fallback: Center speech bubble
+                setCardPos({
+                    top: Math.max(20, (viewportHeight - cardHeight) / 2),
+                    left: Math.max(16, (window.innerWidth - 380) / 2),
+                    pointerTop: null,
+                });
+            }
+        } else {
+            // Fallback if target element not found
+            setTargetRect(null);
+            setCardPos({
+                top: 100,
+                left: Math.max(20, (window.innerWidth - 420) / 2),
+                pointerTop: null,
+            });
+        }
+    }, [currentStep]);
 
     useEffect(() => {
         // Auto-open on initial login if not previously completed
@@ -223,7 +215,7 @@ export default function AdminOnboardingTour() {
     }, [storageKey]);
 
     useEffect(() => {
-        // Listen for manual trigger events from TopBar or Help shortcuts
+        // Listen for manual trigger events
         const handleOpenTour = () => {
             setCurrentStep(0);
             setIsOpen(true);
@@ -234,7 +226,22 @@ export default function AdminOnboardingTour() {
     }, []);
 
     useEffect(() => {
-        // Keyboard navigation (Arrow keys & Escape)
+        if (!isOpen) return;
+
+        // Give DOM and scroll a moment to settle then position
+        const timer = setTimeout(updatePosition, 100);
+        window.addEventListener("resize", updatePosition);
+        window.addEventListener("scroll", updatePosition, true);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener("resize", updatePosition);
+            window.removeEventListener("scroll", updatePosition, true);
+        };
+    }, [isOpen, currentStep, updatePosition]);
+
+    useEffect(() => {
+        // Keyboard navigation
         if (!isOpen) return;
 
         const handleKeyDown = (e) => {
@@ -265,6 +272,10 @@ export default function AdminOnboardingTour() {
         }
     };
 
+    const handleSkip = () => {
+        handleComplete();
+    };
+
     const handleComplete = () => {
         if (dontShowAgain) {
             localStorage.setItem(storageKey, "true");
@@ -285,129 +296,187 @@ export default function AdminOnboardingTour() {
     const StepIcon = step.icon;
     const isFirstStep = currentStep === 0;
     const isLastStep = currentStep === TOUR_STEPS.length - 1;
+    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-950/75 backdrop-blur-xs animate-in fade-in duration-200">
-            {/* Modal Dialog (Strict 6px: rounded-md) */}
-            <div className="relative w-full max-w-2xl bg-white border border-gray-200 rounded-md shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-                {/* Header Zone */}
-                <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-[100] pointer-events-auto">
+            {/* Dark Scrim Overlay */}
+            <div
+                onClick={handleClose}
+                className="fixed inset-0 bg-gray-950/70 backdrop-blur-xs transition-opacity duration-300"
+            />
+
+            {/* Glowing Spotlight Indicator on Sidebar Item */}
+            {targetRect && (
+                <>
+                    <div
+                        style={{
+                            top: targetRect.top - 4,
+                            left: targetRect.left - 4,
+                            width: targetRect.width + 8,
+                            height: targetRect.height + 8,
+                        }}
+                        className="fixed z-[101] rounded-md ring-4 ring-white ring-offset-2 ring-offset-brand shadow-[0_0_20px_rgba(255,255,255,0.7)] pointer-events-none transition-all duration-300 animate-pulse"
+                    />
+
+                    {/* Pulsing Beacon Pill at sidebar item's right border */}
+                    {isDesktop && (
+                        <div
+                            style={{
+                                top: targetRect.top + targetRect.height / 2 - 5,
+                                left: targetRect.right + 2,
+                            }}
+                            className="fixed z-[102] w-2.5 h-2.5 bg-white rounded-full ring-4 ring-brand/80 shadow-md animate-ping pointer-events-none transition-all duration-300"
+                        />
+                    )}
+                </>
+            )}
+
+            {/* Floating Speech Bubble Tooltip Card */}
+            <div
+                ref={cardRef}
+                style={{
+                    top: cardPos.top,
+                    left: cardPos.left,
+                }}
+                className="fixed z-[105] w-[90vw] sm:w-[420px] max-w-[440px] bg-white border border-brand-border rounded-md shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-left-4"
+            >
+                {/* Speech Bubble Arrow Pointer (pointing left at sidebar item) */}
+                {isDesktop && cardPos.pointerTop !== null && (
+                    <>
+                        {/* Outer shadow triangle */}
+                        <div
+                            style={{ top: cardPos.pointerTop - 1 }}
+                            className="absolute -left-3 w-0 h-0 border-y-[10px] border-y-transparent border-r-[12px] border-r-brand-border/60 pointer-events-none transition-all duration-200"
+                        />
+                        {/* Inner white fill triangle */}
+                        <div
+                            style={{ top: cardPos.pointerTop }}
+                            className="absolute -left-2.5 w-0 h-0 border-y-[9px] border-y-transparent border-r-[11px] border-r-white pointer-events-none transition-all duration-200"
+                        />
+                    </>
+                )}
+
+                {/* Card Header */}
+                <div className="p-4 border-b border-gray-100 flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-md bg-brand-light/70 text-brand flex items-center justify-center shrink-0 border border-brand/20 shadow-xs">
-                            <StepIcon size={24} />
+                        <div className="w-10 h-10 rounded-md bg-brand-light text-brand flex items-center justify-center shrink-0 border border-brand/20 shadow-xs">
+                            <StepIcon size={20} />
                         </div>
                         <div>
                             <span
-                                className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider border mb-1 ${step.badgeColor}`}
+                                className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider border ${step.badgeColor}`}
                             >
-                                {step.badge} • Step {currentStep + 1} of {TOUR_STEPS.length}
+                                {step.badge}
                             </span>
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight font-heading leading-tight">
+                            <h3 className="text-base font-bold text-gray-900 tracking-tight leading-tight mt-0.5">
                                 {step.title}
-                            </h2>
-                            <p className="text-xs font-semibold text-gray-500 mt-0.5">
-                                {step.subtitle}
-                            </p>
+                            </h3>
                         </div>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={handleClose}
-                        className="text-gray-400 hover:text-gray-700 p-1.5 rounded-md hover:bg-gray-100 transition-colors"
-                        title="Close Tour (Esc)"
-                    >
-                        <X size={18} />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
+                            {currentStep + 1}/{TOUR_STEPS.length}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            className="text-gray-400 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                            title="Close Tour (Esc)"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
                 </div>
 
-                {/* Body Content */}
-                <div className="px-6 py-5 overflow-y-auto space-y-4">
+                {/* Card Body */}
+                <div className="p-4 space-y-3">
                     <p className="text-xs text-gray-600 leading-relaxed font-medium">
                         {step.description}
                     </p>
 
-                    {/* Feature Highlights Grid */}
-                    <div className="grid grid-cols-1 gap-2.5 pt-1">
-                        {step.points.map((point, index) => (
+                    {/* Highlight Points */}
+                    <div className="space-y-1.5 pt-1">
+                        {step.points.map((point, idx) => (
                             <div
-                                key={index}
-                                className="flex items-start gap-3 p-3 bg-brand-light/25 border border-brand-border/60 rounded-md transition-colors hover:bg-brand-light/40"
+                                key={idx}
+                                className="flex items-center gap-2 p-2 bg-brand-light/30 border border-brand-border/40 rounded-md text-[11px] font-semibold text-gray-800"
                             >
-                                <span className="text-lg leading-none mt-0.5 shrink-0 select-none">
-                                    {point.emoji}
-                                </span>
-                                <div className="min-w-0">
-                                    <h4 className="text-xs font-bold text-gray-900 leading-tight">
-                                        {point.title}
-                                    </h4>
-                                    <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-                                        {point.desc}
-                                    </p>
-                                </div>
+                                <span>{point}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* Footer Controls */}
-                <div className="px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    {/* Don't show again checkbox */}
-                    <label className="flex items-center gap-2 cursor-pointer select-none self-start sm:self-auto">
+                {/* Card Footer Controls */}
+                <div className="p-4 bg-gray-50/80 border-t border-gray-100 rounded-b-md flex flex-col gap-3">
+                    {/* Don't show again toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
                         <input
                             type="checkbox"
                             checked={dontShowAgain}
                             onChange={(e) => setDontShowAgain(e.target.checked)}
-                            className="w-4 h-4 rounded text-brand focus:ring-brand border-gray-300 cursor-pointer"
+                            className="w-3.5 h-3.5 rounded text-brand focus:ring-brand border-gray-300 cursor-pointer"
                         />
-                        <span className="text-xs text-gray-600 font-medium">
+                        <span className="text-[11px] text-gray-500 font-medium">
                             Don't show this guide on login
                         </span>
                     </label>
 
-                    {/* Step Dots & Navigation Buttons */}
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                        {/* Progress Dots */}
-                        <div className="flex items-center gap-1.5 px-2">
-                            {TOUR_STEPS.map((_, idx) => (
+                    {/* Progress Dots & Buttons */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-200/60">
+                        {/* Step Pagination Dots */}
+                        <div className="flex items-center gap-1.5">
+                            {TOUR_STEPS.map((_, i) => (
                                 <button
-                                    key={idx}
-                                    onClick={() => setCurrentStep(idx)}
-                                    title={`Go to step ${idx + 1}`}
-                                    className={`transition-all rounded-md ${
-                                        currentStep === idx
-                                            ? "w-5 h-1.5 bg-brand"
+                                    key={i}
+                                    type="button"
+                                    onClick={() => setCurrentStep(i)}
+                                    title={`Step ${i + 1}`}
+                                    className={`rounded-md transition-all ${
+                                        i === currentStep
+                                            ? "w-4 h-1.5 bg-brand"
                                             : "w-1.5 h-1.5 bg-gray-300 hover:bg-gray-400"
                                     }`}
                                 />
                             ))}
                         </div>
 
-                        {/* Back Button */}
-                        {!isFirstStep && (
+                        {/* Back / Skip / Next Buttons */}
+                        <div className="flex items-center gap-2">
+                            {isFirstStep ? (
+                                <button
+                                    type="button"
+                                    onClick={handleSkip}
+                                    className="px-2.5 py-1 text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-200/60 rounded-md transition-colors"
+                                >
+                                    Skip
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handlePrev}
+                                    className="inline-flex items-center gap-0.5 px-2.5 py-1 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors shadow-2xs"
+                                >
+                                    <ChevronLeft size={13} />
+                                    Back
+                                </button>
+                            )}
+
                             <button
                                 type="button"
-                                onClick={handlePrev}
-                                className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors shadow-2xs"
+                                onClick={handleNext}
+                                className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-bold text-white bg-brand hover:bg-brand/90 rounded-md transition-all shadow-sm active:scale-98"
                             >
-                                <ChevronLeft size={14} />
-                                Back
+                                <span>{isLastStep ? "Finish" : "Next"}</span>
+                                {isLastStep ? (
+                                    <CheckCircle2 size={13} />
+                                ) : (
+                                    <ChevronRight size={13} />
+                                )}
                             </button>
-                        )}
-
-                        {/* Next / Get Started Button */}
-                        <button
-                            type="button"
-                            onClick={handleNext}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-brand hover:bg-brand/90 rounded-md transition-all shadow-sm active:scale-98"
-                        >
-                            <span>{isLastStep ? "Get Started" : "Next"}</span>
-                            {isLastStep ? (
-                                <CheckCircle2 size={14} />
-                            ) : (
-                                <ChevronRight size={14} />
-                            )}
-                        </button>
+                        </div>
                     </div>
                 </div>
             </div>

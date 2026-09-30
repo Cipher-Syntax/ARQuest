@@ -99,6 +99,7 @@ function SidebarContent({
     return (
         <div className="flex flex-col h-full bg-brand relative transition-all duration-300">
             <div
+                id="tour-sidebar-header"
                 className={`px-5 py-6 flex items-center transition-all duration-300 border-b border-white/50 ${isCollapsed ? "justify-center px-0" : "justify-between"}`}
             >
                 <div className="flex items-center gap-3 border-white">
@@ -174,6 +175,7 @@ function SidebarContent({
                                 <NavLink
                                     key={to}
                                     to={to}
+                                    id={`tour-nav-${to.replace("/", "")}`}
                                     onClick={onMobileClose}
                                     title={isCollapsed ? label : ""}
                                     className={({ isActive }) =>
