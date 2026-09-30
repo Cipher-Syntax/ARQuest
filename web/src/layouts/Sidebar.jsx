@@ -12,7 +12,6 @@ import {
     Target,
     ChevronLeft,
     ChevronRight,
-    Briefcase,
     ArchiveRestore,
     Activity,
     ChevronDown,
@@ -42,15 +41,14 @@ const NAV_GROUPS = [
         ],
     },
     {
-        label: "Gamification",
+        label: "Users & Accounts",
         items: [
-            { to: "/users", icon: Users, label: "Student Rankings" },
+            { to: "/users", icon: Users, label: "User Management" },
         ],
     },
     {
         label: "System & Admin",
         items: [
-            { to: "/professionals", icon: Briefcase, label: "Professionals" },
             { to: "/feedback", icon: HelpCircle, label: "Feedback & Issues" },
             { to: "/history", icon: Activity, label: "History & Logs" },
             { to: "/archives", icon: ArchiveRestore, label: "Archives" },

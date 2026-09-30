@@ -39,8 +39,8 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
             username: (val) => validateString(val, 3),
             email: (val) => validateEmail(val),
             password: (val) => validateString(val, 8),
-            first_name: (val) => null,
-            last_name: (val) => null,
+            first_name: () => null,
+            last_name: () => null,
         };
         const validationErrors = validateForm(formData, schema);
         setErrors(validationErrors);
@@ -62,14 +62,14 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-white rounded-md shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between p-4 border-b border-brand-border bg-gray-50/50">
                     <h3 className="font-bold text-lg text-gray-900">
-                        Create Professional Account
+                        Create Visitor Account
                     </h3>
                     <button
                         onClick={onClose}
-                        className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -194,7 +194,7 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
     );
 }
 
-export default function ProfessionalsPage() {
+export default function ProfessionalsPage({ hideHeader }) {
     const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -265,25 +265,27 @@ export default function ProfessionalsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                        Professional Accounts
-                    </h2>
-                    <p className="text-gray-500 mt-1">
-                        Manage access for professors, staff, and accreditors.
-                    </p>
+            {!hideHeader && (
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            Visitor Accounts
+                        </h2>
+                        <p className="text-gray-500 mt-1">
+                            Manage access for campus visitors and guest accounts.
+                        </p>
+                    </div>
+                    <Button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2"
+                    >
+                        <Plus size={18} />
+                        Create Visitor Account
+                    </Button>
                 </div>
-                <Button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2"
-                >
-                    <Plus size={18} />
-                    Create Account
-                </Button>
-            </div>
+            )}
 
-            <div className="flex flex-col md:flex-row items-center gap-4 mt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
                 <div className="relative flex-1 w-full max-w-md">
                     <Search
                         className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -291,12 +293,21 @@ export default function ProfessionalsPage() {
                     />
                     <input
                         type="text"
-                        placeholder="Search professionals by name or email..."
-                        className="w-full pl-10 pr-4 py-3 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
+                        placeholder="Search visitors by name or email..."
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 font-medium"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+                {hideHeader && (
+                    <Button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 self-stretch sm:self-auto text-xs font-bold"
+                    >
+                        <Plus size={16} />
+                        Create Visitor Account
+                    </Button>
+                )}
             </div>
 
             <Card noPadding>
@@ -305,7 +316,7 @@ export default function ProfessionalsPage() {
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-brand-border">
                                 <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                                    Professional
+                                    Visitor
                                 </th>
                                 <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                                     Email
@@ -328,7 +339,7 @@ export default function ProfessionalsPage() {
                                         colSpan="5"
                                         className="px-6 py-8 text-center text-gray-500 font-medium"
                                     >
-                                        No professional accounts found.
+                                        No visitor accounts found.
                                     </td>
                                 </tr>
                             ) : (
@@ -376,7 +387,7 @@ export default function ProfessionalsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <Badge variant="warning">
-                                                Professional
+                                                Visitor
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -396,7 +407,7 @@ export default function ProfessionalsPage() {
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => handleDeleteClick(user.id)}
-                                                className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                                                className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-md hover:bg-red-50"
                                                 title="Delete Account"
                                             >
                                                 <Trash2 size={16} />
@@ -427,8 +438,8 @@ export default function ProfessionalsPage() {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleConfirmDelete}
-                title="Delete Professional Account"
-                message="Are you sure you want to delete this professional account? This action cannot be undone."
+                title="Delete Visitor Account"
+                message="Are you sure you want to delete this visitor account? This action cannot be undone."
             />
         </div>
     );

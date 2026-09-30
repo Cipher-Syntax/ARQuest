@@ -20,8 +20,8 @@ import ArchivePage from "../pages/ArchivePage";
 import FeedbackPage from "../pages/FeedbackPage";
 import HistoryPage from "../pages/HistoryPage";
 import ModelCompressorPage from "../pages/ModelCompressorPage";
-import NavigationPage from "../pages/NavigationPage";
 import CampusMapPage from "../pages/CampusMapPage";
+import UserManagementPage from "../pages/UserManagementPage";
 import NotFound from "../pages/NotFound";
 
 
@@ -61,10 +61,11 @@ const AppRoutes = () => {
                     element={<PanoramaManagerPage />}
                 />
                 <Route path="cms" element={<CmsPage />} />
-                <Route path="users" element={<UsersContainer />} />
+                <Route path="users" element={<UserManagementPage />} />
+                <Route path="user-management" element={<UserManagementPage />} />
                 <Route
                     path="professionals"
-                    element={<ProfessionalsPage />}
+                    element={<UserManagementPage defaultTab="visitors" />}
                 />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="archives" element={<ArchivePage />} />
