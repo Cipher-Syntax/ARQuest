@@ -3,7 +3,6 @@ import {
     LayoutDashboard,
     Building2,
     Users,
-    FileVideo,
     Map,
     HelpCircle,
     Settings,
@@ -11,12 +10,9 @@ import {
     Menu,
     X,
     Target,
-    MonitorPlay,
     ChevronLeft,
     ChevronRight,
     Briefcase,
-    Camera,
-    Layers,
     ArchiveRestore,
     Activity,
     ChevronDown,
@@ -36,7 +32,6 @@ const NAV_GROUPS = [
     {
         label: "Campus Map",
         items: [
-            { to: "/departments", icon: Layers, label: "Colleges" },
             { to: "/buildings", icon: Building2, label: "Buildings" },
             { to: "/geofences", icon: Map, label: "Geofences" },
             { to: "/navigation", icon: Navigation, label: "Walking Paths" },
@@ -45,15 +40,12 @@ const NAV_GROUPS = [
     {
         label: "Content & Media",
         items: [
-            { to: "/panoramas", icon: Camera, label: "Manage Panorama" },
-            { to: "/media", icon: FileVideo, label: "Content & Media Viewer" },
             { to: "/compressor", icon: Box, label: "3D Model Compressor" },
         ],
     },
     {
         label: "Gamification",
         items: [
-            { to: "/cms", icon: MonitorPlay, label: "Quests/Trivias/Quizzes" },
             { to: "/users", icon: Users, label: "Student Rankings" },
         ],
     },
@@ -164,7 +156,7 @@ function SidebarContent({
                             : "opacity-0 pointer-events-none"
                     }`}
                 >
-                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-full p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-md p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                         <ChevronUp size={14} className="stroke-[2.5]" />
                     </div>
                 </button>
@@ -231,7 +223,7 @@ function SidebarContent({
                             : "opacity-0 pointer-events-none"
                     }`}
                 >
-                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-full p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-md p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                         <ChevronDown size={14} className="stroke-[2.5]" />
                     </div>
                 </button>
@@ -248,7 +240,7 @@ export default function Sidebar() {
         <>
             <button
                 onClick={() => setMobileOpen(true)}
-                className="lg:hidden fixed top-3 left-4 z-40 p-2 bg-white rounded-lg border border-brand-border shadow-sm text-brand active:scale-95 transition-all"
+                className="lg:hidden fixed top-3 left-4 z-40 p-2 bg-white rounded-md border border-brand-border shadow-sm text-brand active:scale-95 transition-all"
             >
                 <Menu size={20} />
             </button>
@@ -263,7 +255,7 @@ export default function Sidebar() {
                     <div className="relative w-64 h-full shadow-2xl border-r-4 border-r-brand">
                         <button
                             onClick={() => setMobileOpen(false)}
-                            className="absolute top-6 right-6 p-2 text-white/70 hover:text-white bg-white/10 rounded-lg transition-colors z-10"
+                            className="absolute top-6 right-6 p-2 text-white/70 hover:text-white bg-white/10 rounded-md transition-colors z-10"
                         >
                             <X size={20} />
                         </button>

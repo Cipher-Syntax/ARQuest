@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Map, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-gl/mapbox";
 import circle from "@turf/circle";
+import { MapPin } from "lucide-react";
 import { theme } from "../../theme";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@google/model-viewer";
@@ -110,34 +111,50 @@ const GeofenceEditor = ({
                 }
                 `}
             </style>
-            <div style={{ marginBottom: theme.spacing.md }}>
-                <label style={{ display: "block", marginBottom: theme.spacing.xs, fontSize: "14px", fontWeight: "500" }}>
-                    Radius (meters) *
-                </label>
-                <input
-                    type="number"
-                    value={value?.radius_meters || ""}
-                    onChange={(e) => onChange({ ...value, radius_meters: e.target.value })}
-                    min="1"
-                    style={{
-                        width: "100%", padding: theme.spacing.sm,
-                        border: "1px solid #ddd",
-                        borderRadius: theme.radius.sm, fontSize: "14px",
-                    }}
-                />
-                {errors?.radius && (
-                    <div style={{ color: theme.colors.error, fontSize: "12px", marginTop: theme.spacing.xs }}>{errors.radius}</div>
-                )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-3">
+                <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                        Geofence Radius (meters) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="number"
+                        value={value?.radius_meters || ""}
+                        onChange={(e) => onChange({ ...value, radius_meters: e.target.value })}
+                        min="1"
+                        style={{ borderRadius: theme.radius.sm }}
+                        className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-[#8a1538] focus:border-[#8a1538] transition-all outline-none text-sm font-mono"
+                        placeholder="20"
+                    />
+                    {errors?.radius && (
+                        <div style={{ color: theme.colors.error, fontSize: "12px", marginTop: "4px" }}>{errors.radius}</div>
+                    )}
+                </div>
+
+                <div>
+                    <label className="flex items-center gap-2.5 text-sm font-medium text-gray-700 cursor-pointer bg-gray-50 px-3.5 py-2 border border-gray-200 rounded-md shadow-sm hover:bg-gray-100 transition-colors h-[38px]">
+                        <input
+                            type="checkbox"
+                            checked={value?.is_active !== false}
+                            onChange={(e) => onChange({ ...value, is_active: e.target.checked })}
+                            className="w-4 h-4 rounded text-[#8a1538] focus:ring-[#8a1538] cursor-pointer"
+                        />
+                        <span>Geofence Active</span>
+                    </label>
+                </div>
             </div>
 
-            <div style={{ marginBottom: theme.spacing.md }}>
-                <label style={{ display: "flex", alignItems: "center", gap: theme.spacing.sm, fontSize: "14px" }}>
-                    <input type="checkbox" checked={value?.is_active !== false} onChange={(e) => onChange({ ...value, is_active: e.target.checked })} />
-                    Active
-                </label>
+            <div className="p-2.5 bg-blue-50/80 border border-blue-100 text-blue-700 rounded-md text-xs font-medium flex items-center gap-2 mb-3">
+                <MapPin size={14} className="shrink-0 text-blue-600" />
+                <span>Click anywhere on the map to pin building coordinates and geofence perimeter.</span>
             </div>
 
-            <div style={{ marginBottom: theme.spacing.md, height: "400px", border: "1px solid #ddd", borderRadius: theme.radius.sm, overflow: "hidden" }}>
+            {errors?.center && (
+                <div style={{ color: theme.colors.error, fontSize: "12px", marginBottom: "8px" }}>
+                    {errors.center}
+                </div>
+            )}
+
+            <div style={{ marginBottom: theme.spacing.sm, height: "400px", border: "1px solid #ddd", borderRadius: theme.radius.sm, overflow: "hidden" }}>
                 <Map
                     {...viewState}
                     onMove={evt => setViewState(evt.viewState)}
@@ -225,7 +242,7 @@ const GeofenceEditor = ({
                                 }}
                             >
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <div className="text-[10px] font-bold text-red-600 shadow-sm border-0 bg-white/80 px-1 rounded mb-1 whitespace-nowrap">
+                                    <div className="text-[10px] font-bold text-red-600 shadow-sm border-0 bg-white/80 px-1 rounded-md mb-1 whitespace-nowrap">
                                         {bldgName}
                                     </div>
                                     {b.status === 'MAINTENANCE' ? <MaintenanceIcon /> : <DefaultIcon />}
@@ -241,7 +258,7 @@ const GeofenceEditor = ({
                             anchor="bottom"
                         >
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <div className={`text-[10px] font-bold shadow-sm border-0 bg-white/80 px-1 rounded mb-1 whitespace-nowrap ${buildingStatus === 'MAINTENANCE' ? 'text-orange-500' : 'text-brand'}`}>
+                                <div className={`text-[10px] font-bold shadow-sm border-0 bg-white/80 px-1 rounded-md mb-1 whitespace-nowrap ${buildingStatus === 'MAINTENANCE' ? 'text-orange-500' : 'text-brand'}`}>
                                     {buildingName || "Current Building"}
                                 </div>
                                 {buildingStatus === 'MAINTENANCE' ? <MaintenanceIcon /> : <DefaultIcon color={theme.colors.primary} />}
@@ -268,7 +285,7 @@ const GeofenceEditor = ({
                                     style={{ width: "100%", height: "100%", backgroundColor: "transparent" }}
                                 ></model-viewer>
                                 <div className="absolute bottom-2 left-0 w-full text-center pointer-events-none">
-                                    <span className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-red-600 uppercase tracking-wider shadow-sm">
+                                    <span className="bg-white/80 px-2 py-1 rounded-md text-[10px] font-bold text-red-600 uppercase tracking-wider shadow-sm">
                                         {hoveredBuilding.name || "Building"} 3D Model
                                     </span>
                                 </div>
@@ -277,16 +294,6 @@ const GeofenceEditor = ({
                     )}
                 </Map>
             </div>
-
-            <div style={{ padding: theme.spacing.sm, backgroundColor: "#e3f2fd", borderRadius: theme.radius.sm, fontSize: "12px", marginBottom: theme.spacing.md }}>
-                Click on the map to set geofence center. The circle shows the geofence coverage area.
-            </div>
-
-            {errors?.center && (
-                <div style={{ color: theme.colors.error, fontSize: "12px", marginBottom: theme.spacing.md }}>
-                    {errors.center}
-                </div>
-            )}
         </div>
     );
 };

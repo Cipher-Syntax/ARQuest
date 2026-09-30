@@ -1,20 +1,74 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "@google/model-viewer";
-import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
 import {
     ArrowLeft,
     CheckCircle,
+    CheckCircle2,
     Image as ImageIcon,
-    ChevronDown,
     Target,
     Zap,
+    Eye,
+    EyeOff,
+    FileText,
+    AlertTriangle,
+    Building2,
+    MapPin,
+    Info,
+    Sparkles,
+    Camera,
+    Box,
+    MonitorPlay,
+    ChevronRight,
 } from "lucide-react";
 import { buildingService } from "../services/buildingService";
 import { departmentService } from "../services/departmentService";
 import GeofenceEditor from "../components/map/GeofenceEditor";
 import DragDropFileUpload from "../components/common/DragDropFileUpload";
-import { theme } from "../theme";
-import { validateForm, validateString } from "../utils/validation";
+import { Modal, Button } from "../components/ui";
+
+const STATUS_OPTIONS = [
+    {
+        value: "DRAFT",
+        title: "Draft",
+        subtitle: "Unpublished",
+        icon: FileText,
+        color: "hover:border-gray-400",
+        selectedBg: "bg-gray-50 border-gray-600 text-gray-900 ring-2 ring-gray-300",
+        iconBg: "bg-gray-200 text-gray-700",
+        description: "Draft mode only visible to administrators. Coordinates optional while editing.",
+    },
+    {
+        value: "VISIBLE",
+        title: "Visible",
+        subtitle: "Public / Live",
+        icon: Eye,
+        color: "hover:border-brand",
+        selectedBg: "bg-brand/5 border-brand text-brand ring-2 ring-brand/30",
+        iconBg: "bg-brand/10 text-brand",
+        description: "Publicly visible on campus map & mobile AR landmark discovery. Coordinates required.",
+    },
+    {
+        value: "MAINTENANCE",
+        title: "Maintenance",
+        subtitle: "Notice / Repairs",
+        icon: AlertTriangle,
+        color: "hover:border-amber-500",
+        selectedBg: "bg-amber-50/60 border-amber-500 text-amber-900 ring-2 ring-amber-300",
+        iconBg: "bg-amber-100 text-amber-700",
+        description: "Flagged under construction or repair with a maintenance marker. Coordinates required.",
+    },
+    {
+        value: "HIDDEN",
+        title: "Hidden",
+        subtitle: "Unlisted",
+        icon: EyeOff,
+        color: "hover:border-red-500",
+        selectedBg: "bg-red-50/60 border-red-500 text-red-900 ring-2 ring-red-300",
+        iconBg: "bg-red-100 text-red-700",
+        description: "Active in database, but hidden from general map discovery. Coordinates required.",
+    },
+];
 
 const BuildingEditorPage = () => {
     const { id } = useParams();
@@ -24,6 +78,23 @@ const BuildingEditorPage = () => {
     const isNew = id === "new";
     const [existingBuildings, setExistingBuildings] = useState([]);
     const [departments, setDepartments] = useState([]);
+
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [isDirty, setIsDirty] = useState(false);
+    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+    const [showHubModal, setShowHubModal] = useState(false);
+
+    useEffect(() => {
+        if (searchParams.get("openHub") === "true") {
+            const timer = setTimeout(() => {
+                setShowHubModal(true);
+            }, 1300);
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("openHub");
+            setSearchParams(newParams, { replace: true });
+            return () => clearTimeout(timer);
+        }
+    }, [searchParams, setSearchParams]);
 
     const [building, setBuilding] = useState({
         name: "",
@@ -54,15 +125,12 @@ const BuildingEditorPage = () => {
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
 
-    const [deptSearch, setDeptSearch] = useState("");
-    const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
     const [showHotspotEditor, setShowHotspotEditor] = useState(false);
     const [isModelLoading, setIsModelLoading] = useState(false);
     const [thumbnailBlob, setThumbnailBlob] = useState(null);
     const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState(null);
     const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
     
-    const deptDropdownRef = useRef(null);
     const modelViewerRef = useRef(null);
     const progressTextRef = useRef(null);
     const progressBarRef = useRef(null);
@@ -73,6 +141,18 @@ const BuildingEditorPage = () => {
         }
         return building.model_url || null;
     }, [building.model_file, building.model_url]);
+
+    // Warn before closing browser window/tab if there are unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (isDirty && !saving) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [isDirty, saving]);
 
     useEffect(() => {
         const viewer = modelViewerRef.current;
@@ -174,6 +254,7 @@ const BuildingEditorPage = () => {
                 ctx.drawImage(img, 0, 0, width, height);
                 canvas.toBlob(
                     (compressedBlob) => {
+                        setIsDirty(true);
                         setThumbnailBlob(compressedBlob);
                         setThumbnailPreviewUrl(URL.createObjectURL(compressedBlob));
                         setIsGeneratingThumbnail(false);
@@ -204,6 +285,7 @@ const BuildingEditorPage = () => {
     useEffect(() => {
         const handleMessage = (event) => {
             if (event.data && event.data.type === "SAVE_HOTSPOTS") {
+                setIsDirty(true);
                 setBuilding((prev) => ({
                     ...prev,
                     hotspots: event.data.hotspots,
@@ -220,20 +302,6 @@ const BuildingEditorPage = () => {
     }, []);
 
     useEffect(() => {
-        const handleClickOutside = (e) => {
-            if (
-                deptDropdownRef.current &&
-                !deptDropdownRef.current.contains(e.target)
-            ) {
-                setDeptDropdownOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () =>
-            document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    useEffect(() => {
         const fetchCompressedModel = async () => {
             const url = location.state?.compressedModelUrl;
             const filename = location.state?.compressedModelFilename;
@@ -244,6 +312,7 @@ const BuildingEditorPage = () => {
                     if (!res.ok) throw new Error("Could not retrieve model from server");
                     const blob = await res.blob();
                     const fileObj = new File([blob], filename, { type: "model/gltf-binary" });
+                    setIsDirty(true);
                     setBuilding((prev) => ({
                         ...prev,
                         model_file: fileObj,
@@ -305,6 +374,7 @@ const BuildingEditorPage = () => {
             } catch (error) {
                 console.log("No geofence found");
             }
+            setIsDirty(false);
         } catch (error) {
             setErrors({ submit: "Failed to load building" });
             navigate("/buildings");
@@ -319,6 +389,7 @@ const BuildingEditorPage = () => {
         if (type === "checkbox") finalValue = checked;
         if (type === "file") finalValue = files[0];
 
+        setIsDirty(true);
         setBuilding((prev) => ({
             ...prev,
             [name]: finalValue,
@@ -336,57 +407,88 @@ const BuildingEditorPage = () => {
         }
     };
 
-    const runValidation = () => {
-        const schema = {
-            name: (val) => validateString(val, 1),
-            latitude: (val) => {
-                if (building.status !== "DRAFT" && !val)
-                    return "Latitude is required to publish";
-                if (val) {
-                    const num = Number(val);
-                    if (isNaN(num) || num < -90 || num > 90)
-                        return "Latitude must be between -90 and 90";
-                }
-                return null;
-            },
-            longitude: (val) => {
-                if (building.status !== "DRAFT" && !val)
-                    return "Longitude is required to publish";
-                if (val) {
-                    const num = Number(val);
-                    if (isNaN(num) || num < -180 || num > 180)
-                        return "Longitude must be between -180 and 180";
-                }
-                return null;
-            },
-        };
-
-        const validationErrors = validateForm(building, schema);
+    // Unified Form Validation
+    const validateForm = () => {
+        const newErrors = {};
         const newGeofenceErrors = {};
 
-        if (building.status !== "DRAFT") {
-            if (!geofence.latitude || !geofence.longitude) {
-                newGeofenceErrors.center =
-                    "Click on map to set geofence center to publish";
-            }
-            if (!geofence.radius_meters || geofence.radius_meters <= 0) {
-                newGeofenceErrors.radius =
-                    "Radius must be greater than 0 to publish";
+        const trimmedName = (building.name || "").trim();
+        if (!trimmedName) {
+            newErrors.name = "Building name is required.";
+        } else if (trimmedName.length < 3) {
+            newErrors.name = "Building name must be at least 3 characters.";
+        } else if (trimmedName.length > 255) {
+            newErrors.name = "Building name cannot exceed 255 characters.";
+        } else {
+            const nameExists = existingBuildings.some(
+                (b) =>
+                    b.id !== (id !== "new" ? id : null) &&
+                    b.name?.toLowerCase().trim() === trimmedName.toLowerCase()
+            );
+            if (nameExists) {
+                newErrors.name = "A building with this name already exists.";
             }
         }
 
-        setErrors(validationErrors);
+        if (building.description && building.description.length > 2000) {
+            newErrors.description = "Description cannot exceed 2,000 characters.";
+        }
+
+        if (!building.status) {
+            newErrors.status = "Please select a publishing status.";
+        }
+
+        if (!building.latitude && building.latitude !== 0) {
+            newErrors.latitude = "Latitude is required.";
+        } else {
+            const lat = Number(building.latitude);
+            if (isNaN(lat) || lat < -90 || lat > 90) {
+                newErrors.latitude = "Latitude must be between -90 and 90.";
+            }
+        }
+
+        if (!building.longitude && building.longitude !== 0) {
+            newErrors.longitude = "Longitude is required.";
+        } else {
+            const lng = Number(building.longitude);
+            if (isNaN(lng) || lng < -180 || lng > 180) {
+                newErrors.longitude = "Longitude must be between -180 and 180.";
+            }
+        }
+
+        if (!geofence.radius_meters || Number(geofence.radius_meters) <= 0) {
+            newGeofenceErrors.radius = "Geofence radius must be greater than 0 meters.";
+        } else if (Number(geofence.radius_meters) > 500) {
+            newGeofenceErrors.radius = "Geofence radius cannot exceed 500 meters.";
+        }
+
+        setErrors(newErrors);
         setGeofenceErrors(newGeofenceErrors);
 
-        return (
-            Object.keys(validationErrors).length === 0 &&
-            Object.keys(newGeofenceErrors).length === 0
-        );
+        const isValid =
+            Object.keys(newErrors).length === 0 &&
+            Object.keys(newGeofenceErrors).length === 0;
+
+        if (!isValid) {
+            setErrorMessage("Please review and fix the highlighted fields.");
+            setTimeout(() => setErrorMessage(""), 4000);
+        }
+
+        return isValid;
+    };
+
+    const handleBackClick = () => {
+        if (saving) return;
+        if (isDirty) {
+            setShowUnsavedModal(true);
+        } else {
+            navigate("/buildings");
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!runValidation()) return;
+        if (!validateForm()) return;
 
         setSaving(true);
         try {
@@ -404,7 +506,8 @@ const BuildingEditorPage = () => {
             if (building.longitude)
                 formData.append("longitude", building.longitude);
             formData.append("status", building.status);
-            formData.append("is_active", building.is_active);
+            // Facility Operations removed: automatically active when not in DRAFT mode
+            formData.append("is_active", building.status !== "DRAFT");
             formData.append("model_version", building.model_version || "");
             formData.append("model_active", building.model_active);
 
@@ -458,10 +561,11 @@ const BuildingEditorPage = () => {
                     );
                 }
 
+                setIsDirty(false);
                 setSuccessMessage("Building created successfully!");
                 setTimeout(
-                    () => navigate(`/buildings/${savedBuilding.id}`),
-                    1500,
+                    () => navigate(`/buildings/${savedBuilding.id}?openHub=true`),
+                    1000,
                 );
             } else {
                 const savedBuilding = await buildingService.updateBuilding(
@@ -490,8 +594,12 @@ const BuildingEditorPage = () => {
                     }
                 }
 
+                setIsDirty(false);
                 setSuccessMessage("Building updated successfully!");
-                setTimeout(() => setSuccessMessage(""), 3000);
+                setTimeout(() => {
+                    setShowHubModal(true);
+                }, 1300);
+                setTimeout(() => setSuccessMessage(""), 4500);
             }
         } catch (error) {
             const apiErrors = error.response?.data?.error?.details || {};
@@ -514,782 +622,759 @@ const BuildingEditorPage = () => {
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return (
+        <div className="h-64 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-gray-500">Loading building data...</p>
+        </div>
+    );
 
     return (
-        <div>
+        <div className="max-w-6xl mx-auto space-y-6 pb-12">
             {errorMessage && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: "80px",
-                        right: "24px",
-                        backgroundColor: "#ef4444",
-                        color: "#ffffff",
-                        padding: "16px 24px",
-                        borderRadius: theme.radius.md,
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                        zIndex: 9999,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: theme.spacing.sm,
-                        fontSize: "15px",
-                        fontWeight: "500",
-                        animation: "slideIn 0.3s ease-out",
-                    }}
-                >
-                    {errorMessage}
+                <div className="fixed top-20 right-6 bg-red-600 text-white px-5 py-3 rounded-md shadow-xl z-[70] flex items-center gap-2 text-sm font-semibold animate-in slide-in-from-top-2">
+                    <AlertTriangle size={18} />
+                    <span>{errorMessage}</span>
                 </div>
             )}
             {successMessage && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: "24px",
-                        right: "24px",
-                        backgroundColor: "#10b981",
-                        color: "#ffffff",
-                        padding: "16px 24px",
-                        borderRadius: theme.radius.md,
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                        zIndex: 9999,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: theme.spacing.sm,
-                        fontSize: "15px",
-                        fontWeight: "500",
-                        animation: "slideIn 0.3s ease-out",
-                    }}
-                >
-                    <CheckCircle size={20} />
-                    {successMessage}
+                <div className="fixed top-6 right-6 bg-emerald-600 text-white px-5 py-3 rounded-md shadow-xl z-[70] flex items-center gap-2 text-sm font-semibold animate-in slide-in-from-top-2">
+                    <CheckCircle size={18} />
+                    <span>{successMessage}</span>
                 </div>
             )}
 
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: theme.spacing.md,
-                    marginBottom: theme.spacing.lg,
-                }}
-            >
-                <button
-                    onClick={() => navigate("/buildings")}
-                    style={{
-                        padding: theme.spacing.sm,
-                        backgroundColor: theme.colors.surface,
-                        border: "1px solid crimson",
-                        borderRadius: theme.radius.sm,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: theme.spacing.xs,
-                    }}
-                >
-                    <ArrowLeft size={20} />
-                    Back
-                </button>
-                <h1
-                    style={{
-                        fontSize: "28px",
-                        fontWeight: "bold",
-                        color: theme.colors.text.primary,
-                        margin: 0,
-                        flex: 1,
-                    }}
-                >
-                    {isNew ? "New Building" : `Edit: ${building.name}`}
-                </h1>
-
-                {}
-                {!isNew ? (
+            {/* Top Bar */}
+            <div className="flex items-center justify-between gap-4 pb-2 border-b border-gray-200">
+                <div className="flex items-center gap-3">
                     <button
                         type="button"
-                        onClick={() => navigate(`/panoramas/${id}`)}
-                        style={{
-                            padding: "8px 16px",
-                            backgroundColor: theme.colors.primary,
-                            color: theme.colors.text.inverse,
-                            border: "none",
-                            borderRadius: theme.radius.sm,
-                            cursor: "pointer",
-                            fontWeight: "600",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                        }}
+                        onClick={handleBackClick}
+                        disabled={saving}
+                        className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                        title={saving ? "Saving in progress..." : "Go back to buildings list"}
                     >
-                        <ImageIcon size={18} />
-                        Manage Panoramas
+                        <ArrowLeft size={16} />
+                        <span>Buildings</span>
+                    </button>
+                    <div>
+                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 m-0">
+                            {isNew ? "Create New Building" : `Edit Building: ${building.name || "Untitled"}`}
+                        </h1>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            Manage building profile, publishing status, 3D model, and campus coordinates.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Right side: More Features Button */}
+                {isNew ? (
+                    <button
+                        type="button"
+                        disabled
+                        className="px-4 py-2.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-md flex items-center gap-2 text-xs font-bold cursor-not-allowed shrink-0"
+                        title="Save building first to configure more features"
+                    >
+                        <Sparkles size={16} />
+                        <span>More Features</span>
                     </button>
                 ) : (
                     <button
                         type="button"
-                        disabled
-                        title="Save the building first to enable panorama management"
-                        style={{
-                            padding: "8px 16px",
-                            backgroundColor: theme.colors.surface,
-                            color: theme.colors.text.muted,
-                            border: `1px solid ${theme.colors.border}`,
-                            borderRadius: theme.radius.sm,
-                            cursor: "not-allowed",
-                            fontWeight: "600",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            opacity: 0.6,
-                        }}
+                        onClick={() => setShowHubModal(true)}
+                        className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs shrink-0"
+                        title="Open More Features (Panoramas, 3D Hotspots, Quests)"
                     >
-                        <ImageIcon size={18} />
-                        Save to Add Panoramas
+                        <Sparkles size={16} />
+                        <span>More Features</span>
                     </button>
                 )}
             </div>
 
-            <form onSubmit={handleSubmit}>
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: theme.spacing.lg,
-                        marginBottom: theme.spacing.lg,
-                    }}
-                >
-                    <div
-                        className="flex flex-col gap-6"
-                        style={{
-                            backgroundColor: theme.colors.surface,
-                            padding: theme.spacing.lg,
-                            borderRadius: theme.radius.md,
-                        }}
-                    >
-                        <div className="border-b border-gray-100 pb-4">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                Building Information
-                            </h2>
-                            <p className="text-sm text-gray-500 mt-1">
-                                Update the core details and metadata for this
-                                building.
-                            </p>
-                        </div>
-
-                        {/* Name */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                Name <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={building.name}
-                                onChange={handleChange}
-                                style={{ borderRadius: theme.radius.sm }}
-                                className={`w-full px-4 py-2 bg-gray-50 border ${errors.name ? "border-red-500" : "border-gray-200"} focus:bg-white focus:ring-2 focus:ring-[#8a1538] focus:border-[#8a1538] transition-all outline-none text-sm`}
-                                placeholder="e.g. College of Nursing"
-                            />
-                            {errors.name && (
-                                <div className="text-red-500 text-xs mt-1.5 font-medium">
-                                    {errors.name}
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* TOP ROW: Left Side (Building Info) & Right Side (3D Model Config) - Equal 50/50 Width & Same Height */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+                    {/* LEFT COLUMN: Building Information (50% width, equal height) */}
+                    <div className="flex flex-col">
+                        <div className="bg-white border border-brand-border rounded-md shadow-xs p-6 space-y-4 flex-1 flex flex-col">
+                                <div className="border-b border-gray-100 pb-3">
+                                    <h2 className="text-base font-bold text-gray-900">
+                                        Building Information
+                                    </h2>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Configure primary identity details and campus map visibility.
+                                    </p>
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Description */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                Description
-                            </label>
-                            <textarea
-                                name="description"
-                                value={building.description || ""}
-                                onChange={handleChange}
-                                rows={5}
-                                style={{ borderRadius: theme.radius.sm }}
-                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#8a1538] focus:border-[#8a1538] transition-all outline-none resize-y text-sm"
-                                placeholder="Brief description about this building..."
-                            />
-                        </div>
-
-                        {/* Coordinates */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                    Latitude{" "}
-                                    {building.status !== "DRAFT" && (
-                                        <span className="text-red-500">*</span>
-                                    )}
-                                </label>
-                                <input
-                                    type="number"
-                                    name="latitude"
-                                    value={building.latitude}
-                                    onChange={handleChange}
-                                    step="any"
-                                    style={{ borderRadius: theme.radius.sm }}
-                                    className={`w-full px-4 py-2 bg-gray-50 border ${errors.latitude ? "border-red-500" : "border-gray-200"} focus:bg-white focus:ring-2 focus:ring-[#8a1538] focus:border-[#8a1538] transition-all outline-none text-sm`}
-                                    placeholder="e.g. 6.9045"
-                                />
-                                {errors.latitude && (
-                                    <div className="text-red-500 text-xs mt-1.5 font-medium">
-                                        {errors.latitude}
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                    Longitude{" "}
-                                    {building.status !== "DRAFT" && (
-                                        <span className="text-red-500">*</span>
-                                    )}
-                                </label>
-                                <input
-                                    type="number"
-                                    name="longitude"
-                                    value={building.longitude}
-                                    onChange={handleChange}
-                                    step="any"
-                                    style={{ borderRadius: theme.radius.sm }}
-                                    className={`w-full px-4 py-2 bg-gray-50 border ${errors.longitude ? "border-red-500" : "border-gray-200"} focus:bg-white focus:ring-2 focus:ring-[#8a1538] focus:border-[#8a1538] transition-all outline-none text-sm`}
-                                    placeholder="e.g. 122.074"
-                                />
-                                {errors.longitude && (
-                                    <div className="text-red-500 text-xs mt-1.5 font-medium">
-                                        {errors.longitude}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Status & Active */}
-                        <div
-                            className="flex flex-wrap items-center gap-8 bg-gray-50 p-4 border border-gray-100"
-                            style={{ borderRadius: theme.radius.sm }}
-                        >
-                            <div className="flex flex-col gap-1.5 w-full sm:w-auto flex-1">
-                                <label className="text-sm font-semibold text-gray-700">
-                                    Publishing Status
-                                </label>
-                                <select
-                                    name="status"
-                                    value={building.status}
-                                    onChange={handleChange}
-                                    style={{ borderRadius: theme.radius.sm }}
-                                    className="px-4 py-2 border border-gray-200 bg-white focus:ring-2 focus:ring-[#8a1538] focus:border-[#8a1538] outline-none transition-all cursor-pointer shadow-sm text-sm"
-                                >
-                                    <option value="DRAFT">
-                                        Draft (Unpublished)
-                                    </option>
-                                    <option value="HIDDEN">
-                                        Published (Hidden)
-                                    </option>
-                                    <option value="VISIBLE">
-                                        Published (Visible)
-                                    </option>
-                                    <option value="MAINTENANCE">
-                                        Under Construction / Maintenance
-                                    </option>
-                                </select>
-                            </div>
-
-                            <label
-                                className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer mt-1 sm:mt-5 bg-white px-4 py-2 border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors"
-                                style={{ borderRadius: theme.radius.sm }}
-                            >
-                                <input
-                                    type="checkbox"
-                                    name="is_active"
-                                    checked={building.is_active}
-                                    onChange={handleChange}
-                                    className="w-4 h-4 rounded text-[#8a1538] focus:ring-[#8a1538] cursor-pointer"
-                                />
-                                <span>Active / Open</span>
-                            </label>
-                        </div>
-
-                        {/* Colleges and Department section */}
-                        <div className="space-y-5 pt-2">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                    Primary College (Map Pin Color)
-                                </label>
-                                <div className="relative" ref={deptDropdownRef}>
-                                    <div
-                                        onClick={() =>
-                                            setDeptDropdownOpen(
-                                                !deptDropdownOpen,
-                                            )
-                                        }
-                                        style={{
-                                            borderRadius: theme.radius.sm,
-                                        }}
-                                        className="w-full px-4 py-2 bg-white border border-gray-200 cursor-pointer flex justify-between items-center shadow-sm hover:border-[#8a1538] transition-all text-sm"
-                                    >
-                                        <span className="text-gray-700">
-                                            {building.primary_department_id
-                                                ? departments.find(
-                                                      (d) =>
-                                                          d.id ===
-                                                          building.primary_department_id,
-                                                  )?.name || "Unknown"
-                                                : "— Default WMSU Red Pin —"}
+                                {/* Name Input */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                            Building Name <span className="text-red-500">*</span>
+                                        </label>
+                                        <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
+                                            3–255 chars • Unique
                                         </span>
-                                        <ChevronDown
-                                            size={18}
-                                            className="text-gray-400"
-                                        />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={building.name}
+                                        onChange={handleChange}
+                                        className={`w-full px-3.5 py-2.5 bg-gray-50/70 border ${
+                                            errors.name ? "border-red-500 ring-1 ring-red-200" : "border-gray-200"
+                                        } rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-sm font-medium text-gray-900`}
+                                        placeholder="e.g. College of Nursing"
+                                    />
+                                    {errors.name && (
+                                        <p className="text-red-500 text-xs mt-1.5 font-medium">
+                                            {errors.name}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Description Textarea */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                            Description <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                                        </label>
+                                        <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
+                                            Max 2,000 chars
+                                        </span>
+                                    </div>
+                                    <textarea
+                                        name="description"
+                                        value={building.description || ""}
+                                        onChange={handleChange}
+                                        rows={4}
+                                        className={`w-full px-3.5 py-2.5 bg-gray-50/70 border ${
+                                            errors.description ? "border-red-500 ring-1 ring-red-200" : "border-gray-200"
+                                        } rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none resize-y text-sm text-gray-800`}
+                                        placeholder="Brief history, key departments housed, or landmark overview..."
+                                    />
+                                    {errors.description && (
+                                        <p className="text-red-500 text-xs mt-1.5 font-medium">
+                                            {errors.description}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Publishing Status */}
+                                <div className="pt-2 border-t border-gray-100 space-y-3">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                            Publishing Status <span className="text-red-500">*</span>
+                                        </label>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            Select how this building appears to campus visitors and students.
+                                        </p>
                                     </div>
 
-                                    {deptDropdownOpen && (
-                                        <div
-                                            className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 shadow-lg z-50 max-h-64 flex flex-col overflow-hidden"
-                                            style={{
-                                                borderRadius: theme.radius.sm,
-                                            }}
-                                        >
-                                            <div className="p-2 border-b border-gray-100 bg-gray-50">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search colleges..."
-                                                    value={deptSearch}
-                                                    onChange={(e) =>
-                                                        setDeptSearch(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
-                                                    style={{
-                                                        borderRadius:
-                                                            theme.radius.sm,
-                                                    }}
-                                                    className="w-full px-3 py-2 border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-[#8a1538] bg-white"
-                                                    autoFocus
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto">
-                                                <div
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {STATUS_OPTIONS.map((opt) => {
+                                            const isSelected = building.status === opt.value;
+                                            const Icon = opt.icon;
+                                            return (
+                                                <button
+                                                    key={opt.value}
+                                                    type="button"
                                                     onClick={() => {
+                                                        setIsDirty(true);
                                                         setBuilding((prev) => ({
                                                             ...prev,
-                                                            primary_department_id:
-                                                                null,
+                                                            status: opt.value,
                                                         }));
-                                                        setDeptDropdownOpen(
-                                                            false,
-                                                        );
-                                                        setDeptSearch("");
-                                                    }}
-                                                    className={`px-4 py-3 cursor-pointer text-sm transition-colors ${building.primary_department_id === null ? "bg-[#8a1538]/10 text-[#8a1538] font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
-                                                >
-                                                    — Default WMSU Red Pin —
-                                                </div>
-                                                {departments
-                                                    .filter(
-                                                        (d) =>
-                                                            d.name
-                                                                .toLowerCase()
-                                                                .includes(
-                                                                    deptSearch.toLowerCase(),
-                                                                ) ||
-                                                            d.code
-                                                                .toLowerCase()
-                                                                .includes(
-                                                                    deptSearch.toLowerCase(),
-                                                                ),
-                                                    )
-                                                    .map((dept) => (
-                                                        <div
-                                                            key={dept.id}
-                                                            onClick={() => {
-                                                                setBuilding(
-                                                                    (prev) => ({
-                                                                        ...prev,
-                                                                        primary_department_id:
-                                                                            dept.id,
-                                                                        department_ids:
-                                                                            prev.department_ids.includes(
-                                                                                dept.id,
-                                                                            )
-                                                                                ? prev.department_ids
-                                                                                : [
-                                                                                      ...prev.department_ids,
-                                                                                      dept.id,
-                                                                                  ],
-                                                                    }),
-                                                                );
-                                                                setDeptDropdownOpen(
-                                                                    false,
-                                                                );
-                                                                setDeptSearch(
-                                                                    "",
-                                                                );
-                                                            }}
-                                                            className={`px-4 py-3 cursor-pointer text-sm transition-colors border-t border-gray-50 ${building.primary_department_id === dept.id ? "bg-[#8a1538]/10 text-[#8a1538]" : "hover:bg-gray-50 text-gray-700"}`}
-                                                        >
-                                                            <div
-                                                                className={
-                                                                    building.primary_department_id ===
-                                                                    dept.id
-                                                                        ? "font-semibold"
-                                                                        : "font-medium"
-                                                                }
-                                                            >
-                                                                {dept.name}
-                                                            </div>
-                                                            <div
-                                                                className={`text-xs mt-0.5 ${building.primary_department_id === dept.id ? "text-[#8a1538]/80" : "text-gray-400"}`}
-                                                            >
-                                                                Code:{" "}
-                                                                {dept.code}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                    Associated Colleges (Search Results &
-                                    Grouping)
-                                </label>
-                                <div
-                                    className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 bg-gray-50 border border-gray-200 shadow-inner"
-                                    style={{ borderRadius: theme.radius.sm }}
-                                >
-                                    {departments.map((dept) => (
-                                        <label
-                                            key={dept.id}
-                                            className="flex items-start gap-2.5 text-sm cursor-pointer p-2 hover:bg-white rounded transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={building.department_ids.includes(
-                                                    dept.id,
-                                                )}
-                                                onChange={(e) => {
-                                                    const checked =
-                                                        e.target.checked;
-                                                    setBuilding((prev) => {
-                                                        let newIds =
-                                                            prev.department_ids.filter(
-                                                                (id) =>
-                                                                    id !==
-                                                                    dept.id,
-                                                            );
-                                                        if (checked)
-                                                            newIds.push(
-                                                                dept.id,
-                                                            );
-
-                                                        let newPrimary =
-                                                            prev.primary_department_id;
-                                                        if (
-                                                            !checked &&
-                                                            newPrimary ===
-                                                                dept.id
-                                                        ) {
-                                                            newPrimary = null;
+                                                        if (errors.status) {
+                                                            setErrors((prev) => ({
+                                                                ...prev,
+                                                                status: null,
+                                                            }));
                                                         }
-
-                                                        return {
-                                                            ...prev,
-                                                            department_ids:
-                                                                newIds,
-                                                            primary_department_id:
-                                                                newPrimary,
-                                                        };
-                                                    });
-                                                }}
-                                                className="mt-0.5 w-4 h-4 rounded text-[#8a1538] focus:ring-[#8a1538] cursor-pointer"
-                                            />
-                                            <span className="text-gray-700 leading-tight">
-                                                {dept.name}
-                                            </span>
-                                        </label>
-                                    ))}
-                                    {departments.length === 0 && (
-                                        <span className="text-sm text-gray-400 p-2">
-                                            No colleges found
-                                        </span>
+                                                    }}
+                                                    className={`flex flex-col text-left p-3.5 rounded-md border-2 transition-all relative ${
+                                                        isSelected
+                                                            ? opt.selectedBg
+                                                            : `border-gray-200 bg-white hover:bg-gray-50 ${opt.color}`
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between w-full mb-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <div
+                                                                className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                                                                    isSelected
+                                                                        ? opt.iconBg
+                                                                        : "bg-gray-100 text-gray-500"
+                                                                }`}
+                                                            >
+                                                                <Icon size={14} />
+                                                            </div>
+                                                            <span className="font-bold text-sm text-gray-900">
+                                                                {opt.title}
+                                                            </span>
+                                                        </div>
+                                                        {isSelected ? (
+                                                            <CheckCircle2
+                                                                size={16}
+                                                                className="text-brand shrink-0"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                                                {opt.subtitle}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 leading-relaxed mt-1">
+                                                        {opt.description}
+                                                    </p>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {errors.status && (
+                                        <p className="text-red-500 text-xs font-medium">
+                                            {errors.status}
+                                        </p>
                                     )}
+                                    <div className="p-3 bg-brand/5 border border-brand/15 rounded-md text-[11px] text-gray-600 flex items-start gap-2 mt-4">
+                                        <Info size={14} className="text-brand shrink-0 mt-0.5" />
+                                        <span>
+                                            {building.status === "DRAFT"
+                                                ? "Draft mode is only visible to admins. Campus coordinates below are required for all buildings."
+                                                : "Coordinates and perimeter below define this building's live campus location for navigation."}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-gray-100 flex flex-col gap-3">
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-800">
-                                    3D Model Configuration
-                                </h2>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Upload a GLTF/GLB file to enable the 3D Viewer.
-                                </p>
-                            </div>
+                        {/* RIGHT COLUMN: 3D Model Configuration (50% width, equal height) */}
+                        <div className="flex flex-col">
+                            {/* Card: 3D Model Configuration */}
+                            <div className="bg-white border border-brand-border rounded-md shadow-xs p-6 space-y-4 flex-1 flex flex-col">
+                                    <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                                        <div>
+                                            <h2 className="text-base font-bold text-gray-900">
+                                                3D Model Configuration
+                                            </h2>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                Interactive 3D model for campus viewer and AR overlays.
+                                            </p>
+                                        </div>
+                                    </div>
 
-                            <div className="flex items-center gap-3">
-                                <Link
-                                    to="/compressor"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
-                                >
-                                    <Zap size={13} /> 3D Compressor
-                                </Link>
+                                    {/* Detailed Instructions & 3D Compressor Guide */}
+                                    <div className="bg-amber-50/70 border border-amber-200/80 rounded-md p-3.5 text-xs text-amber-900 space-y-2">
+                                        <div className="flex items-center gap-2 font-bold text-amber-950">
+                                            <Info size={14} className="text-amber-700" />
+                                            <span>3D Model Guidelines & Compressor Workflow</span>
+                                        </div>
+                                        <ol className="list-decimal pl-4 space-y-1.5 leading-relaxed text-[11px] text-amber-900">
+                                            <li>
+                                                <strong>Accepted Formats:</strong> Strictly <code>.glb</code> (recommended binary) or <code>.gltf</code> files up to <strong>500 MB</strong>.
+                                            </li>
+                                            <li>
+                                                <strong>Mobile Optimization Warning:</strong> Heavy models over <strong>25 MB</strong> can cause frame drops, stutter, or crashes during mobile AR.
+                                            </li>
+                                            <li>
+                                                <strong>Using 3D Compressor:</strong> Click <strong>"Open 3D Compressor"</strong> below. Compress geometry (Draco) and resize textures to shrink file size by <strong>up to 90%</strong> without visible quality loss. Download and drop it here.
+                                            </li>
+                                            <li>
+                                                <strong>Generate 2D Thumbnail:</strong> Click <strong>"Generate Thumbnail"</strong> after upload. This creates an instant image preview so mobile lists load without waiting for the full 3D asset.
+                                            </li>
+                                        </ol>
+                                    </div>
 
-                                <label
-                                    className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors"
-                                    style={{ borderRadius: theme.radius.sm }}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        name="model_active"
-                                        checked={building.model_active}
-                                        onChange={handleChange}
-                                        className="w-4 h-4 rounded text-[#8a1538] focus:ring-[#8a1538] cursor-pointer"
-                                    />
-                                    <span>Model Active</span>
-                                </label>
-                            </div>
+                                    <div className="flex items-center gap-3">
+                                        <Link
+                                            to="/compressor"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
+                                        >
+                                            <Zap size={13} /> Open 3D Compressor
+                                        </Link>
 
-                            <div className="flex flex-col gap-4">
-                                <DragDropFileUpload
-                                    accept=".glb,.gltf"
-                                    value={
-                                        building.model_file instanceof File
-                                            ? building.model_file
-                                            : null
-                                    }
+                                        <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 rounded-md shadow-xs hover:bg-gray-100 transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                name="model_active"
+                                                checked={building.model_active}
+                                                onChange={handleChange}
+                                                className="w-3.5 h-3.5 rounded text-brand focus:ring-brand cursor-pointer"
+                                            />
+                                            <span>Model Active</span>
+                                        </label>
+                                    </div>
 
-                                    onChange={(file) => {
-                                        if (file) {
-                                            if (file.size > 500 * 1024 * 1024) {
-                                                setErrorMessage("The 3D model exceeds the maximum file size limit of 500 MB.");
-                                                setTimeout(() => setErrorMessage(""), 5000);
-                                                return;
+                                    <div className="flex flex-col gap-4">
+                                        <DragDropFileUpload
+                                            accept=".glb,.gltf"
+                                            value={
+                                                building.model_file instanceof File
+                                                    ? building.model_file
+                                                    : null
                                             }
-                                        }
-                                        setBuilding((prev) => ({
-                                            ...prev,
-                                            model_file: file,
-                                        }));
-                                        // Reset thumbnail when a new file is uploaded
-                                        setThumbnailBlob(null);
-                                        setThumbnailPreviewUrl(null);
-                                        setIsGeneratingThumbnail(false);
-                                    }}
-                                    previewNode={
-                                        ((thumbnailPreviewUrl || building.image_url) && !isGeneratingThumbnail) ? (
-                                            <div style={{ position: "relative", width: "100%", height: "250px" }}>
-                                                <img 
-                                                    src={thumbnailPreviewUrl || building.image_url} 
-                                                    alt="Model Thumbnail" 
-                                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: theme.radius.md }} 
-                                                />
-                                            </div>
-                                        ) : (modelPreviewUrl && isGeneratingThumbnail) ? (
-                                            <div style={{ position: "relative", width: "100%", height: "250px" }}>
-                                                <model-viewer
-                                                    ref={modelViewerRef}
-                                                    src={modelPreviewUrl}
-                                                    {...(!modelPreviewUrl.startsWith("blob:") && !modelPreviewUrl.startsWith("http://localhost") ? { crossorigin: "anonymous" } : {})}
-                                                    auto-rotate
-                                                    style={{
-                                                        width: "100%",
-                                                        height: "100%",
-                                                        backgroundColor: "#111827",
-                                                        borderRadius: theme.radius.md,
-                                                    }}
-                                                ></model-viewer>
-                                                {isModelLoading && (
-                                                    <div style={{
-                                                        position: "absolute",
-                                                        top: 0,
-                                                        left: 0,
-                                                        width: "100%",
-                                                        height: "100%",
-                                                        backgroundColor: "rgba(17, 24, 39, 0.85)",
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        borderRadius: theme.radius.md,
-                                                        zIndex: 20,
-                                                    }}>
-                                                        <div style={{ width: "70%", height: "6px", backgroundColor: "#374151", borderRadius: "3px", overflow: "hidden" }}>
-                                                            <div ref={progressBarRef} style={{ width: "0%", height: "100%", backgroundColor: "#8a1538", transition: "width 0.2s ease-out" }} />
-                                                        </div>
-                                                        <span ref={progressTextRef} style={{ marginTop: "10px", fontSize: "12px", fontWeight: "600", color: "#f3f4f6" }}>
-                                                            Capturing 2D Thumbnail...
-                                                        </span>
+                                            onChange={(file) => {
+                                                if (file) {
+                                                    if (file.size > 500 * 1024 * 1024) {
+                                                        setErrorMessage(
+                                                            "The 3D model exceeds the maximum file size limit of 500 MB."
+                                                        );
+                                                        setTimeout(
+                                                            () => setErrorMessage(""),
+                                                            5000
+                                                        );
+                                                        return;
+                                                    }
+                                                }
+                                                setIsDirty(true);
+                                                setBuilding((prev) => ({
+                                                    ...prev,
+                                                    model_file: file,
+                                                }));
+                                                setThumbnailBlob(null);
+                                                setThumbnailPreviewUrl(null);
+                                                setIsGeneratingThumbnail(false);
+                                            }}
+                                            previewNode={
+                                                (thumbnailPreviewUrl ||
+                                                    building.image_url) &&
+                                                !isGeneratingThumbnail ? (
+                                                    <div
+                                                        style={{
+                                                            position: "relative",
+                                                            width: "100%",
+                                                            height: "200px",
+                                                        }}
+                                                    >
+                                                        <img
+                                                            src={
+                                                                thumbnailPreviewUrl ||
+                                                                building.image_url
+                                                            }
+                                                            alt="Model Thumbnail"
+                                                            className="w-full h-full object-cover rounded-md"
+                                                        />
                                                     </div>
-                                                )}
+                                                ) : modelPreviewUrl &&
+                                                  isGeneratingThumbnail ? (
+                                                    <div
+                                                        style={{
+                                                            position: "relative",
+                                                            width: "100%",
+                                                            height: "200px",
+                                                        }}
+                                                    >
+                                                        <model-viewer
+                                                            ref={modelViewerRef}
+                                                            src={modelPreviewUrl}
+                                                            {...(!modelPreviewUrl.startsWith(
+                                                                "blob:"
+                                                            ) &&
+                                                            !modelPreviewUrl.startsWith(
+                                                                "http://localhost"
+                                                            )
+                                                                ? {
+                                                                      crossorigin:
+                                                                          "anonymous",
+                                                                  }
+                                                                : {})}
+                                                            auto-rotate
+                                                            style={{
+                                                                width: "100%",
+                                                                height: "100%",
+                                                                backgroundColor:
+                                                                    "#111827",
+                                                                borderRadius: "6px",
+                                                            }}
+                                                        ></model-viewer>
+                                                        {isModelLoading && (
+                                                            <div className="absolute inset-0 bg-gray-900/85 flex flex-col items-center justify-center rounded-md z-20">
+                                                                <div className="w-[70%] h-1.5 bg-gray-700 rounded-md overflow-hidden">
+                                                                    <div
+                                                                        ref={progressBarRef}
+                                                                        className="h-full bg-brand transition-all duration-200"
+                                                                        style={{ width: "0%" }}
+                                                                    />
+                                                                </div>
+                                                                <span
+                                                                    ref={progressTextRef}
+                                                                    className="mt-2 text-xs font-semibold text-gray-100"
+                                                                >
+                                                                    Capturing 2D Thumbnail...
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : null
+                                            }
+                                        />
+
+                                        {(building.model_file instanceof File ||
+                                            building.model_url) &&
+                                            !isGeneratingThumbnail && (
+                                                <div className="flex flex-col gap-2.5 mt-1">
+                                                    <div className="flex flex-wrap gap-2.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                handleCaptureThumbnail();
+                                                            }}
+                                                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand/90 text-white font-bold transition-colors shadow-xs rounded-md text-xs"
+                                                        >
+                                                            <ImageIcon size={15} />
+                                                            {thumbnailBlob ||
+                                                            building.image_url
+                                                                ? "Regenerate Thumbnail"
+                                                                : "Generate Thumbnail"}
+                                                        </button>
+
+                                                        {building.model_url &&
+                                                            !(
+                                                                building.model_file instanceof
+                                                                File
+                                                            ) && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setShowHotspotEditor(
+                                                                            true
+                                                                        )
+                                                                    }
+                                                                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand/90 text-white font-bold transition-colors shadow-xs rounded-md text-xs"
+                                                                >
+                                                                    <Target size={15} />
+                                                                    Edit 3D Hotspots
+                                                                </button>
+                                                            )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                    3D Model Version
+                                                </label>
+                                                <span className="text-[10px] text-gray-400">
+                                                    Optional • e.g. v1.0
+                                                </span>
                                             </div>
-                                        ) : null
-                                    }
-                                />
+                                            <input
+                                                type="text"
+                                                name="model_version"
+                                                value={building.model_version || ""}
+                                                onChange={handleChange}
+                                                placeholder="e.g. v1.0"
+                                                className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs font-mono"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                        </div>
+                </div>
 
-                                {(building.model_file instanceof File || building.model_url) && !isGeneratingThumbnail && (
-                                    <div className="flex flex-col gap-3 mt-1 px-1">
-                                        {(building.model_file instanceof File) ? (
-                                            <span className="text-xs font-semibold text-gray-500">
-                                                Required: Click to generate a 2D thumbnail for the mobile app to prevent lag.
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs font-semibold text-gray-600">
-                                                Current model uploaded. Drop a new file above to replace it.
-                                            </span>
-                                        )}
-                                        
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handleCaptureThumbnail();
-                                                }}
-                                                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8a1538] hover:bg-[#70102b] text-white font-bold transition-colors shadow-sm w-fit"
-                                                style={{ borderRadius: theme.radius.sm }}
-                                            >
-                                                <ImageIcon size={16} />
-                                                {(thumbnailBlob || building.image_url) ? "Regenerate Thumbnail" : "Generate Thumbnail"}
-                                            </button>
+                {/* ROW 2: Campus Geofence & Location (at the bottom of these two, full width) */}
+                <div className="bg-white border border-brand-border rounded-md shadow-xs p-6 space-y-4">
+                                    <div className="border-b border-gray-100 pb-3">
+                                        <h2 className="text-base font-bold text-gray-900">
+                                            Campus Geofence & Location
+                                        </h2>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            Exact coordinates and perimeter for navigation and arrival detection.
+                                        </p>
+                                    </div>
 
-                                            {building.model_url && !(building.model_file instanceof File) && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowHotspotEditor(true)}
-                                                    className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8a1538] hover:bg-[#70102b] text-white font-bold transition-colors shadow-sm w-fit"
-                                                    style={{ borderRadius: theme.radius.sm }}
-                                                >
-                                                    <Target size={16} />
-                                                    Edit 3D Hotspots
-                                                </button>
+                                    {/* Latitude & Longitude (Top of map) */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                    Latitude <span className="text-red-500">*</span>
+                                                </label>
+                                                <span className="text-[9px] text-gray-400">
+                                                    ~6.9122
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                name="latitude"
+                                                value={building.latitude}
+                                                onChange={handleChange}
+                                                step="any"
+                                                className={`w-full px-3 py-2 bg-gray-50 border ${
+                                                    errors.latitude ? "border-red-500" : "border-gray-200"
+                                                } rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs font-mono`}
+                                                placeholder="e.g. 6.9045"
+                                            />
+                                            {errors.latitude && (
+                                                <p className="text-red-500 text-[11px] mt-1 font-medium">
+                                                    {errors.latitude}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                    Longitude <span className="text-red-500">*</span>
+                                                </label>
+                                                <span className="text-[9px] text-gray-400">
+                                                    ~122.0605
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                name="longitude"
+                                                value={building.longitude}
+                                                onChange={handleChange}
+                                                step="any"
+                                                className={`w-full px-3 py-2 bg-gray-50 border ${
+                                                    errors.longitude ? "border-red-500" : "border-gray-200"
+                                                } rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs font-mono`}
+                                                placeholder="e.g. 122.074"
+                                            />
+                                            {errors.longitude && (
+                                                <p className="text-red-500 text-[11px] mt-1 font-medium">
+                                                    {errors.longitude}
+                                                </p>
                                             )}
                                         </div>
                                     </div>
-                                )}
 
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        3D Model Version
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="model_version"
-                                        value={building.model_version || ""}
-                                        onChange={handleChange}
-                                        placeholder="e.g. v1.0"
-                                        style={{
-                                            borderRadius: theme.radius.sm,
+                                    <GeofenceEditor
+                                        value={geofence}
+                                        onChange={(newValue) => {
+                                            setIsDirty(true);
+                                            setGeofence(newValue);
+
+                                            if (
+                                                newValue.latitude !== geofence.latitude ||
+                                                newValue.longitude !== geofence.longitude
+                                            ) {
+                                                setBuilding((prev) => ({
+                                                    ...prev,
+                                                    latitude: newValue.latitude,
+                                                    longitude: newValue.longitude,
+                                                }));
+                                                setErrors((prev) => ({
+                                                    ...prev,
+                                                    latitude: null,
+                                                    longitude: null,
+                                                }));
+                                            }
+
+                                            if (geofenceErrors.center)
+                                                setGeofenceErrors((prev) => ({
+                                                    ...prev,
+                                                    center: null,
+                                                }));
                                         }}
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#8a1538] focus:border-[#8a1538] transition-all outline-none text-sm"
+                                        errors={geofenceErrors}
+                                        existingBuildings={existingBuildings}
+                                        currentBuildingId={id !== "new" ? id : null}
+                                        buildingName={building.name}
+                                        buildingStatus={building.status}
                                     />
                                 </div>
-                            </div>
+
+                                {/* Bottom Action */}
+                                <div className="flex justify-end pt-2">
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="px-6 py-3.5 bg-brand hover:bg-brand/90 text-white rounded-md text-xs font-bold flex items-center gap-2 shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {saving ? (
+                                            <>
+                                                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                <span>Saving...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle size={15} />
+                                                <span>Save All Changes</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+
+            {/* More Features Modal */}
+            <Modal
+                isOpen={showHubModal}
+                onClose={() => setShowHubModal(false)}
+                title={`More Features: ${building.name || "Building"}`}
+                maxWidth="max-w-4xl w-full"
+                footer={
+                    <Button
+                        variant="secondary"
+                        onClick={() => setShowHubModal(false)}
+                    >
+                        Close
+                    </Button>
+                }
+            >
+                <div className="space-y-4">
+                    {/* Informational Note Banner */}
+                    <div className="p-3.5 bg-brand-light/40 border border-brand/20 rounded-md flex items-start gap-3 text-xs leading-relaxed text-gray-800">
+                        <div className="w-6 h-6 rounded-md bg-brand text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                            <Sparkles size={14} />
+                        </div>
+                        <div>
+                            <p className="font-bold text-gray-900 mb-0.5">
+                                ✓ Building details saved successfully!
+                            </p>
+                            <p className="text-gray-600 text-xs">
+                                This <strong>"More Features"</strong> menu appears after saving so you can immediately configure additional landmark features — including 360° virtual tours, 3D AR hotspots, and gamification quests. You can close this modal at any time and reopen it whenever needed using the <strong>"More Features"</strong> button in the top-right header.
+                            </p>
                         </div>
                     </div>
 
-                    <div
-                        style={{
-                            backgroundColor: theme.colors.surface,
-                            padding: theme.spacing.lg,
-                            borderRadius: theme.radius.md,
-                        }}
-                    >
-                        <h2
-                            style={{
-                                fontSize: "18px",
-                                fontWeight: "600",
-                                marginBottom: theme.spacing.md,
-                            }}
-                        >
-                            Geofence Configuration
-                        </h2>
-                        <GeofenceEditor
-                            value={geofence}
-                            onChange={(newValue) => {
-                                setGeofence(newValue);
+                    {/* Side-by-Side 3-Card Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+                        {/* Card 1: 360° Panoramas */}
+                        <div className="bg-gray-50/80 hover:bg-white border border-gray-200 hover:border-brand/40 rounded-md p-4 flex flex-col justify-between transition-all shadow-2xs hover:shadow-xs group">
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <div className="w-10 h-10 rounded-md bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                                        <Camera size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-sky-100 text-sky-800 rounded-md uppercase tracking-wider">
+                                        Virtual Tour
+                                    </span>
+                                </div>
+                                <h4 className="text-sm font-bold text-gray-900 mt-3 group-hover:text-brand transition-colors">
+                                    360° Virtual Tour
+                                </h4>
+                                <p className="text-xs text-gray-500 leading-relaxed mt-1.5">
+                                    Upload and link 360° equirectangular panoramas to create an immersive indoor walkthrough of classrooms, labs, and corridors.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowHubModal(false);
+                                    navigate(`/panoramas/${id}`);
+                                }}
+                                className="mt-4 w-full py-2.5 px-3 bg-brand hover:bg-brand/90 text-white rounded-md text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                            >
+                                <span>Manage Panoramas</span>
+                                <ChevronRight size={14} />
+                            </button>
+                        </div>
 
-                                if (
-                                    newValue.latitude !== geofence.latitude ||
-                                    newValue.longitude !== geofence.longitude
-                                ) {
-                                    setBuilding((prev) => ({
-                                        ...prev,
-                                        latitude: newValue.latitude,
-                                        longitude: newValue.longitude,
-                                    }));
-                                    setErrors((prev) => ({
-                                        ...prev,
-                                        latitude: null,
-                                        longitude: null,
-                                    }));
-                                }
+                        {/* Card 2: 3D Model Hotspots */}
+                        <div className="bg-gray-50/80 hover:bg-white border border-gray-200 hover:border-brand/40 rounded-md p-4 flex flex-col justify-between transition-all shadow-2xs hover:shadow-xs group">
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <div className="w-10 h-10 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                        <Box size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md uppercase tracking-wider">
+                                        AR Discovery
+                                    </span>
+                                </div>
+                                <h4 className="text-sm font-bold text-gray-900 mt-3 group-hover:text-brand transition-colors">
+                                    3D Model Hotspots
+                                </h4>
+                                <p className="text-xs text-gray-500 leading-relaxed mt-1.5">
+                                    Pin informational markers and POIs directly onto the 3D building model. Visitors scanning in AR tap hotspots to reveal history and details.
+                                </p>
+                            </div>
+                            {building.model_url || building.model_file ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowHubModal(false);
+                                        setShowHotspotEditor(true);
+                                    }}
+                                    className="mt-4 w-full py-2.5 px-3 bg-brand hover:bg-brand/90 text-white rounded-md text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                                >
+                                    <span>Edit 3D Hotspots</span>
+                                    <ChevronRight size={14} />
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled
+                                    className="mt-4 w-full py-2.5 px-3 bg-gray-200 text-gray-400 rounded-md text-xs font-semibold cursor-not-allowed"
+                                    title="Upload a 3D model in the editor first"
+                                >
+                                    <span>Upload 3D File First</span>
+                                </button>
+                            )}
+                        </div>
 
-                                if (geofenceErrors.center)
-                                    setGeofenceErrors((prev) => ({
-                                        ...prev,
-                                        center: null,
-                                    }));
-                            }}
-                            errors={geofenceErrors}
-                            existingBuildings={existingBuildings}
-                            currentBuildingId={id !== "new" ? id : null}
-                            buildingName={building.name}
-                            buildingStatus={building.status}
-                        />
+                        {/* Card 3: Quests, Trivias & Quizzes */}
+                        <div className="bg-gray-50/80 hover:bg-white border border-gray-200 hover:border-brand/40 rounded-md p-4 flex flex-col justify-between transition-all shadow-2xs hover:shadow-xs group">
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <div className="w-10 h-10 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                        <MonitorPlay size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md uppercase tracking-wider">
+                                        Gamification
+                                    </span>
+                                </div>
+                                <h4 className="text-sm font-bold text-gray-900 mt-3 group-hover:text-brand transition-colors">
+                                    Quests & Trivias
+                                </h4>
+                                <p className="text-xs text-gray-500 leading-relaxed mt-1.5">
+                                    Create scavenger challenges, landmark trivia questions, and multiple-choice quizzes that reward students when arriving at this building.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowHubModal(false);
+                                    navigate(`/cms?buildingId=${id}`);
+                                }}
+                                className="mt-4 w-full py-2.5 px-3 bg-brand hover:bg-brand/90 text-white rounded-md text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                            >
+                                <span>Manage Quests & Trivias</span>
+                                <ChevronRight size={14} />
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </Modal>
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                    className="relative overflow-hidden"
-                    style={{
-                        width: "100%",
-                        padding: theme.spacing.md,
-                        backgroundColor: saving ? "#660e28" : theme.colors.primary,
-                        color: theme.colors.text.inverse,
-                        border: "none",
-                        borderRadius: theme.radius.sm,
-                        cursor: saving ? "not-allowed" : "pointer",
-                        fontSize: "16px",
-                        fontWeight: "600",
-                    }}
-                >
-                    {saving && (
-                        <div 
-                            className="absolute top-0 left-0 h-full bg-white opacity-20" 
-                            style={{ animation: 'fakeProgress 15s cubic-bezier(0.1, 0.7, 0.1, 1) forwards' }} 
-                        />
-                    )}
-                    <style>{`
-                        @keyframes fakeProgress {
-                            0% { width: 0%; }
-                            50% { width: 70%; }
-                            80% { width: 90%; }
-                            100% { width: 95%; }
-                        }
-                    `}</style>
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                        {saving && (
-                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        )}
-                        {saving 
-                            ? (building.model_file instanceof File 
-                                ? "Optimizing & Compressing 3D Model... (This takes a moment)" 
-                                : "Saving Changes...") 
-                            : "Save All Changes"}
-                    </span>
-                </button>
-            </form>
+            {/* Unsaved Changes Confirmation Modal */}
+            <Modal
+                isOpen={showUnsavedModal}
+                onClose={() => setShowUnsavedModal(false)}
+                title="Unsaved Changes Warning"
+                variant="danger"
+                footer={
+                    <>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setShowUnsavedModal(false)}
+                        >
+                            Stay & Keep Editing
+                        </Button>
+                        <Button
+                            variant="danger"
+                            onClick={() => {
+                                setIsDirty(false);
+                                setShowUnsavedModal(false);
+                                navigate("/buildings");
+                            }}
+                        >
+                            Discard & Leave
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-3">
+                    <p className="text-sm text-gray-700 leading-relaxed font-medium">
+                        You have unsaved changes on this building record.
+                    </p>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                        If you go back now, your entered details, coordinates, and uploads will be discarded. Please save your changes before leaving if you want to keep them.
+                    </p>
+                </div>
+            </Modal>
 
             {/* Fullscreen Hotspot Editor Modal */}
             {showHotspotEditor && (
@@ -1306,51 +1391,19 @@ const BuildingEditorPage = () => {
                         flexDirection: "column",
                     }}
                 >
-                    <div
-                        style={{
-                            padding: "14px 24px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            background: theme.colors.primary,
-                            borderBottom: "1px solid rgba(255,255,255,0.15)",
-                        }}
-                    >
+                    <div className="px-6 py-3.5 flex justify-between items-center bg-brand border-b border-white/15">
                         <div>
-                            <h2
-                                style={{
-                                    color: "#ffffff",
-                                    margin: 0,
-                                    fontSize: "18px",
-                                    fontWeight: "700",
-                                    letterSpacing: "0.5px",
-                                }}
-                            >
+                            <h2 className="text-white m-0 text-base font-bold tracking-wide">
                                 Interactive 3D Hotspot Editor: {building.name}
                             </h2>
-                            <p
-                                style={{
-                                    color: "rgba(255,255,255,0.85)",
-                                    margin: "4px 0 0 0",
-                                    fontSize: "12px",
-                                }}
-                            >
+                            <p className="text-white/80 m-0 mt-0.5 text-xs">
                                 Double-click anywhere on the model to place or edit an information hotspot.
                             </p>
                         </div>
                         <button
                             type="button"
                             onClick={() => setShowHotspotEditor(false)}
-                            style={{
-                                background: theme.colors.error,
-                                color: "white",
-                                border: "none",
-                                padding: "8px 18px",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontWeight: "bold",
-                                fontSize: "12px",
-                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-bold text-xs transition-colors"
                         >
                             Close Editor (Without Saving)
                         </button>
