@@ -81,6 +81,7 @@ const BuildingEditorPage = () => {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const [isDirty, setIsDirty] = useState(false);
+    const [hasSaved, setHasSaved] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
     const [showHubModal, setShowHubModal] = useState(false);
 
@@ -114,7 +115,7 @@ const BuildingEditorPage = () => {
     const [geofence, setGeofence] = useState({
         latitude: "",
         longitude: "",
-        radius_meters: 20,
+        radius_meters: 50,
         is_active: true,
     });
 
@@ -546,7 +547,7 @@ const BuildingEditorPage = () => {
                 formattedGeofenceData = {
                     latitude: parseFloat(geofence.latitude),
                     longitude: parseFloat(geofence.longitude),
-                    radius_meters: parseFloat(geofence.radius_meters || 20),
+                    radius_meters: parseFloat(geofence.radius_meters || 50),
                     is_active: geofence.is_active,
                 };
             }
@@ -562,6 +563,7 @@ const BuildingEditorPage = () => {
                 }
 
                 setIsDirty(false);
+                setHasSaved(true);
                 setSuccessMessage("Building created successfully!");
                 setTimeout(
                     () => navigate(`/buildings/${savedBuilding.id}?openHub=true`),
@@ -595,6 +597,7 @@ const BuildingEditorPage = () => {
                 }
 
                 setIsDirty(false);
+                setHasSaved(true);
                 setSuccessMessage("Building updated successfully!");
                 setTimeout(() => {
                     setShowHubModal(true);
@@ -667,22 +670,12 @@ const BuildingEditorPage = () => {
                     </div>
                 </div>
 
-                {/* Right side: More Features Button */}
-                {isNew ? (
-                    <button
-                        type="button"
-                        disabled
-                        className="px-4 py-2.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-md flex items-center gap-2 text-xs font-bold cursor-not-allowed shrink-0"
-                        title="Save building first to configure more features"
-                    >
-                        <Sparkles size={16} />
-                        <span>More Features</span>
-                    </button>
-                ) : (
+                {/* Right side: More Features Button - Only appears after we clicked Save All Changes and building is saved */}
+                {(!isNew || hasSaved) && (
                     <button
                         type="button"
                         onClick={() => setShowHubModal(true)}
-                        className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs shrink-0"
+                        className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs shrink-0 animate-in fade-in duration-300"
                         title="Open More Features (Panoramas, 3D Hotspots, Quests)"
                     >
                         <Sparkles size={16} />

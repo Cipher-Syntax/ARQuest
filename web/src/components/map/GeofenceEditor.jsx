@@ -89,7 +89,7 @@ const GeofenceEditor = ({
             if (!b.lat && !b.latitude) return;
             const lat = parseFloat(b.lat || b.latitude);
             const lng = parseFloat(b.lng || b.longitude);
-            const radius = b.geofences && b.geofences.length > 0 ? parseFloat(b.geofences[0].radius_meters) : 20;
+            const radius = b.geofences && b.geofences.length > 0 ? parseFloat(b.geofences[0].radius_meters) : 50;
             if (radius > 0) {
                 const c = circle([lng, lat], radius / 1000, { steps: 64, units: 'kilometers' });
                 features.push(c);
@@ -123,7 +123,7 @@ const GeofenceEditor = ({
                         min="1"
                         style={{ borderRadius: theme.radius.sm }}
                         className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-[#8a1538] focus:border-[#8a1538] transition-all outline-none text-sm font-mono"
-                        placeholder="20"
+                        placeholder="50"
                     />
                     {errors?.radius && (
                         <div style={{ color: theme.colors.error, fontSize: "12px", marginTop: "4px" }}>{errors.radius}</div>

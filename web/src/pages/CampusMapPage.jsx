@@ -94,9 +94,9 @@ const parseCoordinate = (coordStr) => {
 };
 
 const parseRadius = (radiusStr) => {
-    if (!radiusStr) return 20;
+    if (!radiusStr) return 50;
     const match = String(radiusStr).match(/([0-9]*\.?[0-9]+)/);
-    return match ? parseFloat(match[1]) : 20;
+    return match ? parseFloat(match[1]) : 50;
 };
 
 const MaintenanceIcon = () => (
@@ -278,7 +278,7 @@ export default function CampusMapPage() {
         fullBuilding: "",
         lat: "",
         lng: "",
-        radius: "20m",
+        radius: "50m",
     });
     const [geoErrors, setGeoErrors] = useState({});
 
