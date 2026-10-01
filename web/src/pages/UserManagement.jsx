@@ -211,11 +211,17 @@ export default function UserManagement({ hideHeader }) {
                                                 </td>
 
                                                 <td className="px-6 py-3.5 whitespace-nowrap">
-                                                    <span className="text-xs font-semibold text-gray-700">
-                                                        {user.exploration_points
-                                                            ? `${Number(user.exploration_points).toLocaleString()} XP`
-                                                            : "0 XP"}
-                                                    </span>
+                                                    {user.role?.toLowerCase() !== "student" ? (
+                                                        <span className="text-xs text-gray-400 font-medium">
+                                                            —
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold text-gray-700">
+                                                            {user.exploration_points
+                                                                ? `${Number(user.exploration_points).toLocaleString()} XP`
+                                                                : "0 XP"}
+                                                        </span>
+                                                    )}
                                                 </td>
 
                                                 <td className="px-6 py-3.5 text-right whitespace-nowrap">

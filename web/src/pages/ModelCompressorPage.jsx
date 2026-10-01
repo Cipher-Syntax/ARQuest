@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "@google/model-viewer";
 import {
     Box,
+    ArrowLeft,
     UploadCloud,
     Sliders,
     Zap,
@@ -67,6 +68,14 @@ const PRESETS = [
 
 export default function ModelCompressorPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const fromBuildingId = location.state?.fromBuildingId;
+    const fromBuildingName = location.state?.fromBuildingName;
+    const returnTo = location.state?.returnTo;
+    const buildingDraft = location.state?.buildingDraft;
+    const geofenceDraft = location.state?.geofenceDraft;
+
     const [selectedFile, setSelectedFile] = useState(null);
     const [preset, setPreset] = useState("balanced");
     const [isDragging, setIsDragging] = useState(false);
@@ -89,9 +98,17 @@ export default function ModelCompressorPage() {
 
     // Building Assignment / Navigation
     const [buildings, setBuildings] = useState([]);
-    const [selectedBuildingId, setSelectedBuildingId] = useState("");
+    const [selectedBuildingId, setSelectedBuildingId] = useState(
+        fromBuildingId ? String(fromBuildingId) : ""
+    );
     const [isAssigning, setIsAssigning] = useState(false);
     const [assignSuccess, setAssignSuccess] = useState(false);
+
+    useEffect(() => {
+        if (fromBuildingId) {
+            setSelectedBuildingId(String(fromBuildingId));
+        }
+    }, [fromBuildingId]);
 
     useEffect(() => {
         compressorService.getBuildings()
@@ -193,16 +210,35 @@ export default function ModelCompressorPage() {
         }
     };
 
+    const handleBackToBuilding = () => {
+        const targetPath =
+            returnTo ||
+            (fromBuildingId === "new"
+                ? "/buildings/new"
+                : `/buildings/${fromBuildingId}`);
+        navigate(targetPath, {
+            state: {
+                buildingDraft,
+                geofenceDraft,
+            },
+        });
+    };
+
     const handleOpenInBuildingEditor = () => {
         if (!selectedBuildingId || !result?.download_url) return;
 
-        const targetPath = selectedBuildingId === "new" ? "/buildings/new" : `/buildings/${selectedBuildingId}`;
+        const isSameBuilding = String(selectedBuildingId) === String(fromBuildingId);
+        const targetPath =
+            selectedBuildingId === "new"
+                ? "/buildings/new"
+                : `/buildings/${selectedBuildingId}`;
         navigate(targetPath, {
             state: {
                 compressedModelUrl: result.download_url,
                 compressedModelFilename: result.output_filename,
                 fromCompressor: true,
-            }
+                ...(isSameBuilding ? { buildingDraft, geofenceDraft } : {}),
+            },
         });
     };
 
@@ -219,18 +255,36 @@ export default function ModelCompressorPage() {
         <div className="space-y-6 pb-12">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-gray-200/80 rounded-md p-6 shadow-sm">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-md bg-brand/10 text-brand">
-                            <Box size={22} />
+                <div className="flex flex-wrap items-center gap-3">
+                    {fromBuildingId && (
+                        <button
+                            type="button"
+                            onClick={handleBackToBuilding}
+                            className="px-3.5 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs shrink-0 cursor-pointer"
+                            title={`Return to ${fromBuildingName || "Building Editor"}`}
+                        >
+                            <ArrowLeft size={16} />
+                            <span>Back to {fromBuildingName || (fromBuildingId === "new" ? "New Facility" : "Building")}</span>
+                        </button>
+                    )}
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <div className="p-2 rounded-md bg-brand/10 text-brand">
+                                <Box size={22} />
+                            </div>
+                            <h1 className="text-2xl font-bold text-gray-900 tracking-tight font-display">
+                                3D Model Compressor
+                            </h1>
+                            {fromBuildingName && (
+                                <span className="ml-2 px-2.5 py-1 bg-brand/10 text-brand text-xs font-bold rounded-md border border-brand/20">
+                                    Target: {fromBuildingName}
+                                </span>
+                            )}
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight font-display">
-                            3D Model Compressor
-                        </h1>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Optimize heavy CAD and SketchUp models (up to 2 GB+) into high-performance, mobile-ready .GLB files for spatial AR.
+                        </p>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                        Optimize heavy CAD and SketchUp models (up to 2 GB+) into high-performance, mobile-ready .GLB files for spatial AR.
-                    </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-600">
@@ -601,10 +655,17 @@ export default function ModelCompressorPage() {
                                         >
                                             <option value="">Select a campus facility...</option>
                                             <option value="new">+ Create as New Campus Building</option>
+                                            {fromBuildingId &&
+                                                fromBuildingId !== "new" &&
+                                                !buildings.some((b) => String(b.id) === String(fromBuildingId)) && (
+                                                    <option value={String(fromBuildingId)}>
+                                                        {fromBuildingName || `Building #${fromBuildingId}`}
+                                                    </option>
+                                                )}
                                             {buildings.length > 0 && (
                                                 <optgroup label="── Existing Facilities ──">
                                                     {buildings.map((b) => (
-                                                        <option key={b.id} value={b.id}>
+                                                        <option key={b.id} value={String(b.id)}>
                                                             {b.name}
                                                         </option>
                                                     ))}

@@ -131,7 +131,7 @@ export default function Dashboard() {
             icon: Navigation,
             sublabel: "Building Check-ins",
             color: "bg-emerald-50 text-emerald-700",
-            link: "/geofences",
+            link: "/campus-map",
         },
         {
             label: "Trivia Facts",
@@ -139,7 +139,7 @@ export default function Dashboard() {
             icon: HelpCircle,
             sublabel: "Learning Content",
             color: "bg-amber-50 text-amber-700",
-            link: "/cms",
+            link: "/buildings",
         },
         {
             label: "Quests Completed",
@@ -147,7 +147,7 @@ export default function Dashboard() {
             icon: Target,
             sublabel: `${stats.quest_completion_rate}% Completion Rate`,
             color: "bg-purple-50 text-purple-700",
-            link: "/cms",
+            link: "/buildings",
         },
     ];
 
@@ -201,7 +201,7 @@ export default function Dashboard() {
                         Refresh
                     </button>
                     <Link
-                        to="/buildings"
+                        to="/buildings/new"
                         className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-brand hover:bg-brand/90 rounded-md shadow-sm transition-all"
                     >
                         <Plus size={14} />
@@ -225,73 +225,6 @@ export default function Dashboard() {
                     </button>
                 </div>
             )}
-
-            {/* Quick Navigation Shortcuts */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Link
-                    to="/buildings"
-                    className="flex items-center justify-between p-3.5 bg-white border border-gray-200/80 rounded-md hover:border-brand/40 hover:shadow-sm transition-all group"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-brand/10 text-brand">
-                            <Building2 size={16} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-900">Buildings</p>
-                            <p className="text-[11px] text-gray-500">{stats.total_buildings} Facilities</p>
-                        </div>
-                    </div>
-                    <ArrowRight size={14} className="text-gray-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
-                </Link>
-
-                <Link
-                    to="/panoramas"
-                    className="flex items-center justify-between p-3.5 bg-white border border-gray-200/80 rounded-md hover:border-brand/40 hover:shadow-sm transition-all group"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-purple-50 text-purple-700">
-                            <Camera size={16} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-900">Manage Panorama</p>
-                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.total_panoramas || 0} Scenes</p>
-                        </div>
-                    </div>
-                    <ArrowRight size={14} className="text-gray-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
-                </Link>
-
-                <Link
-                    to="/cms"
-                    className="flex items-center justify-between p-3.5 bg-white border border-gray-200/80 rounded-md hover:border-brand/40 hover:shadow-sm transition-all group"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-blue-50 text-blue-700">
-                            <Target size={16} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-900">Quests/Trivias/Quizzes</p>
-                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.total_quests || 0} Quests</p>
-                        </div>
-                    </div>
-                    <ArrowRight size={14} className="text-gray-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
-                </Link>
-
-                <Link
-                    to="/feedback"
-                    className="flex items-center justify-between p-3.5 bg-white border border-gray-200/80 rounded-md hover:border-brand/40 hover:shadow-sm transition-all group"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-amber-50 text-amber-700">
-                            <AlertCircle size={16} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-900">Feedback & Issues</p>
-                            <p className="text-[11px] text-gray-500">{stats.content_coverage?.open_feedbacks || 0} Pending</p>
-                        </div>
-                    </div>
-                    <ArrowRight size={14} className="text-gray-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
-                </Link>
-            </div>
 
             {/* 5 KPI Metric Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -518,9 +451,9 @@ export default function Dashboard() {
                         </div>
 
                         <div className="pt-5 mt-4 border-t border-gray-100 flex items-center justify-between">
-                            <span className="text-xs text-gray-500 font-medium">Manage all AR assets</span>
-                            <Link to="/cms" className="text-xs font-bold text-brand hover:underline flex items-center gap-1">
-                                Open CMS <ArrowRight size={12} />
+                            <span className="text-xs text-gray-500 font-medium">Manage inside building features</span>
+                            <Link to="/buildings" className="text-xs font-bold text-brand hover:underline flex items-center gap-1">
+                                View Buildings <ArrowRight size={12} />
                             </Link>
                         </div>
                     </Card>
@@ -544,9 +477,12 @@ export default function Dashboard() {
                                     <span className="w-5 text-xs font-bold text-gray-400">#{i + 1}</span>
                                     <div className="flex-1">
                                         <div className="flex justify-between mb-1">
-                                            <span className="text-xs font-semibold text-gray-800 truncate max-w-[150px]">
+                                            <Link
+                                                to={`/buildings/${b.id}`}
+                                                className="text-xs font-semibold text-gray-800 hover:text-brand truncate max-w-[150px] transition-colors"
+                                            >
                                                 {b.name}
-                                            </span>
+                                            </Link>
                                             <span className="text-xs font-bold text-gray-900">
                                                 {b.unlock_count}
                                             </span>

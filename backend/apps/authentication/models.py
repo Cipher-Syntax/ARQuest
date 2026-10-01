@@ -61,11 +61,19 @@ class User(AbstractUser):
         """
         Call on every successful login.
         Returns the bonus EXP awarded (5 normally, 10 on every 3rd consecutive day).
+        Only student explorers participate in gamification streaks and points.
         """
         fresh_self = type(self).objects.select_for_update().get(pk=self.pk)
         
         today = date.today()
         bonus_exp = 0
+
+        # Non-students (admins, visitors, etc.) only track last_login_date, no gamification EXP/streaks
+        if fresh_self.role != 'student':
+            fresh_self.last_login_date = today
+            fresh_self.save(update_fields=['last_login_date'])
+            self.last_login_date = fresh_self.last_login_date
+            return 0
 
         if fresh_self.last_login_date is None:
             fresh_self.streak_count = 1
@@ -98,8 +106,9 @@ class User(AbstractUser):
     def gain_exp(self, amount):
         """
         Atomically increments user's exploration points and returns the updated value.
+        Only student explorers participate in gamification exploration points.
         """
-        if not amount or amount <= 0:
+        if self.role != 'student' or not amount or amount <= 0:
             return self.exploration_points
         fresh_self = type(self).objects.select_for_update().get(pk=self.pk)
         fresh_self.exploration_points += int(amount)
