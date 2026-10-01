@@ -145,7 +145,7 @@ const GeofenceEditor = ({
 
             <div className="p-2.5 bg-blue-50/80 border border-blue-100 text-blue-700 rounded-md text-xs font-medium flex items-center gap-2 mb-3">
                 <MapPin size={14} className="shrink-0 text-blue-600" />
-                <span>Click anywhere on the map to pin building coordinates and geofence perimeter.</span>
+                <span>Click anywhere on the map to automatically set Latitude & Longitude coordinates and reposition the arrival pin.</span>
             </div>
 
             {errors?.center && (

@@ -334,6 +334,17 @@ const BuildingEditorPage = () => {
     useEffect(() => {
         if (!isNew) {
             loadBuilding();
+        } else if (location.state?.buildingDraft) {
+            setBuilding((prev) => ({
+                ...prev,
+                ...location.state.buildingDraft,
+                model_file: prev.model_file instanceof File ? prev.model_file : null,
+                model_active: Boolean(prev.model_file instanceof File || location.state.buildingDraft?.model_file),
+            }));
+            if (location.state?.geofenceDraft) {
+                setGeofence(location.state.geofenceDraft);
+            }
+            setIsDirty(true);
         }
         loadExistingBuildings();
         loadDepartments();
@@ -360,22 +371,32 @@ const BuildingEditorPage = () => {
     const loadBuilding = async () => {
         try {
             const data = await buildingService.getBuilding(id);
+            const draft = location.state?.buildingDraft;
+            const geofenceDraft = location.state?.geofenceDraft;
+
             setBuilding((prev) => ({
                 ...data,
                 primary_department_id: data.primary_department?.id ?? null,
                 department_ids: data.departments?.map((d) => d.id) ?? [],
+                ...(draft || {}),
                 model_file: prev.model_file instanceof File ? prev.model_file : null,
-                model_active: prev.model_file instanceof File ? true : (data.model_active ?? false),
+                model_active: Boolean(prev.model_file instanceof File || draft?.model_file || data.model_file || data.model_url),
             }));
             try {
                 const geofenceData = await buildingService.getGeofence(id);
-                if (geofenceData) {
+                if (geofenceDraft) {
+                    setGeofence(geofenceDraft);
+                } else if (geofenceData) {
                     setGeofence(geofenceData);
                 }
             } catch (error) {
-                console.log("No geofence found");
+                if (geofenceDraft) {
+                    setGeofence(geofenceDraft);
+                } else {
+                    console.log("No geofence found");
+                }
             }
-            setIsDirty(false);
+            setIsDirty(Boolean(draft || location.state?.fromCompressor));
         } catch (error) {
             setErrors({ submit: "Failed to load building" });
             navigate("/buildings");
@@ -510,7 +531,10 @@ const BuildingEditorPage = () => {
             // Facility Operations removed: automatically active when not in DRAFT mode
             formData.append("is_active", building.status !== "DRAFT");
             formData.append("model_version", building.model_version || "");
-            formData.append("model_active", building.model_active);
+            formData.append(
+                "model_active",
+                Boolean(building.model_file || building.model_url),
+            );
 
             if (building.hotspots) {
                 formData.append("hotspots", JSON.stringify(building.hotspots));
@@ -690,13 +714,20 @@ const BuildingEditorPage = () => {
                     {/* LEFT COLUMN: Building Information (50% width, equal height) */}
                     <div className="flex flex-col">
                         <div className="bg-white border border-brand-border rounded-md shadow-xs p-6 space-y-4 flex-1 flex flex-col">
-                                <div className="border-b border-gray-100 pb-3">
-                                    <h2 className="text-base font-bold text-gray-900">
-                                        Building Information
-                                    </h2>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                        Configure primary identity details and campus map visibility.
-                                    </p>
+                                <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="w-6 h-6 rounded-md bg-brand text-white font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
+                                            1
+                                        </span>
+                                        <div>
+                                            <h2 className="text-base font-bold text-gray-900 leading-tight">
+                                                Step 1: Building Information
+                                            </h2>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                Configure primary identity details and campus map visibility.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Name Input */}
@@ -846,13 +877,18 @@ const BuildingEditorPage = () => {
                             {/* Card: 3D Model Configuration */}
                             <div className="bg-white border border-brand-border rounded-md shadow-xs p-6 space-y-4 flex-1 flex flex-col">
                                     <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
-                                        <div>
-                                            <h2 className="text-base font-bold text-gray-900">
-                                                3D Model Configuration
-                                            </h2>
-                                            <p className="text-xs text-gray-500 mt-0.5">
-                                                Interactive 3D model for campus viewer and AR overlays.
-                                            </p>
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="w-6 h-6 rounded-md bg-brand text-white font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
+                                                2
+                                            </span>
+                                            <div>
+                                                <h2 className="text-base font-bold text-gray-900 leading-tight">
+                                                    Step 2: 3D Model Configuration
+                                                </h2>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    Interactive 3D model for campus viewer and AR overlays.
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -879,23 +915,35 @@ const BuildingEditorPage = () => {
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        <Link
-                                            to="/compressor"
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20"
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                navigate("/compressor", {
+                                                    state: {
+                                                        fromBuildingId: isNew ? "new" : id,
+                                                        fromBuildingName: building.name || (isNew ? "New Facility" : "Building"),
+                                                        returnTo: location.pathname,
+                                                        buildingDraft: {
+                                                            name: building.name,
+                                                            description: building.description,
+                                                            latitude: building.latitude,
+                                                            longitude: building.longitude,
+                                                            status: building.status,
+                                                            is_active: building.is_active,
+                                                            model_version: building.model_version,
+                                                            hotspots: building.hotspots,
+                                                            primary_department_id: building.primary_department_id,
+                                                            department_ids: building.department_ids,
+                                                        },
+                                                        geofenceDraft: geofence,
+                                                    },
+                                                });
+                                            }}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md transition-colors border border-brand/20 cursor-pointer"
+                                            title="Open 3D model compression tool for this facility"
                                         >
                                             <Zap size={13} /> Open 3D Compressor
-                                        </Link>
-
-                                        <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer bg-gray-50 px-3 py-1.5 border border-gray-200 rounded-md shadow-xs hover:bg-gray-100 transition-colors">
-                                            <input
-                                                type="checkbox"
-                                                name="model_active"
-                                                checked={building.model_active}
-                                                onChange={handleChange}
-                                                className="w-3.5 h-3.5 rounded text-brand focus:ring-brand cursor-pointer"
-                                            />
-                                            <span>Model Active</span>
-                                        </label>
+                                        </button>
                                     </div>
 
                                     <div className="flex flex-col gap-4">
@@ -923,6 +971,7 @@ const BuildingEditorPage = () => {
                                                 setBuilding((prev) => ({
                                                     ...prev,
                                                     model_file: file,
+                                                    model_active: Boolean(file || prev.model_url),
                                                 }));
                                                 setThumbnailBlob(null);
                                                 setThumbnailPreviewUrl(null);
@@ -1069,13 +1118,33 @@ const BuildingEditorPage = () => {
 
                 {/* ROW 2: Campus Geofence & Location (at the bottom of these two, full width) */}
                 <div className="bg-white border border-brand-border rounded-md shadow-xs p-6 space-y-4">
-                                    <div className="border-b border-gray-100 pb-3">
-                                        <h2 className="text-base font-bold text-gray-900">
-                                            Campus Geofence & Location
-                                        </h2>
-                                        <p className="text-xs text-gray-500 mt-0.5">
-                                            Exact coordinates and perimeter for navigation and arrival detection.
-                                        </p>
+                                    <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="w-6 h-6 rounded-md bg-brand text-white font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
+                                                3
+                                            </span>
+                                            <div>
+                                                <h2 className="text-base font-bold text-gray-900 leading-tight">
+                                                    Step 3: Campus Geofence & Location
+                                                </h2>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    Exact coordinates and perimeter for navigation and arrival detection.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Instruction Callout for Auto Latitude & Longitude via Map Click */}
+                                    <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-md text-xs text-blue-950 flex items-start gap-2.5">
+                                        <MapPin size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                                        <div className="leading-relaxed">
+                                            <p className="font-bold text-blue-950 mb-0.5">
+                                                Auto-Fill Coordinates via Interactive Map:
+                                            </p>
+                                            <p className="text-blue-900 text-[11px]">
+                                                Click anywhere on the campus map below to <strong>automatically populate the exact Latitude and Longitude</strong> and position the arrival geofence pin. You can also manually fine-tune the coordinates in the fields below.
+                                            </p>
+                                        </div>
                                     </div>
 
                                     {/* Latitude & Longitude (Top of map) */}
