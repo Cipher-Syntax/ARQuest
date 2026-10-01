@@ -382,4 +382,37 @@ def quest_detail(request, id):
         return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
     elif request.method == 'DELETE':
         quest.delete()
-        return success_response({'message': 'Quest deleted'})
+        return success_response({'message': 'Quest moved to Recycle Bin'})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def quest_archived_list(request):
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    archived = Quest.all_objects.filter(deleted_at__isnull=False).order_by('-deleted_at')
+    serializer = QuestSerializer(archived, many=True)
+    return success_response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def quest_restore(request, id):
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    try:
+        quest = Quest.all_objects.get(id=id, deleted_at__isnull=False)
+        quest.restore()
+        return success_response({'message': 'Quest restored successfully'})
+    except Quest.DoesNotExist:
+        return error_response(ErrorCodes.NOT_FOUND, 'Quest not found in Recycle Bin', status_code=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def quest_hard_delete(request, id):
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    try:
+        quest = Quest.all_objects.get(id=id, deleted_at__isnull=False)
+        quest.hard_delete()
+        return success_response({'message': 'Quest permanently deleted'})
+    except Quest.DoesNotExist:
+        return error_response(ErrorCodes.NOT_FOUND, 'Quest not found in Recycle Bin', status_code=status.HTTP_404_NOT_FOUND)

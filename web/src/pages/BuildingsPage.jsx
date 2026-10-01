@@ -2,13 +2,15 @@ import {
     Search,
     Filter,
     Plus,
-    MoreVertical,
     Building2,
     Edit3,
     Trash2,
     QrCode,
     X,
     Download,
+    Box,
+    MapPin,
+    RotateCcw,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -22,11 +24,20 @@ import {
 import { buildingService } from "../services/buildingService";
 import { QRCodeCanvas } from "qrcode.react";
 
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const getFullUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    return `${API_BASE_URL}${url}`;
+};
+
 function QRCodeModal({ isOpen, onClose, building }) {
     if (!isOpen || !building) return null;
 
     const handleDownload = () => {
         const canvas = document.getElementById("building-qr-code");
+        if (!canvas) return;
         const pngUrl = canvas
             .toDataURL("image/png")
             .replace("image/png", "image/octet-stream");
@@ -39,21 +50,21 @@ function QRCodeModal({ isOpen, onClose, building }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-md shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between p-4 border-b border-brand-border bg-gray-50/50">
                     <h3 className="font-bold text-lg text-gray-900">
                         Building QR Code
                     </h3>
                     <button
                         onClick={onClose}
-                        className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors"
                     >
                         <X size={20} />
                     </button>
                 </div>
                 <div className="p-8 flex flex-col items-center gap-4">
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm inline-block">
+                    <div className="bg-white p-4 rounded-md border border-gray-100 shadow-sm inline-block">
                         <QRCodeCanvas
                             id="building-qr-code"
                             value={building.qr_code_secret || "missing-secret"}
@@ -86,12 +97,10 @@ function QRCodeModal({ isOpen, onClose, building }) {
 export default function BuildingsPage() {
     const [buildings, setBuildings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isQrModalOpen, setIsQrModalOpen] = useState(false);
     const [buildingToDelete, setBuildingToDelete] = useState(null);
     const [selectedBuildingForQr, setSelectedBuildingForQr] = useState(null);
-    const [editingBuilding, setEditBuilding] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [visibilityFilter, setVisibilityFilter] = useState("all");
@@ -111,12 +120,11 @@ export default function BuildingsPage() {
         return 1;
     };
 
-    const [openMenu, setOpenMenu] = useState(null);
     const [currentPage, setCurrentPage] = useState(getInitialPage);
-    const itemsPerPage = 5;
-    const menuRef = useRef(null);
+    const itemsPerPage = 8;
     const isFirstRender = useRef(true);
     const prevFiltersRef = useRef({ searchTerm, statusFilter, visibilityFilter });
+    const navigate = useNavigate();
 
     const handlePageChange = (page) => {
         setCurrentPage(page);
@@ -135,17 +143,6 @@ export default function BuildingsPage() {
         );
     };
 
-    const [formData, setFormData] = useState({
-        name: "",
-        code: "",
-        department: "Uncategorized",
-        lat: "",
-        lng: "",
-        status: "active",
-    });
-
-    const navigate = useNavigate();
-
     useEffect(() => {
         loadBuildings();
     }, []);
@@ -159,13 +156,14 @@ export default function BuildingsPage() {
                 id: b.id,
                 name: b.name,
                 code: b.slug,
-                department: b.department || "Uncategorized",
+                description: b.description || "",
+                image_url: b.image_url,
+                model_url: b.model_url,
+                has_model: !!(b.model_file || b.model_url),
                 lat: b.latitude,
                 lng: b.longitude,
                 status: b.is_active ? "active" : "inactive",
                 status_display: b.status,
-                models: b.model_file ? 1 : 0,
-                panos: 0,
                 qr_code_secret: b.qr_code_secret,
             }));
             setBuildings(mapped);
@@ -175,17 +173,6 @@ export default function BuildingsPage() {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                setOpenMenu(null);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () =>
-            document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
 
     const handleAddClick = () => {
         navigate("/buildings/new");
@@ -198,7 +185,6 @@ export default function BuildingsPage() {
     const handleDeleteClick = (id) => {
         setBuildingToDelete(id);
         setIsDeleteModalOpen(true);
-        setOpenMenu(null);
     };
 
     const handleConfirmDelete = async () => {
@@ -214,10 +200,19 @@ export default function BuildingsPage() {
         }
     };
 
+    const handleResetFilters = () => {
+        setSearchTerm("");
+        setStatusFilter("all");
+        setVisibilityFilter("all");
+    };
+
+    const hasActiveFilters =
+        searchTerm !== "" || statusFilter !== "all" || visibilityFilter !== "all";
+
     const filteredBuildings = buildings.filter((b) => {
         const matchesSearch =
             b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            b.code.toLowerCase().includes(searchTerm.toLowerCase());
+            (b.code && b.code.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesStatus =
             statusFilter === "all" || b.status === statusFilter;
         const matchesVisibility =
@@ -266,6 +261,7 @@ export default function BuildingsPage() {
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">
@@ -278,7 +274,7 @@ export default function BuildingsPage() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <Button
                         onClick={handleAddClick}
-                        className="gap-2 justify-center"
+                        className="gap-2 justify-center shadow-sm"
                     >
                         <Plus size={18} />
                         Add Building
@@ -286,8 +282,9 @@ export default function BuildingsPage() {
                 </div>
             </div>
 
-            <Card noPadding className="overflow-visible">
-                <div className="p-4 border-b border-brand-border flex flex-col md:flex-row gap-4">
+            {/* Filter and Search Bar */}
+            <Card noPadding className="p-4 bg-white">
+                <div className="flex flex-col md:flex-row gap-4">
                     <div className="relative flex-1">
                         <Search
                             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -295,8 +292,8 @@ export default function BuildingsPage() {
                         />
                         <input
                             type="text"
-                            placeholder="Search buildings..."
-                            className="w-full pl-10 pr-4 py-2 bg-brand-light/30 border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand transition-all font-medium"
+                            placeholder="Search buildings by name or code..."
+                            className="w-full pl-10 pr-4 py-2 bg-brand-light/30 border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand transition-all font-medium text-gray-800 placeholder-gray-400"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -311,6 +308,7 @@ export default function BuildingsPage() {
                         >
                             <option value="all">All Visibility</option>
                             <option value="VISIBLE">Visible</option>
+                            <option value="MAINTENANCE">Maintenance</option>
                             <option value="HIDDEN">Hidden</option>
                             <option value="DRAFT">Draft</option>
                         </select>
@@ -335,202 +333,251 @@ export default function BuildingsPage() {
                         />
                     </div>
                 </div>
+            </Card>
 
-                {loading ? (
-                    <div className="p-8 text-center text-gray-500 font-medium">
+            {/* Results count & status */}
+            {!loading && (
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 px-1">
+                    <span>
+                        Showing {paginatedBuildings.length} of{" "}
+                        {filteredBuildings.length}{" "}
+                        {filteredBuildings.length === 1
+                            ? "building"
+                            : "buildings"}
+                    </span>
+                    {hasActiveFilters && (
+                        <button
+                            onClick={handleResetFilters}
+                            className="inline-flex items-center gap-1 text-brand hover:underline font-bold"
+                        >
+                            <RotateCcw size={12} />
+                            Reset Filters
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Content / Card Grid */}
+            {loading ? (
+                <div className="h-64 flex flex-col items-center justify-center gap-3">
+                    <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm font-medium text-gray-500">
                         Loading buildings...
+                    </p>
+                </div>
+            ) : filteredBuildings.length === 0 ? (
+                <Card className="text-center py-12 px-4 flex flex-col items-center justify-center">
+                    <div className="w-14 h-14 rounded-md bg-brand-light flex items-center justify-center text-brand mb-3">
+                        <Building2 size={28} />
                     </div>
-                ) : (
-                    <>
-                        <div className="overflow-visible w-full">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-brand-light/20">
-                                        <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                                            Building
-                                        </th>
-                                        <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                                            Coordinates
-                                        </th>
-                                        <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                        <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                                            Visibility
-                                        </th>
-                                        <th className="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-brand-border/50">
-                                    {paginatedBuildings.map((b) => (
-                                        <tr
-                                            key={b.id}
-                                            className="hover:bg-brand-light/30 transition-colors group"
-                                        >
-                                            <td className="px-6 py-1">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-md bg-brand-light flex items-center justify-center text-brand shrink-0">
-                                                        <Building2 size={18} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-gray-900 text-sm group-hover:text-brand transition-colors">
-                                                            {b.name}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-xs font-mono text-gray-500">
-                                                    {b.lat}, {b.lng}
+                    <h3 className="font-bold text-gray-900 text-base">
+                        No buildings found
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1 max-w-sm">
+                        {hasActiveFilters
+                            ? "No buildings match your current search and filter criteria. Try adjusting or resetting them."
+                            : "You haven't added any buildings yet. Add your first building to get started."}
+                    </p>
+                    {hasActiveFilters ? (
+                        <Button
+                            variant="secondary"
+                            onClick={handleResetFilters}
+                            className="mt-4 gap-2 text-xs"
+                        >
+                            <RotateCcw size={14} />
+                            Reset Filters
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={handleAddClick}
+                            className="mt-4 gap-2 text-xs"
+                        >
+                            <Plus size={14} />
+                            Add Building
+                        </Button>
+                    )}
+                </Card>
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {paginatedBuildings.map((b) => (
+                            <Card
+                                key={b.id}
+                                className="group cursor-pointer hover:border-brand hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden p-4"
+                                onClick={() => handleEditClick(b)}
+                            >
+                                <div>
+                                    {/* Media Thumbnail */}
+                                    <div className="aspect-video bg-gray-100 rounded-md mb-3.5 flex items-center justify-center relative overflow-hidden">
+                                        {b.image_url ? (
+                                            <img
+                                                src={getFullUrl(b.image_url)}
+                                                alt={b.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-100">
+                                                <Building2
+                                                    size={34}
+                                                    className="text-gray-300 mb-1"
+                                                />
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                                    No Image
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <Badge
-                                                    variant={
-                                                        b.status === "active"
-                                                            ? "success"
-                                                            : "gray"
-                                                    }
-                                                >
-                                                    {b.status === "active"
-                                                        ? "Active"
-                                                        : "Inactive"}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <Badge
-                                                    variant={
-                                                        b.status_display ===
-                                                        "VISIBLE"
-                                                            ? "brand"
-                                                            : b.status_display ===
-                                                              "MAINTENANCE"
-                                                            ? "warning"
-                                                            : b.status_display ===
-                                                                "HIDDEN"
-                                                              ? "red"
-                                                              : "gray"
-                                                    }
-                                                >
-                                                    {b.status_display ===
+                                            </div>
+                                        )}
+
+                                        {/* Status badges */}
+                                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 pointer-events-none">
+                                            <Badge
+                                                variant={
+                                                    b.status === "active"
+                                                        ? "success"
+                                                        : "gray"
+                                                }
+                                                className="shadow-sm backdrop-blur-sm"
+                                            >
+                                                {b.status === "active"
+                                                    ? "Active"
+                                                    : "Closed"}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 pointer-events-none">
+                                            <Badge
+                                                variant={
+                                                    b.status_display ===
                                                     "VISIBLE"
-                                                        ? "Visible"
+                                                        ? "brand"
                                                         : b.status_display ===
                                                           "MAINTENANCE"
-                                                        ? "Maintenance"
+                                                        ? "warning"
                                                         : b.status_display ===
-                                                            "HIDDEN"
-                                                          ? "Hidden"
-                                                          : "Draft"}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div
-                                                    className="relative inline-block text-left"
-                                                    ref={
-                                                        openMenu === b.id
-                                                            ? menuRef
-                                                            : null
-                                                    }
-                                                >
-                                                    <button
-                                                        onClick={() =>
-                                                            setOpenMenu(
-                                                                openMenu ===
-                                                                    b.id
-                                                                    ? null
-                                                                    : b.id,
-                                                            )
-                                                        }
-                                                        className="p-2 text-gray-400 hover:text-brand transition-colors rounded-lg hover:bg-brand-light"
-                                                    >
-                                                        <MoreVertical
-                                                            size={18}
-                                                        />
-                                                    </button>
-
-                                                    {openMenu === b.id && (
-                                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-xl border border-brand-border z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                                                            <button
-                                                                onClick={() => {
-                                                                    handleEditClick(
-                                                                        b,
-                                                                    );
-                                                                    setOpenMenu(
-                                                                        null,
-                                                                    );
-                                                                }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
-                                                            >
-                                                                <Edit3
-                                                                    size={14}
-                                                                />{" "}
-                                                                Edit Building
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setSelectedBuildingForQr(
-                                                                        b,
-                                                                    );
-                                                                    setIsQrModalOpen(
-                                                                        true,
-                                                                    );
-                                                                    setOpenMenu(
-                                                                        null,
-                                                                    );
-                                                                }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-brand-light hover:text-brand flex items-center gap-2 font-medium"
-                                                            >
-                                                                <QrCode
-                                                                    size={14}
-                                                                />{" "}
-                                                                Download QR Code
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleDeleteClick(
-                                                                        b.id,
-                                                                    )
-                                                                }
-                                                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
-                                                            >
-                                                                <Trash2
-                                                                    size={14}
-                                                                />{" "}
-                                                                Move to Archive
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filteredBuildings.length === 0 && (
-                                        <tr>
-                                            <td
-                                                colSpan="5"
-                                                className="px-6 py-8 text-center text-gray-500"
+                                                          "HIDDEN"
+                                                        ? "danger"
+                                                        : "gray"
+                                                }
+                                                className="shadow-sm backdrop-blur-sm"
                                             >
-                                                No buildings found. Add a
-                                                building to get started.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        {totalPages > 1 && (
+                                                {b.status_display ===
+                                                "VISIBLE"
+                                                    ? "Visible"
+                                                    : b.status_display ===
+                                                      "MAINTENANCE"
+                                                    ? "Maintenance"
+                                                    : b.status_display ===
+                                                      "HIDDEN"
+                                                    ? "Hidden"
+                                                    : "Draft"}
+                                            </Badge>
+                                        </div>
+
+                                        {b.has_model && (
+                                            <div className="absolute bottom-2.5 left-2.5 pointer-events-none">
+                                                <span className="inline-flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide">
+                                                    <Box size={10} /> 3D Model
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Hover Overlay Button */}
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center pointer-events-none">
+                                            <div className="opacity-0 group-hover:opacity-100 bg-white/95 backdrop-blur-sm text-brand font-bold text-xs px-3.5 py-1.5 rounded-md transition-all duration-200 shadow-md transform translate-y-2 group-hover:translate-y-0 flex items-center gap-1.5">
+                                                <Edit3 size={13} />
+                                                <span>Edit Building</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Building Details */}
+                                    <div>
+                                        <h3
+                                            className="font-bold text-gray-900 group-hover:text-brand transition-colors text-base truncate"
+                                            title={b.name}
+                                        >
+                                            {b.name}
+                                        </h3>
+                                        {b.lat && b.lng ? (
+                                            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-mono text-gray-500">
+                                                <MapPin
+                                                    size={12}
+                                                    className="text-gray-400 shrink-0"
+                                                />
+                                                <span>
+                                                    {Number(b.lat).toFixed(5)}, {Number(b.lng).toFixed(5)}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-gray-400 italic">
+                                                <MapPin
+                                                    size={12}
+                                                    className="text-gray-300 shrink-0"
+                                                />
+                                                <span>No coordinates set</span>
+                                            </div>
+                                        )}
+                                        <p className="text-xs text-gray-500 mt-2 line-clamp-2 min-h-[2rem]">
+                                            {b.description ||
+                                                "No description provided."}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Footer Actions */}
+                                <div className="mt-4 pt-3 border-t border-brand-border/60 flex items-center justify-between gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditClick(b);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold text-brand hover:text-brand/80 transition-colors"
+                                    >
+                                        <Edit3 size={13} />
+                                        Edit
+                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedBuildingForQr(b);
+                                                setIsQrModalOpen(true);
+                                            }}
+                                            title="Download QR Code"
+                                            className="p-1.5 text-gray-400 hover:text-brand hover:bg-brand-light rounded-md transition-colors"
+                                        >
+                                            <QrCode size={16} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteClick(b.id);
+                                            }}
+                                            title="Move to Archive"
+                                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="mt-4">
                             <Pagination
                                 currentPage={currentPage}
                                 totalPages={totalPages}
                                 onPageChange={handlePageChange}
                             />
-                        )}
-                    </>
-                )}
-            </Card>
+                        </div>
+                    )}
+                </>
+            )}
 
             <ConfirmDeleteModal
                 isOpen={isDeleteModalOpen}

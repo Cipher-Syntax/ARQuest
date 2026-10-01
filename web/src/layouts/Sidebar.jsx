@@ -3,7 +3,6 @@ import {
     LayoutDashboard,
     Building2,
     Users,
-    FileVideo,
     Map,
     HelpCircle,
     Settings,
@@ -11,18 +10,13 @@ import {
     Menu,
     X,
     Target,
-    MonitorPlay,
     ChevronLeft,
     ChevronRight,
-    Briefcase,
-    Camera,
-    Layers,
-    ArchiveRestore,
+    Trash2,
     Activity,
     ChevronDown,
     ChevronUp,
     Box,
-    Navigation,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -36,34 +30,28 @@ const NAV_GROUPS = [
     {
         label: "Campus Map",
         items: [
-            { to: "/departments", icon: Layers, label: "Colleges" },
             { to: "/buildings", icon: Building2, label: "Buildings" },
-            { to: "/geofences", icon: Map, label: "Geofences" },
-            { to: "/navigation", icon: Navigation, label: "Walking Paths" },
+            { to: "/campus-map", icon: Map, label: "Campus Map" },
         ],
     },
     {
-        label: "Content & Media",
+        label: "Tools",
         items: [
-            { to: "/panoramas", icon: Camera, label: "Manage Panorama" },
-            { to: "/media", icon: FileVideo, label: "Content & Media Viewer" },
             { to: "/compressor", icon: Box, label: "3D Model Compressor" },
         ],
     },
     {
-        label: "Gamification",
+        label: "Users & Accounts",
         items: [
-            { to: "/cms", icon: MonitorPlay, label: "Quests/Trivias/Quizzes" },
-            { to: "/users", icon: Users, label: "Student Rankings" },
+            { to: "/users", icon: Users, label: "User Management" },
         ],
     },
     {
         label: "System & Admin",
         items: [
-            { to: "/professionals", icon: Briefcase, label: "Professionals" },
             { to: "/feedback", icon: HelpCircle, label: "Feedback & Issues" },
             { to: "/history", icon: Activity, label: "History & Logs" },
-            { to: "/archives", icon: ArchiveRestore, label: "Archives" },
+            { to: "/recycle-bin", icon: Trash2, label: "Recycle Bin" },
             { to: "/settings", icon: Settings, label: "Settings" },
         ],
     },
@@ -111,6 +99,7 @@ function SidebarContent({
     return (
         <div className="flex flex-col h-full bg-brand relative transition-all duration-300">
             <div
+                id="tour-sidebar-header"
                 className={`px-5 py-6 flex items-center transition-all duration-300 border-b border-white/50 ${isCollapsed ? "justify-center px-0" : "justify-between"}`}
             >
                 <div className="flex items-center gap-3 border-white">
@@ -164,7 +153,7 @@ function SidebarContent({
                             : "opacity-0 pointer-events-none"
                     }`}
                 >
-                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-full p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-md p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                         <ChevronUp size={14} className="stroke-[2.5]" />
                     </div>
                 </button>
@@ -186,6 +175,7 @@ function SidebarContent({
                                 <NavLink
                                     key={to}
                                     to={to}
+                                    id={`tour-nav-${to.replace("/", "")}`}
                                     onClick={onMobileClose}
                                     title={isCollapsed ? label : ""}
                                     className={({ isActive }) =>
@@ -231,7 +221,7 @@ function SidebarContent({
                             : "opacity-0 pointer-events-none"
                     }`}
                 >
-                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-full p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                    <div className="bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-md p-1 shadow-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                         <ChevronDown size={14} className="stroke-[2.5]" />
                     </div>
                 </button>
@@ -248,7 +238,7 @@ export default function Sidebar() {
         <>
             <button
                 onClick={() => setMobileOpen(true)}
-                className="lg:hidden fixed top-3 left-4 z-40 p-2 bg-white rounded-lg border border-brand-border shadow-sm text-brand active:scale-95 transition-all"
+                className="lg:hidden fixed top-3 left-4 z-40 p-2 bg-white rounded-md border border-brand-border shadow-sm text-brand active:scale-95 transition-all"
             >
                 <Menu size={20} />
             </button>
@@ -263,7 +253,7 @@ export default function Sidebar() {
                     <div className="relative w-64 h-full shadow-2xl border-r-4 border-r-brand">
                         <button
                             onClick={() => setMobileOpen(false)}
-                            className="absolute top-6 right-6 p-2 text-white/70 hover:text-white bg-white/10 rounded-lg transition-colors z-10"
+                            className="absolute top-6 right-6 p-2 text-white/70 hover:text-white bg-white/10 rounded-md transition-colors z-10"
                         >
                             <X size={20} />
                         </button>

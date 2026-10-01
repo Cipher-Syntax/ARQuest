@@ -5,6 +5,7 @@ import TopBar from "./TopBar";
 import { useAuth } from "../hooks/useAuth";
 import { settingsService } from "../services/settingsService";
 import { AlertTriangle } from "lucide-react";
+import AdminOnboardingTour from "../components/common/AdminOnboardingTour";
 
 export default function AppLayout() {
     const { user } = useAuth();
@@ -35,6 +36,7 @@ export default function AppLayout() {
                     </div>
                 </main>
             </div>
+            <AdminOnboardingTour />
         </div>
     );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
     FileText,
     HelpCircle,
@@ -25,6 +26,10 @@ import {
 import "@google/model-viewer";
 
 export default function CmsPage() {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const targetBuildingId = searchParams.get("buildingId");
+
     const [buildings, setBuildings] = useState([]);
     const [quests, setQuests] = useState([]);
     const [trivias, setTrivias] = useState([]);
@@ -80,6 +85,13 @@ export default function CmsPage() {
             setTrivias(tData);
             setQuizzes(quizData);
             setSystemSettings(sData);
+
+            if (targetBuildingId && bData && bData.length > 0) {
+                const matched = bData.find((b) => String(b.id) === String(targetBuildingId));
+                if (matched) {
+                    setSelectedBuilding(matched);
+                }
+            }
         } catch (error) {
             console.error("Failed to load CMS data", error);
         }
@@ -402,10 +414,15 @@ export default function CmsPage() {
                         <div className="w-full md:w-1/2 h-full flex flex-col border-l border-gray-100 bg-gray-50/50 relative">
                             <button
                                 onClick={() => {
-                                    setSelectedBuilding(null);
-                                    resetForm();
+                                    if (targetBuildingId) {
+                                        navigate(`/buildings/${targetBuildingId}`);
+                                    } else {
+                                        setSelectedBuilding(null);
+                                        resetForm();
+                                    }
                                 }}
                                 className="absolute top-4 right-4 p-2 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full transition-colors z-20 hidden md:block"
+                                title={targetBuildingId ? "Back to Building" : "Close"}
                             >
                                 <X size={20} />
                             </button>
@@ -421,10 +438,15 @@ export default function CmsPage() {
                                 </div>
                                 <button
                                     onClick={() => {
-                                        setSelectedBuilding(null);
-                                        resetForm();
+                                        if (targetBuildingId) {
+                                            navigate(`/buildings/${targetBuildingId}`);
+                                        } else {
+                                            setSelectedBuilding(null);
+                                            resetForm();
+                                        }
                                     }}
                                     className="md:hidden p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+                                    title="Close"
                                 >
                                     <X size={18} />
                                 </button>

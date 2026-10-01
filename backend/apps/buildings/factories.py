@@ -43,7 +43,7 @@ class GeofenceFactory(factory.django.DjangoModelFactory):
     building = factory.SubFactory(BuildingFactory)
     latitude = factory.SelfAttribute('building.latitude')
     longitude = factory.SelfAttribute('building.longitude')
-    radius_meters = 20.0
+    radius_meters = 50.0
     is_active = True
 
 class BuildingUnlockFactory(factory.django.DjangoModelFactory):

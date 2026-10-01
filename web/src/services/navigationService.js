@@ -1,4 +1,4 @@
-﻿import api from "./api";
+import api from "./api";
 
 export const navigationService = {
     // Nodes
@@ -42,4 +42,17 @@ export const navigationService = {
         const response = await api.delete(`/api/navigation/paths/${pathId}/`);
         return response.data;
     },
+
+    // Route calculation
+    getRoute: async (fromLat, fromLng, toBuildingId) => {
+        const response = await api.get("/api/navigation/route/", {
+            params: {
+                from_lat: fromLat,
+                from_lng: fromLng,
+                to_building_id: toBuildingId,
+            },
+        });
+        return response.data;
+    },
 };
+

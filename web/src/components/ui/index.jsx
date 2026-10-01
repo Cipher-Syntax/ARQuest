@@ -84,7 +84,7 @@ export function Card({ children, className, noPadding = false, ...props }) {
     return (
         <div
             className={cn(
-                "bg-white border border-brand-border rounded-lg shadow-sm",
+                "bg-white border border-brand-border rounded-md shadow-sm",
                 !noPadding && "p-6",
                 className,
             )}
@@ -107,7 +107,7 @@ export function Badge({ children, variant = "gray", className }) {
     return (
         <span
             className={cn(
-                "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                "px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider",
                 variants[variant],
                 className,
             )}
@@ -158,6 +158,7 @@ export function Modal({
     children,
     footer,
     variant = "default",
+    maxWidth,
 }) {
     if (!isOpen) return null;
 
@@ -165,15 +166,15 @@ export function Modal({
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div
                 className={cn(
-                    "bg-white rounded-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200",
-                    variant === "danger" ? "max-w-sm" : "max-w-md w-full",
+                    "bg-white rounded-md shadow-2xl overflow-hidden animate-in zoom-in duration-200",
+                    maxWidth || (variant === "danger" ? "max-w-sm" : "max-w-md w-full"),
                 )}
             >
                 <div className="px-6 py-4 border-b border-brand-border flex items-center justify-between">
                     <h3 className="font-bold text-gray-900">{title}</h3>
                     <button
                         onClick={onClose}
-                        className="p-1 hover:bg-brand-light rounded-lg text-gray-400 hover:text-brand transition-colors"
+                        className="p-1 hover:bg-brand-light rounded-md text-gray-400 hover:text-brand transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -224,7 +225,7 @@ export function ConfirmDeleteModal({
 export function Pagination({ currentPage, totalPages, onPageChange }) {
     if (totalPages <= 1) return null;
     return (
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-brand-border sm:px-6 rounded-b-lg">
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-brand-border sm:px-6 rounded-b-md">
             <div className="flex justify-between flex-1 sm:hidden">
                 <Button
                     variant="secondary"

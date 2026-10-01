@@ -16,11 +16,12 @@ import UsersContainer from "../pages/UsersContainer";
 import ProfessionalsPage from "../pages/ProfessionalsPage";
 import SettingsPage from "../pages/SettingsPage";
 import DepartmentsPage from "../pages/DepartmentsPage";
-import ArchivePage from "../pages/ArchivePage";
+import RecycleBinPage from "../pages/RecycleBinPage";
 import FeedbackPage from "../pages/FeedbackPage";
 import HistoryPage from "../pages/HistoryPage";
 import ModelCompressorPage from "../pages/ModelCompressorPage";
-import NavigationPage from "../pages/NavigationPage";
+import CampusMapPage from "../pages/CampusMapPage";
+import UserManagementPage from "../pages/UserManagementPage";
 import NotFound from "../pages/NotFound";
 
 
@@ -51,7 +52,8 @@ const AppRoutes = () => {
                     path="buildings/:id/edit"
                     element={<BuildingEditorPage />}
                 />
-                <Route path="geofences" element={<GeofencesPage />} />
+                <Route path="campus-map" element={<CampusMapPage />} />
+                <Route path="geofences" element={<CampusMapPage />} />
                 <Route path="media" element={<MediaPage />} />
                 <Route path="panoramas" element={<PanoramasPage />} />
                 <Route
@@ -59,17 +61,19 @@ const AppRoutes = () => {
                     element={<PanoramaManagerPage />}
                 />
                 <Route path="cms" element={<CmsPage />} />
-                <Route path="users" element={<UsersContainer />} />
+                <Route path="users" element={<UserManagementPage />} />
+                <Route path="user-management" element={<UserManagementPage />} />
                 <Route
                     path="professionals"
-                    element={<ProfessionalsPage />}
+                    element={<UserManagementPage defaultTab="visitors" />}
                 />
                 <Route path="settings" element={<SettingsPage />} />
-                <Route path="archives" element={<ArchivePage />} />
+                <Route path="recycle-bin" element={<RecycleBinPage />} />
+                <Route path="archives" element={<RecycleBinPage />} />
                 <Route path="feedback" element={<FeedbackPage />} />
                 <Route path="history" element={<HistoryPage />} />
                 <Route path="compressor" element={<ModelCompressorPage />} />
-                <Route path="navigation" element={<NavigationPage />} />
+                <Route path="navigation" element={<CampusMapPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
         </Routes>

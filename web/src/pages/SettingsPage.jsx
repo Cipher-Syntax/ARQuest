@@ -1,8 +1,9 @@
-import { Save, User, Lock, Eye, EyeOff } from "lucide-react";
+import { Save, User, Lock, Eye, EyeOff, HelpCircle, PlayCircle, RotateCcw } from "lucide-react";
 import { Card, Toggle, Button } from "../components/ui";
 import { useState, useEffect } from "react";
 import { settingsService } from "../services/settingsService";
 import { useAuth } from "../hooks/useAuth";
+import { triggerAdminTour } from "../components/common/AdminOnboardingTour";
 import {
     validateForm,
     validateString,
@@ -39,12 +40,44 @@ export default function Settings() {
         confirmPassword: ""
     });
 
+    const tourStorageKey = user?.id
+        ? `@arquest_web_tutorial_completed_${user.id}`
+        : "@arquest_web_tutorial_completed_guest";
+
+    const [tourCompleted, setTourCompleted] = useState(() => {
+        try {
+            return localStorage.getItem(tourStorageKey) === "true";
+        } catch {
+            return false;
+        }
+    });
+
+    const handleReplayTutorial = () => {
+        triggerAdminTour();
+    };
+
+    const handleResetTutorial = () => {
+        try {
+            localStorage.removeItem(tourStorageKey);
+            setTourCompleted(false);
+            setSuccessMessage("Tutorial guide reset! It will automatically guide you on your next login.");
+            setTimeout(() => setSuccessMessage(""), 4000);
+        } catch (e) {
+            console.error("Failed to reset tutorial status", e);
+        }
+    };
+
     useEffect(() => {
         if (user) {
             const fullName = user.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "";
             setProfileData(prev => ({ ...prev, name: fullName }));
+            try {
+                setTourCompleted(localStorage.getItem(tourStorageKey) === "true");
+            } catch {
+                // ignore
+            }
         }
-    }, [user]);
+    }, [user, tourStorageKey]);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -311,6 +344,47 @@ export default function Settings() {
                                     }
                                 />
                             </div>
+                        </div>
+                    </Card>
+
+                    {/* Platform Onboarding & Tutorial Guide */}
+                    <Card>
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <HelpCircle size={18} className="text-brand" />
+                                Platform Onboarding & Tutorial
+                            </h3>
+                            <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                                    tourCompleted
+                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                        : "bg-amber-50 text-amber-700 border border-amber-200"
+                                }`}
+                            >
+                                {tourCompleted ? "Completed" : "Active"}
+                            </span>
+                        </div>
+                        <p className="text-xs text-gray-500 leading-relaxed mb-5">
+                            Need a refresher on navigating the ARQuest Admin Panel? Launch the interactive spotlight walkthrough to guide you through building authoring, walking path networks, 3D compressor tools, and user management.
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <Button
+                                type="button"
+                                onClick={handleReplayTutorial}
+                                className="gap-2 flex-1 justify-center shadow-xs"
+                            >
+                                <PlayCircle size={16} />
+                                Launch Tutorial Guide
+                            </Button>
+                            <button
+                                type="button"
+                                onClick={handleResetTutorial}
+                                className="px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-md transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                                title="Reset tutorial status so it automatically appears on your next login"
+                            >
+                                <RotateCcw size={14} className="text-gray-500" />
+                                Reset Auto-Show
+                            </button>
                         </div>
                     </Card>
                 </div>

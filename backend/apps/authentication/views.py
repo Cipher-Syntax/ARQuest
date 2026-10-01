@@ -362,15 +362,55 @@ def delete_professional(request, pk):
     
     try:
         user = User.objects.get(pk=pk, role='professional')
-        user.delete()
+        user.is_active = False
+        user.save(update_fields=['is_active'])
         Notification.objects.create(
-            title="Professional Account Deleted",
-            message=f"Professional account for {user.email} has been deleted.",
+            title="Visitor Account Moved to Recycle Bin",
+            message=f"Visitor account for {user.email} has been moved to the Recycle Bin.",
             type="PROFESSIONAL"
         )
-        return success_response({'message': 'Professional account deleted successfully.'})
+        return success_response({'message': 'Visitor account moved to Recycle Bin.'})
     except User.DoesNotExist:
-        return error_response(ErrorCodes.NOT_FOUND, 'Professional account not found', status_code=status.HTTP_404_NOT_FOUND)
+        return error_response(ErrorCodes.NOT_FOUND, 'Visitor account not found', status_code=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def archived_users(request):
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    users = User.objects.filter(is_active=False).exclude(role='admin').order_by('-date_joined')
+    data = []
+    for user in users:
+        u_data = UserSerializer(user).data
+        timestamp = user.last_login or user.date_joined
+        u_data['deleted_at'] = timestamp.isoformat() if timestamp else None
+        data.append(u_data)
+    return success_response(data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def restore_user(request, pk):
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    try:
+        user = User.objects.get(pk=pk, is_active=False)
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+        return success_response({'message': 'Account restored successfully.'})
+    except User.DoesNotExist:
+        return error_response(ErrorCodes.NOT_FOUND, 'Account not found in Recycle Bin', status_code=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def hard_delete_user(request, pk):
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    try:
+        user = User.objects.get(pk=pk, is_active=False)
+        user.delete()
+        return success_response({'message': 'Account permanently deleted.'})
+    except User.DoesNotExist:
+        return error_response(ErrorCodes.NOT_FOUND, 'Account not found in Recycle Bin', status_code=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

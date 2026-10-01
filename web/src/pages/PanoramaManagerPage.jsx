@@ -97,7 +97,7 @@ const PanoramaManagerPage = () => {
             }
         } catch (error) {
             console.error("Failed to load panorama data", error);
-            navigate("/panoramas");
+            navigate(id ? `/buildings/${id}` : "/buildings");
         } finally {
             setLoading(false);
         }
@@ -315,19 +315,12 @@ const PanoramaManagerPage = () => {
                 }}
             >
                 <button
-                    onClick={() => navigate("/panoramas")}
-                    style={{
-                        padding: "8px 12px",
-                        border: "1px solid crimson",
-                        borderRadius: theme.radius.sm,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        cursor: "pointer",
-                        background: "#fff",
-                    }}
+                    onClick={() => navigate(id ? `/buildings/${id}` : "/buildings")}
+                    className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs"
+                    title="Return to Building Editor"
                 >
-                    <ArrowLeft size={20} /> Back
+                    <ArrowLeft size={16} />
+                    <span>Back to Building</span>
                 </button>
                 <h1 style={{ fontSize: "28px", fontWeight: "bold", margin: 0 }}>
                     Panoramas: {building?.name}
