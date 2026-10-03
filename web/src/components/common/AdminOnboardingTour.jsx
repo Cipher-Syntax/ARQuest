@@ -21,6 +21,9 @@ import {
     Target,
     Navigation,
     RefreshCw,
+    UserCheck,
+    Eye,
+    EyeOff,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -32,6 +35,10 @@ const TOUR_STEPS = [
         icon: Compass,
         title: "Welcome to ARQuest Admin",
         subtitle: "Campus Navigation & Digital Twin Operating System",
+        justineMood: "WAVING 👋",
+        justineSpeech:
+            "Hey there, Admin! I'm Justine, your campus orientation lead! 👋 Welcome to the ARQuest Command Center. This sidebar gives you full control over WMSU's digital twin, campus models, pedestrian routing, and student quests. Let's do a quick walk-through!",
+        justineCue: "Click Next or press → to inspect your command center tools.",
         description:
             "This sidebar is your administrative command center for authoring campus geospatial models, pedestrian pathways, building landmarks, and monitoring student gamification.",
         points: [
@@ -59,6 +66,10 @@ const TOUR_STEPS = [
         icon: LayoutDashboard,
         title: "Dashboard & Live Analytics",
         subtitle: "Campus facility metrics, unlock statistics, and activity feed",
+        justineMood: "TELEMETRY 📊",
+        justineSpeech:
+            "This is your mission control! You can monitor live student check-ins, track daily quest completion, and check system health. If university campus maintenance is active, you'll see instant alert telemetry right here.",
+        justineCue: "Check facility counts and system telemetry at a glance.",
         description:
             "Monitor live university engagement in real time, review visitor traffic, and check system operational status across all deployed services.",
         points: [
@@ -86,6 +97,10 @@ const TOUR_STEPS = [
         icon: Building2,
         title: "Buildings & 3D Facilities",
         subtitle: "Author campus facilities with precise GPS coordinates",
+        justineMood: "ARCHITECT 🏛️",
+        justineSpeech:
+            "Here's where the magic happens! Every building needs GPS coordinates so students can find it in native AR. You can upload 3D .glb models here, and configure 360° virtual panoramas and trivia in 'More Features'!",
+        justineCue: "Link 3D models with accurate GPS anchors and manage building trivia.",
         description:
             "Manage every campus building record with mandatory GPS coordinates, Draco-optimized 3D models, and the consolidated 'More Features' hub.",
         points: [
@@ -113,6 +128,10 @@ const TOUR_STEPS = [
         icon: Map,
         title: "Campus Map & Pathways",
         subtitle: "Dual-mode switcher for arrival geofences and pathway networks",
+        justineMood: "NAVIGATOR 🗺️",
+        justineSpeech:
+            "Students rely on this to get around campus without getting lost! You can calibrate arrival geofence radii for AR quest unlocking, or switch modes to draw interconnected pedestrian walking paths for turn-by-turn routing!",
+        justineCue: "Connect walkways between building entrances so Dijkstra routing can calculate walking paths.",
         description:
             "Seamlessly switch between calibrating building arrival geofences and authoring connected walking routes for turn-by-turn mobile navigation.",
         points: [
@@ -140,6 +159,10 @@ const TOUR_STEPS = [
         icon: Box,
         title: "3D Model Compressor",
         subtitle: "Draco mesh optimization for silky 60 FPS mobile performance",
+        justineMood: "SPEED DEMON ⚡",
+        justineSpeech:
+            "Nobody likes laggy mobile phones! Drop heavy 3D CAD or photogrammetry models up to 500 MB here. Our Draco compressor reduces file sizes by up to 90% without losing architectural fidelity. Silky 60 FPS guaranteed!",
+        justineCue: "Compress raw GLB files before linking them to buildings to save student bandwidth.",
         description:
             "Transform heavy raw CAD and photogrammetry models (up to 500 MB) into lightweight mobile assets under 25 MB directly inside your browser.",
         points: [
@@ -167,6 +190,10 @@ const TOUR_STEPS = [
         icon: Users,
         title: "User Management Directory",
         subtitle: "All Accounts, Student Leaderboard, and Guest Access",
+        justineMood: "DIRECTOR 👥",
+        justineSpeech:
+            "Manage everyone in the system! You can filter between students, guests, visitors, and admins. Plus, check out the Student Hall of Fame podium to see who's dominating the campus XP leaderboard!",
+        justineCue: "Review accounts, provision guest passes, or inspect gamification levels.",
         description:
             "Inspect user accounts with real-time role filtering, explore student gamification rankings, and provision guest/visitor credentials.",
         points: [
@@ -194,6 +221,10 @@ const TOUR_STEPS = [
         icon: Trash2,
         title: "Recycle Bin & Safe Holding",
         subtitle: "30-day temporary holding area with 1-click recovery",
+        justineMood: "GUARDIAN 🛡️",
+        justineSpeech:
+            "Made an accidental deletion? Don't panic! Soft-deleted buildings, accounts, and quests stay safely recoverable here for 30 days. You can restore them with one click before the automated purge runs!",
+        justineCue: "You're all set, Admin! Ready to command the campus? Let's build!",
         description:
             "Accidental deletions are never catastrophic. Archived buildings, visitor accounts, and quests remain safely recoverable for 30 days.",
         points: [
@@ -221,6 +252,7 @@ export default function AdminOnboardingTour() {
     const [isOpen, setIsOpen] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [dontShowAgain, setDontShowAgain] = useState(false);
+    const [showCharacterSprite, setShowCharacterSprite] = useState(true);
     const [targetRect, setTargetRect] = useState(null);
     const [cardPos, setCardPos] = useState({ top: 100, left: 280, pointerTop: 24 });
     const cardRef = useRef(null);
@@ -250,12 +282,12 @@ export default function AdminOnboardingTour() {
 
             // Calculate card position on desktop (placing speech bubble right of sidebar)
             const isDesktop = window.innerWidth >= 1024;
-            const cardHeight = cardRef.current ? cardRef.current.offsetHeight : 380;
+            const cardHeight = cardRef.current ? cardRef.current.offsetHeight : 440;
             const viewportHeight = window.innerHeight;
 
             if (isDesktop) {
                 // Speech bubble sits comfortably to the right of the sidebar item
-                const left = Math.min(rect.right + 20, window.innerWidth - 460);
+                const left = Math.min(rect.right + 20, window.innerWidth - 480);
 
                 // Align speech bubble vertically centered with the target item
                 const targetCenterY = rect.top + rect.height / 2;
@@ -289,7 +321,7 @@ export default function AdminOnboardingTour() {
             setTargetRect(null);
             setCardPos({
                 top: 100,
-                left: Math.max(20, (window.innerWidth - 440) / 2),
+                left: Math.max(20, (window.innerWidth - 460) / 2),
                 pointerTop: null,
             });
         }
@@ -430,6 +462,34 @@ export default function AdminOnboardingTour() {
                 />
             )}
 
+            {/* Standing 2D Justine Character Companion (Desktop Viewports) */}
+            {showCharacterSprite && (
+                <div className="hidden lg:flex fixed bottom-0 right-6 z-[106] pointer-events-none flex-col items-center select-none">
+                    {/* Visual Novel Name Banner */}
+                    <div className="mb-2 px-3 py-1 bg-slate-900/95 backdrop-blur-xs text-white border border-brand/40 rounded-sm shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs font-black tracking-widest text-brand-light font-hud uppercase">
+                            JUSTINE
+                        </span>
+                        <span className="text-[10px] text-gray-300 font-medium font-sans">
+                            • Campus Guide
+                        </span>
+                        <span className="text-[9px] font-mono text-brand-border bg-brand/30 px-1 py-0.2 rounded-xs border border-brand/40">
+                            {step.justineMood}
+                        </span>
+                    </div>
+
+                    {/* Full Standing 2D Sprite with Gentle Breathing Animation */}
+                    <div className="relative">
+                        <img
+                            src="/characters/justine_guide.png"
+                            alt="Justine Campus Guide"
+                            className="h-[360px] xl:h-[430px] max-h-[52vh] w-auto object-contain object-bottom drop-shadow-[0_15px_25px_rgba(0,0,0,0.5)] animate-justine"
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* Redesigned Floating Guide Card */}
             <div
                 ref={cardRef}
@@ -437,7 +497,7 @@ export default function AdminOnboardingTour() {
                     top: cardPos.top,
                     left: cardPos.left,
                 }}
-                className="fixed z-[105] w-[92vw] sm:w-[440px] max-w-[460px] bg-white border border-brand-border rounded-md shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95 duration-200"
+                className="fixed z-[105] w-[92vw] sm:w-[460px] max-w-[480px] bg-white border border-brand-border rounded-md shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95 duration-200"
             >
                 {/* Top Crimson Accent Header Bar with Interactive Step Progress */}
                 <div className="h-1 bg-gray-100 relative overflow-hidden">
@@ -481,7 +541,7 @@ export default function AdminOnboardingTour() {
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                            <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-sm font-hud">
+                            <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-sm font-hud">
                                 {currentStep + 1} / {TOUR_STEPS.length}
                             </span>
                             <button
@@ -495,25 +555,71 @@ export default function AdminOnboardingTour() {
                         </div>
                     </div>
 
-                    <p className="text-xs text-gray-500 font-medium mt-2 leading-relaxed">
+                    <p className="text-xs text-gray-500 font-medium mt-1.5 leading-relaxed">
                         {step.subtitle}
                     </p>
                 </div>
 
                 {/* Card Body */}
-                <div className="p-4 sm:p-5 space-y-3.5 bg-gray-50/50">
-                    <p className="text-xs text-gray-700 leading-relaxed font-normal">
+                <div className="p-4 sm:p-5 space-y-3 bg-gray-50/50 max-h-[58vh] overflow-y-auto">
+                    {/* Justine Speech Dialogue Callout */}
+                    <div className="p-3 bg-gradient-to-r from-red-50/90 via-pink-50/40 to-white border border-brand/25 rounded-md shadow-2xs">
+                        <div className="flex items-start gap-2.5">
+                            {/* Justine Avatar with Live Status Indicator */}
+                            <div className="relative shrink-0 mt-0.5">
+                                <img
+                                    src="/characters/justine_avatar.png"
+                                    alt="Justine Avatar"
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-brand shadow-xs"
+                                />
+                                <span
+                                    className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full ring-1 ring-emerald-300"
+                                    title="Justine Online"
+                                />
+                            </div>
+
+                            {/* Dialogue Bubble Content */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-black text-brand tracking-wider font-hud uppercase">
+                                            Justine
+                                        </span>
+                                        <span className="text-[9px] font-bold text-gray-500 bg-white/90 border border-gray-200/80 px-1.5 py-0.2 rounded-sm font-mono">
+                                            CAMPUS GUIDE
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] font-extrabold text-brand/90 bg-brand-light px-1.5 py-0.2 rounded-sm border border-brand/20 font-hud">
+                                        {step.justineMood}
+                                    </span>
+                                </div>
+
+                                <p className="text-xs text-gray-800 leading-relaxed font-medium">
+                                    "{step.justineSpeech}"
+                                </p>
+
+                                {step.justineCue && (
+                                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-brand/90">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-brand animate-ping" />
+                                        <span>{step.justineCue}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <p className="text-xs text-gray-600 leading-relaxed font-normal">
                         {step.description}
                     </p>
 
                     {/* Feature Highlight Cards */}
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-1.5 pt-0.5">
                         {step.points.map((pt, idx) => {
                             const PointIcon = pt.icon;
                             return (
                                 <div
                                     key={idx}
-                                    className="flex items-start gap-2.5 p-2.5 bg-white border border-gray-200/80 rounded-md shadow-2xs hover:border-brand/40 transition-colors"
+                                    className="flex items-start gap-2.5 p-2 bg-white border border-gray-200/80 rounded-md shadow-2xs hover:border-brand/40 transition-colors"
                                 >
                                     <div className="w-6 h-6 rounded bg-brand-light text-brand flex items-center justify-center shrink-0 mt-0.5 border border-brand/20">
                                         <PointIcon size={13} />
@@ -533,19 +639,33 @@ export default function AdminOnboardingTour() {
                 </div>
 
                 {/* Card Footer Controls */}
-                <div className="p-4 sm:p-5 bg-white border-t border-gray-100 flex flex-col gap-3.5">
-                    {/* Don't show again toggle */}
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={dontShowAgain}
-                            onChange={(e) => setDontShowAgain(e.target.checked)}
-                            className="w-3.5 h-3.5 rounded text-brand focus:ring-brand border-gray-300 cursor-pointer accent-brand"
-                        />
-                        <span className="text-[11px] text-gray-500 font-medium">
-                            Don't show this guide automatically on login
-                        </span>
-                    </label>
+                <div className="p-4 sm:p-5 bg-white border-t border-gray-100 flex flex-col gap-3">
+                    {/* Toggles Row: Don't show again & Show/Hide 2D Sprite */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={dontShowAgain}
+                                onChange={(e) => setDontShowAgain(e.target.checked)}
+                                className="w-3.5 h-3.5 rounded text-brand focus:ring-brand border-gray-300 cursor-pointer accent-brand"
+                            />
+                            <span className="text-[11px] text-gray-500 font-medium">
+                                Don't show automatically on login
+                            </span>
+                        </label>
+
+                        {isDesktop && (
+                            <button
+                                type="button"
+                                onClick={() => setShowCharacterSprite((prev) => !prev)}
+                                className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-brand font-medium hover:underline transition-colors"
+                                title="Toggle Justine Standing Sprite"
+                            >
+                                {showCharacterSprite ? <EyeOff size={12} /> : <Eye size={12} />}
+                                <span>{showCharacterSprite ? "Hide Sprite" : "Show Sprite"}</span>
+                            </button>
+                        )}
+                    </div>
 
                     {/* Step Navigation & Action Buttons */}
                     <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
