@@ -221,7 +221,7 @@ export const mapHtmlString = `<!DOCTYPE html>
         async function fetchAndApplyPerimeter() {
             try {
                 let baseUrl = (typeof ARQUEST_API_BASE === 'string' && ARQUEST_API_BASE && ARQUEST_API_BASE !== '__ARQUEST_API_BASE__')
-                    ? ARQUEST_API_BASE.replace(/\/+$/, '')
+                    ? (ARQUEST_API_BASE.endsWith('/') ? ARQUEST_API_BASE.slice(0, -1) : ARQUEST_API_BASE)
                     : '';
                 if (!baseUrl) {
                     return;
