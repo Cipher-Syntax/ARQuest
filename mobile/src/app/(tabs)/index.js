@@ -11,6 +11,7 @@ import {
     Animated,
     Image,
     RefreshControl,
+    DeviceEventEmitter,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { WebView } from "react-native-webview";
@@ -70,6 +71,7 @@ export default function HomeScreen() {
 
     // Gamification Backend States
     const [activeQuests, setActiveQuests] = useState([]);
+    const [hasCompletedAllToday, setHasCompletedAllToday] = useState(false);
 
     const [refreshing, setRefreshing] = useState(false);
 
@@ -96,12 +98,16 @@ export default function HomeScreen() {
                     const quests = resQuest.data.data.quests || resQuest.data.data;
                     if (quests && quests.length > 0) {
                         const incompleteQuests = quests.filter(q => !q.is_completed);
+                        const completedQuests = quests.filter(q => q.is_completed);
                         setActiveQuests(incompleteQuests);
+                        setHasCompletedAllToday(completedQuests.length > 0 && incompleteQuests.length === 0);
                     } else {
                         setActiveQuests([]);
+                        setHasCompletedAllToday(false);
                     }
                 } else {
                     setActiveQuests([]);
+                    setHasCompletedAllToday(false);
                 }
 
                 const resChallenges = await api.get(
@@ -167,6 +173,37 @@ export default function HomeScreen() {
     useEffect(() => {
         loadData();
     }, []);
+
+    const handleAskJustine = () => {
+        let title = "Ready for Adventure! 🎒";
+        let message =
+            "Welcome to WMSU! Explore buildings, follow walking paths on the map, and scan AR markers across campus to earn EXP and level up!";
+
+        if (activeQuests && activeQuests.length > 0) {
+            title = "Missions Waiting! 🎯";
+            const targetBuilding = nearestBuilding
+                ? nearestBuilding.name
+                : "campus buildings";
+            const distInfo =
+                distanceToNearest !== null
+                    ? ` (about ${distanceToNearest}m away)`
+                    : "";
+            message = `You have ${activeQuests.length} daily mission(s) ready! The closest facility is ${targetBuilding}${distInfo}. Head over to begin your quest!`;
+        } else if (hasCompletedAllToday) {
+            title = "All Daily Missions Cleared! 🏆";
+            message =
+                "Awesome job clearing your daily missions today! You can still explore campus buildings on the map, inspect 3D models in the Explore tab, or view your rank on the Leaderboard!";
+        } else {
+            title = "Campus Exploration 🗺️";
+            message =
+                "Check the Maps tab anytime to pull up campus walking paths, or head over to any landmark and tap the AR button to scan for EXP!";
+        }
+
+        DeviceEventEmitter.emit("show_justine_hint", {
+            title,
+            message,
+        });
+    };
 
     const onRefresh = React.useCallback(() => {
         setRefreshing(true);
@@ -391,7 +428,11 @@ export default function HomeScreen() {
                                             </View>
                                         </View>
                                         <Text style={styles.heroQuestTitle}>
-                                            {loading ? "Loading..." : "All missions cleared!\nCheck back later."}
+                                            {loading
+                                                ? "Loading..."
+                                                : hasCompletedAllToday
+                                                ? "All daily missions cleared!\nCheck back tomorrow for new quests."
+                                                : "No active missions right now.\nExplore campus or check back soon!"}
                                         </Text>
                                     </View>
                                 )}
@@ -944,6 +985,30 @@ export default function HomeScreen() {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* --- Floating "Ask Justine" Companion Widget (Circle format + floating ASK) --- */}
+            {user?.role === "student" && (
+                <TouchableOpacity
+                    style={styles.floatingJustineCircleBtn}
+                    onPress={handleAskJustine}
+                    activeOpacity={0.85}
+                >
+                    <Image
+                        source={require("../../../assets/images/characters/justine_avatar.png")}
+                        style={styles.floatingJustineCircleAvatar}
+                    />
+                    <View style={styles.floatingAskBadge}>
+                        <Text style={styles.floatingAskText}>ASK</Text>
+                    </View>
+                    {activeQuests && activeQuests.length > 0 && (
+                        <View style={styles.floatingQuestBadge}>
+                            <Text style={styles.floatingQuestBadgeText}>
+                                {activeQuests.length}
+                            </Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+            )}
         </View>
     );
 }
@@ -1408,5 +1473,70 @@ const styles = StyleSheet.create({
         fontFamily: fonts.heading.bold,
         fontSize: 12,
         color: theme.colors.textPrimary,
+    },
+    floatingJustineCircleBtn: {
+        position: "absolute",
+        bottom: 24,
+        right: 18,
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 2.5,
+        borderColor: "#B21830", // WMSU Crimson
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+        elevation: 8,
+        zIndex: 99,
+    },
+    floatingJustineCircleAvatar: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: "#FFFFFF",
+    },
+    floatingAskBadge: {
+        position: "absolute",
+        bottom: -7,
+        backgroundColor: "#B21830", // WMSU Crimson
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: "#EBBC26", // WMSU Gold border
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3,
+        elevation: 4,
+    },
+    floatingAskText: {
+        color: "#FFFFFF",
+        fontSize: 9,
+        fontWeight: "900",
+        letterSpacing: 0.6,
+    },
+    floatingQuestBadge: {
+        position: "absolute",
+        top: -3,
+        right: -3,
+        backgroundColor: "#B21830",
+        borderRadius: 10,
+        minWidth: 18,
+        height: 18,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 4,
+        borderWidth: 1.5,
+        borderColor: "#FFFFFF",
+    },
+    floatingQuestBadgeText: {
+        color: "#FFFFFF",
+        fontSize: 9,
+        fontWeight: "800",
     },
 });

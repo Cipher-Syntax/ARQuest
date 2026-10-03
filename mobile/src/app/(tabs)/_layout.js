@@ -10,6 +10,7 @@ import { Redirect } from "expo-router";
 import { registerForPushNotificationsAsync } from "../../utils/pushNotifications";
 import { useEffect } from "react";
 import OnboardingTutorial from "../../components/features/OnboardingTutorial";
+import JustineGuideModal from "../../components/features/JustineGuideModal";
 
 function CustomTabBar({ state, descriptors, navigation }) {
     return (
@@ -198,6 +199,7 @@ export default function TabLayout() {
                         />
                     </Tabs>
                     <OnboardingTutorial />
+                    <JustineGuideModal />
                 </View>
             </UnlockedBuildingsProvider>
         </LocationProvider>

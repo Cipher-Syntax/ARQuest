@@ -26,6 +26,7 @@ import {
     MessageSquare,
     Info,
     FileText,
+    Sparkles,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -544,6 +545,16 @@ export default function ProfileScreen() {
                                 DeviceEventEmitter.emit("show_tutorial")
                             }
                         />
+                        {user?.role === "student" && (
+                            <SettingsRow
+                                icon={Sparkles}
+                                title="Meet Justine (Campus Guide)"
+                                subtitle="Replay your quest orientation & tips"
+                                onPress={() =>
+                                    DeviceEventEmitter.emit("show_justine_guide")
+                                }
+                            />
+                        )}
                         <SettingsRow
                             icon={Info}
                             title="About ARQuest"

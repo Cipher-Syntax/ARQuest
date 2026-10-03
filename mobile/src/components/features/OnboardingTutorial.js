@@ -290,6 +290,7 @@ export default function OnboardingTutorial() {
                 const key = getStorageKey();
                 await AsyncStorage.setItem(key, "true");
                 await AsyncStorage.setItem("@tutorial_completed", "true");
+                DeviceEventEmitter.emit("tutorial_finished");
             });
         }
     };
