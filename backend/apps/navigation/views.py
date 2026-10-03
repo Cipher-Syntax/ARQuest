@@ -6,8 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 
 from apps.authentication.permissions import IsAdminRole
 from apps.buildings.models import Building
-from .models import NavigationNode, NavigationPath
-from .serializers import NavigationNodeSerializer, NavigationPathSerializer
+from .models import NavigationNode, NavigationPath, CampusPerimeter
+from .serializers import NavigationNodeSerializer, NavigationPathSerializer, CampusPerimeterSerializer
 from .router import astar, find_nearest_node, haversine_distance
 
 logger = logging.getLogger(__name__)
@@ -254,3 +254,73 @@ def path_detail(request, pk):
     if request.method == 'DELETE':
         nav_path.delete()
         return Response({'success': True, 'data': None}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Campus Perimeter / Boundary Management
+# ---------------------------------------------------------------------------
+
+DEFAULT_WMSU_PERIMETER = [
+    [122.0570, 6.9092],
+    [122.0570, 6.9162],
+    [122.0655, 6.9162],
+    [122.0655, 6.9092],
+    [122.0570, 6.9092],
+]
+
+
+@api_view(['GET', 'POST', 'PUT'])
+def perimeter(request):
+    """
+    GET /api/navigation/perimeter/  — retrieve active campus perimeter polygon (public/authenticated)
+    POST / PUT /api/navigation/perimeter/ — update/save campus perimeter polygon (admin only)
+    """
+    if request.method == 'GET':
+        obj = CampusPerimeter.objects.filter(is_active=True).first()
+        if not obj:
+            return Response({
+                'success': True,
+                'data': {
+                    'name': 'Western Mindanao State University',
+                    'coordinates': DEFAULT_WMSU_PERIMETER,
+                    'fill_color': '#111827',
+                    'fill_opacity': 0.65,
+                    'stroke_color': '#B21830',
+                    'stroke_width': 2.5,
+                    'is_active': True,
+                    'is_default': True,
+                }
+            })
+        serializer = CampusPerimeterSerializer(obj)
+        return Response({'success': True, 'data': serializer.data})
+
+    # Mutating operations — admin only
+    if not request.user.is_authenticated:
+        return Response(
+            {'success': False, 'error': 'Authentication required.'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+    user_role = getattr(request.user, 'role', None)
+    if user_role not in ['admin', 'staff'] and not request.user.is_staff:
+        return Response(
+            {'success': False, 'error': 'Admin permissions required.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    obj = CampusPerimeter.objects.filter(is_active=True).first()
+    if obj:
+        serializer = CampusPerimeterSerializer(obj, data=request.data, partial=True)
+    else:
+        serializer = CampusPerimeterSerializer(data=request.data)
+
+    if serializer.is_valid():
+        perimeter_obj = serializer.save()
+        return Response(
+            {'success': True, 'data': CampusPerimeterSerializer(perimeter_obj).data},
+            status=status.HTTP_200_OK,
+        )
+    return Response(
+        {'success': False, 'error': serializer.errors},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
+

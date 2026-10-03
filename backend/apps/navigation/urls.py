@@ -1,4 +1,4 @@
-﻿from django.urls import path
+from django.urls import path
 from . import views
 
 urlpatterns = [
@@ -12,4 +12,7 @@ urlpatterns = [
     # NavigationPath CRUD
     path('paths/', views.path_list, name='navigation-path-list'),
     path('paths/<uuid:pk>/', views.path_detail, name='navigation-path-detail'),
+
+    # Campus Perimeter / Boundary
+    path('perimeter/', views.perimeter, name='navigation-perimeter'),
 ]

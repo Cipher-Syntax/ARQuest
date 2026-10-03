@@ -94,3 +94,43 @@ class NavigationPath(models.Model):
             a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlng / 2) ** 2
             total += R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         return round(total, 2)
+
+
+class CampusPerimeter(models.Model):
+    """Stores the polygon perimeter coordinates defining the custom campus boundary."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255, default="Western Mindanao State University")
+    coordinates = models.JSONField(
+        help_text="Closed list of [lng, lat] coordinate pairs forming the custom campus perimeter polygon.",
+        default=list,
+    )
+    fill_color = models.CharField(
+        max_length=50,
+        default="#111827",
+        help_text="Color of the masked area outside the campus.",
+    )
+    fill_opacity = models.FloatField(
+        default=0.65,
+        help_text="Opacity of the outside mask between 0.0 and 1.0.",
+    )
+    stroke_color = models.CharField(
+        max_length=50,
+        default="#B21830",
+        help_text="Color of the boundary stroke line.",
+    )
+    stroke_width = models.FloatField(
+        default=2.5,
+        help_text="Width of the boundary stroke line in pixels.",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        pt_count = len(self.coordinates) if isinstance(self.coordinates, list) else 0
+        return f"{self.name} Perimeter ({pt_count} points)"
+

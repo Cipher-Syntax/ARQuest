@@ -54,5 +54,16 @@ export const navigationService = {
         });
         return response.data;
     },
+
+    // Campus Perimeter
+    getPerimeter: async () => {
+        const response = await api.get("/api/navigation/perimeter/");
+        return response.data.data;
+    },
+
+    savePerimeter: async (perimeterData) => {
+        const response = await api.post("/api/navigation/perimeter/", perimeterData);
+        return response.data.data;
+    },
 };
 

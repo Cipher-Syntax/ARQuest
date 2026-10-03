@@ -152,14 +152,76 @@ export const mapHtmlString = `<!DOCTYPE html>
             [122.0675, 6.9175], // NE [lng, lat]
         ];
 
-        // WMSU Campus Perimeter (clockwise hole coordinates)
-        const WMSU_CAMPUS_PERIMETER = [
+        // Default campus perimeter fallback (used until API responds)
+        const DEFAULT_WMSU_PERIMETER = [
             [122.0570, 6.9092],
             [122.0570, 6.9162],
             [122.0655, 6.9162],
             [122.0655, 6.9092],
             [122.0570, 6.9092]
         ];
+
+        // Mutable perimeter coords (updated from API)
+        let WMSU_CAMPUS_PERIMETER = DEFAULT_WMSU_PERIMETER.map(c => [...c]);
+
+        // Fetch the campus perimeter from admin and update Mapbox sources
+        async function fetchAndApplyPerimeter() {
+            try {
+                const resp = await fetch(
+                    '__ARQUEST_API_BASE__/api/navigation/perimeter/',
+                    { headers: { 'Authorization': 'Token __ARQUEST_AUTH_TOKEN__' } }
+                );
+                if (!resp.ok) return;
+                const data = await resp.json();
+                if (Array.isArray(data.coordinates) && data.coordinates.length >= 4) {
+                    WMSU_CAMPUS_PERIMETER = data.coordinates;
+                    // Update mask source
+                    if (map && map.getSource('wmsu-mask')) {
+                        map.getSource('wmsu-mask').setData({
+                            type: 'FeatureCollection',
+                            features: [{
+                                type: 'Feature',
+                                properties: {},
+                                geometry: {
+                                    type: 'Polygon',
+                                    coordinates: [
+                                        [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]],
+                                        WMSU_CAMPUS_PERIMETER
+                                    ]
+                                }
+                            }]
+                        });
+                    }
+                    // Update boundary stroke source
+                    if (map && map.getSource('wmsu-boundary')) {
+                        map.getSource('wmsu-boundary').setData({
+                            type: 'FeatureCollection',
+                            features: [{
+                                type: 'Feature',
+                                properties: {},
+                                geometry: {
+                                    type: 'LineString',
+                                    coordinates: WMSU_CAMPUS_PERIMETER
+                                }
+                            }]
+                        });
+                    }
+                    // Optionally update fill/stroke appearance from API config
+                    if (map && map.getLayer('wmsu-mask-fill') && data.fill_opacity != null) {
+                        map.setPaintProperty('wmsu-mask-fill', 'fill-opacity', data.fill_opacity);
+                    }
+                    if (map && map.getLayer('wmsu-mask-fill') && data.fill_color) {
+                        map.setPaintProperty('wmsu-mask-fill', 'fill-color', data.fill_color);
+                    }
+                    if (map && map.getLayer('wmsu-boundary-line') && data.stroke_color) {
+                        map.setPaintProperty('wmsu-boundary-line', 'line-color', data.stroke_color);
+                    }
+                }
+            } catch (e) {
+                console.log('[ARQuest] Perimeter fetch notice:', e.message);
+            }
+        }
+
 
         let map = null;
         let markers = [];
@@ -478,7 +540,11 @@ export const mapHtmlString = `<!DOCTYPE html>
                         });
                     }
 
+                    // Sync perimeter from admin server (updates mask & stroke)
+                    fetchAndApplyPerimeter();
+
                     // Add route sources and layers
+
                     if (!map.getSource('route')) {
                         map.addSource('route', {
                             type: 'geojson',
