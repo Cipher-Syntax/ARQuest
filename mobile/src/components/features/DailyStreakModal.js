@@ -13,8 +13,6 @@ import {
     Flame,
     Check,
     Lock,
-    Star,
-    Sparkles,
     Trophy,
     X,
     ChevronRight,
@@ -227,7 +225,7 @@ export default function DailyStreakModal({
                                                 ) : item.isCrown ? (
                                                     <Trophy size={16} color="#F59E0B" />
                                                 ) : item.isMilestone ? (
-                                                    <Star size={16} color="#F59E0B" />
+                                                    <Award size={16} color="#F59E0B" />
                                                 ) : (
                                                     <Lock size={14} color="#9CA3AF" />
                                                 )}
@@ -264,7 +262,7 @@ export default function DailyStreakModal({
                         <View style={styles.calloutCard}>
                             <View style={styles.calloutIconContainer}>
                                 {cycleDay === 3 || cycleDay === 6 || cycleDay === 7 ? (
-                                    <Sparkles size={20} color="#F59E0B" />
+                                    <Award size={20} color="#F59E0B" />
                                 ) : (
                                     <Trophy size={20} color="#B21830" />
                                 )}

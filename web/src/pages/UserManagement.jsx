@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, User, Shield, GraduationCap, UserCheck, Sparkles } from "lucide-react";
+import { Search, ChevronDown, User, Shield, GraduationCap, UserCheck } from "lucide-react";
 import { Card, Badge, Pagination } from "../components/ui";
 import { userService } from "../services/userService";
 import { getAvatarUri } from "../utils/avatarUtils";

@@ -12,7 +12,6 @@ import {
     X,
     CheckCircle2,
     HelpCircle,
-    Sparkles,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 

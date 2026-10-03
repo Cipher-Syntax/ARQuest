@@ -8,7 +8,6 @@ import {
     Flame,
     Crown,
     Award,
-    Sparkles,
     Users,
     TrendingUp,
     Calendar,
@@ -402,7 +401,7 @@ export default function LeaderboardPage({ hideHeader }) {
                 <div className="bg-gradient-to-b from-white via-brand-light/30 to-white rounded-2xl border border-brand-border/80 p-5 sm:p-8 shadow-sm">
                     <div className="text-center mb-6 sm:mb-8">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-light text-brand text-xs font-bold tracking-widest uppercase rounded-full border border-brand-border font-hud">
-                            <Sparkles size={13} />
+                            <Trophy size={13} />
                             <span>Campus Hall of Fame</span>
                         </span>
                         <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight font-heading mt-2">

@@ -7,7 +7,7 @@ import {
     UploadCloud,
     Sliders,
     Zap,
-    Sparkles,
+    Minimize2,
     ShieldCheck,
     Download,
     Building2,
@@ -40,7 +40,7 @@ const PRESETS = [
     {
         id: "extreme",
         name: "Extreme Compression (Web Only)",
-        icon: Sparkles,
+        icon: Minimize2,
         badge: "Under 5MB",
         description: "Aggressive reduction with Draco quantization designed for Three.js web viewers.",
         stats: "~95% - 98% reduction",
@@ -712,7 +712,7 @@ export default function ModelCompressorPage() {
                         <Card className="rounded-md h-full flex flex-col justify-between">
                             <div>
                                 <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-2">
-                                    <Sparkles size={16} className="text-brand" />
+                                    <Cpu size={16} className="text-brand" />
                                     Optimization Pipeline Highlights
                                 </h3>
                                 <p className="text-xs text-gray-500 mb-6">

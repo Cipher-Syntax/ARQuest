@@ -26,7 +26,7 @@ import {
     MessageSquare,
     Info,
     FileText,
-    Sparkles,
+    Compass,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -547,7 +547,7 @@ export default function ProfileScreen() {
                         />
                         {user?.role === "student" && (
                             <SettingsRow
-                                icon={Sparkles}
+                                icon={Compass}
                                 title="Meet Justine (Campus Guide)"
                                 subtitle="Replay your quest orientation & tips"
                                 onPress={() =>
