@@ -1073,9 +1073,9 @@ export default function ARScreen() {
                         AR Access Restricted
                     </Text>
                     <Text style={styles.permissionText}>
-                        Your current role does not have access to the AR
-                        features. Please sign in as a student or professional to
-                        use AR Quest features.
+                        Your current role does not have access to AR
+                        features. Please sign in as a registered student to
+                        use AR Quest scanning and missions.
                     </Text>
                     <TouchableOpacity
                         style={styles.permissionButton}

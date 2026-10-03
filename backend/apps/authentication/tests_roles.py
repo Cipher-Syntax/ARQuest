@@ -85,9 +85,9 @@ class RoleFeatureControlTests(TestCase):
         response = self.client.get(f'/api/buildings/{self.building.id}/assets/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         
-        # Cannot access panoramas
+        # Visitors can access panoramas
         response = self.client.get(f'/api/panorama/buildings/{self.building.id}/walkthrough/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_anonymous_rejection(self):
         response = self.client.get(f'/api/buildings/{self.building.id}/assets/')

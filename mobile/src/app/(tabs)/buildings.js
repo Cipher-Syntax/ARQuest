@@ -104,7 +104,10 @@ export default function BuildingsScreen() {
 
     const sendMapUpdate = React.useCallback(() => {
         if (webViewRef.current) {
-            const unlockedIds = unlockedBuildings.map((b) => b.id);
+            const unlockedIds =
+                role === "visitor"
+                    ? allBuildings.map((b) => b.id)
+                    : unlockedBuildings.map((b) => b.id);
             const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
             const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
             const message = createBridgeMessage("update", {
@@ -118,7 +121,7 @@ export default function BuildingsScreen() {
             });
             webViewRef.current.postMessage(message);
         }
-    }, [allBuildings, unlockedBuildings, missionBuildingIds, location, authToken]);
+    }, [allBuildings, unlockedBuildings, missionBuildingIds, location, authToken, role]);
 
     const fetchQuickMissions = async () => {
         if (role !== "student") return;
@@ -393,6 +396,13 @@ export default function BuildingsScreen() {
     }, [routeTarget, routeOrigin, location]);
 
     const handleSelectRouteTarget = (building) => {
+        if (role === "visitor") {
+            setSelectedBuilding(building);
+            setModalVisible(true);
+            setIsSearchFocused(false);
+            setSearchQuery("");
+            return;
+        }
         setRouteTarget(building);
         setSearchQuery(building.name);
         setIsSearchFocused(false);
@@ -443,6 +453,14 @@ export default function BuildingsScreen() {
     };
 
     const handleStartRoute = () => {
+        if (role === "visitor") {
+            Alert(
+                "Guest Access Restricted",
+                "Turn-by-turn walking navigation is only available for registered students. Guests can view 360° panoramas of campus buildings.",
+                [{ text: "Understood" }]
+            );
+            return;
+        }
         if (!routeTarget) return;
         setIsRouteActive(true);
         if (webViewRef.current) {
@@ -882,6 +900,7 @@ export default function BuildingsScreen() {
                                     <View
                                         style={[
                                             styles.tacticalModalBadge,
+                                            role !== "visitor" &&
                                             !unlockedBuildings.some(
                                                 (b) =>
                                                     b.id ===
@@ -893,6 +912,7 @@ export default function BuildingsScreen() {
                                         <Text
                                             style={[
                                                 styles.tacticalBadgeText,
+                                                role !== "visitor" &&
                                                 !unlockedBuildings.some(
                                                     (b) =>
                                                         b.id ===
@@ -901,11 +921,13 @@ export default function BuildingsScreen() {
                                                     styles.tacticalBadgeTextLocked,
                                             ]}
                                         >
-                                            {unlockedBuildings.some(
-                                                (b) =>
-                                                    b.id ===
-                                                    selectedBuilding.id,
-                                            )
+                                            {role === "visitor"
+                                                ? "GUEST PANORAMA"
+                                                : unlockedBuildings.some(
+                                                      (b) =>
+                                                          b.id ===
+                                                          selectedBuilding.id,
+                                                  )
                                                 ? "UNLOCKED"
                                                 : "LOCKED"}
                                         </Text>
@@ -937,20 +959,66 @@ export default function BuildingsScreen() {
                                 ) : canAccessBuildingFeatures(true) ? (
                                     <View style={styles.tacticalActionGrid}>
                                         {selectedBuilding.model_active &&
-                                        selectedBuilding.model_url &&
-                                        canView3D ? (
-                                            <TouchableOpacity
-                                                style={styles.tacticalActionBtn}
-                                                onPress={handleView3D}
-                                            >
-                                                <Text
-                                                    style={
-                                                        styles.tacticalActionText
+                                        selectedBuilding.model_url ? (
+                                            role === "visitor" ? (
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.tacticalActionBtn,
+                                                        styles.tacticalActionBtnDisabled,
+                                                    ]}
+                                                    onPress={() =>
+                                                        Alert(
+                                                            "Guest Access Restricted",
+                                                            "3D architectural models are only accessible to registered students. Guests can view the 360° panorama tour below.",
+                                                            [{ text: "Understood" }]
+                                                        )
                                                     }
                                                 >
-                                                    View 3D Model
-                                                </Text>
-                                            </TouchableOpacity>
+                                                    <Text
+                                                        style={[
+                                                            styles.tacticalActionText,
+                                                            {
+                                                                color: theme.colors
+                                                                    .textMuted,
+                                                            },
+                                                        ]}
+                                                    >
+                                                        3D Model (Student Only) 🔒
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ) : canView3D ? (
+                                                <TouchableOpacity
+                                                    style={styles.tacticalActionBtn}
+                                                    onPress={handleView3D}
+                                                >
+                                                    <Text
+                                                        style={
+                                                            styles.tacticalActionText
+                                                        }
+                                                    >
+                                                        View 3D Model
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ) : (
+                                                <View
+                                                    style={[
+                                                        styles.tacticalActionBtn,
+                                                        styles.tacticalActionBtnDisabled,
+                                                    ]}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.tacticalActionText,
+                                                            {
+                                                                color: theme.colors
+                                                                    .textMuted,
+                                                            },
+                                                        ]}
+                                                    >
+                                                        3D Assets Offline
+                                                    </Text>
+                                                </View>
+                                            )
                                         ) : (
                                             <View
                                                 style={[
@@ -973,7 +1041,8 @@ export default function BuildingsScreen() {
                                         )}
 
                                         {canViewPanorama &&
-                                            (role === "professional" ||
+                                            (role === "student" ||
+                                                role === "professional" ||
                                                 role === "admin") &&
                                             selectedBuilding.model_active &&
                                             selectedBuilding.model_url && (

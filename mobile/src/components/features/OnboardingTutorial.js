@@ -97,9 +97,9 @@ const getTutorialSteps = (role) => {
         steps = [
             {
                 badge: "WELCOME",
-                title: "Campus Visitor Guide",
+                title: "Campus Guest Guide",
                 description:
-                    "Welcome to our university! Use this app to find buildings, locate department offices, and easily navigate campus grounds.",
+                    "Welcome to our university! Use this app to find campus buildings and explore 360° virtual panoramas. Full turn-by-turn navigation, 3D models, and quests are available when signed in as a student.",
                 icon: Compass,
                 position: "center",
             },
