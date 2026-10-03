@@ -19,7 +19,6 @@ import {
     Trophy,
     Building2,
     CheckCircle2,
-    Sparkles,
 } from "lucide-react-native";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
@@ -184,7 +183,6 @@ export default function QuickMissionsModal({
                             {/* Guideline Callout Box (When it is available) */}
                             <View style={S.guidelineCallout}>
                                 <View style={S.guidelineCalloutHeader}>
-                                    <Sparkles size={14} color="#B21830" />
                                     <Text style={S.guidelineCalloutTitle}>
                                         WHEN ARE QUICK MISSIONS AVAILABLE?
                                     </Text>
@@ -421,7 +419,7 @@ const S = StyleSheet.create({
     // ── Big 2D Character (Intro Screen) ───────────────────────────────────────
     vnCharWrap: {
         position: "absolute",
-        bottom: 275,
+        bottom: 240,
         left: 4,
         width: SCREEN_WIDTH * 0.55,
         height: SCREEN_HEIGHT * 0.46,
@@ -439,10 +437,11 @@ const S = StyleSheet.create({
         backgroundColor: "#FFFFFF",
         borderTopWidth: 3,
         borderTopColor: "#B21830",
-        paddingTop: 18,
-        paddingBottom: 32,
+        minHeight: 285,
+        paddingTop: 22,
+        paddingBottom: 36,
         paddingHorizontal: 18,
-        gap: 10,
+        gap: 12,
         zIndex: 15,
         shadowColor: "#B21830",
         shadowOffset: { width: 0, height: -4 },
@@ -602,10 +601,10 @@ const S = StyleSheet.create({
     // ── Missions Screen (Screen 2) ────────────────────────────────────────────
     missionsCharWrap: {
         position: "absolute",
-        bottom: 390,
+        bottom: 340,
         right: 16,
-        width: 130,
-        height: 150,
+        width: 135,
+        height: 155,
         zIndex: 10,
         alignItems: "flex-end",
         justifyContent: "flex-end",
