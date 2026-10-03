@@ -161,62 +161,80 @@ export const mapHtmlString = `<!DOCTYPE html>
             [122.0570, 6.9092]
         ];
 
-        // Mutable perimeter coords (updated from API)
+        // Mutable perimeter coords (updated from API or RN Bridge)
         let WMSU_CAMPUS_PERIMETER = DEFAULT_WMSU_PERIMETER.map(c => [...c]);
 
-        // Fetch the campus perimeter from admin and update Mapbox sources
+        // Helper to update Mapbox mask & stroke layers with given perimeter config
+        function applyPerimeterToMap(perimeterData) {
+            if (!perimeterData || !Array.isArray(perimeterData.coordinates) || perimeterData.coordinates.length < 4) return;
+            WMSU_CAMPUS_PERIMETER = perimeterData.coordinates;
+
+            // Update mask source
+            if (map && map.getSource('wmsu-mask')) {
+                map.getSource('wmsu-mask').setData({
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        properties: {},
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [
+                                [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]],
+                                WMSU_CAMPUS_PERIMETER
+                            ]
+                        }
+                    }]
+                });
+            }
+
+            // Update boundary stroke source
+            if (map && map.getSource('wmsu-boundary')) {
+                map.getSource('wmsu-boundary').setData({
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        properties: {},
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: WMSU_CAMPUS_PERIMETER
+                        }
+                    }]
+                });
+            }
+
+            // Update fill and stroke styles dynamically if provided
+            if (map && map.getLayer('wmsu-mask-fill') && perimeterData.fill_opacity != null) {
+                map.setPaintProperty('wmsu-mask-fill', 'fill-opacity', perimeterData.fill_opacity);
+            }
+            if (map && map.getLayer('wmsu-mask-fill') && perimeterData.fill_color) {
+                map.setPaintProperty('wmsu-mask-fill', 'fill-color', perimeterData.fill_color);
+            }
+            if (map && map.getLayer('wmsu-boundary-line') && perimeterData.stroke_color) {
+                map.setPaintProperty('wmsu-boundary-line', 'line-color', perimeterData.stroke_color);
+            }
+            if (map && map.getLayer('wmsu-boundary-line') && perimeterData.stroke_width != null) {
+                map.setPaintProperty('wmsu-boundary-line', 'line-width', perimeterData.stroke_width);
+            }
+        }
+
+        // Fetch the campus perimeter from backend and update Mapbox sources
         async function fetchAndApplyPerimeter() {
             try {
-                const resp = await fetch(
-                    '__ARQUEST_API_BASE__/api/navigation/perimeter/',
-                    { headers: { 'Authorization': 'Token __ARQUEST_AUTH_TOKEN__' } }
-                );
-                if (!resp.ok) return;
-                const data = await resp.json();
-                if (Array.isArray(data.coordinates) && data.coordinates.length >= 4) {
-                    WMSU_CAMPUS_PERIMETER = data.coordinates;
-                    // Update mask source
-                    if (map && map.getSource('wmsu-mask')) {
-                        map.getSource('wmsu-mask').setData({
-                            type: 'FeatureCollection',
-                            features: [{
-                                type: 'Feature',
-                                properties: {},
-                                geometry: {
-                                    type: 'Polygon',
-                                    coordinates: [
-                                        [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]],
-                                        WMSU_CAMPUS_PERIMETER
-                                    ]
-                                }
-                            }]
-                        });
-                    }
-                    // Update boundary stroke source
-                    if (map && map.getSource('wmsu-boundary')) {
-                        map.getSource('wmsu-boundary').setData({
-                            type: 'FeatureCollection',
-                            features: [{
-                                type: 'Feature',
-                                properties: {},
-                                geometry: {
-                                    type: 'LineString',
-                                    coordinates: WMSU_CAMPUS_PERIMETER
-                                }
-                            }]
-                        });
-                    }
-                    // Optionally update fill/stroke appearance from API config
-                    if (map && map.getLayer('wmsu-mask-fill') && data.fill_opacity != null) {
-                        map.setPaintProperty('wmsu-mask-fill', 'fill-opacity', data.fill_opacity);
-                    }
-                    if (map && map.getLayer('wmsu-mask-fill') && data.fill_color) {
-                        map.setPaintProperty('wmsu-mask-fill', 'fill-color', data.fill_color);
-                    }
-                    if (map && map.getLayer('wmsu-boundary-line') && data.stroke_color) {
-                        map.setPaintProperty('wmsu-boundary-line', 'line-color', data.stroke_color);
-                    }
+                let baseUrl = (typeof ARQUEST_API_BASE === 'string' && ARQUEST_API_BASE && ARQUEST_API_BASE !== '__ARQUEST_API_BASE__')
+                    ? ARQUEST_API_BASE.replace(/\/+$/, '')
+                    : '';
+                if (!baseUrl) {
+                    return;
                 }
+                const fetchHeaders = { 'Content-Type': 'application/json' };
+                if (typeof ARQUEST_AUTH_TOKEN === 'string' && ARQUEST_AUTH_TOKEN && ARQUEST_AUTH_TOKEN !== '__ARQUEST_AUTH_TOKEN__') {
+                    fetchHeaders['Authorization'] = 'Bearer ' + ARQUEST_AUTH_TOKEN;
+                }
+                const resp = await fetch(baseUrl + '/api/navigation/perimeter/', { headers: fetchHeaders });
+                if (!resp.ok) return;
+                const json = await resp.json();
+                const perimeterData = (json && json.data) ? json.data : json;
+                applyPerimeterToMap(perimeterData);
             } catch (e) {
                 console.log('[ARQuest] Perimeter fetch notice:', e.message);
             }
@@ -913,10 +931,17 @@ export const mapHtmlString = `<!DOCTYPE html>
                 mapboxgl.accessToken = data.mapboxToken;
             }
             if (data && data.apiBase) {
+                const prevBase = ARQUEST_API_BASE;
                 ARQUEST_API_BASE = data.apiBase;
+                if (prevBase !== data.apiBase && mapInitialized) {
+                    fetchAndApplyPerimeter();
+                }
             }
             if (data && data.authToken) {
                 ARQUEST_AUTH_TOKEN = data.authToken;
+            }
+            if (data && data.perimeter && mapInitialized) {
+                applyPerimeterToMap(data.perimeter);
             }
 
             if (!map) {

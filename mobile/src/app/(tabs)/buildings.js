@@ -95,12 +95,30 @@ export default function BuildingsScreen() {
     const [isQuickUnlocked, setIsQuickUnlocked] = useState(false);
     const [dailyProgress, setDailyProgress] = useState({ completed: 0, total: 3 });
     const [missionBuildingIds, setMissionBuildingIds] = useState([]);
+    const [campusPerimeter, setCampusPerimeter] = useState(null);
     const [turnHUD, setTurnHUD] = useState({
         visible: false,
         turnType: "STRAIGHT",
         distance: 10,
         instruction: "",
     });
+
+    // Fetch dynamic campus perimeter boundary from backend
+    useEffect(() => {
+        let isMounted = true;
+        api.get("/api/navigation/perimeter/")
+            .then((res) => {
+                if (isMounted && res.data?.success && res.data?.data) {
+                    setCampusPerimeter(res.data.data);
+                }
+            })
+            .catch((err) => {
+                console.log("[BuildingsScreen] Perimeter fetch notice:", err?.message);
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const sendMapUpdate = React.useCallback(() => {
         if (webViewRef.current) {
@@ -118,10 +136,11 @@ export default function BuildingsScreen() {
                 apiBase: apiBase,
                 authToken: authToken,
                 userLocation: location,
+                perimeter: campusPerimeter,
             });
             webViewRef.current.postMessage(message);
         }
-    }, [allBuildings, unlockedBuildings, missionBuildingIds, location, authToken, role]);
+    }, [allBuildings, unlockedBuildings, missionBuildingIds, location, authToken, role, campusPerimeter]);
 
     const fetchQuickMissions = async () => {
         if (role !== "student") return;
@@ -509,9 +528,9 @@ export default function BuildingsScreen() {
         const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
         const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
         return mapHtmlString
-            .replace("__MAPBOX_TOKEN__", token)
-            .replace("__ARQUEST_API_BASE__", apiBase)
-            .replace("__ARQUEST_AUTH_TOKEN__", authToken || "");
+            .replaceAll("__MAPBOX_TOKEN__", token)
+            .replaceAll("__ARQUEST_API_BASE__", apiBase)
+            .replaceAll("__ARQUEST_AUTH_TOKEN__", authToken || "");
     }, [authToken]);
 
     const sortedBuildings = useMemo(() => {
