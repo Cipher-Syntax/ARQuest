@@ -108,6 +108,34 @@ export const mapHtmlString = `<!DOCTYPE html>
             top: 75px !important;
             right: 12px !important;
         }
+
+        .map-turn-badge {
+            background: #B21830;
+            color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            padding: 5px 10px;
+            border-radius: 16px;
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            animation: turnPulse 1.2s ease-in-out infinite alternate;
+        }
+
+        .map-turn-badge-arrived {
+            background: #16A34A;
+        }
+
+        @keyframes turnPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
     </style>
 </head>
 <body>
@@ -225,6 +253,30 @@ export const mapHtmlString = `<!DOCTYPE html>
             return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
         }
 
+        var activeTurnMarker = null;
+
+        function showMapTurnMarker(lng, lat, turnType, label) {
+            if (activeTurnMarker) {
+                activeTurnMarker.remove();
+                activeTurnMarker = null;
+            }
+            if (!map) return;
+            var el = document.createElement('div');
+            el.className = 'map-turn-badge' + (turnType === 'ARRIVED' ? ' map-turn-badge-arrived' : '');
+            var icon = turnType === 'LEFT' ? '⬅️' : (turnType === 'RIGHT' ? '➡️' : '🎯');
+            el.innerHTML = '<span>' + icon + '</span> <span>' + label + '</span>';
+            activeTurnMarker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+                .setLngLat([lng, lat])
+                .addTo(map);
+        }
+
+        function clearMapTurnMarker() {
+            if (activeTurnMarker) {
+                activeTurnMarker.remove();
+                activeTurnMarker = null;
+            }
+        }
+
         var lastTurnKey = "";
         function checkTurnInstruction(sliced) {
             if (!sliced || sliced.length < 2) return;
@@ -239,6 +291,7 @@ export const mapHtmlString = `<!DOCTYPE html>
             if (sliced.length === 2 && distMeters <= 14) {
                 if (lastTurnKey !== "ARRIVED") {
                     lastTurnKey = "ARRIVED";
+                    showMapTurnMarker(nextLng, nextLat, "ARRIVED", "Arrived!");
                     sendBridgeEvent("turn_instruction", {
                         turn: "ARRIVED",
                         distance: 0,
@@ -268,11 +321,15 @@ export const mapHtmlString = `<!DOCTYPE html>
                 var turnKey = turnType + "_" + Math.round(nextLng * 10000) + "_" + Math.round(nextLat * 10000);
                 if (turnType !== "STRAIGHT" && lastTurnKey !== turnKey) {
                     lastTurnKey = turnKey;
+                    showMapTurnMarker(nextLng, nextLat, turnType, turnType === "LEFT" ? "Turn Left" : "Turn Right");
                     sendBridgeEvent("turn_instruction", {
                         turn: turnType,
                         distance: Math.max(5, Math.round(distMeters)),
                         instruction: instruction
                     });
+                } else if (turnType === "STRAIGHT" && lastTurnKey !== "") {
+                    lastTurnKey = "";
+                    clearMapTurnMarker();
                 }
             }
         }
@@ -834,6 +891,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                     activeTargetId = null;
                     shouldRefitRoute = false;
                     lastTurnKey = "";
+                    clearMapTurnMarker();
                     sendBridgeEvent("turn_clear", {});
                     if (mapInitialized && map && map.getSource('route')) {
                         map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
