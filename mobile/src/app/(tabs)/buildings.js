@@ -25,9 +25,12 @@ import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { api, authService, geofencingService } from "../../services";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { ShieldAlert, X } from "lucide-react-native";
+import { ShieldAlert, X, Lock } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
+import QuickMissionsModal from "../../components/features/QuickMissionsModal";
+import NavigationTurnHUD from "../../components/features/NavigationTurnHUD";
+import SoundManager from "../../utils/SoundManager";
 import { ErrorBoundary } from "../../components/ui/ErrorBoundary";
 
 const BuildingListItem = React.memo(({ item, isUnlocked, isVisitor, isLast, onPress }) => (
@@ -86,6 +89,19 @@ export default function BuildingsScreen() {
         };
     }, []);
 
+    // Quick Missions & Turn HUD States
+    const [quickModalVisible, setQuickModalVisible] = useState(false);
+    const [quickQuests, setQuickQuests] = useState([]);
+    const [isQuickUnlocked, setIsQuickUnlocked] = useState(false);
+    const [dailyProgress, setDailyProgress] = useState({ completed: 0, total: 3 });
+    const [missionBuildingIds, setMissionBuildingIds] = useState([]);
+    const [turnHUD, setTurnHUD] = useState({
+        visible: false,
+        turnType: "STRAIGHT",
+        distance: 10,
+        instruction: "",
+    });
+
     const sendMapUpdate = React.useCallback(() => {
         if (webViewRef.current) {
             const unlockedIds = unlockedBuildings.map((b) => b.id);
@@ -94,6 +110,7 @@ export default function BuildingsScreen() {
             const message = createBridgeMessage("update", {
                 buildings: allBuildings,
                 unlockedIds: unlockedIds,
+                missionBuildingIds: missionBuildingIds,
                 mapboxToken: token,
                 apiBase: apiBase,
                 authToken: authToken,
@@ -101,7 +118,27 @@ export default function BuildingsScreen() {
             });
             webViewRef.current.postMessage(message);
         }
-    }, [allBuildings, unlockedBuildings, location, authToken]);
+    }, [allBuildings, unlockedBuildings, missionBuildingIds, location, authToken]);
+
+    const fetchQuickMissions = async () => {
+        if (role !== "student") return;
+        try {
+            const res = await api.get("/api/gamification/quests/quick/");
+            if (res.data.success) {
+                const data = res.data.data;
+                setIsQuickUnlocked(data.is_unlocked);
+                setDailyProgress({
+                    completed: data.daily_completed_count || 0,
+                    total: data.daily_total_count || 3,
+                });
+                setQuickQuests(data.quests || []);
+                const bIds = (data.quests || []).map((q) => q.target_building);
+                setMissionBuildingIds(bIds);
+            }
+        } catch (err) {
+            console.log("Failed to fetch quick missions:", err);
+        }
+    };
 
     const sendMapUpdateRef = useRef(sendMapUpdate);
     sendMapUpdateRef.current = sendMapUpdate;
@@ -112,13 +149,15 @@ export default function BuildingsScreen() {
                 ScreenOrientation.OrientationLock.PORTRAIT,
             );
             startTracking();
+            fetchQuickMissions();
+            SoundManager.init();
             if (sendMapUpdateRef.current) {
                 sendMapUpdateRef.current();
             }
             return () => {
                 stopTracking();
             };
-        }, [startTracking, stopTracking])
+        }, [startTracking, stopTracking, role])
     );
 
     const [allBuildings, setAllBuildings] = useState([]);
@@ -216,6 +255,33 @@ export default function BuildingsScreen() {
 
         if (type === "log") {
             console.log("[Map WebView]", payload?.level, payload?.message);
+            return;
+        }
+
+        if (type === "turn_instruction") {
+            setTurnHUD({
+                visible: true,
+                turnType: payload.turn || "STRAIGHT",
+                distance: payload.distance || 10,
+                instruction: payload.instruction || "",
+            });
+            if (payload.turn === "LEFT") {
+                SoundManager.play("nav_turn_left");
+            } else if (payload.turn === "RIGHT") {
+                SoundManager.play("nav_turn_right");
+            } else if (payload.turn === "ARRIVED") {
+                SoundManager.play("nav_arrived");
+            }
+            return;
+        }
+
+        if (type === "turn_clear") {
+            setTurnHUD({
+                visible: false,
+                turnType: "STRAIGHT",
+                distance: 0,
+                instruction: "",
+            });
             return;
         }
 
@@ -368,6 +434,7 @@ export default function BuildingsScreen() {
         setRouteTarget(null);
         setSearchQuery("");
         setIsRouteActive(false);
+        setTurnHUD({ visible: false, turnType: "STRAIGHT", distance: 0, instruction: "" });
 
         if (webViewRef.current) {
             const message = createBridgeMessage("clear_route");
@@ -392,9 +459,30 @@ export default function BuildingsScreen() {
 
     const handleStopRoute = () => {
         setIsRouteActive(false);
+        setTurnHUD({ visible: false, turnType: "STRAIGHT", distance: 0, instruction: "" });
         if (webViewRef.current) {
             const message = createBridgeMessage("clear_route");
             webViewRef.current.postMessage(message);
+        }
+    };
+
+    const handleSelectQuickMission = (mission) => {
+        if (!mission || !mission.target_building) return;
+        const targetB = allBuildings.find(
+            (b) => b.id.toString() === mission.target_building.toString()
+        );
+        if (targetB) {
+            setViewMode("map");
+            setRouteTarget(targetB);
+            setSearchQuery(targetB.name);
+            setRouteOrigin(null);
+            setOriginQuery("");
+            setIsRouteActive(false);
+            setQuickModalVisible(false);
+            if (webViewRef.current) {
+                const message = createBridgeMessage("clear_route");
+                webViewRef.current.postMessage(message);
+            }
         }
     };
     const { mapHtmlString } = require("../../../assets/buildings-map");
@@ -1189,11 +1277,70 @@ export default function BuildingsScreen() {
                 </View>
             )}
 
+            {/* Floating Quick Missions Button (Right side of Map) */}
+            {role === "student" && viewMode === "map" && !modalVisible && !isRouteActive && (
+                <TouchableOpacity
+                    style={[
+                        styles.floatingQuickMissionsBtn,
+                        routeTarget && { bottom: 105 },
+                    ]}
+                    onPress={() => {
+                        fetchQuickMissions();
+                        setQuickModalVisible(true);
+                    }}
+                    activeOpacity={0.85}
+                >
+                    <View style={styles.floatingQuickAvatarWrap}>
+                        <Image
+                            source={require("../../../assets/images/characters/justine_avatar.png")}
+                            style={styles.floatingQuickAvatar}
+                        />
+                        {isQuickUnlocked ? (
+                            <View style={styles.floatingQuestBadge}>
+                                <Text style={styles.floatingQuestBadgeText}>
+                                    {quickQuests.length}
+                                </Text>
+                            </View>
+                        ) : (
+                            <View style={[styles.floatingQuestBadge, { backgroundColor: "#6B7280" }]}>
+                                <Lock size={9} color="#FFFFFF" />
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.floatingQuickInfo}>
+                        <Text style={styles.floatingQuickTitle}>MISSIONS</Text>
+                        <Text style={[styles.floatingQuickSub, isQuickUnlocked && { color: theme.colors.success }]}>
+                            {isQuickUnlocked ? "Unlocked 🎯" : "Locked 🔒"}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+            )}
+
+            {/* Navigation Turn HUD */}
+            <NavigationTurnHUD
+                visible={turnHUD.visible && isRouteActive}
+                turnType={turnHUD.turnType}
+                distance={turnHUD.distance}
+                instruction={turnHUD.instruction}
+            />
+
             {/* Trivia Quiz Modal */}
             <QuizModal
                 visible={quizModalVisible}
                 building={selectedBuilding}
                 onClose={() => setQuizModalVisible(false)}
+            />
+
+            {/* Justine 2D Story Quick Missions Modal */}
+            <QuickMissionsModal
+                visible={quickModalVisible}
+                onClose={() => setQuickModalVisible(false)}
+                onSelectMission={handleSelectQuickMission}
+                isUnlocked={isQuickUnlocked}
+                dailyCompletedCount={dailyProgress.completed}
+                dailyTotalCount={dailyProgress.total}
+                quests={quickQuests}
+                onGoToHome={() => router.push("/(tabs)")}
             />
         </View>
     );
@@ -1703,5 +1850,69 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
         fontSize: 12,
         fontFamily: fonts.body.bold,
+    },
+    floatingQuickMissionsBtn: {
+        position: "absolute",
+        bottom: 24,
+        right: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 28,
+        paddingVertical: 7,
+        paddingHorizontal: 12,
+        borderWidth: 2,
+        borderColor: theme.colors.primary,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.18,
+        shadowRadius: 6,
+        elevation: 6,
+        zIndex: 35,
+    },
+    floatingQuickAvatarWrap: {
+        position: "relative",
+        marginRight: 8,
+    },
+    floatingQuickAvatar: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        borderWidth: 1.5,
+        borderColor: theme.colors.primary,
+    },
+    floatingQuestBadge: {
+        position: "absolute",
+        top: -4,
+        right: -4,
+        backgroundColor: theme.colors.primary,
+        minWidth: 16,
+        height: 16,
+        borderRadius: 8,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 3,
+        borderWidth: 1.5,
+        borderColor: "#FFFFFF",
+    },
+    floatingQuestBadgeText: {
+        color: "#FFFFFF",
+        fontSize: 9,
+        fontFamily: fonts.heading.bold,
+    },
+    floatingQuickInfo: {
+        justifyContent: "center",
+    },
+    floatingQuickTitle: {
+        fontSize: 11,
+        fontFamily: fonts.heading.bold,
+        color: theme.colors.primary,
+        letterSpacing: 0.6,
+    },
+    floatingQuickSub: {
+        fontSize: 10,
+        fontFamily: fonts.body.bold,
+        color: theme.colors.textMuted,
+        marginTop: 1,
     },
 });

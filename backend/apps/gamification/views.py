@@ -181,6 +181,68 @@ class ChallengesView(views.APIView):
 		})
 
 
+class QuickQuestsView(views.APIView):
+	permission_classes = [IsAuthenticated, IsStudentRole]
+
+	def get(self, request):
+		user = request.user
+		from datetime import date
+		import random
+
+		# 1. Check daily quests completion status
+		all_daily_quests = list(Quest.objects.filter(
+			is_active=True,
+			expires_at__isnull=True
+		).select_related('target_building'))
+
+		daily_quests = []
+		if all_daily_quests:
+			today_str = date.today().isoformat()
+			random.seed(f"{user.id}-{today_str}")
+			easy_q = [q for q in all_daily_quests if q.difficulty == 'EASY']
+			medium_q = [q for q in all_daily_quests if q.difficulty == 'MEDIUM']
+			hard_q = [q for q in all_daily_quests if q.difficulty == 'HARD']
+			if easy_q: daily_quests.append(random.choice(easy_q))
+			if medium_q: daily_quests.append(random.choice(medium_q))
+			if hard_q: daily_quests.append(random.choice(hard_q))
+			while len(daily_quests) < 3 and len(daily_quests) < len(all_daily_quests):
+				candidate = random.choice(all_daily_quests)
+				if candidate not in daily_quests:
+					daily_quests.append(candidate)
+			random.seed()
+
+		completed_quest_ids = set(UserQuestProgress.objects.filter(
+			user=user, is_completed=True
+		).values_list('quest_id', flat=True))
+
+		daily_total = len(daily_quests)
+		daily_completed = sum(1 for q in daily_quests if q.id in completed_quest_ids)
+		is_unlocked = (daily_total > 0 and daily_completed >= daily_total)
+
+		# 2. Get all available EASY quick quests
+		easy_quests = Quest.objects.filter(
+			is_active=True,
+			difficulty='EASY',
+			expires_at__isnull=True
+		).select_related('target_building')
+
+		serializer = QuestSerializer(
+			easy_quests, 
+			many=True, 
+			context={'completed_quest_ids': completed_quest_ids, 'request': request}
+		)
+
+		return Response({
+			'success': True,
+			'data': {
+				'is_unlocked': is_unlocked,
+				'daily_completed_count': daily_completed,
+				'daily_total_count': daily_total,
+				'quests': serializer.data
+			}
+		})
+
+
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
