@@ -103,17 +103,39 @@ class ActiveQuestsView(views.APIView):
 		today_str = date.today().isoformat()
 		random.seed(f"{user.id}-{today_str}")
 
-		# 3. Select 3 Daily Quests (1 Easy, 1 Medium, 1 Hard)
+		# 3. Select 3 Daily Quests (1 Easy, 1 Medium, 1 Hard) targeting DISTINCT buildings
 		easy_quests = [q for q in all_daily_quests if q.difficulty == 'EASY']
 		medium_quests = [q for q in all_daily_quests if q.difficulty == 'MEDIUM']
 		hard_quests = [q for q in all_daily_quests if q.difficulty == 'HARD']
 
 		daily_quests = []
-		if easy_quests: daily_quests.append(random.choice(easy_quests))
-		if medium_quests: daily_quests.append(random.choice(medium_quests))
-		if hard_quests: daily_quests.append(random.choice(hard_quests))
+		used_building_ids = set()
 
-		# Fallback: if we didn't get 3 quests because of missing difficulty tiers
+		if easy_quests:
+			chosen_easy = random.choice(easy_quests)
+			daily_quests.append(chosen_easy)
+			used_building_ids.add(chosen_easy.target_building_id)
+
+		med_diff = [q for q in medium_quests if q.target_building_id not in used_building_ids]
+		chosen_med = random.choice(med_diff) if med_diff else (random.choice(medium_quests) if medium_quests else None)
+		if chosen_med:
+			daily_quests.append(chosen_med)
+			used_building_ids.add(chosen_med.target_building_id)
+
+		hard_diff = [q for q in hard_quests if q.target_building_id not in used_building_ids]
+		chosen_hard = random.choice(hard_diff) if hard_diff else (random.choice(hard_quests) if hard_quests else None)
+		if chosen_hard:
+			daily_quests.append(chosen_hard)
+			used_building_ids.add(chosen_hard.target_building_id)
+
+		# Fallback: if missing tiers, pick distinct buildings where possible
+		for candidate in all_daily_quests:
+			if len(daily_quests) >= 3:
+				break
+			if candidate.target_building_id not in used_building_ids and candidate not in daily_quests:
+				daily_quests.append(candidate)
+				used_building_ids.add(candidate.target_building_id)
+
 		while len(daily_quests) < 3 and len(daily_quests) < len(all_daily_quests):
 			candidate = random.choice(all_daily_quests)
 			if candidate not in daily_quests:
@@ -202,9 +224,33 @@ class QuickQuestsView(views.APIView):
 			easy_q = [q for q in all_daily_quests if q.difficulty == 'EASY']
 			medium_q = [q for q in all_daily_quests if q.difficulty == 'MEDIUM']
 			hard_q = [q for q in all_daily_quests if q.difficulty == 'HARD']
-			if easy_q: daily_quests.append(random.choice(easy_q))
-			if medium_q: daily_quests.append(random.choice(medium_q))
-			if hard_q: daily_quests.append(random.choice(hard_q))
+
+			used_building_ids = set()
+
+			if easy_q:
+				chosen_easy = random.choice(easy_q)
+				daily_quests.append(chosen_easy)
+				used_building_ids.add(chosen_easy.target_building_id)
+
+			med_diff = [q for q in medium_q if q.target_building_id not in used_building_ids]
+			chosen_med = random.choice(med_diff) if med_diff else (random.choice(medium_q) if medium_q else None)
+			if chosen_med:
+				daily_quests.append(chosen_med)
+				used_building_ids.add(chosen_med.target_building_id)
+
+			hard_diff = [q for q in hard_q if q.target_building_id not in used_building_ids]
+			chosen_hard = random.choice(hard_diff) if hard_diff else (random.choice(hard_q) if hard_quests else None)
+			if chosen_hard:
+				daily_quests.append(chosen_hard)
+				used_building_ids.add(chosen_hard.target_building_id)
+
+			for candidate in all_daily_quests:
+				if len(daily_quests) >= 3:
+					break
+				if candidate.target_building_id not in used_building_ids and candidate not in daily_quests:
+					daily_quests.append(candidate)
+					used_building_ids.add(candidate.target_building_id)
+
 			while len(daily_quests) < 3 and len(daily_quests) < len(all_daily_quests):
 				candidate = random.choice(all_daily_quests)
 				if candidate not in daily_quests:
@@ -219,15 +265,35 @@ class QuickQuestsView(views.APIView):
 		daily_completed = sum(1 for q in daily_quests if q.id in completed_quest_ids)
 		is_unlocked = (daily_total > 0 and daily_completed >= daily_total)
 
-		# 2. Get all available EASY quick quests
-		easy_quests = Quest.objects.filter(
+		# 2. Get available EASY quick quests, EXCLUDING buildings already used in today's daily missions
+		daily_building_ids = {q.target_building_id for q in daily_quests}
+
+		easy_quests_qs = Quest.objects.filter(
 			is_active=True,
 			difficulty='EASY',
 			expires_at__isnull=True
+		).exclude(
+			target_building_id__in=daily_building_ids
 		).select_related('target_building')
 
+		# If excluding leaves fewer than 2 quests, fallback to all available easy quests
+		if easy_quests_qs.count() < 2:
+			easy_quests_qs = Quest.objects.filter(
+				is_active=True,
+				difficulty='EASY',
+				expires_at__isnull=True
+			).select_related('target_building')
+
+		# Deduplicate so there is at most 1 quick mission per campus building
+		seen_buildings = set()
+		distinct_easy_quests = []
+		for q in easy_quests_qs:
+			if q.target_building_id not in seen_buildings:
+				seen_buildings.add(q.target_building_id)
+				distinct_easy_quests.append(q)
+
 		serializer = QuestSerializer(
-			easy_quests, 
+			distinct_easy_quests, 
 			many=True, 
 			context={'completed_quest_ids': completed_quest_ids, 'request': request}
 		)

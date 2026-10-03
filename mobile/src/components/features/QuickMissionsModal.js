@@ -19,11 +19,14 @@ import {
     Trophy,
     Building2,
     CheckCircle2,
+    MapPin,
 } from "lucide-react-native";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const MISSIONS_CARD_HEIGHT = Math.min(SCREEN_HEIGHT * 0.58, 480);
+const MISSIONS_CHAR_BOTTOM = MISSIONS_CARD_HEIGHT - 32;
 
 export default function QuickMissionsModal({
     visible,
@@ -34,6 +37,8 @@ export default function QuickMissionsModal({
     dailyTotalCount = 3,
     quests = [],
     onGoToHome,
+    userLocation = null,
+    allBuildings = [],
 }) {
     // viewState: "intro" (big 2D character + explanation first) -> "missions" (locked or unlocked list)
     const [viewState, setViewState] = useState("intro");
@@ -106,6 +111,33 @@ export default function QuickMissionsModal({
         ]).start(() => {
             onClose && onClose();
         });
+    };
+
+    // Calculate distance from user's current GPS to a mission's target building
+    const getMissionDistance = (mission) => {
+        if (!userLocation || !allBuildings || allBuildings.length === 0 || !mission.target_building) {
+            return null;
+        }
+        const b = allBuildings.find(
+            (item) => item.id.toString() === mission.target_building.toString()
+        );
+        if (!b || !b.latitude || !b.longitude) return null;
+        const lat1 = userLocation.latitude;
+        const lon1 = userLocation.longitude;
+        const lat2 = parseFloat(b.latitude);
+        const lon2 = parseFloat(b.longitude);
+        if (isNaN(lat2) || isNaN(lon2)) return null;
+
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos((lat1 * Math.PI) / 180) *
+                Math.cos((lat2 * Math.PI) / 180) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return Math.round(6371000 * c); // distance in meters
     };
 
     if (!visible) return null;
@@ -227,11 +259,11 @@ export default function QuickMissionsModal({
 
                 {/* ============================================================== */}
                 {/* SCREEN 2: MISSIONS VIEW (AFTER CLICKING PROCEED)               */}
-                {/* Shows Locked state (if daily incomplete) OR Unlocked list      */}
+                {/* Justine stands tall and fully visible above the missions card  */}
                 {/* ============================================================== */}
                 {viewState === "missions" && (
                     <>
-                        {/* Character standing behind the missions card */}
+                        {/* Character standing proudly above the missions card */}
                         <Animated.View
                             pointerEvents="none"
                             style={[
@@ -337,7 +369,7 @@ export default function QuickMissionsModal({
                                         </Text>
                                     </View>
 
-                                    <Text style={S.speechText}>
+                                    <Text style={S.speechTextUnlocked}>
                                         Tap any mission below and I'll input the destination into your navigation radar!
                                     </Text>
 
@@ -353,50 +385,76 @@ export default function QuickMissionsModal({
                                             keyExtractor={(item) => item.id.toString()}
                                             style={S.questList}
                                             showsVerticalScrollIndicator={false}
-                                            renderItem={({ item }) => (
-                                                <TouchableOpacity
-                                                    style={S.questItem}
-                                                    activeOpacity={0.8}
-                                                    onPress={() => {
-                                                        handleDismiss();
-                                                        onSelectMission && onSelectMission(item);
-                                                    }}
-                                                >
-                                                    <View style={S.questItemHeader}>
-                                                        <View style={S.difficultyPill}>
-                                                            <Text style={S.difficultyText}>
-                                                                {item.difficulty || "EASY"}
+                                            renderItem={({ item }) => {
+                                                const dist = getMissionDistance(item);
+                                                const isAlreadyHere = dist !== null && dist < 35;
+
+                                                return (
+                                                    <TouchableOpacity
+                                                        style={[
+                                                            S.questItem,
+                                                            isAlreadyHere && S.questItemDisabled,
+                                                        ]}
+                                                        activeOpacity={isAlreadyHere ? 1 : 0.8}
+                                                        onPress={() => {
+                                                            if (isAlreadyHere) return;
+                                                            handleDismiss();
+                                                            onSelectMission && onSelectMission(item);
+                                                        }}
+                                                    >
+                                                        <View style={S.questItemHeader}>
+                                                            <View style={S.difficultyPill}>
+                                                                <Text style={S.difficultyText}>
+                                                                    {item.difficulty || "EASY"}
+                                                                </Text>
+                                                            </View>
+                                                            {isAlreadyHere ? (
+                                                                <View style={S.alreadyHerePill}>
+                                                                    <MapPin size={10} color="#D97706" />
+                                                                    <Text style={S.alreadyHereText}>
+                                                                        ALREADY HERE ({dist}m)
+                                                                    </Text>
+                                                                </View>
+                                                            ) : (
+                                                                <View style={S.rewardPill}>
+                                                                    <Text style={S.rewardText}>
+                                                                        +{item.reward_points} EXP
+                                                                    </Text>
+                                                                </View>
+                                                            )}
+                                                        </View>
+
+                                                        <Text style={S.questTitle} numberOfLines={2}>
+                                                            {item.title}
+                                                        </Text>
+
+                                                        <View style={S.targetRow}>
+                                                            <Building2 size={13} color="#B21830" />
+                                                            <Text
+                                                                style={S.targetBuildingText}
+                                                                numberOfLines={1}
+                                                            >
+                                                                {item.target_building_name || "Campus Building"}
                                                             </Text>
                                                         </View>
-                                                        <View style={S.rewardPill}>
-                                                            <Text style={S.rewardText}>
-                                                                +{item.reward_points} EXP
-                                                            </Text>
+
+                                                        <View style={S.navigateActionRow}>
+                                                            {isAlreadyHere ? (
+                                                                <Text style={S.navigateActionTextDisabled}>
+                                                                    📍 You are inside this building • Pick another destination
+                                                                </Text>
+                                                            ) : (
+                                                                <>
+                                                                    <Text style={S.navigateActionText}>
+                                                                        {dist !== null ? `${dist}m away • ` : ""}Set Destination & Plot Route
+                                                                    </Text>
+                                                                    <ChevronRight size={14} color="#B21830" />
+                                                                </>
+                                                            )}
                                                         </View>
-                                                    </View>
-
-                                                    <Text style={S.questTitle} numberOfLines={2}>
-                                                        {item.title}
-                                                    </Text>
-
-                                                    <View style={S.targetRow}>
-                                                        <Building2 size={13} color="#B21830" />
-                                                        <Text
-                                                            style={S.targetBuildingText}
-                                                            numberOfLines={1}
-                                                        >
-                                                            {item.target_building_name || "Campus Building"}
-                                                        </Text>
-                                                    </View>
-
-                                                    <View style={S.navigateActionRow}>
-                                                        <Text style={S.navigateActionText}>
-                                                            Set Destination & Plot Route
-                                                        </Text>
-                                                        <ChevronRight size={14} color="#B21830" />
-                                                    </View>
-                                                </TouchableOpacity>
-                                            )}
+                                                    </TouchableOpacity>
+                                                );
+                                            }}
                                         />
                                     )}
                                 </View>
@@ -520,11 +578,6 @@ const S = StyleSheet.create({
         fontFamily: fonts.body.bold,
         color: "#B21830",
     },
-    boldUnderline: {
-        fontFamily: fonts.body.bold,
-        color: "#B21830",
-        textDecorationLine: "underline",
-    },
 
     // ── VN Bottom Row (Intro Screen) ──────────────────────────────────────────
     vnBottomRow: {
@@ -599,19 +652,20 @@ const S = StyleSheet.create({
     },
 
     // ── Missions Screen (Screen 2) ────────────────────────────────────────────
+    // Justine standing tall and clearly visible above the missions card
     missionsCharWrap: {
         position: "absolute",
-        bottom: 340,
-        right: 16,
-        width: 135,
-        height: 155,
+        bottom: MISSIONS_CHAR_BOTTOM,
+        right: 14,
+        width: 160,
+        height: 220,
         zIndex: 10,
         alignItems: "flex-end",
         justifyContent: "flex-end",
     },
     missionsCharImage: {
-        width: "100%",
-        height: "100%",
+        width: 160,
+        height: 220,
     },
     missionsCard: {
         backgroundColor: "#FFFFFF",
@@ -620,9 +674,9 @@ const S = StyleSheet.create({
         borderTopWidth: 3,
         borderTopColor: "#B21830",
         paddingTop: 16,
-        paddingBottom: 28,
+        paddingBottom: 24,
         paddingHorizontal: 16,
-        maxHeight: SCREEN_HEIGHT * 0.65,
+        height: MISSIONS_CARD_HEIGHT,
         zIndex: 15,
         shadowColor: "#B21830",
         shadowOffset: { width: 0, height: -4 },
@@ -634,7 +688,7 @@ const S = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 12,
+        marginBottom: 10,
     },
     backToGuideBtn: {
         flexDirection: "row",
@@ -671,43 +725,50 @@ const S = StyleSheet.create({
     // ── Locked State ─────────────────────────────────────────────────────────
     lockedContainer: {
         alignItems: "center",
-        paddingVertical: 10,
+        paddingVertical: 6,
         paddingHorizontal: 8,
     },
     lockedIconCircle: {
-        width: 54,
-        height: 54,
-        borderRadius: 27,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
         backgroundColor: "#FFF0F0",
         borderWidth: 2,
         borderColor: "#B21830",
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 10,
+        marginBottom: 8,
     },
     lockedTitle: {
-        fontSize: 16,
+        fontSize: 15,
         fontFamily: fonts.heading.bold,
         color: "#B21830",
-        marginBottom: 6,
+        marginBottom: 4,
     },
     speechText: {
-        fontSize: 13,
-        lineHeight: 18,
+        fontSize: 12.5,
+        lineHeight: 17,
         fontFamily: fonts.body.regular,
         color: "#374151",
         textAlign: "center",
-        marginBottom: 14,
+        marginBottom: 12,
         paddingHorizontal: 10,
+    },
+    speechTextUnlocked: {
+        fontSize: 12,
+        lineHeight: 16,
+        fontFamily: fonts.body.regular,
+        color: "#4B5563",
+        marginBottom: 8,
     },
     progressBox: {
         width: "100%",
         backgroundColor: "#F9FAFB",
         borderRadius: 8,
-        padding: 12,
+        padding: 10,
         borderWidth: 1,
         borderColor: "#E5E7EB",
-        marginBottom: 16,
+        marginBottom: 14,
     },
     progressHeader: {
         flexDirection: "row",
@@ -716,18 +777,18 @@ const S = StyleSheet.create({
         marginBottom: 6,
     },
     progressLabel: {
-        fontSize: 10.5,
+        fontSize: 10,
         fontFamily: fonts.heading.bold,
         color: "#6B7280",
         letterSpacing: 0.5,
     },
     progressValue: {
-        fontSize: 11.5,
+        fontSize: 11,
         fontFamily: fonts.body.bold,
         color: "#B21830",
     },
     progressTrack: {
-        height: 8,
+        height: 7,
         backgroundColor: "#E5E7EB",
         borderRadius: 4,
         overflow: "hidden",
@@ -744,7 +805,7 @@ const S = StyleSheet.create({
         gap: 6,
         backgroundColor: "#B21830",
         width: "100%",
-        paddingVertical: 12,
+        paddingVertical: 11,
         borderRadius: 8,
         shadowColor: "#B21830",
         shadowOffset: { width: 0, height: 2 },
@@ -754,30 +815,30 @@ const S = StyleSheet.create({
     },
     primaryBtnText: {
         color: "#FFFFFF",
-        fontSize: 13,
+        fontSize: 12.5,
         fontFamily: fonts.body.bold,
         letterSpacing: 0.5,
     },
 
     // ── Unlocked State ───────────────────────────────────────────────────────
     unlockedContainer: {
-        paddingTop: 4,
+        flex: 1,
     },
     unlockedBanner: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 6,
         backgroundColor: "#FFFBEB",
         borderRadius: 8,
         borderWidth: 1,
         borderColor: "#FDE68A",
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        marginBottom: 10,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginBottom: 6,
     },
     unlockedBannerText: {
         flex: 1,
-        fontSize: 12,
+        fontSize: 11.5,
         fontFamily: fonts.body.bold,
         color: "#92400E",
     },
@@ -792,67 +853,88 @@ const S = StyleSheet.create({
         textAlign: "center",
     },
     questList: {
-        maxHeight: 280,
+        flex: 1,
     },
     questItem: {
         backgroundColor: "#FFFFFF",
         borderRadius: 10,
         borderWidth: 1.5,
         borderColor: "#F3F4F6",
-        padding: 12,
-        marginBottom: 10,
+        padding: 10,
+        marginBottom: 8,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 3,
         elevation: 2,
     },
+    questItemDisabled: {
+        backgroundColor: "#F9FAFB",
+        borderColor: "#E5E7EB",
+        opacity: 0.72,
+    },
     questItemHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 6,
+        marginBottom: 4,
     },
     difficultyPill: {
         backgroundColor: "#ECFDF5",
-        paddingHorizontal: 8,
+        paddingHorizontal: 7,
         paddingVertical: 2,
-        borderRadius: 12,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: "#A7F3D0",
     },
     difficultyText: {
-        fontSize: 10,
+        fontSize: 9.5,
         fontFamily: fonts.body.bold,
         color: "#059669",
     },
     rewardPill: {
         backgroundColor: "#FEF2F2",
-        paddingHorizontal: 8,
+        paddingHorizontal: 7,
         paddingVertical: 2,
-        borderRadius: 12,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: "#FECACA",
     },
     rewardText: {
-        fontSize: 10,
+        fontSize: 9.5,
         fontFamily: fonts.body.bold,
         color: "#B21830",
     },
+    alreadyHerePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 3,
+        backgroundColor: "#FEF3C7",
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#FDE68A",
+    },
+    alreadyHereText: {
+        fontSize: 9.5,
+        fontFamily: fonts.body.bold,
+        color: "#B45309",
+    },
     questTitle: {
-        fontSize: 14,
+        fontSize: 13.5,
         fontFamily: fonts.heading.bold,
         color: "#111827",
-        marginBottom: 6,
+        marginBottom: 4,
     },
     targetRow: {
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        marginBottom: 8,
+        marginBottom: 6,
     },
     targetBuildingText: {
-        fontSize: 12,
+        fontSize: 11.5,
         fontFamily: fonts.body.regular,
         color: "#4B5563",
     },
@@ -862,12 +944,17 @@ const S = StyleSheet.create({
         justifyContent: "space-between",
         borderTopWidth: 1,
         borderTopColor: "#F3F4F6",
-        paddingTop: 8,
+        paddingTop: 6,
         marginTop: 2,
     },
     navigateActionText: {
-        fontSize: 11.5,
+        fontSize: 11,
         fontFamily: fonts.body.bold,
         color: "#B21830",
+    },
+    navigateActionTextDisabled: {
+        fontSize: 10.5,
+        fontFamily: fonts.body.bold,
+        color: "#D97706",
     },
 });

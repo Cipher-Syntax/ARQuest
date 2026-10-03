@@ -210,9 +210,31 @@ class Command(BaseCommand):
 		hard_quests = [q for q in all_daily_quests if q.difficulty == 'HARD']
 
 		daily_quests = []
-		if easy_quests: daily_quests.append(random.choice(easy_quests))
-		if medium_quests: daily_quests.append(random.choice(medium_quests))
-		if hard_quests: daily_quests.append(random.choice(hard_quests))
+		used_building_ids = set()
+
+		if easy_quests:
+			chosen_easy = random.choice(easy_quests)
+			daily_quests.append(chosen_easy)
+			used_building_ids.add(chosen_easy.target_building_id)
+
+		med_diff = [q for q in medium_quests if q.target_building_id not in used_building_ids]
+		chosen_med = random.choice(med_diff) if med_diff else (random.choice(medium_quests) if medium_quests else None)
+		if chosen_med:
+			daily_quests.append(chosen_med)
+			used_building_ids.add(chosen_med.target_building_id)
+
+		hard_diff = [q for q in hard_quests if q.target_building_id not in used_building_ids]
+		chosen_hard = random.choice(hard_diff) if hard_diff else (random.choice(hard_quests) if hard_quests else None)
+		if chosen_hard:
+			daily_quests.append(chosen_hard)
+			used_building_ids.add(chosen_hard.target_building_id)
+
+		for candidate in all_daily_quests:
+			if len(daily_quests) >= 3:
+				break
+			if candidate.target_building_id not in used_building_ids and candidate not in daily_quests:
+				daily_quests.append(candidate)
+				used_building_ids.add(candidate.target_building_id)
 
 		while len(daily_quests) < 3 and len(daily_quests) < len(all_daily_quests):
 			candidate = random.choice(all_daily_quests)

@@ -1341,6 +1341,8 @@ export default function BuildingsScreen() {
                 dailyTotalCount={dailyProgress.total}
                 quests={quickQuests}
                 onGoToHome={() => router.push("/(tabs)")}
+                userLocation={location}
+                allBuildings={allBuildings}
             />
         </View>
     );
