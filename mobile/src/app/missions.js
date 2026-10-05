@@ -19,7 +19,6 @@ import {
     ChevronRight,
     Award,
     Compass,
-    Sparkles,
     Shield,
     Flame,
     Timer,
@@ -582,10 +581,6 @@ export default function MissionsScreen() {
                                                 isCompleted && styles.rewardPillCompleted,
                                             ]}
                                         >
-                                            <Sparkles
-                                                size={11}
-                                                color={isCompleted ? "#15803d" : theme.colors.primary}
-                                            />
                                             <Text
                                                 style={[
                                                     styles.rewardText,
