@@ -22,9 +22,6 @@ def building_panorama_walkthrough(request, id):
     except Building.DoesNotExist:
         return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
         
-    if request.user.is_visitor_role:
-        return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot access panoramas', status_code=status.HTTP_403_FORBIDDEN)
-        
     if request.user.is_student_role:
         from apps.buildings.models import BuildingUnlock
         is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
@@ -64,9 +61,6 @@ def panorama_scene_detail(request, id):
         scene = PanoramaScene.objects.get(id=id, is_active=True)
     except PanoramaScene.DoesNotExist:
         return error_response(ErrorCodes.NOT_FOUND, 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
-        
-    if request.user.is_visitor_role:
-        return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot access panoramas', status_code=status.HTTP_403_FORBIDDEN)
         
     if request.user.is_student_role:
         from apps.buildings.models import BuildingUnlock

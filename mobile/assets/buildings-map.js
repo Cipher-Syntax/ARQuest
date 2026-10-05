@@ -108,6 +108,34 @@ export const mapHtmlString = `<!DOCTYPE html>
             top: 75px !important;
             right: 12px !important;
         }
+
+        .map-turn-badge {
+            background: #B21830;
+            color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            padding: 5px 10px;
+            border-radius: 16px;
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            animation: turnPulse 1.2s ease-in-out infinite alternate;
+        }
+
+        .map-turn-badge-arrived {
+            background: #16A34A;
+        }
+
+        @keyframes turnPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
     </style>
 </head>
 <body>
@@ -124,14 +152,94 @@ export const mapHtmlString = `<!DOCTYPE html>
             [122.0675, 6.9175], // NE [lng, lat]
         ];
 
-        // WMSU Campus Perimeter (clockwise hole coordinates)
-        const WMSU_CAMPUS_PERIMETER = [
+        // Default campus perimeter fallback (used until API responds)
+        const DEFAULT_WMSU_PERIMETER = [
             [122.0570, 6.9092],
             [122.0570, 6.9162],
             [122.0655, 6.9162],
             [122.0655, 6.9092],
             [122.0570, 6.9092]
         ];
+
+        // Mutable perimeter coords (updated from API or RN Bridge)
+        let WMSU_CAMPUS_PERIMETER = DEFAULT_WMSU_PERIMETER.map(c => [...c]);
+
+        // Helper to update Mapbox mask & stroke layers with given perimeter config
+        function applyPerimeterToMap(perimeterData) {
+            if (!perimeterData || !Array.isArray(perimeterData.coordinates) || perimeterData.coordinates.length < 4) return;
+            WMSU_CAMPUS_PERIMETER = perimeterData.coordinates;
+
+            // Update mask source
+            if (map && map.getSource('wmsu-mask')) {
+                map.getSource('wmsu-mask').setData({
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        properties: {},
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [
+                                [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]],
+                                WMSU_CAMPUS_PERIMETER
+                            ]
+                        }
+                    }]
+                });
+            }
+
+            // Update boundary stroke source
+            if (map && map.getSource('wmsu-boundary')) {
+                map.getSource('wmsu-boundary').setData({
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        properties: {},
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: WMSU_CAMPUS_PERIMETER
+                        }
+                    }]
+                });
+            }
+
+            // Update fill and stroke styles dynamically if provided
+            if (map && map.getLayer('wmsu-mask-fill') && perimeterData.fill_opacity != null) {
+                map.setPaintProperty('wmsu-mask-fill', 'fill-opacity', perimeterData.fill_opacity);
+            }
+            if (map && map.getLayer('wmsu-mask-fill') && perimeterData.fill_color) {
+                map.setPaintProperty('wmsu-mask-fill', 'fill-color', perimeterData.fill_color);
+            }
+            if (map && map.getLayer('wmsu-boundary-line') && perimeterData.stroke_color) {
+                map.setPaintProperty('wmsu-boundary-line', 'line-color', perimeterData.stroke_color);
+            }
+            if (map && map.getLayer('wmsu-boundary-line') && perimeterData.stroke_width != null) {
+                map.setPaintProperty('wmsu-boundary-line', 'line-width', perimeterData.stroke_width);
+            }
+        }
+
+        // Fetch the campus perimeter from backend and update Mapbox sources
+        async function fetchAndApplyPerimeter() {
+            try {
+                let baseUrl = (typeof ARQUEST_API_BASE === 'string' && ARQUEST_API_BASE && ARQUEST_API_BASE !== '__ARQUEST_API_BASE__')
+                    ? (ARQUEST_API_BASE.endsWith('/') ? ARQUEST_API_BASE.slice(0, -1) : ARQUEST_API_BASE)
+                    : '';
+                if (!baseUrl) {
+                    return;
+                }
+                const fetchHeaders = { 'Content-Type': 'application/json' };
+                if (typeof ARQUEST_AUTH_TOKEN === 'string' && ARQUEST_AUTH_TOKEN && ARQUEST_AUTH_TOKEN !== '__ARQUEST_AUTH_TOKEN__') {
+                    fetchHeaders['Authorization'] = 'Bearer ' + ARQUEST_AUTH_TOKEN;
+                }
+                const resp = await fetch(baseUrl + '/api/navigation/perimeter/', { headers: fetchHeaders });
+                if (!resp.ok) return;
+                const json = await resp.json();
+                const perimeterData = (json && json.data) ? json.data : json;
+                applyPerimeterToMap(perimeterData);
+            } catch (e) {
+                console.log('[ARQuest] Perimeter fetch notice:', e.message);
+            }
+        }
+
 
         let map = null;
         let markers = [];
@@ -201,6 +309,109 @@ export const mapHtmlString = `<!DOCTYPE html>
                 remaining.push(coords[j]);
             }
             return remaining;
+        }
+
+        function sendBridgeEvent(type, payload) {
+            if (window.ARBridge && window.ARBridge.sendMessage) {
+                window.ARBridge.sendMessage(type, payload);
+            } else if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: type,
+                    payload: payload,
+                    correlationId: "bridge_" + Date.now(),
+                    source: "WEBVIEW"
+                }));
+            }
+        }
+
+        function calculateBearing(lng1, lat1, lng2, lat2) {
+            var dLng = (lng2 - lng1) * Math.PI / 180;
+            var lat1Rad = lat1 * Math.PI / 180;
+            var lat2Rad = lat2 * Math.PI / 180;
+            var y = Math.sin(dLng) * Math.cos(lat2Rad);
+            var x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+            return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        }
+
+        var activeTurnMarker = null;
+
+        function showMapTurnMarker(lng, lat, turnType, label) {
+            if (activeTurnMarker) {
+                activeTurnMarker.remove();
+                activeTurnMarker = null;
+            }
+            if (!map) return;
+            var el = document.createElement('div');
+            el.className = 'map-turn-badge' + (turnType === 'ARRIVED' ? ' map-turn-badge-arrived' : '');
+            var icon = turnType === 'LEFT' ? '⬅️' : (turnType === 'RIGHT' ? '➡️' : '🎯');
+            el.innerHTML = '<span>' + icon + '</span> <span>' + label + '</span>';
+            activeTurnMarker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+                .setLngLat([lng, lat])
+                .addTo(map);
+        }
+
+        function clearMapTurnMarker() {
+            if (activeTurnMarker) {
+                activeTurnMarker.remove();
+                activeTurnMarker = null;
+            }
+        }
+
+        var lastTurnKey = "";
+        function checkTurnInstruction(sliced) {
+            if (!sliced || sliced.length < 2) return;
+            var uLng = sliced[0][0], uLat = sliced[0][1];
+            var nextLng = sliced[1][0], nextLat = sliced[1][1];
+
+            var dx = (nextLng - uLng) * 111000 * Math.cos(uLat * Math.PI / 180);
+            var dy = (nextLat - uLat) * 111000;
+            var distMeters = Math.sqrt(dx * dx + dy * dy);
+
+            // Arrived at destination
+            if (sliced.length === 2 && distMeters <= 14) {
+                if (lastTurnKey !== "ARRIVED") {
+                    lastTurnKey = "ARRIVED";
+                    showMapTurnMarker(nextLng, nextLat, "ARRIVED", "Arrived!");
+                    sendBridgeEvent("turn_instruction", {
+                        turn: "ARRIVED",
+                        distance: 0,
+                        instruction: "You have arrived at your destination!"
+                    });
+                }
+                return;
+            }
+
+            // Upcoming turn (when 3 or more points exist)
+            if (sliced.length >= 3 && distMeters <= 18) {
+                var afterLng = sliced[2][0], afterLat = sliced[2][1];
+                var b1 = calculateBearing(uLng, uLat, nextLng, nextLat);
+                var b2 = calculateBearing(nextLng, nextLat, afterLng, afterLat);
+                var delta = (b2 - b1 + 540) % 360 - 180;
+
+                var turnType = "STRAIGHT";
+                var instruction = "Continue straight ahead";
+                if (delta < -25) {
+                    turnType = "LEFT";
+                    instruction = "Turn left ahead";
+                } else if (delta > 25) {
+                    turnType = "RIGHT";
+                    instruction = "Turn right ahead";
+                }
+
+                var turnKey = turnType + "_" + Math.round(nextLng * 10000) + "_" + Math.round(nextLat * 10000);
+                if (turnType !== "STRAIGHT" && lastTurnKey !== turnKey) {
+                    lastTurnKey = turnKey;
+                    showMapTurnMarker(nextLng, nextLat, turnType, turnType === "LEFT" ? "Turn Left" : "Turn Right");
+                    sendBridgeEvent("turn_instruction", {
+                        turn: turnType,
+                        distance: Math.max(5, Math.round(distMeters)),
+                        instruction: instruction
+                    });
+                } else if (turnType === "STRAIGHT" && lastTurnKey !== "") {
+                    lastTurnKey = "";
+                    clearMapTurnMarker();
+                }
+            }
         }
 
         function initializeMap(token) {
@@ -347,7 +558,11 @@ export const mapHtmlString = `<!DOCTYPE html>
                         });
                     }
 
+                    // Sync perimeter from admin server (updates mask & stroke)
+                    fetchAndApplyPerimeter();
+
                     // Add route sources and layers
+
                     if (!map.getSource('route')) {
                         map.addSource('route', {
                             type: 'geojson',
@@ -415,6 +630,7 @@ export const mapHtmlString = `<!DOCTYPE html>
             
             const buildings = data.buildings || [];
             const unlockedIds = data.unlockedIds || [];
+            const missionBuildingIds = (data.missionBuildingIds || []).map(id => id ? id.toString() : "");
             const userLocation = data.userLocation || null;
             
             // Clear existing markers
@@ -465,6 +681,7 @@ export const mapHtmlString = `<!DOCTYPE html>
 
             buildings.forEach(b => {
                 const isUnlocked = unlockedIds.includes(b.id);
+                const hasMission = missionBuildingIds.includes(b.id.toString());
                 const lng = parseFloat(b.longitude);
                 const lat = parseFloat(b.latitude);
                 if (isNaN(lng) || isNaN(lat)) return;
@@ -489,15 +706,26 @@ export const mapHtmlString = `<!DOCTYPE html>
                 
                 const labelStr = \`<div class="\${labelClassName}">\${b.name}</div>\`;
                 
+                let missionBadgeHtml = hasMission ? \`
+                    <div style="position: absolute; top: -14px; right: -12px; background: #B21830; border: 1.5px solid #EBBC26; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.4); z-index: 5;">
+                        🎯
+                    </div>\` : '';
+
                 let iconHtml = '';
                 if (b.status === 'MAINTENANCE') {
                     iconHtml = \`
-                    <div class="maintenance-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+                        <div class="maintenance-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        </div>
+                        \${missionBadgeHtml}
                     </div>\`;
                 } else {
                     iconHtml = \`
-                    <div style="width: 16px; height: 16px; background-color: \${iconColor}; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.35);"></div>\`;
+                    <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+                        <div style="width: 16px; height: 16px; background-color: \${iconColor}; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.35);"></div>
+                        \${missionBadgeHtml}
+                    </div>\`;
                 }
 
                 el.innerHTML = labelStr + iconHtml;
@@ -570,6 +798,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                     }
 
                     if (slicedCoords && slicedCoords.length >= 2) {
+                        checkTurnInstruction(slicedCoords);
                         if (map.getSource('route')) {
                             map.getSource('route').setData({
                                 type: 'FeatureCollection',
@@ -602,6 +831,8 @@ export const mapHtmlString = `<!DOCTYPE html>
 
                                     const initialSlice = !sourceBuildingId ? sliceRouteFromUser(activeFullRouteCoords, [sourceLng, sourceLat]) : null;
                                     const coordsToRender = (initialSlice && initialSlice.length >= 2) ? initialSlice : activeFullRouteCoords;
+
+                                    checkTurnInstruction(coordsToRender);
 
                                     geojson.features.push({
                                         type: 'Feature',
@@ -700,10 +931,17 @@ export const mapHtmlString = `<!DOCTYPE html>
                 mapboxgl.accessToken = data.mapboxToken;
             }
             if (data && data.apiBase) {
+                const prevBase = ARQUEST_API_BASE;
                 ARQUEST_API_BASE = data.apiBase;
+                if (prevBase !== data.apiBase && mapInitialized) {
+                    fetchAndApplyPerimeter();
+                }
             }
             if (data && data.authToken) {
                 ARQUEST_AUTH_TOKEN = data.authToken;
+            }
+            if (data && data.perimeter && mapInitialized) {
+                applyPerimeterToMap(data.perimeter);
             }
 
             if (!map) {
@@ -743,6 +981,9 @@ export const mapHtmlString = `<!DOCTYPE html>
                     activeFullRouteCoords = null;
                     activeTargetId = null;
                     shouldRefitRoute = false;
+                    lastTurnKey = "";
+                    clearMapTurnMarker();
+                    sendBridgeEvent("turn_clear", {});
                     if (mapInitialized && map && map.getSource('route')) {
                         map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
                     }

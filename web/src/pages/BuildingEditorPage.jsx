@@ -15,7 +15,7 @@ import {
     Building2,
     MapPin,
     Info,
-    Sparkles,
+    Layers,
     Camera,
     Box,
     MonitorPlay,
@@ -702,7 +702,7 @@ const BuildingEditorPage = () => {
                         className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs shrink-0 animate-in fade-in duration-300"
                         title="Open More Features (Panoramas, 3D Hotspots, Quests)"
                     >
-                        <Sparkles size={16} />
+                        <Layers size={16} />
                         <span>More Features</span>
                     </button>
                 )}
@@ -1280,7 +1280,7 @@ const BuildingEditorPage = () => {
                     {/* Informational Note Banner */}
                     <div className="p-3.5 bg-brand-light/40 border border-brand/20 rounded-md flex items-start gap-3 text-xs leading-relaxed text-gray-800">
                         <div className="w-6 h-6 rounded-md bg-brand text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                            <Sparkles size={14} />
+                            <CheckCircle2 size={14} />
                         </div>
                         <div>
                             <p className="font-bold text-gray-900 mb-0.5">

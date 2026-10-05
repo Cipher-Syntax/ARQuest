@@ -289,13 +289,13 @@ export default function LoginScreen() {
                                         await login("visitor", "WMSU-Visitor2026!");
                                         router.replace("/(tabs)");
                                     } catch (err) {
-                                        setError("Visitor channel offline.");
+                                        setError("Guest channel offline.");
                                     }
                                 }}
                                 disabled={isLoading}
                             >
                                 <Text style={styles.visitorText}>
-                                    Continue as Visitor (Guest Access)
+                                    Continue as Guest
                                 </Text>
                             </TouchableOpacity>
                         </View>

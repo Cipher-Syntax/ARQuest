@@ -67,7 +67,7 @@ class LeaderboardView(views.APIView):
 		).order_by('-exploration_points')[:50]
 		data = []
 		for index, user in enumerate(users):
-			serializer = LeaderboardSerializer(user, context={'rank': index + 1})
+			serializer = LeaderboardSerializer(user, context={'rank': index + 1, 'request': request})
 			data.append(serializer.data)
 
 		return Response({
@@ -103,17 +103,39 @@ class ActiveQuestsView(views.APIView):
 		today_str = date.today().isoformat()
 		random.seed(f"{user.id}-{today_str}")
 
-		# 3. Select 3 Daily Quests (1 Easy, 1 Medium, 1 Hard)
+		# 3. Select 3 Daily Quests (1 Easy, 1 Medium, 1 Hard) targeting DISTINCT buildings
 		easy_quests = [q for q in all_daily_quests if q.difficulty == 'EASY']
 		medium_quests = [q for q in all_daily_quests if q.difficulty == 'MEDIUM']
 		hard_quests = [q for q in all_daily_quests if q.difficulty == 'HARD']
 
 		daily_quests = []
-		if easy_quests: daily_quests.append(random.choice(easy_quests))
-		if medium_quests: daily_quests.append(random.choice(medium_quests))
-		if hard_quests: daily_quests.append(random.choice(hard_quests))
+		used_building_ids = set()
 
-		# Fallback: if we didn't get 3 quests because of missing difficulty tiers
+		if easy_quests:
+			chosen_easy = random.choice(easy_quests)
+			daily_quests.append(chosen_easy)
+			used_building_ids.add(chosen_easy.target_building_id)
+
+		med_diff = [q for q in medium_quests if q.target_building_id not in used_building_ids]
+		chosen_med = random.choice(med_diff) if med_diff else (random.choice(medium_quests) if medium_quests else None)
+		if chosen_med:
+			daily_quests.append(chosen_med)
+			used_building_ids.add(chosen_med.target_building_id)
+
+		hard_diff = [q for q in hard_quests if q.target_building_id not in used_building_ids]
+		chosen_hard = random.choice(hard_diff) if hard_diff else (random.choice(hard_quests) if hard_quests else None)
+		if chosen_hard:
+			daily_quests.append(chosen_hard)
+			used_building_ids.add(chosen_hard.target_building_id)
+
+		# Fallback: if missing tiers, pick distinct buildings where possible
+		for candidate in all_daily_quests:
+			if len(daily_quests) >= 3:
+				break
+			if candidate.target_building_id not in used_building_ids and candidate not in daily_quests:
+				daily_quests.append(candidate)
+				used_building_ids.add(candidate.target_building_id)
+
 		while len(daily_quests) < 3 and len(daily_quests) < len(all_daily_quests):
 			candidate = random.choice(all_daily_quests)
 			if candidate not in daily_quests:
@@ -178,6 +200,135 @@ class ChallengesView(views.APIView):
 		return Response({
 			'success': True,
 			'data': serializer.data
+		})
+
+
+class QuickQuestsView(views.APIView):
+	permission_classes = [IsAuthenticated, IsStudentRole]
+
+	def get(self, request):
+		user = request.user
+		from datetime import date
+		import random
+
+		# 1. Check daily quests completion status
+		all_daily_quests = list(Quest.objects.filter(
+			is_active=True,
+			expires_at__isnull=True
+		).select_related('target_building'))
+
+		daily_quests = []
+		if all_daily_quests:
+			today_str = date.today().isoformat()
+			random.seed(f"{user.id}-{today_str}")
+			easy_q = [q for q in all_daily_quests if q.difficulty == 'EASY']
+			medium_q = [q for q in all_daily_quests if q.difficulty == 'MEDIUM']
+			hard_q = [q for q in all_daily_quests if q.difficulty == 'HARD']
+
+			used_building_ids = set()
+
+			if easy_q:
+				chosen_easy = random.choice(easy_q)
+				daily_quests.append(chosen_easy)
+				used_building_ids.add(chosen_easy.target_building_id)
+
+			med_diff = [q for q in medium_q if q.target_building_id not in used_building_ids]
+			chosen_med = random.choice(med_diff) if med_diff else (random.choice(medium_q) if medium_q else None)
+			if chosen_med:
+				daily_quests.append(chosen_med)
+				used_building_ids.add(chosen_med.target_building_id)
+
+			hard_diff = [q for q in hard_q if q.target_building_id not in used_building_ids]
+			chosen_hard = random.choice(hard_diff) if hard_diff else (random.choice(hard_q) if hard_quests else None)
+			if chosen_hard:
+				daily_quests.append(chosen_hard)
+				used_building_ids.add(chosen_hard.target_building_id)
+
+			for candidate in all_daily_quests:
+				if len(daily_quests) >= 3:
+					break
+				if candidate.target_building_id not in used_building_ids and candidate not in daily_quests:
+					daily_quests.append(candidate)
+					used_building_ids.add(candidate.target_building_id)
+
+			while len(daily_quests) < 3 and len(daily_quests) < len(all_daily_quests):
+				candidate = random.choice(all_daily_quests)
+				if candidate not in daily_quests:
+					daily_quests.append(candidate)
+			random.seed()
+
+		completed_quest_ids = set(UserQuestProgress.objects.filter(
+			user=user, is_completed=True
+		).values_list('quest_id', flat=True))
+
+		daily_total = len(daily_quests)
+		daily_completed = sum(1 for q in daily_quests if q.id in completed_quest_ids)
+		is_unlocked = (daily_total > 0 and daily_completed >= daily_total)
+
+		# 2. Get available EASY quick quests, EXCLUDING buildings already used in today's daily missions AND excluding already completed quests
+		daily_building_ids = {q.target_building_id for q in daily_quests}
+
+		easy_quests_qs = Quest.objects.filter(
+			is_active=True,
+			difficulty='EASY',
+			expires_at__isnull=True
+		).exclude(
+			id__in=completed_quest_ids
+		).exclude(
+			target_building_id__in=daily_building_ids
+		).select_related('target_building')
+
+		# If excluding leaves fewer than 2 quests, fallback to uncompleted easy quests
+		if easy_quests_qs.count() < 2:
+			easy_quests_qs = Quest.objects.filter(
+				is_active=True,
+				difficulty='EASY',
+				expires_at__isnull=True
+			).exclude(
+				id__in=completed_quest_ids
+			).select_related('target_building')
+
+		# Deduplicate so there is at most 1 quick mission per campus building
+		seen_buildings = set()
+		distinct_available_quests = []
+		for q in easy_quests_qs:
+			if q.target_building_id not in seen_buildings:
+				seen_buildings.add(q.target_building_id)
+				distinct_available_quests.append(q)
+
+		# 3. Completed quick quests for this student
+		completed_progress = UserQuestProgress.objects.filter(
+			user=user,
+			is_completed=True,
+			quest__difficulty='EASY',
+			quest__expires_at__isnull=True
+		).select_related('quest', 'quest__target_building').order_by('-completed_at')
+
+		completed_quests = []
+		for p in completed_progress:
+			q_data = QuestSerializer(
+				p.quest, 
+				context={'completed_quest_ids': completed_quest_ids, 'request': request}
+			).data
+			q_data['completed_at'] = p.completed_at.isoformat() if p.completed_at else None
+			completed_quests.append(q_data)
+
+		available_serializer = QuestSerializer(
+			distinct_available_quests, 
+			many=True, 
+			context={'completed_quest_ids': completed_quest_ids, 'request': request}
+		)
+
+		return Response({
+			'success': True,
+			'data': {
+				'is_unlocked': is_unlocked,
+				'daily_completed_count': daily_completed,
+				'daily_total_count': daily_total,
+				'quests': available_serializer.data,
+				'available_quests': available_serializer.data,
+				'completed_quests': completed_quests,
+			}
 		})
 
 
@@ -301,24 +452,42 @@ class MyQuestHistoryView(views.APIView):
 	permission_classes = [IsAuthenticated, IsStudentRole]
 
 	def get(self, request):
+		try:
+			limit = min(int(request.query_params.get('limit', 50)), 100)
+		except (ValueError, TypeError):
+			limit = 50
+
 		recent = UserQuestProgress.objects.filter(
 			is_completed=True,
 			user=request.user
-		).select_related('quest', 'quest__target_building').order_by('-completed_at')[:10]
+		).select_related('quest', 'quest__target_building').order_by('-completed_at')[:limit]
 
 		data = []
 		for r in recent:
+			b_name = r.quest.target_building.name if r.quest.target_building else 'Unknown Location'
+			completed_str = r.completed_at.isoformat() if r.completed_at else None
 			data.append({
+				'id': str(r.id),
+				'quest_id': str(r.quest.id),
+				'title': r.quest.title,
 				'quest_title': r.quest.title,
-				'building_name': r.quest.target_building.name if r.quest.target_building else 'Unknown Location',
+				'hint': r.quest.hint,
+				'difficulty': r.quest.difficulty,
+				'target_building': r.quest.target_building_id,
+				'target_building_name': b_name,
+				'building_name': b_name,
 				'points': r.quest.reward_points,
-				'time_ago': r.completed_at.isoformat()
+				'reward_points': r.quest.reward_points,
+				'is_completed': True,
+				'completed_at': completed_str,
+				'time_ago': completed_str
 			})
 
 		return Response({
 			'success': True,
 			'data': data
 		})
+
 
 
 @api_view(['GET', 'POST'])

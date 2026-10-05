@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Plus, X, Trash2 } from "lucide-react";
 import { Card, Badge, Button, Pagination, ConfirmDeleteModal } from "../components/ui";
 import { userService } from "../services/userService";
-import { getAvatarUri } from "../utils/avatarUtils";
+import { getAvatarUri, getProfileImageUrl } from "../utils/avatarUtils";
 import {
     validateForm,
     validateString,
@@ -351,10 +351,16 @@ export default function ProfessionalsPage({ hideHeader }) {
                                         <td className="px-6 py-1">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-brand-light border border-brand-border flex items-center justify-center text-brand font-bold text-xs shrink-0 overflow-hidden">
-                                                    {user.avatar_id &&
-                                                    getAvatarUri(
-                                                        user.avatar_id,
-                                                    ) ? (
+                                                    {user.profile_image ? (
+                                                        <img
+                                                            src={getProfileImageUrl(user.profile_image)}
+                                                            alt="Profile"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : user.avatar_id &&
+                                                      getAvatarUri(
+                                                          user.avatar_id,
+                                                      ) ? (
                                                         <img
                                                             src={getAvatarUri(
                                                                 user.avatar_id,

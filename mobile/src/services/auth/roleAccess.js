@@ -34,9 +34,9 @@ export const roleAccess = {
         visitor: {
             canAccessAdmin: false,
             canView3D: false,
-            canViewPanorama: false,
+            canViewPanorama: true,
             canUseAR: false,
-            requiresUnlock: true,
+            requiresUnlock: false,
             canMutateData: false,
         },
     },

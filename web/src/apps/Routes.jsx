@@ -21,7 +21,7 @@ import NotFound from "../pages/NotFound";
 const AppRoutes = () => {
     return (
         <Routes>
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin" element={<LoginPage />} />
             <Route path="/" element={<LandingPage />} />
             <Route
                 path="/"

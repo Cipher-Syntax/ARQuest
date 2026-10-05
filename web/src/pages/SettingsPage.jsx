@@ -1,6 +1,6 @@
-import { Save, User, Lock, Eye, EyeOff, HelpCircle, PlayCircle, RotateCcw } from "lucide-react";
+import { Save, User, Lock, Eye, EyeOff, HelpCircle, PlayCircle, RotateCcw, Camera, Upload, Trash2 } from "lucide-react";
 import { Card, Toggle, Button } from "../components/ui";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { settingsService } from "../services/settingsService";
 import { useAuth } from "../hooks/useAuth";
 import { triggerAdminTour } from "../components/common/AdminOnboardingTour";
@@ -10,6 +10,7 @@ import {
     validateNumber,
     validateEmail,
 } from "../utils/validation";
+import { getProfileImageUrl } from "../utils/avatarUtils";
 
 export default function Settings() {
     const { user, updateUser } = useAuth();
@@ -39,6 +40,11 @@ export default function Settings() {
         password: "",
         confirmPassword: ""
     });
+    const fileInputRef = useRef(null);
+    const [profileImageFile, setProfileImageFile] = useState(null);
+    const [profileImagePreview, setProfileImagePreview] = useState(null);
+    const [removeProfileImage, setRemoveProfileImage] = useState(false);
+    const [imageError, setImageError] = useState("");
 
     const tourStorageKey = user?.id
         ? `@arquest_web_tutorial_completed_${user.id}`
@@ -98,6 +104,71 @@ export default function Settings() {
         }
     };
 
+    const activeProfileImage = !removeProfileImage
+        ? (profileImagePreview || getProfileImageUrl(user?.profile_image))
+        : null;
+
+    const hasPendingProfileChanges = () => {
+        if (profileImageFile !== null) return true;
+        if (removeProfileImage) return true;
+        if (profileData.password.trim() !== "") return true;
+        const currentFullName = user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "";
+        if (profileData.name.trim() !== currentFullName) return true;
+        return false;
+    };
+
+    const saveProfileChanges = async () => {
+        const parts = profileData.name.trim().split(" ");
+        const firstName = parts[0] || "";
+        const lastName = parts.slice(1).join(" ") || "";
+
+        if (profileData.password) {
+            if (profileData.password !== profileData.confirmPassword) {
+                throw new Error("Passwords do not match!");
+            }
+            if (profileData.password.length < 8) {
+                throw new Error("Password must be at least 8 characters long.");
+            }
+        }
+
+        let updatedUser;
+        if (profileImageFile || removeProfileImage) {
+            const formData = new FormData();
+            formData.append("first_name", firstName);
+            formData.append("last_name", lastName);
+            if (profileData.password) {
+                formData.append("password", profileData.password);
+            }
+            if (profileImageFile) {
+                formData.append("profile_image", profileImageFile);
+            } else if (removeProfileImage) {
+                formData.append("remove_profile_image", "true");
+            }
+            updatedUser = await updateUser(formData);
+        } else {
+            const payload = {
+                first_name: firstName,
+                last_name: lastName,
+            };
+            if (profileData.password) {
+                payload.password = profileData.password;
+            }
+            updatedUser = await updateUser(payload);
+        }
+
+        if (profileImagePreview && profileImagePreview.startsWith("blob:")) {
+            URL.revokeObjectURL(profileImagePreview);
+        }
+        setProfileImageFile(null);
+        setProfileImagePreview(null);
+        setRemoveProfileImage(false);
+        setProfileData(prev => ({ ...prev, password: "", confirmPassword: "" }));
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+        return updatedUser;
+    };
+
     const handleSave = async () => {
         const schema = {
             app_name: (val) => validateString(val, 1),
@@ -108,19 +179,82 @@ export default function Settings() {
         setErrors(validationErrors);
         if (Object.keys(validationErrors).length > 0) return;
 
+        if (profileData.password) {
+            if (profileData.password !== profileData.confirmPassword) {
+                setErrorMessage("Passwords do not match!");
+                return;
+            }
+            if (profileData.password.length < 8) {
+                setErrorMessage("Password must be at least 8 characters long.");
+                return;
+            }
+        }
+
         try {
             setErrorMessage("");
             setSuccessMessage("");
             setIsSaving(true);
+
+            const hasProfileUpdates = hasPendingProfileChanges();
+
             await settingsService.updateSettings(settings);
-            setSuccessMessage("System settings saved successfully!");
-            setTimeout(() => setSuccessMessage(""), 3000);
+
+            if (hasProfileUpdates) {
+                await saveProfileChanges();
+                setSuccessMessage("System settings and admin profile saved successfully!");
+            } else {
+                setSuccessMessage("System settings saved successfully!");
+            }
+
+            setTimeout(() => setSuccessMessage(""), 3500);
         } catch (error) {
-            console.error("Failed to save settings", error);
-            setErrorMessage("Failed to save system settings. Please try again.");
-            setTimeout(() => setErrorMessage(""), 3000);
+            console.error("Failed to save settings/profile", error);
+            const msg = error.message || error.response?.data?.message || "Failed to save settings. Please try again.";
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(""), 3500);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    useEffect(() => {
+        return () => {
+            if (profileImagePreview && profileImagePreview.startsWith("blob:")) {
+                URL.revokeObjectURL(profileImagePreview);
+            }
+        };
+    }, [profileImagePreview]);
+
+    const handleImageChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImageError("");
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+            setImageError("Please select a valid image (PNG, JPG, or WebP).");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setImageError("Image file size must be less than 5MB.");
+            return;
+        }
+
+        setProfileImageFile(file);
+        setRemoveProfileImage(false);
+        const objectUrl = URL.createObjectURL(file);
+        setProfileImagePreview(objectUrl);
+    };
+
+    const handleRemoveImage = () => {
+        if (profileImagePreview && profileImagePreview.startsWith("blob:")) {
+            URL.revokeObjectURL(profileImagePreview);
+        }
+        setProfileImageFile(null);
+        setProfileImagePreview(null);
+        setRemoveProfileImage(true);
+        setImageError("");
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
         }
     };
 
@@ -129,28 +263,13 @@ export default function Settings() {
             setIsProfileSaving(true);
             setErrorMessage("");
             setSuccessMessage("");
-            const parts = profileData.name.trim().split(" ");
-            const payload = {
-                first_name: parts[0] || "",
-                last_name: parts.slice(1).join(" ") || ""
-            };
-            if (profileData.password) {
-                if (profileData.password !== profileData.confirmPassword) {
-                    setErrorMessage("Passwords do not match!");
-                    setIsProfileSaving(false);
-                    return;
-                }
-                payload.password = profileData.password;
-            }
-            
-            await updateUser(payload);
-            
-            setProfileData(prev => ({ ...prev, password: "", confirmPassword: "" })); // Clear password fields
-            setSuccessMessage("Personal profile updated successfully!");
+            await saveProfileChanges();
+            setSuccessMessage("Admin profile updated successfully!");
             setTimeout(() => setSuccessMessage(""), 3000);
         } catch (error) {
             console.error("Failed to update profile", error);
-            setErrorMessage("Failed to update profile. Please try again.");
+            const msg = error.message || error.response?.data?.message || "Failed to update profile. Please try again.";
+            setErrorMessage(msg);
             setTimeout(() => setErrorMessage(""), 3000);
         } finally {
             setIsProfileSaving(false);
@@ -171,7 +290,7 @@ export default function Settings() {
                 <Button
                     onClick={handleSave}
                     className="gap-2 px-8"
-                    disabled={isSaving}
+                    disabled={isSaving || isProfileSaving}
                 >
                     <Save size={18} />
                     {isSaving ? "Saving..." : "Save Changes"}
@@ -198,6 +317,72 @@ export default function Settings() {
                             Admin Profile
                         </h3>
                         <div className="space-y-5">
+                            {/* Profile Photo Upload Section */}
+                            <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-md bg-brand-light/20 border border-brand-border/60">
+                                <div className="relative group shrink-0">
+                                    <div className="w-20 h-20 rounded-full border-2 border-brand-border bg-white shadow-sm overflow-hidden flex items-center justify-center">
+                                        {activeProfileImage ? (
+                                            <img
+                                                src={activeProfileImage}
+                                                alt="Admin Avatar Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-brand/5 text-brand font-bold text-2xl uppercase">
+                                                {user?.first_name ? user.first_name.charAt(0) : (user?.username || "A").charAt(0)}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        title="Upload new photo"
+                                        className="absolute bottom-0 right-0 p-1.5 rounded-full bg-brand text-white shadow-md hover:bg-brand/90 transition-transform active:scale-95 cursor-pointer"
+                                    >
+                                        <Camera size={13} />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 text-center sm:text-left space-y-1.5 min-w-0">
+                                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                                        Profile Photo
+                                    </h4>
+                                    <p className="text-[11px] text-gray-500">
+                                        Upload your personal admin avatar. JPG, PNG or WebP (Max 5MB).
+                                    </p>
+                                    <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 flex-wrap">
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/png, image/jpeg, image/webp"
+                                            className="hidden"
+                                            onChange={handleImageChange}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-white border border-brand-border text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+                                        >
+                                            <Upload size={13} />
+                                            {activeProfileImage ? "Change Photo" : "Upload Photo"}
+                                        </button>
+                                        {activeProfileImage && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveImage}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                            >
+                                                <Trash2 size={13} />
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+                                    {imageError && (
+                                        <p className="text-[11px] font-semibold text-red-500">{imageError}</p>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                                     Full Name
@@ -270,7 +455,7 @@ export default function Settings() {
                                 <Button
                                     variant="secondary"
                                     onClick={handleProfileSave}
-                                    disabled={isProfileSaving}
+                                    disabled={isSaving || isProfileSaving}
                                     className="text-sm px-4 py-2 h-auto"
                                 >
                                     {isProfileSaving ? "Updating..." : "Update Profile"}

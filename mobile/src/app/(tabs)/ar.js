@@ -1073,9 +1073,9 @@ export default function ARScreen() {
                         AR Access Restricted
                     </Text>
                     <Text style={styles.permissionText}>
-                        Your current role does not have access to the AR
-                        features. Please sign in as a student or professional to
-                        use AR Quest features.
+                        Your current role does not have access to AR
+                        features. Please sign in as a registered student to
+                        use AR Quest scanning and missions.
                     </Text>
                     <TouchableOpacity
                         style={styles.permissionButton}
@@ -1441,9 +1441,9 @@ export default function ARScreen() {
 
                             {/* Banner Tag */}
                             <View style={styles.arrivalRewardBanner}>
-                                <Ionicons name="sparkles" size={12} color="#FFD700" style={{ marginRight: 5 }} />
+                                <Ionicons name="trophy" size={12} color="#FFD700" style={{ marginRight: 5 }} />
                                 <Text style={styles.arrivalRewardTagline}>DESTINATION REACHED</Text>
-                                <Ionicons name="sparkles" size={12} color="#FFD700" style={{ marginLeft: 5 }} />
+                                <Ionicons name="trophy" size={12} color="#FFD700" style={{ marginLeft: 5 }} />
                             </View>
 
                             <Text style={styles.arrivalRewardTitle}>YOU HAVE ARRIVED</Text>
@@ -1614,7 +1614,7 @@ export default function ARScreen() {
                         {user?.role === "student" && claimedQuest && (
                             <View style={styles.rewardBadge}>
                                 <Ionicons
-                                    name="sparkles"
+                                    name="flash"
                                     color={theme.colors.primary}
                                     size={20}
                                 />

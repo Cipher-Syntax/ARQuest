@@ -81,8 +81,17 @@
         transform: translateX(-50%);
     }
 }
-.animate-marquee {
-    animation: marquee 40s linear infinite;
+@keyframes justineBreathe {
+    0%,
+    100% {
+        transform: translateY(0px) scale(1);
+    }
+    50% {
+        transform: translateY(-5px) scale(1.01);
+    }
+}
+.animate-justine {
+    animation: justineBreathe 3.6s ease-in-out infinite;
 }
 
 /* Custom Scrollbar */

@@ -14,7 +14,6 @@ import {
     Compass,
     Target,
     Layers,
-    Sparkles,
     ShieldCheck,
     Users,
     Mail,
@@ -145,7 +144,7 @@ export default function AboutScreen() {
 
                         <View style={styles.featureItem}>
                             <View style={styles.featureIconWrap}>
-                                <Sparkles size={16} color={theme.colors.primary} />
+                                <Target size={16} color={theme.colors.primary} />
                             </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Complete Missions & Quizzes</Text>

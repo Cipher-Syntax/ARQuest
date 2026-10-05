@@ -19,8 +19,16 @@ import {
     ChevronUp,
     Info,
     Eye,
+    EyeOff,
     Navigation,
     MapPin,
+    Shield,
+    Palette,
+    Maximize2,
+    RotateCcw,
+    Sliders,
+    Layers,
+    Shapes,
 } from "lucide-react";
 import ReactMap, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-gl/mapbox";
 import circle from "@turf/circle";
@@ -50,6 +58,28 @@ const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
 const WMSU_BOUNDS = [
     [122.0575, 6.9095],
     [122.064, 6.9155],
+];
+
+const DEFAULT_CAMPUS_PERIMETER = [
+    [122.0570, 6.9092],
+    [122.0570, 6.9162],
+    [122.0655, 6.9162],
+    [122.0655, 6.9092],
+    [122.0570, 6.9092],
+];
+
+const PERIMETER_PRESET_COLORS = [
+    { label: "Dark Slate", value: "#111827" },
+    { label: "Midnight Navy", value: "#0f172a" },
+    { label: "Deep Charcoal", value: "#1e293b" },
+    { label: "Off-White", value: "#f8fafc" },
+];
+
+const PERIMETER_STROKE_COLORS = [
+    { label: "Crimson", value: "#B21830" },
+    { label: "Amber Gold", value: "#f59e0b" },
+    { label: "Sky Blue", value: "#0ea5e9" },
+    { label: "Emerald Green", value: "#10b981" },
 ];
 
 const NODE_TYPES = {
@@ -233,11 +263,12 @@ export default function CampusMapPage() {
     const location = useLocation();
     const mapRef = useRef(null);
 
-    // Active Mode Tab: "map" (geofences) | "pathway" (network editor)
+    // Active Mode Tab: "map" (geofences) | "pathway" (network editor) | "perimeter" (boundary & mask)
     const getInitialTab = () => {
         const tabParam = searchParams.get("tab");
-        if (["map", "pathway"].includes(tabParam)) return tabParam;
+        if (["map", "pathway", "perimeter"].includes(tabParam)) return tabParam;
         if (location.pathname.includes("navigation")) return "pathway";
+        if (location.pathname.includes("perimeter")) return "perimeter";
         return "map";
     };
     const [activeTab, setActiveTabState] = useState(getInitialTab);
@@ -303,26 +334,50 @@ export default function CampusMapPage() {
     const [pathsExpanded, setPathsExpanded] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState(null);
 
+    // -------------------------------------------------------------
+    // Tab 3: Campus Perimeter & Outside Mask Editor States
+    // -------------------------------------------------------------
+    const [perimeterConfig, setPerimeterConfig] = useState({
+        name: "Western Mindanao State University",
+        coordinates: DEFAULT_CAMPUS_PERIMETER,
+        fill_color: "#111827",
+        fill_opacity: 0.65,
+        stroke_color: "#B21830",
+        stroke_width: 2.5,
+        is_active: true,
+    });
+    const [perimeterCoords, setPerimeterCoords] = useState(DEFAULT_CAMPUS_PERIMETER);
+    const [perimeterMode, setPerimeterMode] = useState("view"); // "view" | "draw" | "edit"
+    const [showCampusMask, setShowCampusMask] = useState(true);
+    const [selectedVertexIdx, setSelectedVertexIdx] = useState(null);
+    const [isSavingPerimeter, setIsSavingPerimeter] = useState(false);
+
     // Flash message banner
     const flashSuccess = (msg) => {
         setSuccessMsg(msg);
         setTimeout(() => setSuccessMsg(null), 3200);
     };
 
-    // Load initial network & geofences in parallel
+    // Load initial network, geofences, and campus perimeter in parallel
     const loadAllData = useCallback(async () => {
         setLoading(true);
         setErrorMsg(null);
         try {
-            const [bList, nList, pList] = await Promise.all([
+            const [bList, nList, pList, perimeterRes] = await Promise.all([
                 buildingService.getBuildings(),
                 navigationService.getNodes(),
                 navigationService.getPaths(),
+                navigationService.getPerimeter().catch(() => null),
             ]);
 
             setRawBuildings(bList || []);
             setNodes(nList || []);
             setPaths(pList || []);
+
+            if (perimeterRes && Array.isArray(perimeterRes.coordinates) && perimeterRes.coordinates.length >= 3) {
+                setPerimeterConfig(perimeterRes);
+                setPerimeterCoords(perimeterRes.coordinates);
+            }
 
             // Build geofences dataset with circular metadata
             const formatted = await Promise.all(
@@ -742,14 +797,107 @@ export default function CampusMapPage() {
             if (activeTab === "map") {
                 setSelectedGeoId(null);
             }
+
+            // Perimeter Drawing Tab
+            if (activeTab === "perimeter" && perimeterMode === "draw") {
+                const newCoords = [...perimeterCoords];
+                // Insert before the closing point
+                newCoords.splice(newCoords.length - 1, 0, [lng, lat]);
+                setPerimeterCoords(newCoords);
+            }
         },
-        [activeTab, pathwayMode, drawingFrom, validPaths]
+        [activeTab, pathwayMode, drawingFrom, validPaths, perimeterMode, perimeterCoords]
     );
+
+    // Handle dragging a perimeter vertex
+    const handleVertexDrag = useCallback((idx, e) => {
+        const { lng, lat } = e.lngLat;
+        setPerimeterCoords((prev) => {
+            const next = [...prev];
+            next[idx] = [lng, lat];
+            // Keep polygon closed: sync last point with first
+            if (idx === 0) next[next.length - 1] = [lng, lat];
+            if (idx === next.length - 1) next[0] = [lng, lat];
+            return next;
+        });
+    }, []);
+
+    // Remove a perimeter vertex
+    const handleRemoveVertex = useCallback((idx) => {
+        setPerimeterCoords((prev) => {
+            if (prev.length <= 4) return prev; // keep minimum polygon
+            const next = prev.filter((_, i) => i !== idx);
+            // Re-close polygon
+            next[next.length - 1] = next[0];
+            return next;
+        });
+        setSelectedVertexIdx(null);
+    }, []);
+
+    // Reset to default perimeter
+    const handleResetPerimeter = useCallback(() => {
+        setPerimeterCoords(DEFAULT_CAMPUS_PERIMETER);
+        setSelectedVertexIdx(null);
+        setPerimeterMode("view");
+    }, []);
+
+    // Save perimeter to backend
+    const handleSavePerimeter = useCallback(async () => {
+        setIsSavingPerimeter(true);
+        try {
+            const payload = {
+                ...perimeterConfig,
+                coordinates: perimeterCoords,
+            };
+            const saved = await navigationService.savePerimeter(payload);
+            if (saved) {
+                setPerimeterConfig(saved);
+                setPerimeterCoords(saved.coordinates);
+            }
+            setPerimeterMode("view");
+            flashSuccess("Campus boundary saved and will sync to mobile maps.");
+        } catch {
+            setErrorMsg("Failed to save campus perimeter. Check your connection.");
+        } finally {
+            setIsSavingPerimeter(false);
+        }
+    }, [perimeterConfig, perimeterCoords]);
+
+    // Build inverted GeoJSON mask (world – campus hole)
+    const perimeterMaskGeojson = useMemo(() => ({
+        type: "FeatureCollection",
+        features: [{
+            type: "Feature",
+            properties: {},
+            geometry: {
+                type: "Polygon",
+                coordinates: [
+                    // Outer ring: entire globe
+                    [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]],
+                    // Inner hole: campus boundary
+                    perimeterCoords,
+                ],
+            },
+        }],
+    }), [perimeterCoords]);
+
+    const perimeterStrokeGeojson = useMemo(() => ({
+        type: "FeatureCollection",
+        features: [{
+            type: "Feature",
+            properties: {},
+            geometry: {
+                type: "LineString",
+                coordinates: perimeterCoords,
+            },
+        }],
+    }), [perimeterCoords]);
 
     // Active selected geofence entity
     const selectedGeo = useMemo(() => {
         return geofences.find((g) => g.id === selectedGeoId) || null;
     }, [geofences, selectedGeoId]);
+
 
     return (
         <div className="flex flex-col h-[calc(100vh-5.5rem)] min-h-[580px] gap-2.5 overflow-hidden">
@@ -767,12 +915,12 @@ export default function CampusMapPage() {
                             </span>
                         </h1>
                         <p className="text-[11px] text-gray-500 leading-tight">
-                            Arrival geofences & pedestrian walkway network editor
+                            Arrival geofences, pedestrian walkways &amp; campus boundary mask editor
                         </p>
                     </div>
                 </div>
 
-                {/* 2-Way Mode Switcher (Strict 6px: rounded-md) */}
+                {/* 3-Way Mode Switcher (Strict 6px: rounded-md) */}
                 <div className="inline-flex p-1 bg-gray-100 border border-gray-200 rounded-md shadow-xs self-start sm:self-auto">
                     <button
                         type="button"
@@ -805,6 +953,22 @@ export default function CampusMapPage() {
                         />
                         <span>Pathway</span>
                     </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("perimeter")}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                            activeTab === "perimeter"
+                                ? "bg-brand text-white shadow-sm"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                        }`}
+                    >
+                        <Shapes
+                            size={14}
+                            className={activeTab === "perimeter" ? "text-white" : "text-gray-500"}
+                        />
+                        <span>Boundary</span>
+                    </button>
                 </div>
             </header>
 
@@ -831,10 +995,188 @@ export default function CampusMapPage() {
 
 
                 {/* ========================================================= */}
+                {/* TAB 3: CAMPUS BOUNDARY / PERIMETER EDITOR SIDEBAR        */}
+                {/* ========================================================= */}
+                {activeTab === "perimeter" && (
+                    <aside className="w-80 flex-shrink-0 bg-slate-50/80 border-r border-brand-border flex flex-col overflow-hidden z-10">
+                        {/* Header */}
+                        <div className="px-4 py-3 bg-white border-b border-brand-border">
+                            <div className="flex items-center justify-between mb-1">
+                                <h2 className="font-bold text-gray-900 text-xs flex items-center gap-1.5 uppercase tracking-wider">
+                                    <Shield size={14} className="text-brand" /> Campus Boundary
+                                </h2>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700">
+                                    {perimeterCoords.length - 1} Vertices
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500">
+                                Draw or adjust the campus perimeter. The area outside the boundary will be masked on the mobile map.
+                            </p>
+                        </div>
+
+                        {/* Mode Action Bar */}
+                        <div className="px-4 py-3 bg-white border-b border-brand-border space-y-2">
+                            <div className="flex items-center gap-2">
+                                {perimeterMode === "view" ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setPerimeterMode("draw")}
+                                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-brand hover:bg-brand/90 rounded-md transition-all shadow-xs"
+                                    >
+                                        <Plus size={13} /> Add Vertex
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setPerimeterMode("view")}
+                                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brand bg-brand-light border border-brand/30 hover:bg-brand/10 rounded-md transition-all"
+                                    >
+                                        <Check size={13} /> Done Adding
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={handleResetPerimeter}
+                                    title="Reset to default rectangle"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-all shadow-2xs"
+                                >
+                                    <RotateCcw size={12} />
+                                </button>
+                            </div>
+                            {perimeterMode === "draw" && (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-md text-[11px] text-amber-800 font-medium">
+                                    <MapPin size={12} className="shrink-0 text-amber-600" />
+                                    Click on the map to place a vertex. Drag existing vertex handles to reposition them.
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Appearance Controls */}
+                        <div className="px-4 py-3 bg-white border-b border-brand-border space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Palette size={11} /> Mask Appearance
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCampusMask((v) => !v)}
+                                    className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-brand font-medium transition-colors"
+                                >
+                                    {showCampusMask ? <EyeOff size={12} /> : <Eye size={12} />}
+                                    {showCampusMask ? "Hide Mask" : "Show Mask"}
+                                </button>
+                            </div>
+
+                            {/* Fill color presets */}
+                            <div>
+                                <p className="text-[10px] text-gray-500 font-semibold mb-1.5">Outside Color</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {PERIMETER_PRESET_COLORS.map((c) => (
+                                        <button
+                                            key={c.value}
+                                            type="button"
+                                            onClick={() => setPerimeterConfig((prev) => ({ ...prev, fill_color: c.value }))}
+                                            title={c.label}
+                                            className={`w-6 h-6 rounded-md border-2 transition-all ${perimeterConfig.fill_color === c.value ? "border-brand scale-110 shadow-sm" : "border-transparent hover:border-gray-300"}`}
+                                            style={{ backgroundColor: c.value }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Opacity slider */}
+                            <div>
+                                <p className="text-[10px] text-gray-500 font-semibold mb-1.5">
+                                    Mask Opacity — {Math.round(perimeterConfig.fill_opacity * 100)}%
+                                </p>
+                                <input
+                                    type="range" min="0.1" max="0.95" step="0.05"
+                                    value={perimeterConfig.fill_opacity}
+                                    onChange={(e) => setPerimeterConfig((prev) => ({ ...prev, fill_opacity: parseFloat(e.target.value) }))}
+                                    className="w-full h-1.5 rounded accent-brand"
+                                />
+                            </div>
+
+                            {/* Stroke color presets */}
+                            <div>
+                                <p className="text-[10px] text-gray-500 font-semibold mb-1.5">Boundary Stroke</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {PERIMETER_STROKE_COLORS.map((c) => (
+                                        <button
+                                            key={c.value}
+                                            type="button"
+                                            onClick={() => setPerimeterConfig((prev) => ({ ...prev, stroke_color: c.value }))}
+                                            title={c.label}
+                                            className={`w-6 h-6 rounded-md border-2 transition-all ${perimeterConfig.stroke_color === c.value ? "border-brand scale-110 shadow-sm" : "border-transparent hover:border-gray-300"}`}
+                                            style={{ backgroundColor: c.value }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Vertex List */}
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="px-4 py-2 bg-gray-50/80 border-b border-brand-border">
+                                <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                                    Vertex Coordinates
+                                </span>
+                            </div>
+                            <ul className="divide-y divide-gray-50">
+                                {perimeterCoords.slice(0, -1).map((coord, idx) => (
+                                    <li
+                                        key={idx}
+                                        onClick={() => setSelectedVertexIdx(idx === selectedVertexIdx ? null : idx)}
+                                        className={`px-4 py-2 flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 transition-colors ${selectedVertexIdx === idx ? "bg-brand-light border-l-2 border-brand" : "border-l-2 border-transparent"}`}
+                                    >
+                                        <div>
+                                            <p className="text-[10px] font-bold text-gray-700 font-mono">
+                                                V{idx + 1}
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-mono">
+                                                {coord[0].toFixed(5)}, {coord[1].toFixed(5)}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleRemoveVertex(idx); }}
+                                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                            title="Remove vertex"
+                                        >
+                                            <X size={11} />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Save Footer */}
+                        <div className="p-4 bg-white border-t border-brand-border">
+                            <button
+                                type="button"
+                                onClick={handleSavePerimeter}
+                                disabled={isSavingPerimeter}
+                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold text-white bg-brand hover:bg-brand/90 rounded-md transition-all shadow-xs disabled:opacity-60"
+                            >
+                                {isSavingPerimeter ? (
+                                    <><RotateCcw size={13} className="animate-spin" /> Saving…</>
+                                ) : (
+                                    <><Check size={13} /> Save Campus Boundary</>
+                                )}
+                            </button>
+                            <p className="text-[10px] text-gray-400 text-center mt-2">
+                                Changes sync to mobile map on next app load.
+                            </p>
+                        </div>
+                    </aside>
+                )}
+
+                {/* ========================================================= */}
                 {/* TAB 2: PATHWAY NETWORK EDITOR SIDEBAR                   */}
                 {/* ========================================================= */}
                 {activeTab === "pathway" && (
                     <aside className="w-80 flex-shrink-0 bg-slate-50/80 border-r border-brand-border flex flex-col overflow-hidden z-10">
+
                         {/* Header Stats */}
                         <div className="px-4 py-3 bg-white border-b border-brand-border">
                             <div className="flex items-center justify-between mb-1">
@@ -1201,9 +1543,37 @@ export default function CampusMapPage() {
                     >
                         <NavigationControl position="top-right" />
 
+                        {/* CAMPUS BOUNDARY: Inverted Mask + Stroke (Always visible on all tabs when showCampusMask is on) */}
+                        {showCampusMask && (
+                            <>
+                                <Source id="campus-perimeter-mask" type="geojson" data={perimeterMaskGeojson}>
+                                    <Layer
+                                        id="campus-mask-fill"
+                                        type="fill"
+                                        paint={{
+                                            "fill-color": perimeterConfig.fill_color,
+                                            "fill-opacity": perimeterConfig.fill_opacity,
+                                        }}
+                                    />
+                                </Source>
+                                <Source id="campus-perimeter-stroke" type="geojson" data={perimeterStrokeGeojson}>
+                                    <Layer
+                                        id="campus-boundary-line"
+                                        type="line"
+                                        paint={{
+                                            "line-color": perimeterConfig.stroke_color,
+                                            "line-width": perimeterConfig.stroke_width,
+                                            "line-dasharray": [3, 2],
+                                        }}
+                                    />
+                                </Source>
+                            </>
+                        )}
+
                         {/* TAB 1: GEOFENCE CIRCLES LAYER */}
                         {activeTab === "map" && (
                             <Source id="geofences" type="geojson" data={circlesGeojson}>
+
 
                                 <Layer
                                     id="geofences-fill"
@@ -1367,8 +1737,37 @@ export default function CampusMapPage() {
                                 />
                             ))}
 
+                        {/* MARKERS: Perimeter Vertex Handles (Tab 3: Boundary Editor) */}
+                        {activeTab === "perimeter" &&
+                            perimeterCoords.slice(0, -1).map((coord, idx) => (
+                                <Marker
+                                    key={`pv-${idx}`}
+                                    longitude={coord[0]}
+                                    latitude={coord[1]}
+                                    anchor="center"
+                                    draggable
+                                    onDrag={(e) => handleVertexDrag(idx, e)}
+                                    onClick={(e) => {
+                                        e.originalEvent.stopPropagation();
+                                        setSelectedVertexIdx(idx === selectedVertexIdx ? null : idx);
+                                    }}
+                                >
+                                    <div
+                                        className={`w-5 h-5 rounded-full border-2 cursor-grab active:cursor-grabbing shadow-md flex items-center justify-center transition-all ${
+                                            selectedVertexIdx === idx
+                                                ? "bg-brand border-white ring-2 ring-brand scale-125"
+                                                : "bg-white border-brand hover:scale-110"
+                                        }`}
+                                        title={`Vertex ${idx + 1}: ${coord[0].toFixed(5)}, ${coord[1].toFixed(5)}`}
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${selectedVertexIdx === idx ? "bg-white" : "bg-brand"}`} />
+                                    </div>
+                                </Marker>
+                            ))}
+
                         {/* MARKERS: Waypoint Nodes (Tab 2: Pathway) */}
                         {activeTab === "pathway" &&
+
                             nodes.map((n) => (
                                 <Marker
                                     key={`nd-${n.id}`}

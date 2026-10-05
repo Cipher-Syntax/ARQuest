@@ -4,12 +4,12 @@ import { View, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import theme from "../../theme/tokens";
 import { useAuth } from "../../hooks/useAuth";
-import { LocationProvider } from "../../context/LocationContext";
 import { UnlockedBuildingsProvider } from "../../context/UnlockedBuildingsContext";
 import { Redirect } from "expo-router";
 import { registerForPushNotificationsAsync } from "../../utils/pushNotifications";
 import { useEffect } from "react";
 import OnboardingTutorial from "../../components/features/OnboardingTutorial";
+import JustineGuideModal from "../../components/features/JustineGuideModal";
 
 function CustomTabBar({ state, descriptors, navigation }) {
     return (
@@ -123,9 +123,8 @@ export default function TabLayout() {
     }
 
     return (
-        <LocationProvider>
-            <UnlockedBuildingsProvider>
-                <View style={{ flex: 1 }}>
+        <UnlockedBuildingsProvider>
+            <View style={{ flex: 1 }}>
                     <Tabs
                         screenOptions={{
                             headerStyle: {
@@ -198,8 +197,8 @@ export default function TabLayout() {
                         />
                     </Tabs>
                     <OnboardingTutorial />
+                    <JustineGuideModal />
                 </View>
             </UnlockedBuildingsProvider>
-        </LocationProvider>
     );
 }

@@ -16,6 +16,9 @@ class SoundManager {
             badge_earned: require("../../assets/sounds/badge_earned.wav"),
             trivia_correct: require("../../assets/sounds/trivia_correct.wav"),
             trivia_wrong: require("../../assets/sounds/trivia_wrong.wav"),
+            nav_turn_left: require("../../assets/sounds/turn_left.mp3"),
+            nav_turn_right: require("../../assets/sounds/turn_right.mp3"),
+            nav_arrived: require("../../assets/sounds/arrived.mp3"),
         };
 
         // Listen for AppState changes to pause/release audio when backgrounded

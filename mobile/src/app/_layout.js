@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { AuthProvider, useAuthState, useAuthActions } from "../context/AuthContext";
+import { LocationProvider } from "../context/LocationContext";
 import OfflineBanner from "../components/ui/OfflineBanner";
 import CustomAlert, { alertRef } from "../components/ui/CustomAlert";
 import DailyStreakModal from "../components/features/DailyStreakModal";
@@ -83,7 +84,9 @@ export default function RootLayout() {
 
     return (
         <AuthProvider>
-            <RootLayoutContent />
+            <LocationProvider>
+                <RootLayoutContent />
+            </LocationProvider>
         </AuthProvider>
     );
 }

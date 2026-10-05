@@ -30,8 +30,10 @@ export default function AvatarSelectionScreen() {
             // Reset tutorial flag so the new user receives the onboarding guide upon entering tabs
             if (savedUser?.id) {
                 await AsyncStorage.removeItem(`@tutorial_completed_${savedUser.id}`);
+                await AsyncStorage.removeItem(`@justine_guide_completed_${savedUser.id}`);
             }
             await AsyncStorage.removeItem("@tutorial_completed");
+            await AsyncStorage.removeItem("@justine_guide_completed");
 
             // Successfully updated, go to dashboard
             router.replace("/(tabs)");

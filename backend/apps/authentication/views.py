@@ -1,5 +1,6 @@
-from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework import status
 from rest_framework.response import Response
 from apps.api.models import SystemSetting, Notification
@@ -14,9 +15,10 @@ from apps.api.errors import ErrorCodes
 from .serializers import (
     LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer,
     ResendOTPSerializer, CreateProfessionalSerializer, ChangePasswordSerializer,
-    DeactivateAccountSerializer
+    DeactivateAccountSerializer, AdminCreateUserSerializer
 )
 from .models import User, EmailOTP
+from .emails import send_verification_email
 
 class OTPRateThrottle(AnonRateThrottle):
     scope = 'auth_otp'
@@ -51,12 +53,10 @@ def register(request):
     EmailOTP.objects.create(email=user.email, otp=otp)
     
     try:
-        send_mail(
-            subject='ARQuest - Verify Your Email',
-            message=f'Your verification code is: {otp}\n\nThis code will expire in 5 minutes.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+        send_verification_email(
+            email=user.email,
+            otp=otp,
+            username=user.username,
         )
     except Exception as e:
         user.delete()  # Rollback user creation if email fails
@@ -139,12 +139,10 @@ def resend_otp(request):
         otp = EmailOTP.generate_otp()
         EmailOTP.objects.create(email=email, otp=otp)
         
-        send_mail(
-            subject='ARQuest - Verify Your Email',
-            message=f'Your verification code is: {otp}\n\nThis code will expire in 5 minutes.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
+        send_verification_email(
+            email=email,
+            otp=otp,
+            username=user.username,
         )
         
         return success_response({
@@ -297,6 +295,7 @@ def token_refresh(request):
 
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
 def current_user(request):
     if request.method == 'PATCH':
         data = request.data.copy()
@@ -309,24 +308,60 @@ def current_user(request):
             if password:
                 request.user.set_password(password)
                 request.user.save()
+
+        # Handle profile image upload
+        if 'profile_image' in request.FILES:
+            request.user.profile_image = request.FILES['profile_image']
+            request.user.save(update_fields=['profile_image'])
+            data.pop('profile_image', None)
+        elif data.get('remove_profile_image') in ['true', True, '1'] or data.get('profile_image') == '':
+            if request.user.profile_image:
+                request.user.profile_image.delete(save=False)
+                request.user.profile_image = None
+                request.user.save(update_fields=['profile_image'])
+            data.pop('profile_image', None)
+            data.pop('remove_profile_image', None)
                 
-        serializer = UserSerializer(request.user, data=data, partial=True)
+        serializer = UserSerializer(request.user, data=data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return success_response({'user': serializer.data})
         return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', details=serializer.errors)
         
     return success_response({
-        'user': UserSerializer(request.user).data
+        'user': UserSerializer(request.user, context={'request': request}).data
     })
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
 def user_list(request):
     if not request.user.is_admin_role:
         return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    
+    if request.method == 'POST':
+        serializer = AdminCreateUserSerializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            return error_response(
+                code='validation_error',
+                message='Failed to create user account.',
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details=serializer.errors
+            )
+        user = serializer.save()
+        Notification.objects.create(
+            title=f"New {user.get_role_display()} Account",
+            message=f"Account for {user.first_name} {user.last_name} ({user.email}) has been created by {request.user.username}.",
+            type="USER"
+        )
+        return success_response({
+            'message': 'Account created successfully.',
+            'user': UserSerializer(user, context={'request': request}).data
+        }, status_code=status.HTTP_201_CREATED)
+
     users = User.objects.all().order_by('-date_joined')
-    return success_response(UserSerializer(users, many=True).data)
+    return success_response(UserSerializer(users, many=True, context={'request': request}).data)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

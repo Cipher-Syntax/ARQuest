@@ -13,7 +13,7 @@ export const useRoleAccess = () => {
         ...permissions,
 
         // Helper to check if user has access to a specific building's heavy features
-        // Students need to unlock it, Admin/Professional have bypass, Visitors have no access
+        // Students need to unlock it, Admin/Professional have bypass, Visitors have panorama access
         canAccessBuildingFeatures: (isBuildingUnlocked) => {
             if (permissions.requiresUnlock) {
                 return isBuildingUnlocked;
