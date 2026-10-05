@@ -35,6 +35,7 @@ class User(AbstractUser):
     email_verified = models.BooleanField(default=False)
     exploration_points = models.IntegerField(default=0, help_text="Points earned from discovering AR targets and completing quests")
     avatar_id = models.CharField(max_length=50, blank=True, null=True)
+    profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True, help_text="Custom uploaded profile photo or avatar")
     streak_count = models.IntegerField(default=0, help_text="Consecutive daily login streak")
     last_login_date = models.DateField(null=True, blank=True, help_text="Date of the user's last recorded login for streak tracking")
     

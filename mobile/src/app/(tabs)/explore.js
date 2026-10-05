@@ -447,7 +447,7 @@ export default function ExploreScreen() {
                             <Ionicons
                                 name={isTracking ? "stop" : "business"}
                                 size={48}
-                                color={theme.colors.white}
+                                color={"white"}
                             />
                             <Text style={styles.radarButtonText}>
                                 {isTracking ? "STOP" : "DISCOVER NOW"}
@@ -1007,7 +1007,7 @@ const styles = StyleSheet.create({
     },
     radarButtonText: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.white,
+        color: "white",
         fontSize: 15,
         marginTop: 8,
         letterSpacing: 1,

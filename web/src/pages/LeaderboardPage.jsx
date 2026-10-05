@@ -15,7 +15,7 @@ import {
     User as UserIcon,
 } from "lucide-react";
 import { userService } from "../services/userService";
-import { getAvatarUri } from "../utils/avatarUtils";
+import { getAvatarUri, getProfileImageUrl } from "../utils/avatarUtils";
 
 // Progression Ranks Matching ARQuest Gamification Engine
 const RANKS = [
@@ -423,8 +423,14 @@ export default function LeaderboardPage({ hideHeader }) {
                             >
                                 <div className="relative mb-2">
                                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-slate-300 shadow-md bg-white flex items-center justify-center overflow-hidden ring-2 ring-slate-200">
-                                        {secondPlace.avatar_id &&
-                                        getAvatarUri(secondPlace.avatar_id) ? (
+                                        {secondPlace.profile_image ? (
+                                            <img
+                                                src={getProfileImageUrl(secondPlace.profile_image)}
+                                                alt="Avatar"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : secondPlace.avatar_id &&
+                                          getAvatarUri(secondPlace.avatar_id) ? (
                                             <img
                                                 src={getAvatarUri(
                                                     secondPlace.avatar_id,
@@ -496,8 +502,14 @@ export default function LeaderboardPage({ hideHeader }) {
                                         👑
                                     </div>
                                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-amber-400 shadow-xl shadow-amber-400/25 bg-white flex items-center justify-center overflow-hidden ring-4 ring-amber-200">
-                                        {firstPlace.avatar_id &&
-                                        getAvatarUri(firstPlace.avatar_id) ? (
+                                        {firstPlace.profile_image ? (
+                                            <img
+                                                src={getProfileImageUrl(firstPlace.profile_image)}
+                                                alt="Avatar"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : firstPlace.avatar_id &&
+                                          getAvatarUri(firstPlace.avatar_id) ? (
                                             <img
                                                 src={getAvatarUri(
                                                     firstPlace.avatar_id,
@@ -565,8 +577,14 @@ export default function LeaderboardPage({ hideHeader }) {
                             >
                                 <div className="relative mb-2">
                                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-amber-600/50 shadow-md bg-white flex items-center justify-center overflow-hidden ring-2 ring-amber-700/20">
-                                        {thirdPlace.avatar_id &&
-                                        getAvatarUri(thirdPlace.avatar_id) ? (
+                                        {thirdPlace.profile_image ? (
+                                            <img
+                                                src={getProfileImageUrl(thirdPlace.profile_image)}
+                                                alt="Avatar"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : thirdPlace.avatar_id &&
+                                          getAvatarUri(thirdPlace.avatar_id) ? (
                                             <img
                                                 src={getAvatarUri(
                                                     thirdPlace.avatar_id,
@@ -729,10 +747,16 @@ export default function LeaderboardPage({ hideHeader }) {
                                         <td className="px-6 py-3.5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-brand-light border border-brand-border flex items-center justify-center text-brand font-bold text-xs shrink-0 overflow-hidden">
-                                                    {user.avatar_id &&
-                                                    getAvatarUri(
-                                                        user.avatar_id,
-                                                    ) ? (
+                                                    {user.profile_image ? (
+                                                        <img
+                                                            src={getProfileImageUrl(user.profile_image)}
+                                                            alt="Avatar"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : user.avatar_id &&
+                                                      getAvatarUri(
+                                                          user.avatar_id,
+                                                      ) ? (
                                                         <img
                                                             src={getAvatarUri(
                                                                 user.avatar_id,
@@ -847,8 +871,14 @@ export default function LeaderboardPage({ hideHeader }) {
                         {/* Profile Header */}
                         <div className="flex items-center gap-4 bg-brand-light/50 p-4 rounded-xl border border-brand-border">
                             <div className="w-16 h-16 rounded-full bg-white border-2 border-brand-border flex items-center justify-center text-brand font-extrabold text-xl overflow-hidden shrink-0 shadow-sm">
-                                {selectedStudent.avatar_id &&
-                                getAvatarUri(selectedStudent.avatar_id) ? (
+                                {selectedStudent.profile_image ? (
+                                    <img
+                                        src={getProfileImageUrl(selectedStudent.profile_image)}
+                                        alt="Avatar"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : selectedStudent.avatar_id &&
+                                  getAvatarUri(selectedStudent.avatar_id) ? (
                                     <img
                                         src={getAvatarUri(
                                             selectedStudent.avatar_id,

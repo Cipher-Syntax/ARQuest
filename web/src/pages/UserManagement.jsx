@@ -1,8 +1,23 @@
-import { useState, useEffect } from "react";
-import { Search, ChevronDown, User, Shield, GraduationCap, UserCheck } from "lucide-react";
-import { Card, Badge, Pagination } from "../components/ui";
+import { useState, useEffect, useRef } from "react";
+import {
+    Search,
+    ChevronDown,
+    User,
+    Shield,
+    GraduationCap,
+    UserCheck,
+    Plus,
+    Camera,
+    Trash2,
+    Eye,
+    EyeOff,
+    CheckCircle2,
+    AlertCircle,
+    X,
+} from "lucide-react";
+import { Card, Badge, Pagination, Button, Modal } from "../components/ui";
 import { userService } from "../services/userService";
-import { getAvatarUri } from "../utils/avatarUtils";
+import { getAvatarUri, getProfileImageUrl } from "../utils/avatarUtils";
 
 export default function UserManagement({ hideHeader }) {
     const [users, setUsers] = useState([]);
@@ -11,6 +26,25 @@ export default function UserManagement({ hideHeader }) {
     const [roleFilter, setRoleFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
+
+    // Create Account Modal State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [formData, setFormData] = useState({
+        username: "",
+        email: "",
+        password: "",
+        first_name: "",
+        last_name: "",
+        role: "student",
+    });
+    const [profileImageFile, setProfileImageFile] = useState(null);
+    const [profileImagePreview, setProfileImagePreview] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formErrors, setFormErrors] = useState({});
+    const [generalError, setGeneralError] = useState("");
+    const [notification, setNotification] = useState(null);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         fetchUsers();
@@ -25,6 +59,134 @@ export default function UserManagement({ hideHeader }) {
             console.error("Failed to load users", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleImageChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+        if (!allowedTypes.includes(file.type)) {
+            setFormErrors((prev) => ({
+                ...prev,
+                profile_image: "Please select a JPG, PNG, or WebP image.",
+            }));
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            setFormErrors((prev) => ({
+                ...prev,
+                profile_image: "Image size must be less than 5MB.",
+            }));
+            return;
+        }
+
+        setFormErrors((prev) => {
+            const next = { ...prev };
+            delete next.profile_image;
+            return next;
+        });
+
+        if (profileImagePreview) {
+            URL.revokeObjectURL(profileImagePreview);
+        }
+
+        setProfileImageFile(file);
+        setProfileImagePreview(URL.createObjectURL(file));
+    };
+
+    const handleRemoveImage = () => {
+        if (profileImagePreview) {
+            URL.revokeObjectURL(profileImagePreview);
+        }
+        setProfileImageFile(null);
+        setProfileImagePreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const handleCloseModal = () => {
+        if (isSubmitting) return;
+        setIsCreateModalOpen(false);
+        setFormData({
+            username: "",
+            email: "",
+            password: "",
+            first_name: "",
+            last_name: "",
+            role: "student",
+        });
+        handleRemoveImage();
+        setFormErrors({});
+        setGeneralError("");
+        setShowPassword(false);
+    };
+
+    const handleCreateSubmit = async (e) => {
+        e.preventDefault();
+        setFormErrors({});
+        setGeneralError("");
+
+        const errs = {};
+        if (!formData.username.trim()) {
+            errs.username = "Username is required.";
+        }
+        if (!formData.email.trim()) {
+            errs.email = "Email is required.";
+        }
+        if (!formData.password) {
+            errs.password = "Password is required.";
+        } else if (formData.password.length < 8) {
+            errs.password = "Password must be at least 8 characters.";
+        }
+
+        if (Object.keys(errs).length > 0) {
+            setFormErrors(errs);
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const data = new FormData();
+            data.append("username", formData.username.trim());
+            data.append("email", formData.email.trim());
+            data.append("password", formData.password);
+            if (formData.first_name.trim()) data.append("first_name", formData.first_name.trim());
+            if (formData.last_name.trim()) data.append("last_name", formData.last_name.trim());
+            data.append("role", formData.role);
+            if (profileImageFile) {
+                data.append("profile_image", profileImageFile);
+            }
+
+            await userService.createUser(data);
+            handleCloseModal();
+            setNotification({
+                type: "success",
+                message: `Account created successfully for @${formData.username.trim()}!`,
+            });
+            setTimeout(() => setNotification(null), 5000);
+            await fetchUsers();
+        } catch (err) {
+            console.error("Create user failed:", err);
+            const details = err.response?.data?.details;
+            if (details && typeof details === "object") {
+                const fieldErrs = {};
+                for (const [key, val] of Object.entries(details)) {
+                    fieldErrs[key] = Array.isArray(val) ? val.join(" ") : String(val);
+                }
+                setFormErrors(fieldErrs);
+            } else {
+                setGeneralError(
+                    err.response?.data?.error ||
+                    err.response?.data?.message ||
+                    "Failed to create account. Please check the entered data."
+                );
+            }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -76,13 +238,52 @@ export default function UserManagement({ hideHeader }) {
     return (
         <div className="space-y-4">
             {!hideHeader && (
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-                        User Management
-                    </h2>
-                    <p className="text-gray-500 text-sm mt-1">
-                        Directory of all campus accounts: Students, Visitors, Guests, and Administrators.
-                    </p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                            User Management
+                        </h2>
+                        <p className="text-gray-500 text-sm mt-1">
+                            Directory of all campus accounts: Students, Visitors, Guests, and Administrators.
+                        </p>
+                    </div>
+                    <Button
+                        variant="primary"
+                        onClick={() => {
+                            setFormErrors({});
+                            setGeneralError("");
+                            setIsCreateModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-sm"
+                    >
+                        <Plus size={16} />
+                        <span>Add Account</span>
+                    </Button>
+                </div>
+            )}
+
+            {notification && (
+                <div
+                    className={`flex items-center justify-between p-3.5 rounded-md border text-sm font-medium ${
+                        notification.type === "success"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                            : "bg-red-50 text-red-800 border-red-200"
+                    }`}
+                >
+                    <div className="flex items-center gap-2">
+                        {notification.type === "success" ? (
+                            <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertCircle size={18} className="text-red-600 shrink-0" />
+                        )}
+                        <span>{notification.message}</span>
+                    </div>
+                    <button
+                        onClick={() => setNotification(null)}
+                        className="text-gray-400 hover:text-gray-600 p-1"
+                    >
+                        <X size={15} />
+                    </button>
                 </div>
             )}
 
@@ -103,30 +304,47 @@ export default function UserManagement({ hideHeader }) {
                         />
                     </div>
 
-                    <div className="relative w-full sm:w-52 shrink-0">
-                        <select
-                            className="w-full pl-3.5 pr-9 py-2 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand appearance-none font-semibold text-gray-800 shadow-xs cursor-pointer"
-                            value={roleFilter}
-                            onChange={(e) => setRoleFilter(e.target.value)}
-                        >
-                            <option value="all">All Roles ({users.length})</option>
-                            <option value="student">
-                                Students ({users.filter((u) => u.role === "student").length})
-                            </option>
-                            <option value="professional">
-                                Visitors ({users.filter((u) => u.role === "professional").length})
-                            </option>
-                            <option value="visitor">
-                                Guests ({users.filter((u) => u.role === "visitor").length})
-                            </option>
-                            <option value="admin">
-                                Admins ({users.filter((u) => u.role === "admin").length})
-                            </option>
-                        </select>
-                        <ChevronDown
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-                            size={16}
-                        />
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-52 shrink-0">
+                            <select
+                                className="w-full pl-3.5 pr-9 py-2 bg-white border border-brand-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-brand appearance-none font-semibold text-gray-800 shadow-xs cursor-pointer"
+                                value={roleFilter}
+                                onChange={(e) => setRoleFilter(e.target.value)}
+                            >
+                                <option value="all">All Roles ({users.length})</option>
+                                <option value="student">
+                                    Students ({users.filter((u) => u.role === "student").length})
+                                </option>
+                                <option value="professional">
+                                    Visitors ({users.filter((u) => u.role === "professional").length})
+                                </option>
+                                <option value="visitor">
+                                    Guests ({users.filter((u) => u.role === "visitor").length})
+                                </option>
+                                <option value="admin">
+                                    Admins ({users.filter((u) => u.role === "admin").length})
+                                </option>
+                            </select>
+                            <ChevronDown
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                                size={16}
+                            />
+                        </div>
+
+                        {hideHeader && (
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setFormErrors({});
+                                    setGeneralError("");
+                                    setIsCreateModalOpen(true);
+                                }}
+                                className="flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                            >
+                                <Plus size={16} />
+                                <span>Add Account</span>
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -172,7 +390,13 @@ export default function UserManagement({ hideHeader }) {
                                                 <td className="px-6 py-3.5">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-9 h-9 rounded-md bg-brand-light border border-brand-border flex items-center justify-center text-brand font-bold text-xs shrink-0 overflow-hidden">
-                                                            {user.avatar_id && getAvatarUri(user.avatar_id) ? (
+                                                            {user.profile_image ? (
+                                                                <img
+                                                                    src={getProfileImageUrl(user.profile_image)}
+                                                                    alt="Profile"
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : user.avatar_id && getAvatarUri(user.avatar_id) ? (
                                                                 <img
                                                                     src={getAvatarUri(user.avatar_id)}
                                                                     alt="Avatar"
@@ -275,6 +499,255 @@ export default function UserManagement({ hideHeader }) {
                     </>
                 )}
             </Card>
+
+            {/* Create Account Modal */}
+            <Modal
+                isOpen={isCreateModalOpen}
+                onClose={handleCloseModal}
+                title="Create User Account"
+                maxWidth="max-w-lg w-full"
+                footer={
+                    <>
+                        <Button
+                            variant="secondary"
+                            type="button"
+                            onClick={handleCloseModal}
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="primary"
+                            type="submit"
+                            form="create-user-form"
+                            loading={isSubmitting}
+                        >
+                            Create Account
+                        </Button>
+                    </>
+                }
+            >
+                <form
+                    id="create-user-form"
+                    onSubmit={handleCreateSubmit}
+                    className="space-y-4"
+                >
+                    {generalError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 font-medium flex items-center gap-2">
+                            <AlertCircle size={16} className="shrink-0 text-red-500" />
+                            <span>{generalError}</span>
+                        </div>
+                    )}
+
+                    {/* Profile Photo Upload */}
+                    <div className="flex items-center gap-4 p-3.5 rounded-md bg-brand-light/20 border border-brand-border/60">
+                        <div className="w-16 h-16 rounded-full border-2 border-brand-border bg-white shadow-xs overflow-hidden flex items-center justify-center shrink-0">
+                            {profileImagePreview ? (
+                                <img
+                                    src={profileImagePreview}
+                                    alt="Preview"
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <User size={28} className="text-brand/50" />
+                            )}
+                        </div>
+
+                        <div className="flex-1 min-w-0 space-y-1">
+                            <p className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                                Profile Photo <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                            </p>
+                            <p className="text-[11px] text-gray-500">
+                                JPG, PNG or WebP, up to 5MB.
+                            </p>
+                            <div className="flex items-center gap-2 pt-0.5">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    className="hidden"
+                                    onChange={handleImageChange}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-white border border-brand-border rounded-md hover:bg-brand-light transition-colors cursor-pointer"
+                                >
+                                    <Camera size={13} />
+                                    <span>{profileImageFile ? "Change" : "Upload"}</span>
+                                </button>
+                                {profileImageFile && (
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveImage}
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                                    >
+                                        <Trash2 size={13} />
+                                        <span>Remove</span>
+                                    </button>
+                                )}
+                            </div>
+                            {formErrors.profile_image && (
+                                <p className="text-[11px] text-red-500 font-medium pt-0.5">
+                                    {formErrors.profile_image}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Name Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                First Name
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Maria"
+                                value={formData.first_name}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, first_name: e.target.value })
+                                }
+                                className="w-full px-3 py-2 bg-white border border-brand-border rounded-md text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand font-medium placeholder-gray-400"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                Last Name
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Santos"
+                                value={formData.last_name}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, last_name: e.target.value })
+                                }
+                                className="w-full px-3 py-2 bg-white border border-brand-border rounded-md text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand font-medium placeholder-gray-400"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Username & Email */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                Username <span className="text-brand">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. msantos"
+                                required
+                                value={formData.username}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, username: e.target.value });
+                                    if (formErrors.username) {
+                                        setFormErrors((prev) => ({ ...prev, username: null }));
+                                    }
+                                }}
+                                className={`w-full px-3 py-2 bg-white border rounded-md text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand font-medium placeholder-gray-400 ${
+                                    formErrors.username ? "border-red-400" : "border-brand-border"
+                                }`}
+                            />
+                            {formErrors.username && (
+                                <p className="text-[11px] text-red-500 font-medium">
+                                    {formErrors.username}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                Email Address <span className="text-brand">*</span>
+                            </label>
+                            <input
+                                type="email"
+                                placeholder="e.g. msantos@wmsu.edu.ph"
+                                required
+                                value={formData.email}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, email: e.target.value });
+                                    if (formErrors.email) {
+                                        setFormErrors((prev) => ({ ...prev, email: null }));
+                                    }
+                                }}
+                                className={`w-full px-3 py-2 bg-white border rounded-md text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand font-medium placeholder-gray-400 ${
+                                    formErrors.email ? "border-red-400" : "border-brand-border"
+                                }`}
+                            />
+                            {formErrors.email && (
+                                <p className="text-[11px] text-red-500 font-medium">
+                                    {formErrors.email}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Role Selection */}
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                            Account Role <span className="text-brand">*</span>
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={formData.role}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, role: e.target.value })
+                                }
+                                className="w-full pl-3 pr-9 py-2 bg-white border border-brand-border rounded-md text-sm text-gray-900 font-medium focus:outline-none focus:ring-1 focus:ring-brand appearance-none cursor-pointer"
+                            >
+                                <option value="student">Student (Campus Explorer)</option>
+                                <option value="professional">Visitor (Campus Partner / VIP)</option>
+                                <option value="visitor">Guest (Public Visitor)</option>
+                                <option value="admin">Administrator (Full Dashboard Access)</option>
+                            </select>
+                            <ChevronDown
+                                size={16}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Password */}
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                            Temporary Password <span className="text-brand">*</span>
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Minimum 8 characters"
+                                required
+                                value={formData.password}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, password: e.target.value });
+                                    if (formErrors.password) {
+                                        setFormErrors((prev) => ({ ...prev, password: null }));
+                                    }
+                                }}
+                                className={`w-full pl-3 pr-10 py-2 bg-white border rounded-md text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand font-medium placeholder-gray-400 ${
+                                    formErrors.password ? "border-red-400" : "border-brand-border"
+                                }`}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                        </div>
+                        {formErrors.password ? (
+                            <p className="text-[11px] text-red-500 font-medium">
+                                {formErrors.password}
+                            </p>
+                        ) : (
+                            <p className="text-[10px] text-gray-400">
+                                User can update their password after logging in.
+                            </p>
+                        )}
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }

@@ -5,6 +5,7 @@ import NotificationDropdown from "../components/layout/NotificationDropdown";
 import { useAuth } from "../hooks/useAuth";
 import { Modal, Button } from "../components/ui";
 import { triggerAdminTour } from "../components/common/AdminOnboardingTour";
+import { getProfileImageUrl } from "../utils/avatarUtils";
 
 export default function TopBar({ user }) {
     const location = useLocation();
@@ -67,8 +68,16 @@ export default function TopBar({ user }) {
                                     {user?.role || "Administrator"}
                                 </p>
                             </div>
-                            <div className="w-10 h-10 rounded-full bg-white border border-brand-border flex items-center justify-center text-brand shadow-sm">
-                                <User size={20} />
+                            <div className="w-10 h-10 rounded-full bg-white border border-brand-border flex items-center justify-center text-brand shadow-sm overflow-hidden shrink-0">
+                                {user?.profile_image ? (
+                                    <img
+                                        src={getProfileImageUrl(user.profile_image)}
+                                        alt={user?.first_name || user?.username || "Admin Profile"}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <User size={20} />
+                                )}
                             </div>
                         </button>
 
@@ -76,8 +85,16 @@ export default function TopBar({ user }) {
                             <div className="absolute right-0 mt-2 w-72 bg-white z-50 overflow-hidden rounded-md border border-brand-border shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
                                 {/* Profile Header */}
                                 <div className="flex flex-col items-center justify-center pt-6 pb-4 px-5">
-                                    <div className="w-16 h-16 rounded-full flex items-center justify-center bg-brand/5 text-brand mb-3">
-                                        <User size={32} />
+                                    <div className="w-16 h-16 rounded-full flex items-center justify-center bg-brand/5 text-brand mb-3 overflow-hidden border-2 border-brand/20 shadow-sm shrink-0">
+                                        {user?.profile_image ? (
+                                            <img
+                                                src={getProfileImageUrl(user.profile_image)}
+                                                alt={user?.first_name || user?.username || "Admin Profile"}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <User size={32} />
+                                        )}
                                     </div>
                                     <h2 className="text-lg font-bold text-gray-900 mb-0.5">{user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "Admin User"}</h2>
                                     <p className="text-xs text-gray-500 mb-2">{user?.email || "admin@wmsu.edu.ph"}</p>

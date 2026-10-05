@@ -74,7 +74,7 @@ const LoginPage = () => {
 
     return (
         <div className="min-h-screen flex w-full bg-white">
-            {}
+            { }
             <div className="hidden lg:flex lg:w-1/2 bg-brand flex-col p-12 relative overflow-hidden">
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,transparent_100%)]"></div>
 
@@ -99,12 +99,12 @@ const LoginPage = () => {
                     </div>
                 </div>
 
-                {}
+                { }
                 <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full mix-blend-overlay filter blur-3xl opacity-20"></div>
                 <div className="absolute bottom-10 right-10 w-48 h-48 bg-white rounded-full mix-blend-overlay filter blur-3xl opacity-10"></div>
             </div>
 
-            {}
+            { }
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-brand-light/30">
                 <div className="w-full max-w-md space-y-8 bg-white p-8 sm:p-10 rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
                     <div className="text-center space-y-2">
@@ -230,7 +230,7 @@ const LoginPage = () => {
                                     Authenticating...
                                 </>
                             ) : (
-                                "Sign In to Admin Panel"
+                                "Sign In"
                             )}
                         </button>
                     </form>

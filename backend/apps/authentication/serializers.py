@@ -6,15 +6,32 @@ from .models import User, EmailOTP
 
 class UserSerializer(serializers.ModelSerializer):
     rank_info = serializers.SerializerMethodField()
+    profile_image = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'email_verified', 'exploration_points', 'avatar_id', 'streak_count', 'last_login_date', 'is_active', 'date_joined', 'rank_info']
-        read_only_fields = ['id', 'role', 'email_verified', 'exploration_points', 'streak_count', 'last_login_date', 'date_joined']
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'role', 'email_verified', 'exploration_points', 'avatar_id',
+            'profile_image', 'streak_count', 'last_login_date',
+            'is_active', 'date_joined', 'rank_info'
+        ]
+        read_only_fields = [
+            'id', 'role', 'email_verified', 'exploration_points',
+            'streak_count', 'last_login_date', 'date_joined'
+        ]
 
     def get_rank_info(self, obj):
         from apps.gamification.utils import get_rank_info
         return get_rank_info(obj.exploration_points)
+
+    def get_profile_image(self, obj):
+        if obj.profile_image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_image.url)
+            return obj.profile_image.url
+        return None
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -197,3 +214,48 @@ class CreateProfessionalSerializer(serializers.Serializer):
             email_verified=True
         )
         return user
+
+
+class AdminCreateUserSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.STUDENT)
+    profile_image = serializers.ImageField(required=False, allow_null=True)
+
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError('Username already exists.')
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError('Email already registered.')
+        return value
+
+    def validate(self, data):
+        try:
+            validate_password(data.get('password'))
+        except Exception as e:
+            raise serializers.ValidationError({'password': list(e.messages)})
+        return data
+
+    def create(self, validated_data):
+        profile_image = validated_data.pop('profile_image', None)
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            role=validated_data.get('role', User.Role.STUDENT),
+            is_active=True,
+            email_verified=True,
+        )
+        if profile_image:
+            user.profile_image = profile_image
+            user.save(update_fields=['profile_image'])
+        return user
+

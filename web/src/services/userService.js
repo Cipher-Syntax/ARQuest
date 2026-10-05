@@ -9,6 +9,14 @@ export const userService = {
         const response = await api.get("/api/auth/leaderboard/");
         return response.data.data;
     },
+    createUser: async (data) => {
+        const isFormData = data instanceof FormData;
+        const config = isFormData
+            ? { headers: { "Content-Type": "multipart/form-data" } }
+            : {};
+        const response = await api.post("/api/auth/users/", data, config);
+        return response.data;
+    },
     createProfessional: async (data) => {
         const response = await api.post("/api/auth/users/professional/", data);
         return response.data;
