@@ -67,7 +67,7 @@ class LeaderboardView(views.APIView):
 		).order_by('-exploration_points')[:50]
 		data = []
 		for index, user in enumerate(users):
-			serializer = LeaderboardSerializer(user, context={'rank': index + 1})
+			serializer = LeaderboardSerializer(user, context={'rank': index + 1, 'request': request})
 			data.append(serializer.data)
 
 		return Response({

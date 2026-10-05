@@ -7,8 +7,12 @@ logger = logging.getLogger(__name__)
 
 def build_verification_email_html(otp: str, username: str = None) -> str:
     display_name = f"<strong>{username}</strong>" if username else "Explorer"
-    # Format OTP as spaced digits for optimal legibility (e.g. "8 4 9 2 0 1")
-    formatted_otp = " ".join(str(otp).strip())
+    digits = [d for d in str(otp).strip()]
+    digit_cells = "".join([
+        f"""<td align="center" style="width: 44px; height: 54px; background-color: #ffffff; border: 2px solid #b21830; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 800; color: #b21830; text-align: center; box-shadow: 0 2px 6px rgba(178, 24, 48, 0.12);">{d}</td>"""
+        + ("""<td style="width: 8px;"></td>""" if idx < len(digits) - 1 else "")
+        for idx, d in enumerate(digits)
+    ])
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -59,18 +63,22 @@ def build_verification_email_html(otp: str, username: str = None) -> str:
                 Welcome to <strong>ARQuest</strong>! To complete your registration and activate your student explorer profile, please use the single-use verification code below:
               </p>
 
-              <!-- Highlighted OTP Code Box -->
-              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0;">
+              <!-- Highlighted OTP Code Box with Individual PIN Cards -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 26px 0;">
                 <tr>
-                  <td align="center" style="background-color: #fdf2f2; border: 2px dashed #b21830; border-radius: 10px; padding: 24px 16px;">
-                    <span style="display: block; font-size: 11px; font-weight: 700; color: #991b1b; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">
-                      Your One-Time Verification Code
+                  <td align="center" style="background-color: #fdf2f2; border: 2px dashed #b21830; border-radius: 12px; padding: 26px 16px;">
+                    <span style="display: block; font-size: 11px; font-weight: 700; color: #991b1b; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px;">
+                      Your Single-Use Verification Code
                     </span>
-                    <div style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; color: #b21830; letter-spacing: 10px; line-height: 1; padding: 8px 0 6px 10px;">
-                      {formatted_otp}
-                    </div>
-                    <div style="margin-top: 10px; display: inline-block; background-color: #fee2e2; border-radius: 20px; padding: 4px 12px;">
-                      <span style="font-size: 11px; font-weight: 600; color: #991b1b;">
+                    
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                      <tr>
+                        {digit_cells}
+                      </tr>
+                    </table>
+
+                    <div style="margin-top: 16px; display: inline-block; background-color: #fee2e2; border-radius: 20px; padding: 5px 14px;">
+                      <span style="font-size: 11px; font-weight: 700; color: #991b1b;">
                         ⏱️ Valid for 5 minutes
                       </span>
                     </div>

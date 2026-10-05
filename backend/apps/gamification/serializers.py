@@ -10,10 +10,11 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 	points = serializers.IntegerField(source='exploration_points')
 	rank_info = serializers.SerializerMethodField()
 	quests_completed = serializers.SerializerMethodField()
+	profile_image = serializers.SerializerMethodField()
 
 	class Meta:
 		model = User
-		fields = ['username', 'points', 'rank', 'rank_info', 'quests_completed']
+		fields = ['id', 'username', 'first_name', 'last_name', 'points', 'rank', 'rank_info', 'quests_completed', 'avatar_id', 'profile_image']
 
 	def get_rank(self, obj):
 		return self.context.get('rank', 0)
@@ -24,6 +25,14 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 
 	def get_quests_completed(self, obj):
 		return getattr(obj, 'quests_completed_count', 0)
+
+	def get_profile_image(self, obj):
+		if obj.profile_image:
+			request = self.context.get('request')
+			if request:
+				return request.build_absolute_uri(obj.profile_image.url)
+			return obj.profile_image.url
+		return None
 
 class QuestSerializer(serializers.ModelSerializer):
 	target_building_name = serializers.CharField(source='target_building.name', read_only=True)
