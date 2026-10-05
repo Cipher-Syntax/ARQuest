@@ -18,6 +18,7 @@ from .serializers import (
     DeactivateAccountSerializer, AdminCreateUserSerializer
 )
 from .models import User, EmailOTP
+from .emails import send_verification_email
 
 class OTPRateThrottle(AnonRateThrottle):
     scope = 'auth_otp'
@@ -52,12 +53,10 @@ def register(request):
     EmailOTP.objects.create(email=user.email, otp=otp)
     
     try:
-        send_mail(
-            subject='ARQuest - Verify Your Email',
-            message=f'Your verification code is: {otp}\n\nThis code will expire in 5 minutes.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+        send_verification_email(
+            email=user.email,
+            otp=otp,
+            username=user.username,
         )
     except Exception as e:
         user.delete()  # Rollback user creation if email fails
@@ -140,12 +139,10 @@ def resend_otp(request):
         otp = EmailOTP.generate_otp()
         EmailOTP.objects.create(email=email, otp=otp)
         
-        send_mail(
-            subject='ARQuest - Verify Your Email',
-            message=f'Your verification code is: {otp}\n\nThis code will expire in 5 minutes.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
+        send_verification_email(
+            email=email,
+            otp=otp,
+            username=user.username,
         )
         
         return success_response({

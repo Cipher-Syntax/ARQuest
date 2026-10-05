@@ -71,6 +71,8 @@ export default function HomeScreen() {
 
     // Gamification Backend States
     const [activeQuests, setActiveQuests] = useState([]);
+    const [completedQuestsToday, setCompletedQuestsToday] = useState([]);
+    const [heroMissionTab, setHeroMissionTab] = useState("available"); // "available" | "completed"
     const [hasCompletedAllToday, setHasCompletedAllToday] = useState(false);
 
     const [refreshing, setRefreshing] = useState(false);
@@ -100,13 +102,16 @@ export default function HomeScreen() {
                         const incompleteQuests = quests.filter(q => !q.is_completed);
                         const completedQuests = quests.filter(q => q.is_completed);
                         setActiveQuests(incompleteQuests);
+                        setCompletedQuestsToday(completedQuests);
                         setHasCompletedAllToday(completedQuests.length > 0 && incompleteQuests.length === 0);
                     } else {
                         setActiveQuests([]);
+                        setCompletedQuestsToday([]);
                         setHasCompletedAllToday(false);
                     }
                 } else {
                     setActiveQuests([]);
+                    setCompletedQuestsToday([]);
                     setHasCompletedAllToday(false);
                 }
 
@@ -321,6 +326,78 @@ export default function HomeScreen() {
                 <View style={styles.contentArea}>
                     {user?.role === "student" ? (
                         <>
+                            {/* --- Daily Objectives Section Header with Segmented Switcher --- */}
+                            <View style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                marginBottom: 12,
+                                paddingHorizontal: 4,
+                            }}>
+                                <View style={{
+                                    flexDirection: "row",
+                                    backgroundColor: "#F1F5F9",
+                                    padding: 3,
+                                    borderRadius: 20,
+                                    gap: 4,
+                                }}>
+                                    <TouchableOpacity
+                                        style={{
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            gap: 4,
+                                            paddingHorizontal: 10,
+                                            paddingVertical: 5,
+                                            borderRadius: 16,
+                                            backgroundColor: heroMissionTab === "available" ? theme.colors.primary : "transparent",
+                                        }}
+                                        onPress={() => setHeroMissionTab("available")}
+                                    >
+                                        <Crosshair size={12} color={heroMissionTab === "available" ? "#FFFFFF" : theme.colors.textSecondary} />
+                                        <Text style={{
+                                            fontFamily: fonts.heading.bold,
+                                            fontSize: 11,
+                                            color: heroMissionTab === "available" ? "#FFFFFF" : theme.colors.textSecondary,
+                                        }}>
+                                            Available ({activeQuests.length})
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={{
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            gap: 4,
+                                            paddingHorizontal: 10,
+                                            paddingVertical: 5,
+                                            borderRadius: 16,
+                                            backgroundColor: heroMissionTab === "completed" ? "#16a34a" : "transparent",
+                                        }}
+                                        onPress={() => setHeroMissionTab("completed")}
+                                    >
+                                        <CheckCircle2 size={12} color={heroMissionTab === "completed" ? "#FFFFFF" : theme.colors.textSecondary} />
+                                        <Text style={{
+                                            fontFamily: fonts.heading.bold,
+                                            fontSize: 11,
+                                            color: heroMissionTab === "completed" ? "#FFFFFF" : theme.colors.textSecondary,
+                                        }}>
+                                            Completed ({completedQuestsToday.length})
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <TouchableOpacity
+                                    onPress={() => router.push("/missions")}
+                                    style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                >
+                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 11, color: theme.colors.primary }}>
+                                        All Missions
+                                    </Text>
+                                    <ChevronRight size={14} color={theme.colors.primary} />
+                                </TouchableOpacity>
+                            </View>
+
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
@@ -329,9 +406,169 @@ export default function HomeScreen() {
                                 snapToInterval={Dimensions.get("window").width - 20}
                                 decelerationRate="fast"
                             >
-                                {activeQuests.length > 0 ? (
-                                    activeQuests.map((quest, index) => (
-                                        <View key={quest.id} style={[styles.heroCard, { width: Dimensions.get("window").width - 40, marginBottom: 0 }]}>
+                                {heroMissionTab === "available" ? (
+                                    activeQuests.length > 0 ? (
+                                        activeQuests.map((quest, index) => (
+                                            <View key={quest.id} style={[styles.heroCard, { width: Dimensions.get("window").width - 40, marginBottom: 0 }]}>
+                                                <View style={styles.heroTopRow}>
+                                                    <View style={styles.heroLabelChip}>
+                                                        <Crosshair
+                                                            color={theme.colors.primary}
+                                                            size={14}
+                                                        />
+                                                        <Text style={styles.heroChipText}>
+                                                            DAILY OBJECTIVE
+                                                        </Text>
+                                                    </View>
+                                                    <View style={styles.heroExpBadge}>
+                                                        <Text style={styles.heroExpText}>
+                                                            Reward: {quest.reward_points} EXP
+                                                        </Text>
+                                                    </View>
+                                                </View>
+
+                                                <Text
+                                                    style={styles.heroQuestTitle}
+                                                    numberOfLines={2}
+                                                >
+                                                    {quest.title}
+                                                </Text>
+
+                                                <View style={styles.heroBottomRow}>
+                                                    <View style={styles.heroTargetInfo}>
+                                                        <Text style={styles.heroTargetLabel}>
+                                                            CURRENT TARGET
+                                                        </Text>
+                                                        <Text
+                                                            style={styles.heroTargetValue}
+                                                            numberOfLines={1}
+                                                        >
+                                                            {quest.target_building_name}
+                                                        </Text>
+                                                    </View>
+                                                    <TouchableOpacity
+                                                        style={styles.heroDeployBtn}
+                                                        onPress={() =>
+                                                            router.push({
+                                                                pathname: "/(tabs)/ar",
+                                                                params: {
+                                                                    targetBuildingId: quest.target_building,
+                                                                    questId: quest.id,
+                                                                }
+                                                            })
+                                                        }
+                                                    >
+                                                        <Text style={styles.heroDeployText}>
+                                                            Start Mission
+                                                        </Text>
+                                                        <ChevronRight
+                                                            color="#FFFFFF"
+                                                            size={18}
+                                                        />
+                                                    </TouchableOpacity>
+                                                </View>
+                                                {index < activeQuests.length - 1 && (
+                                                    <View style={{
+                                                        position: "absolute",
+                                                        right: -10,
+                                                        top: "50%",
+                                                        marginTop: -16,
+                                                        backgroundColor: "#FFFFFF",
+                                                        borderRadius: 16,
+                                                        width: 32,
+                                                        height: 32,
+                                                        justifyContent: "center",
+                                                        alignItems: "center",
+                                                        shadowColor: "#000",
+                                                        shadowOffset: { width: 0, height: 2 },
+                                                        shadowOpacity: 0.15,
+                                                        shadowRadius: 4,
+                                                        elevation: 4,
+                                                        borderWidth: 1,
+                                                        borderColor: theme.colors.border
+                                                    }}>
+                                                        <ChevronRight color={theme.colors.primary} size={20} />
+                                                    </View>
+                                                )}
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <View style={[styles.heroCard, { width: Dimensions.get("window").width - 40, marginBottom: 0 }]}>
+                                            <View style={styles.heroTopRow}>
+                                                <View style={[styles.heroLabelChip, { backgroundColor: "rgba(22, 163, 74, 0.12)" }]}>
+                                                    <CheckCircle2
+                                                        color="#16a34a"
+                                                        size={14}
+                                                    />
+                                                    <Text style={[styles.heroChipText, { color: "#16a34a" }]}>
+                                                        ALL CLEARED
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                            <Text style={styles.heroQuestTitle}>
+                                                {loading
+                                                    ? "Loading..."
+                                                    : "All daily missions cleared! 🎉\nTap Completed to review your achievements."}
+                                            </Text>
+                                        </View>
+                                    )
+                                ) : (
+                                    completedQuestsToday.length > 0 ? (
+                                        completedQuestsToday.map((quest, index) => (
+                                            <View key={quest.id} style={[styles.heroCard, { width: Dimensions.get("window").width - 40, marginBottom: 0, borderColor: "#86EFAC" }]}>
+                                                <View style={styles.heroTopRow}>
+                                                    <View style={[styles.heroLabelChip, { backgroundColor: "rgba(22, 163, 74, 0.12)" }]}>
+                                                        <CheckCircle2
+                                                            color="#16a34a"
+                                                            size={14}
+                                                        />
+                                                        <Text style={[styles.heroChipText, { color: "#16a34a" }]}>
+                                                            COMPLETED TODAY
+                                                        </Text>
+                                                    </View>
+                                                    <View style={[styles.heroExpBadge, { backgroundColor: "rgba(22, 163, 74, 0.12)" }]}>
+                                                        <Text style={[styles.heroExpText, { color: "#16a34a" }]}>
+                                                            +{quest.reward_points} EXP Earned
+                                                        </Text>
+                                                    </View>
+                                                </View>
+
+                                                <Text
+                                                    style={styles.heroQuestTitle}
+                                                    numberOfLines={2}
+                                                >
+                                                    {quest.title}
+                                                </Text>
+
+                                                <View style={styles.heroBottomRow}>
+                                                    <View style={styles.heroTargetInfo}>
+                                                        <Text style={styles.heroTargetLabel}>
+                                                            TARGET LOCATION
+                                                        </Text>
+                                                        <Text
+                                                            style={styles.heroTargetValue}
+                                                            numberOfLines={1}
+                                                        >
+                                                            {quest.target_building_name || "Campus Building"}
+                                                        </Text>
+                                                    </View>
+                                                    <TouchableOpacity
+                                                        style={[styles.heroDeployBtn, { backgroundColor: "#16a34a" }]}
+                                                        onPress={() => router.push("/(tabs)/buildings")}
+                                                    >
+                                                        <Text style={styles.heroDeployText}>
+                                                            View Map
+                                                        </Text>
+                                                        <ChevronRight
+                                                            color="#FFFFFF"
+                                                            size={18}
+                                                        />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <View style={[styles.heroCard, { width: Dimensions.get("window").width - 40, marginBottom: 0 }]}>
                                             <View style={styles.heroTopRow}>
                                                 <View style={styles.heroLabelChip}>
                                                     <Crosshair
@@ -339,102 +576,15 @@ export default function HomeScreen() {
                                                         size={14}
                                                     />
                                                     <Text style={styles.heroChipText}>
-                                                        DAILY OBJECTIVE
-                                                    </Text>
-                                                </View>
-                                                <View style={styles.heroExpBadge}>
-                                                    <Text style={styles.heroExpText}>
-                                                        Reward: {quest.reward_points} EXP
+                                                        MISSION LOG
                                                     </Text>
                                                 </View>
                                             </View>
-
-                                            <Text
-                                                style={styles.heroQuestTitle}
-                                                numberOfLines={2}
-                                            >
-                                                {quest.title}
+                                            <Text style={styles.heroQuestTitle}>
+                                                {"No missions completed yet today.\nTake on your available objectives to earn EXP!"}
                                             </Text>
-
-                                            <View style={styles.heroBottomRow}>
-                                                <View style={styles.heroTargetInfo}>
-                                                    <Text style={styles.heroTargetLabel}>
-                                                        CURRENT TARGET
-                                                    </Text>
-                                                    <Text
-                                                        style={styles.heroTargetValue}
-                                                        numberOfLines={1}
-                                                    >
-                                                        {quest.target_building_name}
-                                                    </Text>
-                                                </View>
-                                                <TouchableOpacity
-                                                    style={styles.heroDeployBtn}
-                                                    onPress={() =>
-                                                        router.push({
-                                                            pathname: "/(tabs)/ar",
-                                                            params: {
-                                                                targetBuildingId: quest.target_building,
-                                                                questId: quest.id,
-                                                            }
-                                                        })
-                                                    }
-                                                >
-                                                    <Text style={styles.heroDeployText}>
-                                                        Start Mission
-                                                    </Text>
-                                                    <ChevronRight
-                                                        color="#FFFFFF"
-                                                        size={18}
-                                                    />
-                                                </TouchableOpacity>
-                                            </View>
-                                            {index < activeQuests.length - 1 && (
-                                                <View style={{
-                                                    position: "absolute",
-                                                    right: -10,
-                                                    top: "50%",
-                                                    marginTop: -16,
-                                                    backgroundColor: "#FFFFFF",
-                                                    borderRadius: 16,
-                                                    width: 32,
-                                                    height: 32,
-                                                    justifyContent: "center",
-                                                    alignItems: "center",
-                                                    shadowColor: "#000",
-                                                    shadowOffset: { width: 0, height: 2 },
-                                                    shadowOpacity: 0.15,
-                                                    shadowRadius: 4,
-                                                    elevation: 4,
-                                                    borderWidth: 1,
-                                                    borderColor: theme.colors.border
-                                                }}>
-                                                    <ChevronRight color={theme.colors.primary} size={20} />
-                                                </View>
-                                            )}
                                         </View>
-                                    ))
-                                ) : (
-                                    <View style={[styles.heroCard, { width: Dimensions.get("window").width - 40, marginBottom: 0 }]}>
-                                        <View style={styles.heroTopRow}>
-                                            <View style={styles.heroLabelChip}>
-                                                <Crosshair
-                                                    color={theme.colors.primary}
-                                                    size={14}
-                                                />
-                                                <Text style={styles.heroChipText}>
-                                                    DAILY OBJECTIVE
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        <Text style={styles.heroQuestTitle}>
-                                            {loading
-                                                ? "Loading..."
-                                                : hasCompletedAllToday
-                                                ? "All daily missions cleared!\nCheck back tomorrow for new quests."
-                                                : "No active missions right now.\nExplore campus or check back soon!"}
-                                        </Text>
-                                    </View>
+                                    )
                                 )}
                             </ScrollView>
 
@@ -884,6 +1034,21 @@ export default function HomeScreen() {
 
                             {user?.role === "student" ? (
                                 <>
+                                    <TouchableOpacity
+                                        style={styles.actionCard}
+                                        onPress={() => router.push("/missions")}
+                                    >
+                                        <View style={styles.actionIconWrap}>
+                                            <Crosshair
+                                                color={theme.colors.primary}
+                                                size={24}
+                                            />
+                                        </View>
+                                        <Text style={styles.actionText}>
+                                            Missions
+                                        </Text>
+                                    </TouchableOpacity>
+
                                     <TouchableOpacity
                                         style={styles.actionCard}
                                         onPress={() =>

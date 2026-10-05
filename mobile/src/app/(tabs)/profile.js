@@ -414,7 +414,19 @@ export default function ProfileScreen() {
                 {/* --- Quest History --- */}
                 {user?.role === "student" && (
                     <View style={styles.sectionContainer}>
-                        <Text style={styles.sectionTitle}>MISSION LOG</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>MISSION LOG</Text>
+                            <TouchableOpacity
+                                onPress={() => router.push("/missions")}
+                                style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 11, color: theme.colors.primary }}>
+                                    View All ({questHistory.length})
+                                </Text>
+                                <ChevronRight size={13} color={theme.colors.primary} />
+                            </TouchableOpacity>
+                        </View>
                         <View style={styles.missionLogCard}>
                             {questHistory.length > 0 ? (
                                 questHistory.slice(0, 5).map((quest, idx) => (

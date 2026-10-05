@@ -429,24 +429,42 @@ class MyQuestHistoryView(views.APIView):
 	permission_classes = [IsAuthenticated, IsStudentRole]
 
 	def get(self, request):
+		try:
+			limit = min(int(request.query_params.get('limit', 50)), 100)
+		except (ValueError, TypeError):
+			limit = 50
+
 		recent = UserQuestProgress.objects.filter(
 			is_completed=True,
 			user=request.user
-		).select_related('quest', 'quest__target_building').order_by('-completed_at')[:10]
+		).select_related('quest', 'quest__target_building').order_by('-completed_at')[:limit]
 
 		data = []
 		for r in recent:
+			b_name = r.quest.target_building.name if r.quest.target_building else 'Unknown Location'
+			completed_str = r.completed_at.isoformat() if r.completed_at else None
 			data.append({
+				'id': str(r.id),
+				'quest_id': str(r.quest.id),
+				'title': r.quest.title,
 				'quest_title': r.quest.title,
-				'building_name': r.quest.target_building.name if r.quest.target_building else 'Unknown Location',
+				'hint': r.quest.hint,
+				'difficulty': r.quest.difficulty,
+				'target_building': r.quest.target_building_id,
+				'target_building_name': b_name,
+				'building_name': b_name,
 				'points': r.quest.reward_points,
-				'time_ago': r.completed_at.isoformat()
+				'reward_points': r.quest.reward_points,
+				'is_completed': True,
+				'completed_at': completed_str,
+				'time_ago': completed_str
 			})
 
 		return Response({
 			'success': True,
 			'data': data
 		})
+
 
 
 @api_view(['GET', 'POST'])
