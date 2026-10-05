@@ -36,12 +36,14 @@ export default function QuickMissionsModal({
     dailyCompletedCount = 0,
     dailyTotalCount = 3,
     quests = [],
+    completedQuests = [],
     onGoToHome,
     userLocation = null,
     allBuildings = [],
 }) {
     // viewState: "intro" (big 2D character + explanation first) -> "missions" (locked or unlocked list)
     const [viewState, setViewState] = useState("intro");
+    const [missionsTab, setMissionsTab] = useState("available"); // "available" or "completed"
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const charSlideY = useRef(new Animated.Value(80)).current;
@@ -51,6 +53,7 @@ export default function QuickMissionsModal({
     useEffect(() => {
         if (visible) {
             setViewState("intro");
+            setMissionsTab("available");
             fadeAnim.setValue(0);
             charSlideY.setValue(80);
             barSlideY.setValue(60);
@@ -306,122 +309,258 @@ export default function QuickMissionsModal({
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Case A: LOCKED STATE */}
-                            {!isUnlocked ? (
-                                <View style={S.lockedContainer}>
-                                    <View style={S.lockedIconCircle}>
-                                        <Lock size={26} color="#B21830" />
-                                    </View>
-
-                                    <Text style={S.lockedTitle}>Missions Locked! 🛑</Text>
-
-                                    <Text style={S.speechText}>
-                                        Hold up, Adventurer! You still have daily missions to clear first! Finish today's 3 tasks on the Home Dashboard and come back to unlock all quick missions.
-                                    </Text>
-
-                                    {/* Progress box */}
-                                    <View style={S.progressBox}>
-                                        <View style={S.progressHeader}>
-                                            <Text style={S.progressLabel}>TODAY'S DAILY MISSIONS</Text>
-                                            <Text style={S.progressValue}>
-                                                {dailyCompletedCount} / {dailyTotalCount} Done
-                                            </Text>
-                                        </View>
-                                        <View style={S.progressTrack}>
-                                            <View
-                                                style={[
-                                                    S.progressFill,
-                                                    {
-                                                        width: `${Math.min(
-                                                            100,
-                                                            Math.round(
-                                                                (dailyCompletedCount /
-                                                                    Math.max(1, dailyTotalCount)) *
-                                                                    100
-                                                            )
-                                                        )}%`,
-                                                    },
-                                                ]}
-                                            />
-                                        </View>
-                                    </View>
-
-                                    {/* Action Button */}
-                                    <TouchableOpacity
-                                        style={S.primaryBtn}
-                                        onPress={() => {
-                                            handleDismiss();
-                                            onGoToHome && onGoToHome();
-                                        }}
-                                        activeOpacity={0.85}
+                            {/* Segmented Tabs: Available vs Completed */}
+                            <View style={S.segmentedTabsRow}>
+                                <TouchableOpacity
+                                    style={[
+                                        S.segmentedTabBtn,
+                                        missionsTab === "available" && S.segmentedTabBtnActive,
+                                    ]}
+                                    onPress={() => setMissionsTab("available")}
+                                    activeOpacity={0.8}
+                                >
+                                    <Crosshair
+                                        size={12}
+                                        color={missionsTab === "available" ? "#FFFFFF" : "#6B7280"}
+                                    />
+                                    <Text
+                                        style={[
+                                            S.segmentedTabText,
+                                            missionsTab === "available" && S.segmentedTabTextActive,
+                                        ]}
                                     >
-                                        <Text style={S.primaryBtnText}>GO TO DAILY MISSIONS</Text>
-                                        <ChevronRight size={16} color="#FFFFFF" />
-                                    </TouchableOpacity>
-                                </View>
-                            ) : (
-                                /* Case B: UNLOCKED STATE */
+                                        AVAILABLE ({quests.length})
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[
+                                        S.segmentedTabBtn,
+                                        missionsTab === "completed" && S.segmentedTabBtnActiveCompleted,
+                                    ]}
+                                    onPress={() => setMissionsTab("completed")}
+                                    activeOpacity={0.8}
+                                >
+                                    <CheckCircle2
+                                        size={12}
+                                        color={missionsTab === "completed" ? "#FFFFFF" : "#6B7280"}
+                                    />
+                                    <Text
+                                        style={[
+                                            S.segmentedTabText,
+                                            missionsTab === "completed" && S.segmentedTabTextActive,
+                                        ]}
+                                    >
+                                        COMPLETED ({completedQuests.length})
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* TAB 1: AVAILABLE QUICK MISSIONS */}
+                            {missionsTab === "available" && (
+                                <>
+                                    {/* Case A: LOCKED STATE */}
+                                    {!isUnlocked ? (
+                                        <View style={S.lockedContainer}>
+                                            <View style={S.lockedIconCircle}>
+                                                <Lock size={24} color="#B21830" />
+                                            </View>
+
+                                            <Text style={S.lockedTitle}>Missions Locked! 🛑</Text>
+
+                                            <Text style={S.speechText}>
+                                                Hold up, Adventurer! You still have daily missions to clear first! Finish today's 3 tasks on the Home Dashboard and come back to unlock all quick missions.
+                                            </Text>
+
+                                            {/* Progress box */}
+                                            <View style={S.progressBox}>
+                                                <View style={S.progressHeader}>
+                                                    <Text style={S.progressLabel}>TODAY'S DAILY MISSIONS</Text>
+                                                    <Text style={S.progressValue}>
+                                                        {dailyCompletedCount} / {dailyTotalCount} Done
+                                                    </Text>
+                                                </View>
+                                                <View style={S.progressTrack}>
+                                                    <View
+                                                        style={[
+                                                            S.progressFill,
+                                                            {
+                                                                width: `${Math.min(
+                                                                    100,
+                                                                    Math.round(
+                                                                        (dailyCompletedCount /
+                                                                            Math.max(1, dailyTotalCount)) *
+                                                                            100
+                                                                    )
+                                                                )}%`,
+                                                            },
+                                                        ]}
+                                                    />
+                                                </View>
+                                            </View>
+
+                                            {/* Action Button */}
+                                            <TouchableOpacity
+                                                style={S.primaryBtn}
+                                                onPress={() => {
+                                                    handleDismiss();
+                                                    onGoToHome && onGoToHome();
+                                                }}
+                                                activeOpacity={0.85}
+                                            >
+                                                <Text style={S.primaryBtnText}>GO TO DAILY MISSIONS</Text>
+                                                <ChevronRight size={16} color="#FFFFFF" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : (
+                                        /* Case B: UNLOCKED STATE */
+                                        <View style={S.unlockedContainer}>
+                                            <View style={S.unlockedBanner}>
+                                                <Trophy size={15} color="#EBBC26" />
+                                                <Text style={S.unlockedBannerText} numberOfLines={1}>
+                                                    All Daily Missions cleared! Pick a quick mission:
+                                                </Text>
+                                            </View>
+
+                                            {quests.length === 0 ? (
+                                                <View style={S.emptyState}>
+                                                    <CheckCircle2 size={30} color="#16A34A" style={{ marginBottom: 6 }} />
+                                                    <Text style={S.emptyStateTitle}>All Quick Missions Cleared! 🎉</Text>
+                                                    <Text style={S.emptyStateText}>
+                                                        You've completed all available quick missions. Check the Completed tab to review your mission log!
+                                                    </Text>
+                                                </View>
+                                            ) : (
+                                                <FlatList
+                                                    data={quests}
+                                                    keyExtractor={(item) => (item.id || item.quest_id || Math.random()).toString()}
+                                                    style={S.questList}
+                                                    showsVerticalScrollIndicator={false}
+                                                    renderItem={({ item }) => {
+                                                        const dist = getMissionDistance(item);
+                                                        const isAlreadyHere = dist !== null && dist < 35;
+
+                                                        return (
+                                                            <TouchableOpacity
+                                                                style={[
+                                                                    S.questItem,
+                                                                    isAlreadyHere && S.questItemDisabled,
+                                                                ]}
+                                                                activeOpacity={isAlreadyHere ? 1 : 0.8}
+                                                                onPress={() => {
+                                                                    if (isAlreadyHere) return;
+                                                                    handleDismiss();
+                                                                    onSelectMission && onSelectMission(item);
+                                                                }}
+                                                            >
+                                                                <View style={S.questItemHeader}>
+                                                                    <View style={S.difficultyPill}>
+                                                                        <Text style={S.difficultyText}>
+                                                                            {item.difficulty || "EASY"}
+                                                                        </Text>
+                                                                    </View>
+                                                                    {isAlreadyHere ? (
+                                                                        <View style={S.alreadyHerePill}>
+                                                                            <MapPin size={10} color="#D97706" />
+                                                                            <Text style={S.alreadyHereText}>
+                                                                                ALREADY HERE ({dist}m)
+                                                                            </Text>
+                                                                        </View>
+                                                                    ) : (
+                                                                        <View style={S.rewardPill}>
+                                                                            <Text style={S.rewardText}>
+                                                                                +{item.reward_points} EXP
+                                                                            </Text>
+                                                                        </View>
+                                                                    )}
+                                                                </View>
+
+                                                                <Text style={S.questTitle} numberOfLines={2}>
+                                                                    {item.title}
+                                                                </Text>
+
+                                                                <View style={S.targetRow}>
+                                                                    <Building2 size={13} color="#B21830" />
+                                                                    <Text
+                                                                        style={S.targetBuildingText}
+                                                                        numberOfLines={1}
+                                                                    >
+                                                                        {item.target_building_name || "Campus Building"}
+                                                                    </Text>
+                                                                </View>
+
+                                                                <View style={S.navigateActionRow}>
+                                                                    {isAlreadyHere ? (
+                                                                        <Text style={S.navigateActionTextDisabled}>
+                                                                            📍 You are inside this building • Pick another destination
+                                                                        </Text>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Text style={S.navigateActionText}>
+                                                                                {dist !== null ? `${dist}m away • ` : ""}Set Destination & Plot Route
+                                                                            </Text>
+                                                                            <ChevronRight size={14} color="#B21830" />
+                                                                        </>
+                                                                    )}
+                                                                </View>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    }}
+                                                />
+                                            )}
+                                        </View>
+                                    )}
+                                </>
+                            )}
+
+                            {/* TAB 2: COMPLETED QUICK MISSIONS */}
+                            {missionsTab === "completed" && (
                                 <View style={S.unlockedContainer}>
-                                    <View style={S.unlockedBanner}>
-                                        <Trophy size={16} color="#EBBC26" />
-                                        <Text style={S.unlockedBannerText}>
-                                            All Daily Missions cleared! Pick a quick mission to navigate!
+                                    <View style={[S.unlockedBanner, S.completedBanner]}>
+                                        <CheckCircle2 size={15} color="#16A34A" />
+                                        <Text style={S.completedBannerText} numberOfLines={1}>
+                                            Completed Quick Missions ({completedQuests.length})
                                         </Text>
                                     </View>
 
-                                    <Text style={S.speechTextUnlocked}>
-                                        Tap any mission below and I'll input the destination into your navigation radar!
-                                    </Text>
-
-                                    {quests.length === 0 ? (
+                                    {completedQuests.length === 0 ? (
                                         <View style={S.emptyState}>
+                                            <CheckCircle2 size={30} color="#D1D5DB" style={{ marginBottom: 6 }} />
+                                            <Text style={S.emptyStateTitle}>No Completed Missions Yet</Text>
                                             <Text style={S.emptyStateText}>
-                                                No easy quick missions available right now. Check back soon!
+                                                Clear today's 3 daily missions to unlock and finish quick missions across campus buildings!
                                             </Text>
                                         </View>
                                     ) : (
                                         <FlatList
-                                            data={quests}
-                                            keyExtractor={(item) => item.id.toString()}
+                                            data={completedQuests}
+                                            keyExtractor={(item) => (item.id || item.quest_id || Math.random()).toString()}
                                             style={S.questList}
                                             showsVerticalScrollIndicator={false}
                                             renderItem={({ item }) => {
                                                 const dist = getMissionDistance(item);
-                                                const isAlreadyHere = dist !== null && dist < 35;
 
                                                 return (
                                                     <TouchableOpacity
-                                                        style={[
-                                                            S.questItem,
-                                                            isAlreadyHere && S.questItemDisabled,
-                                                        ]}
-                                                        activeOpacity={isAlreadyHere ? 1 : 0.8}
+                                                        style={[S.questItem, S.questItemCompleted]}
+                                                        activeOpacity={0.8}
                                                         onPress={() => {
-                                                            if (isAlreadyHere) return;
                                                             handleDismiss();
                                                             onSelectMission && onSelectMission(item);
                                                         }}
                                                     >
                                                         <View style={S.questItemHeader}>
-                                                            <View style={S.difficultyPill}>
-                                                                <Text style={S.difficultyText}>
-                                                                    {item.difficulty || "EASY"}
+                                                            <View style={S.completedStatusPill}>
+                                                                <CheckCircle2 size={10} color="#16A34A" />
+                                                                <Text style={S.completedStatusText}>
+                                                                    COMPLETED
                                                                 </Text>
                                                             </View>
-                                                            {isAlreadyHere ? (
-                                                                <View style={S.alreadyHerePill}>
-                                                                    <MapPin size={10} color="#D97706" />
-                                                                    <Text style={S.alreadyHereText}>
-                                                                        ALREADY HERE ({dist}m)
-                                                                    </Text>
-                                                                </View>
-                                                            ) : (
-                                                                <View style={S.rewardPill}>
-                                                                    <Text style={S.rewardText}>
-                                                                        +{item.reward_points} EXP
-                                                                    </Text>
-                                                                </View>
-                                                            )}
+                                                            <View style={S.rewardPillCompleted}>
+                                                                <Text style={S.rewardTextCompleted}>
+                                                                    +{item.reward_points} EXP EARNED
+                                                                </Text>
+                                                            </View>
                                                         </View>
 
                                                         <Text style={S.questTitle} numberOfLines={2}>
@@ -429,7 +568,7 @@ export default function QuickMissionsModal({
                                                         </Text>
 
                                                         <View style={S.targetRow}>
-                                                            <Building2 size={13} color="#B21830" />
+                                                            <Building2 size={13} color="#16A34A" />
                                                             <Text
                                                                 style={S.targetBuildingText}
                                                                 numberOfLines={1}
@@ -439,18 +578,15 @@ export default function QuickMissionsModal({
                                                         </View>
 
                                                         <View style={S.navigateActionRow}>
-                                                            {isAlreadyHere ? (
-                                                                <Text style={S.navigateActionTextDisabled}>
-                                                                    📍 You are inside this building • Pick another destination
+                                                            <Text style={S.completedActionHint}>
+                                                                ✓ Mission Accomplished
+                                                            </Text>
+                                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                                                                <Text style={S.completedNavigateText}>
+                                                                    {dist !== null ? `${dist}m • ` : ""}Revisit Building
                                                                 </Text>
-                                                            ) : (
-                                                                <>
-                                                                    <Text style={S.navigateActionText}>
-                                                                        {dist !== null ? `${dist}m away • ` : ""}Set Destination & Plot Route
-                                                                    </Text>
-                                                                    <ChevronRight size={14} color="#B21830" />
-                                                                </>
-                                                            )}
+                                                                <ChevronRight size={13} color="#16A34A" />
+                                                            </View>
                                                         </View>
                                                     </TouchableOpacity>
                                                 );
@@ -722,6 +858,51 @@ const S = StyleSheet.create({
         letterSpacing: 0.8,
     },
 
+    // ── Segmented Tabs Row (Available vs Completed) ─────────────────────────
+    segmentedTabsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 10,
+        backgroundColor: "#F3F4F6",
+        padding: 3,
+        borderRadius: 6,
+    },
+    segmentedTabBtn: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 5,
+        paddingVertical: 7,
+        borderRadius: 6,
+    },
+    segmentedTabBtnActive: {
+        backgroundColor: "#B21830",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    segmentedTabBtnActiveCompleted: {
+        backgroundColor: "#16A34A",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    segmentedTabText: {
+        fontSize: 11,
+        fontFamily: fonts.body.bold,
+        color: "#6B7280",
+        letterSpacing: 0.3,
+    },
+    segmentedTabTextActive: {
+        color: "#FFFFFF",
+    },
+
     // ── Locked State ─────────────────────────────────────────────────────────
     lockedContainer: {
         alignItems: "center",
@@ -842,9 +1023,25 @@ const S = StyleSheet.create({
         fontFamily: fonts.body.bold,
         color: "#92400E",
     },
+    completedBanner: {
+        backgroundColor: "#F0FDF4",
+        borderColor: "#BBF7D0",
+    },
+    completedBannerText: {
+        flex: 1,
+        fontSize: 11.5,
+        fontFamily: fonts.body.bold,
+        color: "#166534",
+    },
     emptyState: {
         alignItems: "center",
         paddingVertical: 24,
+    },
+    emptyStateTitle: {
+        fontSize: 13.5,
+        fontFamily: fonts.heading.bold,
+        color: "#111827",
+        marginBottom: 4,
     },
     emptyStateText: {
         fontSize: 13,
@@ -956,5 +1153,50 @@ const S = StyleSheet.create({
         fontSize: 10.5,
         fontFamily: fonts.body.bold,
         color: "#D97706",
+    },
+
+    // ── Completed Quest Styles ──────────────────────────────────────────────
+    questItemCompleted: {
+        borderColor: "#DCFCE7",
+        backgroundColor: "#FAFCF9",
+    },
+    completedStatusPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: "#ECFDF5",
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#A7F3D0",
+    },
+    completedStatusText: {
+        fontSize: 9.5,
+        fontFamily: fonts.body.bold,
+        color: "#16A34A",
+    },
+    rewardPillCompleted: {
+        backgroundColor: "#F0FDF4",
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#BBF7D0",
+    },
+    rewardTextCompleted: {
+        fontSize: 9.5,
+        fontFamily: fonts.body.bold,
+        color: "#16A34A",
+    },
+    completedActionHint: {
+        fontSize: 10.5,
+        fontFamily: fonts.body.bold,
+        color: "#16A34A",
+    },
+    completedNavigateText: {
+        fontSize: 10.5,
+        fontFamily: fonts.body.bold,
+        color: "#16A34A",
     },
 });

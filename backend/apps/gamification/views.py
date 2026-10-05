@@ -265,7 +265,7 @@ class QuickQuestsView(views.APIView):
 		daily_completed = sum(1 for q in daily_quests if q.id in completed_quest_ids)
 		is_unlocked = (daily_total > 0 and daily_completed >= daily_total)
 
-		# 2. Get available EASY quick quests, EXCLUDING buildings already used in today's daily missions
+		# 2. Get available EASY quick quests, EXCLUDING buildings already used in today's daily missions AND excluding already completed quests
 		daily_building_ids = {q.target_building_id for q in daily_quests}
 
 		easy_quests_qs = Quest.objects.filter(
@@ -273,27 +273,48 @@ class QuickQuestsView(views.APIView):
 			difficulty='EASY',
 			expires_at__isnull=True
 		).exclude(
+			id__in=completed_quest_ids
+		).exclude(
 			target_building_id__in=daily_building_ids
 		).select_related('target_building')
 
-		# If excluding leaves fewer than 2 quests, fallback to all available easy quests
+		# If excluding leaves fewer than 2 quests, fallback to uncompleted easy quests
 		if easy_quests_qs.count() < 2:
 			easy_quests_qs = Quest.objects.filter(
 				is_active=True,
 				difficulty='EASY',
 				expires_at__isnull=True
+			).exclude(
+				id__in=completed_quest_ids
 			).select_related('target_building')
 
 		# Deduplicate so there is at most 1 quick mission per campus building
 		seen_buildings = set()
-		distinct_easy_quests = []
+		distinct_available_quests = []
 		for q in easy_quests_qs:
 			if q.target_building_id not in seen_buildings:
 				seen_buildings.add(q.target_building_id)
-				distinct_easy_quests.append(q)
+				distinct_available_quests.append(q)
 
-		serializer = QuestSerializer(
-			distinct_easy_quests, 
+		# 3. Completed quick quests for this student
+		completed_progress = UserQuestProgress.objects.filter(
+			user=user,
+			is_completed=True,
+			quest__difficulty='EASY',
+			quest__expires_at__isnull=True
+		).select_related('quest', 'quest__target_building').order_by('-completed_at')
+
+		completed_quests = []
+		for p in completed_progress:
+			q_data = QuestSerializer(
+				p.quest, 
+				context={'completed_quest_ids': completed_quest_ids, 'request': request}
+			).data
+			q_data['completed_at'] = p.completed_at.isoformat() if p.completed_at else None
+			completed_quests.append(q_data)
+
+		available_serializer = QuestSerializer(
+			distinct_available_quests, 
 			many=True, 
 			context={'completed_quest_ids': completed_quest_ids, 'request': request}
 		)
@@ -304,7 +325,9 @@ class QuickQuestsView(views.APIView):
 				'is_unlocked': is_unlocked,
 				'daily_completed_count': daily_completed,
 				'daily_total_count': daily_total,
-				'quests': serializer.data
+				'quests': available_serializer.data,
+				'available_quests': available_serializer.data,
+				'completed_quests': completed_quests,
 			}
 		})
 

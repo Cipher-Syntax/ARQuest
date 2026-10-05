@@ -92,6 +92,7 @@ export default function BuildingsScreen() {
     // Quick Missions & Turn HUD States
     const [quickModalVisible, setQuickModalVisible] = useState(false);
     const [quickQuests, setQuickQuests] = useState([]);
+    const [completedQuickQuests, setCompletedQuickQuests] = useState([]);
     const [isQuickUnlocked, setIsQuickUnlocked] = useState(false);
     const [dailyProgress, setDailyProgress] = useState({ completed: 0, total: 3 });
     const [missionBuildingIds, setMissionBuildingIds] = useState([]);
@@ -153,8 +154,11 @@ export default function BuildingsScreen() {
                     completed: data.daily_completed_count || 0,
                     total: data.daily_total_count || 3,
                 });
-                setQuickQuests(data.quests || []);
-                const bIds = (data.quests || []).map((q) => q.target_building);
+                const available = data.available_quests || data.quests || [];
+                const completed = data.completed_quests || [];
+                setQuickQuests(available);
+                setCompletedQuickQuests(completed);
+                const bIds = available.map((q) => q.target_building);
                 setMissionBuildingIds(bIds);
             }
         } catch (err) {
@@ -1428,6 +1432,7 @@ export default function BuildingsScreen() {
                 dailyCompletedCount={dailyProgress.completed}
                 dailyTotalCount={dailyProgress.total}
                 quests={quickQuests}
+                completedQuests={completedQuickQuests}
                 onGoToHome={() => router.push("/(tabs)")}
                 userLocation={location}
                 allBuildings={allBuildings}
