@@ -4,7 +4,6 @@ import { View, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import theme from "../../theme/tokens";
 import { useAuth } from "../../hooks/useAuth";
-import { LocationProvider } from "../../context/LocationContext";
 import { UnlockedBuildingsProvider } from "../../context/UnlockedBuildingsContext";
 import { Redirect } from "expo-router";
 import { registerForPushNotificationsAsync } from "../../utils/pushNotifications";
@@ -124,9 +123,8 @@ export default function TabLayout() {
     }
 
     return (
-        <LocationProvider>
-            <UnlockedBuildingsProvider>
-                <View style={{ flex: 1 }}>
+        <UnlockedBuildingsProvider>
+            <View style={{ flex: 1 }}>
                     <Tabs
                         screenOptions={{
                             headerStyle: {
@@ -202,6 +200,5 @@ export default function TabLayout() {
                     <JustineGuideModal />
                 </View>
             </UnlockedBuildingsProvider>
-        </LocationProvider>
     );
 }

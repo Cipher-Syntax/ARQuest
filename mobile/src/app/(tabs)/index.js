@@ -388,13 +388,23 @@ export default function HomeScreen() {
 
                                 <TouchableOpacity
                                     onPress={() => router.push("/missions")}
-                                    style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+                                    style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        backgroundColor: "rgba(255, 255, 255, 0.22)",
+                                        paddingHorizontal: 10,
+                                        paddingVertical: 5,
+                                        borderRadius: 14,
+                                        borderWidth: 1,
+                                        borderColor: "rgba(255, 255, 255, 0.38)",
+                                    }}
                                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 11, color: theme.colors.primary }}>
+                                    <Text style={{ fontFamily: fonts.heading.bold, fontSize: 11, color: "#FFFFFF" }}>
                                         All Missions
                                     </Text>
-                                    <ChevronRight size={14} color={theme.colors.primary} />
+                                    <ChevronRight size={13} color="#FFFFFF" strokeWidth={2.5} />
                                 </TouchableOpacity>
                             </View>
 

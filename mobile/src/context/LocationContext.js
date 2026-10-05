@@ -212,14 +212,37 @@ export const LocationProvider = ({ children }) => {
     );
 };
 
+const DEFAULT_LOCATION_STATE = {
+    location: null,
+    error: null,
+    permissionStatus: "undetermined",
+    isTracking: false,
+    heading: 0,
+};
+
+const DEFAULT_LOCATION_ACTIONS = {
+    checkPermission: async () => "denied",
+    requestPermission: async () => false,
+    startTracking: async () => {},
+    stopTracking: () => {},
+    refreshLocation: async () => null,
+};
+
 export const useLocationState = () => {
     const context = useContext(LocationStateContext);
-    if (!context) throw new Error("useLocationState must be used within a LocationProvider");
+    if (!context) {
+        console.warn("[LocationContext] useLocationState called outside LocationProvider. Returning default state.");
+        return DEFAULT_LOCATION_STATE;
+    }
     return context;
 };
 
 export const useLocationActions = () => {
     const context = useContext(LocationActionsContext);
-    if (!context) throw new Error("useLocationActions must be used within a LocationProvider");
+    if (!context) {
+        console.warn("[LocationContext] useLocationActions called outside LocationProvider. Returning default actions.");
+        return DEFAULT_LOCATION_ACTIONS;
+    }
     return context;
 };
+
