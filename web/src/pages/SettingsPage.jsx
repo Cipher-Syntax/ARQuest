@@ -104,6 +104,71 @@ export default function Settings() {
         }
     };
 
+    const activeProfileImage = !removeProfileImage
+        ? (profileImagePreview || getProfileImageUrl(user?.profile_image))
+        : null;
+
+    const hasPendingProfileChanges = () => {
+        if (profileImageFile !== null) return true;
+        if (removeProfileImage) return true;
+        if (profileData.password.trim() !== "") return true;
+        const currentFullName = user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "";
+        if (profileData.name.trim() !== currentFullName) return true;
+        return false;
+    };
+
+    const saveProfileChanges = async () => {
+        const parts = profileData.name.trim().split(" ");
+        const firstName = parts[0] || "";
+        const lastName = parts.slice(1).join(" ") || "";
+
+        if (profileData.password) {
+            if (profileData.password !== profileData.confirmPassword) {
+                throw new Error("Passwords do not match!");
+            }
+            if (profileData.password.length < 8) {
+                throw new Error("Password must be at least 8 characters long.");
+            }
+        }
+
+        let updatedUser;
+        if (profileImageFile || removeProfileImage) {
+            const formData = new FormData();
+            formData.append("first_name", firstName);
+            formData.append("last_name", lastName);
+            if (profileData.password) {
+                formData.append("password", profileData.password);
+            }
+            if (profileImageFile) {
+                formData.append("profile_image", profileImageFile);
+            } else if (removeProfileImage) {
+                formData.append("remove_profile_image", "true");
+            }
+            updatedUser = await updateUser(formData);
+        } else {
+            const payload = {
+                first_name: firstName,
+                last_name: lastName,
+            };
+            if (profileData.password) {
+                payload.password = profileData.password;
+            }
+            updatedUser = await updateUser(payload);
+        }
+
+        if (profileImagePreview && profileImagePreview.startsWith("blob:")) {
+            URL.revokeObjectURL(profileImagePreview);
+        }
+        setProfileImageFile(null);
+        setProfileImagePreview(null);
+        setRemoveProfileImage(false);
+        setProfileData(prev => ({ ...prev, password: "", confirmPassword: "" }));
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+        return updatedUser;
+    };
+
     const handleSave = async () => {
         const schema = {
             app_name: (val) => validateString(val, 1),
@@ -114,17 +179,39 @@ export default function Settings() {
         setErrors(validationErrors);
         if (Object.keys(validationErrors).length > 0) return;
 
+        if (profileData.password) {
+            if (profileData.password !== profileData.confirmPassword) {
+                setErrorMessage("Passwords do not match!");
+                return;
+            }
+            if (profileData.password.length < 8) {
+                setErrorMessage("Password must be at least 8 characters long.");
+                return;
+            }
+        }
+
         try {
             setErrorMessage("");
             setSuccessMessage("");
             setIsSaving(true);
+
+            const hasProfileUpdates = hasPendingProfileChanges();
+
             await settingsService.updateSettings(settings);
-            setSuccessMessage("System settings saved successfully!");
-            setTimeout(() => setSuccessMessage(""), 3000);
+
+            if (hasProfileUpdates) {
+                await saveProfileChanges();
+                setSuccessMessage("System settings and admin profile saved successfully!");
+            } else {
+                setSuccessMessage("System settings saved successfully!");
+            }
+
+            setTimeout(() => setSuccessMessage(""), 3500);
         } catch (error) {
-            console.error("Failed to save settings", error);
-            setErrorMessage("Failed to save system settings. Please try again.");
-            setTimeout(() => setErrorMessage(""), 3000);
+            console.error("Failed to save settings/profile", error);
+            const msg = error.message || error.response?.data?.message || "Failed to save settings. Please try again.";
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(""), 3500);
         } finally {
             setIsSaving(false);
         }
@@ -159,6 +246,9 @@ export default function Settings() {
     };
 
     const handleRemoveImage = () => {
+        if (profileImagePreview && profileImagePreview.startsWith("blob:")) {
+            URL.revokeObjectURL(profileImagePreview);
+        }
         setProfileImageFile(null);
         setProfileImagePreview(null);
         setRemoveProfileImage(true);
@@ -173,50 +263,13 @@ export default function Settings() {
             setIsProfileSaving(true);
             setErrorMessage("");
             setSuccessMessage("");
-            const parts = profileData.name.trim().split(" ");
-            const firstName = parts[0] || "";
-            const lastName = parts.slice(1).join(" ") || "";
-
-            if (profileData.password) {
-                if (profileData.password !== profileData.confirmPassword) {
-                    setErrorMessage("Passwords do not match!");
-                    setIsProfileSaving(false);
-                    return;
-                }
-            }
-
-            if (profileImageFile || removeProfileImage) {
-                const formData = new FormData();
-                formData.append("first_name", firstName);
-                formData.append("last_name", lastName);
-                if (profileData.password) {
-                    formData.append("password", profileData.password);
-                }
-                if (profileImageFile) {
-                    formData.append("profile_image", profileImageFile);
-                } else if (removeProfileImage) {
-                    formData.append("remove_profile_image", "true");
-                }
-                await updateUser(formData);
-            } else {
-                const payload = {
-                    first_name: firstName,
-                    last_name: lastName
-                };
-                if (profileData.password) {
-                    payload.password = profileData.password;
-                }
-                await updateUser(payload);
-            }
-            
-            setProfileImageFile(null);
-            setRemoveProfileImage(false);
-            setProfileData(prev => ({ ...prev, password: "", confirmPassword: "" })); // Clear password fields
+            await saveProfileChanges();
             setSuccessMessage("Admin profile updated successfully!");
             setTimeout(() => setSuccessMessage(""), 3000);
         } catch (error) {
             console.error("Failed to update profile", error);
-            setErrorMessage(error.response?.data?.message || "Failed to update profile. Please try again.");
+            const msg = error.message || error.response?.data?.message || "Failed to update profile. Please try again.";
+            setErrorMessage(msg);
             setTimeout(() => setErrorMessage(""), 3000);
         } finally {
             setIsProfileSaving(false);
@@ -237,7 +290,7 @@ export default function Settings() {
                 <Button
                     onClick={handleSave}
                     className="gap-2 px-8"
-                    disabled={isSaving}
+                    disabled={isSaving || isProfileSaving}
                 >
                     <Save size={18} />
                     {isSaving ? "Saving..." : "Save Changes"}
@@ -268,9 +321,9 @@ export default function Settings() {
                             <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-md bg-brand-light/20 border border-brand-border/60">
                                 <div className="relative group shrink-0">
                                     <div className="w-20 h-20 rounded-full border-2 border-brand-border bg-white shadow-sm overflow-hidden flex items-center justify-center">
-                                        {profileImagePreview || user?.profile_image ? (
+                                        {activeProfileImage ? (
                                             <img
-                                                src={profileImagePreview || getProfileImageUrl(user?.profile_image)}
+                                                src={activeProfileImage}
                                                 alt="Admin Avatar Preview"
                                                 className="w-full h-full object-cover"
                                             />
@@ -311,9 +364,9 @@ export default function Settings() {
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-white border border-brand-border text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
                                         >
                                             <Upload size={13} />
-                                            {profileImagePreview || user?.profile_image ? "Change Photo" : "Upload Photo"}
+                                            {activeProfileImage ? "Change Photo" : "Upload Photo"}
                                         </button>
-                                        {(profileImagePreview || user?.profile_image) && (
+                                        {activeProfileImage && (
                                             <button
                                                 type="button"
                                                 onClick={handleRemoveImage}
@@ -402,7 +455,7 @@ export default function Settings() {
                                 <Button
                                     variant="secondary"
                                     onClick={handleProfileSave}
-                                    disabled={isProfileSaving}
+                                    disabled={isSaving || isProfileSaving}
                                     className="text-sm px-4 py-2 h-auto"
                                 >
                                     {isProfileSaving ? "Updating..." : "Update Profile"}

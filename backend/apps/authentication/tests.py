@@ -217,6 +217,39 @@ class CurrentUserTestCase(TestCase):
         user.refresh_from_db()
         self.assertEqual(user.avatar_id, 'mascot_1')
 
+    def test_update_current_user_profile_image_and_remove(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_authenticate(user=self.user)
+        
+        # 1. Upload profile image
+        test_file = SimpleUploadedFile("avatar.jpg", b"fake image bytes", content_type="image/jpeg")
+        response = self.client.patch('/api/auth/me/', {'profile_image': test_file}, format='multipart')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        image_url = response.data['data']['user']['profile_image']
+        self.assertIsNotNone(image_url)
+        self.assertIn('profile_images', image_url)
+        
+        # Verify persistence on DB
+        self.user.refresh_from_db()
+        self.assertTrue(bool(self.user.profile_image))
+
+        # Verify persistence on subsequent GET /api/auth/me/
+        get_response = self.client.get('/api/auth/me/')
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response.data['data']['user']['profile_image'], image_url)
+
+        # 2. Remove profile image
+        remove_response = self.client.patch('/api/auth/me/', {'remove_profile_image': 'true'}, format='multipart')
+        self.assertEqual(remove_response.status_code, 200)
+        self.assertTrue(remove_response.data['success'])
+        self.assertIsNone(remove_response.data['data']['user']['profile_image'])
+
+        # Verify DB is cleared
+        self.user.refresh_from_db()
+        self.assertFalse(bool(self.user.profile_image))
+
+
 
 class TokenRefreshTestCase(TestCase):
     def setUp(self):
