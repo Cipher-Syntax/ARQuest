@@ -10,55 +10,54 @@
 ## 1. Conceptual Framework Diagram
 The conceptual framework of **ARQuest** is grounded on the classic **Input-Process-Output (IPO)** model with a continuous feedback and recalibration mechanism. 
 
-The diagram is organized in a strict **Top-to-Bottom (Vertical Portrait)** sequence (**INPUT** $\rightarrow$ **PROCESS** $\rightarrow$ **OUTPUT** $\rightarrow$ **FEEDBACK**) specifically formatted to maximize printable page width on standard A4 bond paper without horizontal scaling distortion.
+The diagram follows the standard academic **3-Column Input-Process-Output (IPO)** architecture (**INPUT** $\rightarrow$ **PROCESS** $\rightarrow$ **OUTPUT**) with a continuous feedback and recalibration loop spanning the bottom, ensuring visual balance, high readability, and standard research thesis compliance.
 
 ```mermaid
 flowchart TD
     %% ==========================================
-    %% 1. INPUT (TOP TIER)
+    %% CORE IPO PIPELINE (3-COLUMN ARCHITECTURE)
     %% ==========================================
-    subgraph INPUT ["▼ 1. INPUT (SYSTEM INPUTS & SENSORY TELEMETRY)"]
+    subgraph IPO_PIPELINE ["INPUT - PROCESS - OUTPUT ARCHITECTURE"]
         direction LR
-        IN_A["<b>A. Hardware & Sensors</b><br/>• High-Accuracy GPS Coordinates<br/>• Magnetometer Azimuth Heading<br/>• 3-Axis Gyroscope Angles<br/>• Camera Video Feed & QR Codes"]
-        IN_B["<b>B. User & Account Data</b><br/>• WMSU Institutional Email<br/>• PBKDF2 Password Credentials<br/>• Avatar & Client Audio Settings<br/>• Categorized User Bug Reports"]
-        IN_C["<b>C. University Geospatial Assets</b><br/>• Campus POIs & Geofences<br/>• Walking Network Sidewalk Graph<br/>• 3D Architectural GLB Models<br/>• 360° Equirectangular Spheres"]
-        IN_A ~~~ IN_B ~~~ IN_C
+
+        subgraph INPUT ["1. INPUT"]
+            direction TB
+            IN_1["<b>A. Hardware & Sensors</b><br/>• High-Accuracy GPS Coordinates<br/>• Magnetometer Compass Heading<br/>• 3-Axis Gyroscope Telemetry<br/>• Camera Video Stream & QR Scans"]
+            IN_2["<b>B. User Profiles & Telemetry</b><br/>• WMSU Institutional Email & Passwords<br/>• 4-Tier Role Permissions (RBAC)<br/>• Audio, SFX & Haptics Settings<br/>• User Issue & Bug Reports"]
+            IN_3["<b>C. University Geospatial Assets</b><br/>• Campus POIs & Geofence Polygons<br/>• Pedestrian Sidewalk Walking Graph<br/>• 3D Architectural Models (.glb)<br/>• 360° Panoramas & Doorway Anchors"]
+            IN_1 ~~~ IN_2 ~~~ IN_3
+        end
+
+        subgraph PROCESS ["2. PROCESS"]
+            direction TB
+            PR_1["<b>A. Security & Access Control</b><br/>• PBKDF2 Hashing & SimpleJWT<br/>• Brevo SMTP 6-Digit Email OTP<br/>• Role-Based Access Control Guards<br/>• Soft-Deactivation & Restoration"]
+            PR_2["<b>B. Spatial & Sensor Fusion</b><br/>• Two-Stage Haversine Filtering<br/>• 60 FPS EMA Heading Smoothing<br/>• Heuristic A* Pedestrian Routing<br/>• 45° Camera Frustum FOV Check"]
+            PR_3["<b>C. Virtual Inspection & Analytics</b><br/>• Three.js Physically Based Rendering<br/>• Gyro Magic Window VR Walkthroughs<br/>• Proximity 3D-to-360° Portals (5m)<br/>• Foot Traffic Recharts Aggregations"]
+            PR_1 ~~~ PR_2 ~~~ PR_3
+        end
+
+        subgraph OUTPUT ["3. OUTPUT"]
+            direction TB
+            OUT_1["<b>A. Spatial AR Wayfinding</b><br/>• Real-Time 3D Ground Chevrons<br/>• Tactical Distance HUD Billboards<br/>• 2D Turn Alerts (◀ LEFT / RIGHT ▶)<br/>• Cyan Sidewalk Route Line Overlays"]
+            OUT_2["<b>B. Facility Exploration Deliverables</b><br/>• Automated Building Discovery Unlocks<br/>• Touch-Manipulated 3D Twins<br/>• Room-to-Room 360° VR Tours<br/>• Seamless Orbit-to-Interior State"]
+            OUT_3["<b>C. Gamification & Administration</b><br/>• Student EXP Progression & Streaks<br/>• Campus Passport Discovery Stamps<br/>• Live Operational KPI Dashboard<br/>• Validated Campus Sidewalk Topology"]
+            OUT_1 ~~~ OUT_2 ~~~ OUT_3
+        end
+
+        INPUT ==>|"Continuous Sensor Telemetry & Requests"| PROCESS
+        PROCESS ==>|"Computed Guidance Vectors & Digital Twins"| OUTPUT
     end
 
     %% ==========================================
-    %% 2. PROCESS (MIDDLE TIER)
+    %% CONTINUOUS FEEDBACK RECALIBRATION LOOP
     %% ==========================================
-    subgraph PROCESS ["▼ 2. PROCESS (COMPUTATIONAL ALGORITHMS & SPATIAL ENGINES)"]
-        direction LR
-        PR_A["<b>A. Security & Access Control</b><br/>• SimpleJWT Token Rotation<br/>• Brevo SMTP 6-Digit Email OTP<br/>• 4-Tier RBAC Permission Checks<br/>• Soft-Deactivation Lifecycle"]
-        PR_B["<b>B. Geospatial & AR Engines</b><br/>• Two-Stage Haversine Filtering<br/>• 60 FPS EMA Heading Smoothing<br/>• 45° Camera Frustum FOV Check<br/>• Heuristic A* Sidewalk Search"]
-        PR_C["<b>C. Virtual Inspection & Analytics</b><br/>• Three.js PBR Model Rendering<br/>• Gyro Magic Window VR Tours<br/>• Spatial Doorway Anchors (5m)<br/>• Foot Traffic Recharts Metrics"]
-        PR_A ~~~ PR_B ~~~ PR_C
-    end
-
-    %% ==========================================
-    %% 3. OUTPUT (LOWER TIER)
-    %% ==========================================
-    subgraph OUTPUT ["▼ 3. OUTPUT (DELIVERABLES, WAYFINDING & USER INTERFACES)"]
-        direction LR
-        OUT_A["<b>A. Spatial Wayfinding</b><br/>• 3D Glowing Ground Chevrons<br/>• Tactical Distance Billboards<br/>• 2D Turn Alert Edge Arrows<br/>• Cyan Sidewalk Route Line"]
-        OUT_B["<b>B. Facility Exploration</b><br/>• Verified Building Unlocks<br/>• Touch-Manipulated 3D Twins<br/>• Room-to-Room 360° Spheres<br/>• Seamless Spatial Transitions"]
-        OUT_C["<b>C. Gamification & Operations</b><br/>• Student EXP, Levels & Streaks<br/>• Campus Passport Stamps<br/>• Live Traffic Recharts Cards<br/>• Validated Sidewalk Graph"]
-        OUT_A ~~~ OUT_B ~~~ OUT_C
-    end
-
-    %% ==========================================
-    %% 4. FEEDBACK (BOTTOM TIER)
-    %% ==========================================
-    subgraph FEEDBACK ["▼ 4. SYSTEM FEEDBACK & CONTINUOUS RECALIBRATION LOOP"]
+    subgraph FEEDBACK ["4. FEEDBACK & CONTINUOUS RECALIBRATION LOOP"]
         direction TB
-        FB["• Continuous GPS drift tracking re-evaluates geofencing and facility proximity<br/>• Off-path deviation triggers real-time heuristic A* sidewalk route recalculation<br/>• Administrative GIS updates and geofence changes immediately synchronize to mobile clients"]
+        FB_1["• Continuous GPS Drift Tracking continuously re-evaluates geofencing and proximity<br/>• Off-path deviation triggers real-time heuristic A* sidewalk route recalculation<br/>• Administrative GIS updates and geofence changes immediately synchronize to mobile clients<br/>• Mobile bug reporting and feedback radar triage continuously refine system reliability"]
     end
 
-    %% Top-to-Bottom Transitions
-    INPUT ==>|"Continuous Sensor Polling & User Requests"| PROCESS
-    PROCESS ==>|"Computed Guidance Vectors & Rendered Digital Twins"| OUTPUT
-    OUTPUT ==>|"Dynamic Recalibration Loop & Real-Time Sync"| FEEDBACK
+    OUTPUT ==>|"Operational Metrics & Diagnostics"| FEEDBACK
+    FEEDBACK -.->|"Dynamic Drift Correction & GIS Parameter Synchronization"| INPUT
 ```
 
 ---
