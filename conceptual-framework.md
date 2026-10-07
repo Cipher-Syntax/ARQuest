@@ -1,93 +1,106 @@
-# ARQuest — Conceptual Framework
+# ARQuest — Conceptual Framework (IPO Model)
 
-> Last updated: 2026-09-06
+> **Research Paper Component:** Chapter 1 / Chapter 3 — Conceptual Framework of the Study  
+> **System:** ARQuest: A Sensor-Assisted Campus Exploration and Accreditation Support System  
+> **Institution:** Western Mindanao State University (WMSU)  
+> **Document Format:** Standard A4 Bond Paper (Portrait Orientation: 210mm × 297mm)
 
 ---
 
-## 1. Input-Process-Output (IPO) Model
+## 1. Conceptual Framework Diagram
+The conceptual framework of **ARQuest** is grounded on the classic **Input-Process-Output (IPO)** model with a continuous feedback and recalibration mechanism. 
+
+The diagram is organized in a strict **Top-to-Bottom (Vertical Portrait)** sequence (**INPUT** $\rightarrow$ **PROCESS** $\rightarrow$ **OUTPUT** $\rightarrow$ **FEEDBACK**) specifically formatted to maximize printable page width on standard A4 bond paper without horizontal scaling distortion.
 
 ```mermaid
-flowchart LR
-    subgraph INPUT ["Inputs"]
-        I1["User Credentials & Registration Data"]
-        I2["Terms & Privacy Policy Acceptance"]
-        I3["Device GPS Coordinates & Accuracy"]
-        I4["Camera Feed & Device Gyroscope Telemetry"]
-        I5["QR Code Scans"]
-        I6["User Issue / Feedback Submissions"]
-        I7["App Preferences (SFX, Haptics, Units, Rotation)"]
-        I8["Admin Data Entry (Buildings, Quests, Trivia)"]
-        I9["Media Uploads (3D Models, Panoramas)"]
-        I10["Campus Walking Graph (Nodes, Walkways, Paths)"]
-        I11["3D Spatial Anchors (pos_x, pos_y, pos_z)"]
-        I1 --> I2 --> I3 --> I4 --> I5 --> I6 --> I7 --> I8 --> I9 --> I10 --> I11
+flowchart TD
+    %% ==========================================
+    %% 1. INPUT (TOP TIER)
+    %% ==========================================
+    subgraph INPUT ["▼ 1. INPUT"]
+        direction TB
+        IN_1["<b>A. Mobile Hardware & Sensor Telemetry</b><br/>• High-accuracy GPS coordinates & horizontal accuracy estimate<br/>• Magnetometer compass heading (azimuth angle)<br/>• 3-axis gyroscope telemetry (orientation angles α, β, γ)<br/>• Camera optical video feed & QR code secret scans"]
+        IN_2["<b>B. User Profiles & Client Configurations</b><br/>• Registration credentials (username, institutional email, password)<br/>• Mandatory legal agreement consent (Terms & Privacy Policy)<br/>• Avatar character selections & local preferences (SFX, haptics, units, compass lock)<br/>• User-submitted bug reports, feature requests, and feedback"]
+        IN_3["<b>C. University Geospatial & Multimedia Content</b><br/>• Campus facility metadata, department groupings, and geofence boundaries<br/>• Topological walking network (NavigationNodes & NavigationPaths)<br/>• High-fidelity 3D architectural models (.glb) & 360° equirectangular panoramas<br/>• 3D Cartesian doorway spatial anchors (pos_x, pos_y, pos_z)"]
     end
 
-    subgraph PROCESS ["Processes"]
-        P1["JWT Authentication & RBAC Access Control"]
-        P2["Self-Service Account Deactivation & Reactivation"]
-        P3["Haversine Geofence & Proximity Validation"]
-        P4["Native Spatial AR Navigation (ViroReact & PBR Shaders)"]
-        P5["3D Model & 360° Virtual Walkthrough Rendering (Three.js)"]
-        P6["Server-Side A* Pathfinding Engine (apps.navigation)"]
-        P7["3D-to-360° Spatial Linking & Proximity Doorway HUD"]
-        P8["Admin Walking Paths Authoring & Real-Time Pruning"]
-        P9["Gamification Engine (EXP, Streaks, Quests & Badges)"]
-        P10["Dynamic Preference & Audio Management (SoundManager)"]
-        P11["Role-Based Interactive User Manual & Tutorial"]
-        P12["Mobile Feedback & Notification Event Processing"]
-        P13["Admin Web Analytics & Content Aggregation"]
-        P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13
+    %% ==========================================
+    %% 2. PROCESS (MIDDLE TIER)
+    %% ==========================================
+    subgraph PROCESS ["▼ 2. PROCESS"]
+        direction TB
+        PR_1["<b>A. Security, Authentication & Account Lifecycle</b><br/>• PBKDF2 password hashing & SimpleJWT token rotation (60m access / 7d refresh)<br/>• 6-digit email OTP verification via Brevo SMTP<br/>• Role-Based Access Control (RBAC) across 4 user tiers<br/>• Self-service soft-deactivation (is_active=False) with historic EXP preservation"]
+        PR_2["<b>B. Geospatial Verification & Native Spatial AR Engine</b><br/>• Two-stage battery-optimized geofencing (Client Haversine pre-filter + Server validation)<br/>• 60 FPS ViroReact AR engine with EMA heading filter & 2.5° angular deadband<br/>• 45° Camera FOV evaluation: In-view 3D ground chevrons vs. 2D off-screen HUD arrows<br/>• Arrival latching with 20m hysteresis buffer & rotating 3D building miniature"]
+        PR_3["<b>C. Self-Sovereign Campus Pedestrian Routing</b><br/>• Origin coordinate snapping to nearest sidewalk node & target entrance matching<br/>• Server-side heuristic A* shortest-path algorithm traversing verified WMSU walkways<br/>• Dynamic GeoJSON FeatureCollection polyline synthesis"]
+        PR_4["<b>D. Multi-Modal Virtual Exploration & Spatial Linking</b><br/>• Three.js WebViews with PBR material shaders for 3D model inspection<br/>• Gyroscope-synchronized Magic Window VR 360° virtual tours for accreditors<br/>• Proximity-driven doorway spatial linking (1.6m eye-level 3D badges within 5m)"]
+        PR_5["<b>E. Gamification Arena & Administrative Analytics</b><br/>• Rule-based EXP calculation, daily login streak evaluation, and milestone badges<br/>• Satellite GIS walking network authoring with automated pruning of disconnected ways<br/>• Multi-temporal foot traffic analytics aggregation (Daily/Weekly/Monthly/Yearly)"]
     end
 
-    subgraph OUTPUT ["Outputs"]
-        O1["JWT Access & Refresh Tokens"]
-        O2["Building Unlock Status & Campus Passport"]
-        O3["Directional AR Ground Chevrons & Off-Screen Turn HUD"]
-        O4["Custom WMSU Campus Walking Route (GeoJSON Polyline)"]
-        O5["Interactive 3D Visualizations & Magic Window VR Tours"]
-        O6["Seamless Bidirectional 3D Orbit to 360° Panorama Portals"]
-        O7["Level-Up Alerts, EXP Progression & Leaderboard Ranks"]
-        O8["Enriched Admin Dashboard (KPIs, Foot Traffic, Coverage)"]
-        O9["Real-Time System Audit Logs & Mobile Feedback Radar"]
-        O1 --> O2 --> O3 --> O4 --> O5 --> O6 --> O7 --> O8 --> O9
+    %% ==========================================
+    %% 3. OUTPUT (LOWER TIER)
+    %% ==========================================
+    subgraph OUTPUT ["▼ 3. OUTPUT"]
+        direction TB
+        OUT_1["<b>A. Location-Aware Guidance & Spatial Wayfinding</b><br/>• Real-time 3D glowing ground chevrons & tactical distance HUD billboards<br/>• Responsive 2D perimeter turn alert arrows (◀ TURN LEFT / TURN RIGHT ▶)<br/>• Electric Cyan GeoJSON WMSU campus walking route overlays on Mapbox"]
+        OUT_2["<b>B. Facility Exploration & Accreditation Deliverables</b><br/>• Automated building unlock confirmations & Campus Passport stamps<br/>• Interactive touch-manipulated 3D architectural digital twins<br/>• Room-to-room 360° panoramic virtual tours & Magic Window VR views<br/>• Preserved camera state transitions between 3D models and interior rooms"]
+        OUT_3["<b>C. Academic Gamification & Administrative Intelligence</b><br/>• Student EXP progression, level titles, streaks, and global leaderboards<br/>• Live operational dashboard cards, Recharts foot traffic graphs, and coverage matrix<br/>• Synchronous network topology validation and resolved Feedback Radar logs"]
     end
 
-    INPUT --> PROCESS
-    PROCESS --> OUTPUT
+    %% ==========================================
+    %% 4. FEEDBACK (BOTTOM TIER)
+    %% ==========================================
+    subgraph FEEDBACK ["▼ 4. SYSTEM FEEDBACK & CONTINUOUS RECALIBRATION"]
+        direction TB
+        FB_1["• Real-time user position changes & GPS drift correction continuously re-trigger geofencing<br/>• Dynamic route recalculation when user deviates from WMSU sidewalk walkway paths<br/>• Administrative map updates & geofence recalibrations immediately sync across mobile clients"]
+    end
+
+    %% Downward Transitions (Strict Top-to-Bottom Flow)
+    INPUT ==>|"Continuous Sensor Streaming & User Requests"| PROCESS
+    PROCESS ==>|"Generated Spatial Guidance & Digital Twins"| OUTPUT
+    OUTPUT ==>|"Iterative Recalibration Loop & User Interactivity"| FEEDBACK
 ```
 
 ---
 
-## Documentation
+## 2. Input-Process-Output Specification Matrix
 
-### Overview
+| Dimension | Domain Category | Specific Technical Elements | Operational Function in the Study |
+|:---|:---|:---|:---|
+| **INPUT** | **Sensor Telemetry** | GPS coordinates, accuracy radius, magnetometer azimuth, 3-axis gyroscope telemetry, optical camera stream, QR codes. | Supplies dynamic real-world spatial positioning, orientation, and optical data required for AR projection and location validation. |
+| | **User Profiles** | Registration credentials, mandatory legal agreements, avatar choices, client preferences (SFX, haptics, units), bug reports. | Governs user identity, legal compliance, customizable local preferences, and in-app diagnostics. |
+| | **Geospatial Assets** | Facility data, geofences, 3D glTF/GLB models, equirectangular 360° photo spheres, 3D doorway anchors $(X, Y, Z)$, walking graph. | Supplies physical digital twin data, 3D models, navigation topology, and institutional metadata. |
+| **PROCESS** | **Security & Auth** | PBKDF2 hashing, SimpleJWT token rotation, email OTP verification, soft-deactivation flags, 4-tier RBAC guards. | Enforces security and role isolation while enabling self-service account restoration. |
+| | **Geospatial & AR** | Client Haversine pre-filter, server Haversine check, EMA compass smoothing ($2.5^\circ$ deadband), ViroReact 6DoF AR, FOV branching. | Converts raw sensor telemetry into stable 3D visual wayfinding overlays and automated facility unlock triggers. |
+| | **Campus Routing** | Nearest-node snapping, adjacency graph generation, heuristic $A^*$ graph search over verified walkways, GeoJSON compilation. | Computes optimal walking paths along real WMSU sidewalks without external third-party routing dependencies. |
+| | **Virtual Exploration** | Three.js WebViews, PBR shaders, equirectangular mapping, gyroscope binding, doorway proximity detection ($\le 5\text{m}$). | Renders 3D architectural models, enables Magic Window VR, and bridges 3D spaces with 360° interior photo spheres. |
+| | **Gamification & GIS** | Rule-based EXP distribution, login streaks, building quizzes, badge triggers, satellite GIS editor, disconnected way pruning. | Promotes spatial campus learning and equips administrators with self-healing tools to maintain campus network topology. |
+| **OUTPUT** | **Spatial Guidance** | 3D ground chevrons, 2D off-screen perimeter arrows (`◀ LEFT` / `RIGHT ▶`), Electric Cyan walking routes, unlock alerts. | Guides users to campus destinations through real-time visual and sensor-assisted cues. |
+| | **Virtual Models** | Interactive 3D building viewer, first-person tours, Magic Window VR walkthroughs, eye-level doorway portal badges ($Y \approx 1.6\text{m}$). | Enables remote and on-site facility evaluation for students, visitors, and institutional accreditors. |
+| | **Gamification & Ops** | Campus Passport stamps, EXP levels, streak badges, global leaderboards, Recharts foot traffic charts, Feedback Radar tickets. | Rewards student exploration milestones and provides university administrators with real-time institutional analytics. |
+| **FEEDBACK** | **Recalibration Loop** | Dynamic GPS polling, continuous heading re-alignment, route re-calculation upon deviation, real-time administrative GIS sync. | Closes the cyber-physical control loop, ensuring dynamic adaptation to physical movement and administrative network edits. |
 
-The Conceptual Framework of ARQuest is built upon the classic Input-Process-Output (IPO) model. It illustrates how raw sensor telemetry, user interactions, and administrative management data are systematically transformed into location-aware spatial navigation, immersive 3D/VR visualizations, custom pedestrian wayfinding, gamified campus learning, and administrative operational intelligence.
+---
 
-### Inputs
+## 3. Narrative Discussion of the Framework
 
-The system ingests data from mobile device sensors, end-user submissions, and administrative content managers:
-- **Mobile Telemetry**: Continuous high-accuracy GPS coordinates, compass heading (azimuth), camera frames, and gyroscope orientation.
-- **User Inputs**: Registration credentials, customizable WMSU avatar selections, mandatory Terms & Conditions / Privacy Policy agreements, password change inputs, account deactivation confirmations, user preferences (SFX audio, haptic vibrations, distance units, map rotation), and in-app bug reports/feedback.
-- **Administrative Content**: Structural campus data, college department groupings, polygon/circular geofence boundaries, 3D glTF/GLB models, 360° equirectangular panoramas with interactive navigation hotspots, quest objectives, and quiz trivia banks.
-- **Campus Walking Graph Data**: Topological nodes (types: `entrance`, `junction` [walkway], `gate`, `poi`) and multi-coordinate polyline path segments with calculated geodesy distances and wheelchair accessibility flags.
-- **3D Spatial Anchors**: Nullable Cartesian coordinates (`pos_x`, `pos_y`, `pos_z`) assigned to panorama scenes to spatially link 3D building models directly to high-resolution 360° indoor views.
+### 3.1 The Input-Process-Output with Feedback Model
+The conceptual framework of ARQuest follows the Input-Process-Output (IPO) model with a continuous feedback and recalibration loop. Unlike static transactional software, location-aware AR platforms operate as continuous cyber-physical control loops:
+1. **Inputs (Top Tier)**: The system ingests physical hardware telemetry (GPS coordinates, heading, gyroscope angles, optical feed), user profile data (credentials, preferences, feedback), and administrative spatial data (facilities, geofences, 3D models, 360° panoramas, walking graphs).
+2. **Processes (Middle Tier)**: These inputs are transformed by specialized computational engines: identity verification via PBKDF2 and SimpleJWT; battery-efficient two-stage geofencing; 60 FPS ViroReact spatial AR projection with EMA sensor smoothing; server-side heuristic $A^*$ pedestrian pathfinding; Three.js multi-modal 3D/360° rendering with spatial doorway bridging; and gamification rule processing.
+3. **Outputs (Lower Tier)**: The system produces actionable spatial artifacts: glowing 3D ground arrows, 2D off-screen turn indicators, Electric Cyan campus walking paths, interactive 3D digital twins, Magic Window VR walkthroughs, Campus Passport stamps, and administrative operational intelligence.
+4. **Feedback & Recalibration (Bottom Tier)**: As the user navigates the campus, dynamic changes in user coordinates and sensor telemetry feed into the system to recalculate AR chevrons and geofence proximities. Furthermore, administrative edits in the web GIS editor immediately update the topological graph, refreshing future route outputs without requiring client rebuilds.
 
-### Processes
+---
 
-Core business logic is partitioned across the Django REST backend and native/webview mobile execution layers:
-- **Authentication & Self-Service Account Lifecycle**: Enforces JWT token rotation, OTP email verification, secure password hashing (PBKDF2/SHA256), and soft account deactivation (`is_active = False`) with seamless self-service restoration on subsequent login (`reactivate = True`).
-- **Location & Spatial AR Navigation**: Evaluates user coordinates using the Haversine formula against campus geofences. The native spatial AR engine (powered by ViroReact) projects 3D directional ground chevrons with glowing wings, calculates real-time vector distances, applies Exponential Moving Average (EMA) smoothing to eliminate compass jitter, and displays 2D off-screen HUD indicators (`◀ TURN LEFT` / `TURN RIGHT ▶`) when destinations fall outside the camera's 45° field of view.
-- **Custom Campus Pedestrian Navigation (A* Pathfinding)**: The backend `apps.navigation` engine executes heuristic A* search across the campus graph. When a student or visitor requests walking directions, the backend snaps origin and destination coordinates to the nearest entrance/walkway nodes, computes the shortest obstacle-free pedestrian path along verified campus walkways, and outputs an optimized GeoJSON `FeatureCollection` rendered natively on mobile Mapbox without external Directions API dependencies.
-- **Visualization & 3D-to-360° Spatial Linking**: Three.js WebViews render 3D architectural models with PBR metallic-roughness materials and map equirectangular images into interactive 360° virtual tours with gyroscope-controlled Magic Window VR inspection for Accreditors. Floating doorway portal badges at $Y \approx 1.6\text{m}$ eye level and dynamic proximity HUD controls enable seamless bidirectional transitions between 3D building orbit view and 360° interior panoramic rooms with preserved camera state.
-- **Admin Satellite Walking Paths Authoring & Real-Time Pruning**: Interactive satellite map editor in the Admin Dashboard (`NavigationPage.jsx`) enabling node placement, dead-center marker line snapping, polyline path drawing, and automatic client-side pruning of disconnected ways when nodes are deleted.
-- **Gamification & Role Separation (RBAC)**: Gated strictly to students, the gamification engine calculates EXP awards, daily login streaks, badge trigger conditions, and global leaderboard rankings, while isolating Accreditors (Professionals) and Visitors from student gamification popups.
-- **Interactive User Manual & Preferences**: Dynamically guides users through role-specific walkthroughs (Students, Accreditors, Visitors) and persists user device preferences locally in `AsyncStorage` with real-time `SoundManager` audio muting.
-- **Feedback & Admin Analytics Aggregation**: Real-time aggregation of building visits, user role compositions, content deployment coverage, foot traffic trends over time (Daily/Weekly/Monthly/Yearly), and open bug reports.
+## 4. Microsoft Word & Bond Paper Formatting Guide
 
-### Outputs
+When transferring this framework into your final Capstone manuscript (e.g., in Microsoft Word or Google Docs):
 
-- **Student / User Outputs**: Verified authentication sessions, building unlock confirmations, campus passport stamps, live spatial AR wayfinding, turn-by-turn custom WMSU campus pedestrian walking route overlays, 3D building inspection, EXP progress, daily streak rewards, and custom avatar profiles.
-- **Professional / Accreditor Outputs**: Unrestricted 3D virtual tours with spatially anchored 360° doorway portals, Magic Window VR inspection modes, and visited building evaluation checklists.
-- **Administrator Outputs**: Comprehensive Web Dashboard with live operational status, interactive satellite Walking Paths editor with real-time topological pruning, foot traffic charts (Bar & Area), content coverage matrix (Panoramas, Quests, Geofences), role distribution analytics, and real-time audit logs.
+1. **Page Setup**:
+   - Paper Size: **A4** ($210\text{ mm} \times 297\text{ mm}$) or **Letter** ($8.5'' \times 11''$).
+   - Orientation: **Portrait**.
+   - Margins: Standard Academic Margins (**1.5 inches Left** for binding, **1.0 inch Top, Right, and Bottom**).
+2. **Figure Positioning**:
+   - Title: **Figure 3.1. Conceptual Framework of the System (IPO Model)** centered above or below the diagram according to your institutional thesis guidelines.
+   - Text Size in Diagram: When pasted as an image or recreated as Word shapes, maintain **10 pt to 11 pt font size** for bullet points and **12 pt Bold** for domain headers to ensure high legibility.
+   - Flow Direction: Strict top-to-bottom vertical progression (**INPUT** $\rightarrow$ **PROCESS** $\rightarrow$ **OUTPUT** $\rightarrow$ **FEEDBACK**).

@@ -1,11 +1,11 @@
 <div align="center">
-  
+
 <img src="web/public/logo.png" alt="ARQuest Logo" width="600" />
 
 # ARQuest
 
 **A Sensor-Assisted Campus Exploration and Accreditation Support System**  
-*Featuring Native Spatial AR, GPS Geofencing, 3D Building Visualization, Gamification, and 360° Virtual Walkthroughs.*
+*Western Mindanao State University (WMSU) — BSIT Capstone 2026–2027*
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Expo](https://img.shields.io/badge/Expo-1B1F23?style=for-the-badge&logo=expo&logoColor=white)
@@ -20,89 +20,82 @@
 
 <div align="justify">
 
-## 📌 Project Overview
+## 📌 Executive Summary & Research Abstract
 
-**ARQuest** is a mobile-based campus exploration and accreditation support system designed to enhance spatial learning, navigation, and institutional evaluation across Western Mindanao State University (WMSU) through location-aware, augmented reality, and 3D visual technologies.
+**ARQuest** is an advanced mobile-based campus exploration and institutional accreditation support platform designed for Western Mindanao State University (WMSU). It integrates native 6DoF Spatial Augmented Reality (AR), self-sovereign campus pedestrian pathfinding, two-stage battery-optimized GPS geofencing, interactive 3D architectural digital twins, and equirectangular 360° virtual walkthroughs into a unified distributed ecosystem.
 
-The system integrates **Native Spatial AR (ViroReact)** with real-time ground chevrons, GPS geofencing, 3D building inspection, gamified quests, and 360° panoramic virtual walkthroughs into a unified cross-platform mobile application, supported by a React 19 administrative web dashboard and a Django REST Framework backend.
-
-It enforces strict Role-Based Access Control (RBAC) across four distinct user roles: **Student**, **Professional (Accreditor / Faculty)**, **Visitor (Guest)**, and **Administrator**.
+The system addresses the spatial disorientation experienced by freshmen and campus visitors while simultaneously providing remote academic accreditors and evaluators with a headset-free, gyroscope-synchronized virtual inspection portal. ARQuest is supported by a React 19 administrative GIS web dashboard and a Django REST Framework backend acting as the single authoritative source of truth.
 
 ---
 
-## ✨ Core Features
+## 🏛️ Core Technical Pillars
 
-### 📍 GPS Geofencing & Campus Map Navigation
-- Real-time location detection with automated campus building discoveries.
-- Defines precise polygon and circular geofence boundaries per campus facility.
-- High-performance vector map display powered by Mapbox GL.
+### 1. 🧭 Native Spatial AR Navigation (ViroReact)
+- **6DoF Ground Chevrons**: Projects animated, glowing 3D ground arrows guiding users to target facilities in real time.
+- **Sensor Telemetry Filtering**: An Exponential Moving Average (EMA) smoothing filter paired with a $2.5^\circ$ angular deadband suppresses compass magnetometer micro-jitter.
+- **Off-Screen Perimeter HUD**: Dynamically evaluates the camera's $45^\circ$ field of view (FOV). Targets outside the viewing frustum trigger responsive 2D edge indicators (`◀ TURN LEFT` / `TURN RIGHT ▶`).
+- **Arrival Latching with Hysteresis**: Approaching within $\le 25\text{m}$ latches Arrival Mode with a 20m hysteresis buffer, projecting a rotating 3D building miniature atop a holographic ground pedestal.
 
-### 🚶 Custom WMSU Campus Pedestrian Navigation (A* Routing Engine)
-- **Self-Sovereign Routing Network**: Fully replaces external Mapbox Directions API with an internal WMSU walking network owned, stored, and calculated by ARQuest.
-- **A\* Shortest-Path Algorithm**: Django backend computes optimal pedestrian routes between any campus location and building entrance over a real-geometry walkway graph.
-- **Live GeoJSON Integration**: Dynamically streams route geometry and distance estimations directly to the mobile app's Mapbox rendering layer.
-- **Admin Satellite Walking Network Editor**: Intuitive web GIS interface allowing administrators to place waypoint nodes (Entrances, Walkways, Gates, POIs) and trace multi-point walkways directly on satellite imagery, featuring real-time connection snapping and automatic pruning of disconnected ways.
+### 2. 🚶 Self-Sovereign Campus Pedestrian Navigation (A* Routing Engine)
+- **Zero Third-Party Dependency**: Replaces commercial routing services (e.g., Mapbox Directions API) with an internal campus graph owned and computed by ARQuest.
+- **Heuristic A\* Shortest-Path Algorithm**: The backend `apps.navigation` engine traverses a verified sidewalk graph (`NavigationNode` waypoints and `NavigationPath` segments) to calculate optimal walking routes based on geodesic length.
+- **Dynamic GeoJSON Mapbox Overlay**: Synthesizes multi-point path geometries into GeoJSON `FeatureCollections` rendered natively on mobile Mapbox vector tiles in Electric Cyan with real-time distance and estimated walking times.
+- **Satellite GIS Walking Network Editor**: Administrative web interface allowing operators to place waypoints (Entrances, Junctions, Gates, POIs) and trace multi-point sidewalk polylines directly over satellite imagery, featuring real-time client-side pruning of disconnected ways.
 
-### 🧭 Native Spatial AR Navigation (ViroReact)
-- **3D Ground Chevrons**: Projects glowing crimson and gold ground chevrons guiding users to their destination.
-- **Off-Screen Turn HUD**: 2D edge indicators (`◀ TURN LEFT` / `TURN RIGHT ▶`) active when the destination is outside the camera's 45° field of view.
-- **Sensor Smoothing**: Exponential Moving Average (EMA) and deadband azimuth filtering eliminate compass micro-jitter and drift.
-- **PBR glTF Enhancements**: Double-sided, solid opaque PBR shaders for high-fidelity 3D miniature rendering.
+### 3. 🏢 Hybrid Multi-Modal Virtual Exploration & Spatial Linking
+- **Interactive 3D Architectural Inspection**: Touch-controlled orbiting, panning, and zooming of optimized `.glb` campus structural models rendered in lightweight Three.js WebViews with PBR materials.
+- **360° Panoramic Walkthroughs**: Spherical indoor walkthroughs mapped to inverted geometries with interactive raycasted room-to-room hotspots.
+- **Bidirectional Spatial Linking**: Floating in-world 3D portal badges at eye level ($Y \approx 1.6\text{m}$) and contextual proximity HUD triggers ($\le 5\text{m}$) enable seamless transitions between 3D building tours and photographic 360° interior rooms while preserving camera coordinates.
+- **Magic Window VR (Accreditor Mode)**: Synchronizes Three.js perspective camera rotation with mobile device gyroscope telemetry, providing hands-free first-person physical room inspection.
 
-### 🎮 Gamification & Quest Arena (Student Role)
-- **Daily Login Streaks**: Consecutive login tracking with daily EXP rewards and streak bonus milestones.
-- **Missions & Limited Challenges**: Directs students to explore campus facilities and complete objectives.
-- **Interactive Quizzes & Trivia**: Contextual trivia facts and building quizzes reinforcing institutional knowledge.
-- **Global Leaderboard & Badges**: Real-time student rankings with tiered badges and level titles.
+### 4. 🎮 Two-Stage GPS Geofencing & Gamified Campus Learning
+- **Battery-Optimized Two-Stage Geofencing**: Client-side Haversine pre-filtering ($>75\text{m}$) eliminates over 95% of unnecessary mobile cellular requests before invoking authoritative server-side validation.
+- **Gamification Arena (Student Role)**: Automated facility unlocks grant $+25\text{ EXP}$ and digital stamps in the Campus Passport, while building-specific trivia quizzes award $+50\text{ EXP}$.
+- **Daily Login Streaks & Leaderboards**: Tracks consecutive daily student engagement and ranks learners on global university leaderboards.
 
-### 🏢 3D Building Inspection, 360° Virtual Walkthroughs & Spatial Linking
-- **Interactive 3D Models**: Touch-based rotation, zoom, and spatial inspection of `.glb/.gltf` campus structures.
-- **360° Panoramic Walkthroughs**: Indoor exploration via interactive spatial hotspots (Entrance → Hallway → Office → Labs).
-- **Hybrid 3D-to-360° Spatial Linking**: Seamless context-aware transitions between the First-Person 3D Virtual Tour and real-world 360° photo spheres via in-world 3D portal badges ($Y \approx 1.6\text{m}$) and proximity-sensing dynamic HUD prompts.
-- **Magic Window VR (Accreditor Mode)**: Gyroscope-enabled first-person virtual tour for remote institutional evaluation.
-
-### 🛡️ Account Settings, Preferences & Self-Service Deactivation
-- **Account Settings**: Real-time avatar picker gallery, editable profile name, locked system credentials, and password management.
-- **Self-Service Deactivation & Reactivation**: Enables users to soft-deactivate their account (`is_active = False`) while safely preserving all EXP, badges, and passport stamps. Reactivates seamlessly upon next login.
-- **App Preferences**: Mute/unmute SFX audio via `SoundManager`, toggle haptic vibrations, switch distance units (Meters vs Feet), compass map rotation, and 3D cache cleaner.
-- **Legal Compliance Onboarding**: Mandatory Terms and Conditions & Privacy Policy agreement step before app access.
-
-### 📊 Real-Time Admin Web Dashboard (React 19 & Vite)
-- **Live Operational Status**: Real-time campus health, total facilities, active students, and daily foot traffic.
-- **Campus Walking Network Manager**: Full authoring suite for campus navigation nodes, multi-point walkway paths, real-time connectivity metrics, and route diagnostics.
-- **Interactive Recharts Visualizations**: Daily, weekly, monthly, and yearly foot traffic trends with Bar/Area graph toggles.
-- **Content Coverage Matrix**: Real-time deployment tracking for 360° panoramas, geofences, quests, and quizzes.
-- **User Role Composition**: Real-time distribution breakdown across Students, Accreditors, Visitors, and Admins.
-- **Issue & Feedback Radar**: Centralized hub for reviewing and resolving bug reports and feature requests submitted from the mobile app.
+### 5. 🛡️ Enterprise Security & Self-Service Account Governance
+- **Role-Based Access Control (RBAC)**: Enforces strict permission classes across Student, Professional, Visitor, and Administrator tiers.
+- **Cryptographic Authentication**: PBKDF2 password hashing, SimpleJWT token rotation (60-minute access / 7-day refresh), and Brevo SMTP 6-digit OTP email verification.
+- **Self-Service Soft-Deactivation**: Users can deactivate their account (`is_active = False`) with immediate refresh token blacklisting while preserving all historical EXP, badges, and passport stamps in PostgreSQL. Accounts restore seamlessly on subsequent login (`reactivate: true`).
+- **Offline Preference Persistence**: Local storage (`AsyncStorage`) persists user preferences including sound effect muting (`SoundManager`), haptics, distance units (meters/feet), and compass map auto-rotation.
 
 ---
 
-## 👥 User Roles
+## 👥 Role-Based Access Matrix
 
-| Role | Access Scope |
-| :--- | :--- |
-| **Student** | Full gamification arena, quests, building quizzes, leaderboard rankings, Campus Passport discoveries, Spatial AR wayfinding, 3D models, custom avatars. |
-| **Professional / Accreditor** | Evaluation portal bypass, full campus directory, visited buildings evaluation checklist, 360° virtual tours, Magic Window VR walkthroughs (gamification popups hidden). |
-| **Visitor / Guest** | Public 2D campus directory, public facility info, guest AR navigation, read-only exploration without mandatory account registration. |
-| **Administrator** | Full Web Dashboard access: campus building authoring, geofence calibration, 360° panorama hotspots, quest/trivia CMS, user provisioning, system feature flags, and live analytics. |
+| Feature / Capability | Student | Professional (Accreditor) | Visitor (Guest) | System Administrator |
+|:---|:---:|:---:|:---:|:---:|
+| **Authentication Requirement** | Verified Email + OTP | Provisioned Account | None (Guest Session) | Superuser / Staff JWT |
+| **Interactive 2D Mapbox Map** | ✅ | ✅ | ✅ | ✅ |
+| **Custom WMSU A* Walking Routes** | ✅ | ✅ | ✅ | ✅ (GIS Editor) |
+| **Native Spatial AR Chevrons & Turn HUD** | ✅ | — | ✅ | — |
+| **Physical Geofence Building Unlocks** | ✅ | Bypass (All Unlocked) | — | — |
+| **Interactive 3D Architectural Models** | ✅ | ✅ | ✅ | ✅ (CMS Upload) |
+| **360° Panoramic Walkthroughs** | ✅ | ✅ | — | ✅ (Hotspot Studio) |
+| **Magic Window VR (Gyroscope Mode)** | — | ✅ | — | — |
+| **3D-to-360° Doorway Spatial Linking** | ✅ | ✅ | — | ✅ (Anchor Editor) |
+| **Gamification Quests, Quizzes & EXP** | ✅ | — | — | ✅ (CMS Editor) |
+| **Campus Passport / Stamp Card** | ✅ | Checklist Mode | — | — |
+| **GIS Network Authoring & Pruning** | — | — | — | ✅ |
+| **Real-Time Analytics & Feedback Radar** | — | — | — | ✅ |
 
 ---
 
-## 👥 Development Team
+## 👥 Development & Research Team
 
 **Team Spiral** — BSIT Capstone 2026–2027  
 *College of Computer Studies, Western Mindanao State University (WMSU)*
 
-- **Hannah Jean T. Balimbingan** — Project Manager
-- **Paolo A. Eijansantos** — UI/UX Designer
-- **Justine A. Toong** — Lead Developer
+- **Hannah Jean T. Balimbingan** — Project Manager & Systems Analyst
+- **Paolo A. Eijansantos** — UI/UX Designer & Frontend Developer
+- **Justine A. Toong** — Lead Software Engineer & Systems Architect
 
-**Support & Inquiries**: `support@arquest.com`
+**Academic Inquiries & Support**: `support@arquest.com`
 
 ---
 
-## 📄 License
+## 📄 License & Intellectual Property
 
-This project is developed as part of the academic capstone curriculum at Western Mindanao State University. All rights reserved.
+Developed as an academic capstone thesis at Western Mindanao State University. All rights reserved © 2026–2027.
 
 </div>

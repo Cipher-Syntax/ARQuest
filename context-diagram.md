@@ -1,70 +1,81 @@
-# ARQuest — Context Diagram
+# ARQuest — System Context Diagram (Level 0 DFD)
 
-> Last updated: 2026-09-06
+> **Research Paper Component:** Chapter 3 — System Design / Data Flow Diagram (DFD Level 0)  
+> **System:** ARQuest: A Sensor-Assisted Campus Exploration and Accreditation Support System  
+> **Institution:** Western Mindanao State University (WMSU)  
+> **Document Format:** Standard A4 Bond Paper (Balanced 3-Column Radial Layout)
 
 ---
 
-## 1. System Context Diagram
+## 1. System Context Diagram (DFD Level 0)
 
-This diagram shows ARQuest as a central system and its interactions with external users, device hardware, and external services.
+The System Context Diagram establishes the operational boundary of **ARQuest**. The platform is modeled as a centralized system process (**0.0**) interacting with four human user roles (left), physical device sensors, and external cloud services (right).
 
 ```mermaid
-graph TD
-    %% Actors
-    Student["Student<br/>(Mobile App User)"]
-    Visitor["Visitor / Guest<br/>(Mobile App User)"]
-    Prof["Professional / Accreditor<br/>(Mobile App User)"]
-    Admin["Administrator<br/>(Web Dashboard User)"]
+flowchart LR
+    subgraph ACTORS ["EXTERNAL ENTITIES: USERS"]
+        direction TB
+        Student["Student<br/>(Mobile User)"]
+        Visitor["Visitor / Guest<br/>(Mobile User)"]
+        Prof["Professional / Accreditor<br/>(Mobile User)"]
+        Admin["System Administrator<br/>(Web User)"]
+    end
 
-    %% Core System
-    ARQuest(("ARQuest System<br/>(React Native / ViroReact Mobile, Web Dashboard, Django REST & A* Routing Engine, Node.js 3D Compressor, PostgreSQL, AWS S3)"))
+    ARQuest(("<b>0.0</b><br/><b>ARQuest System</b>"))
 
-    %% External Systems & Device Services
-    EmailSvc["Email Service<br/>(Brevo SMTP / OTP)"]
-    GPSSvc["Device GPS & Compass<br/>(Expo Location / Sensor Telemetry)"]
-    CamSvc["Device Camera & AR Sensors<br/>(Expo Camera & ViroReact AR)"]
-    MediaSvc["Media Storage<br/>(File System / Cloud Assets)"]
-    MapsSvc["Mapbox API<br/>(Vector Map Tiles & Satellite Imagery)"]
+    subgraph SERVICES ["EXTERNAL ENTITIES: SERVICES & SENSORS"]
+        direction TB
+        Sensors["Device Hardware & Sensors<br/>(GPS, Compass, Gyro, Camera)"]
+        EmailSvc["Email Service<br/>(Brevo SMTP)"]
+        MapsSvc["Map Service<br/>(Mapbox API)"]
+        MediaSvc["Media Storage<br/>(Cloud / File Store)"]
+    end
 
-    %% Student Interactions
-    Student -- "Explores campus, unlocks buildings via GPS/QR, navigates via custom A* pedestrian paths & Spatial AR, earns EXP & streaks" --> ARQuest
-    
-    %% Visitor Interactions
-    Visitor -- "Views 2D campus map, explores public building directory, uses guest A* wayfinding" --> ARQuest
-    
-    %% Professional Interactions
-    Prof -- "Performs facility evaluations, conducts 3D virtual tours with bidirectional 360° panorama portals & Magic Window VR" --> ARQuest
-    
-    %% Admin Interactions
-    Admin -- "Manages facilities, geofences, walking paths & junctions, 3D spatial anchors, 360° panoramas, quests, and radar analytics" --> ARQuest
+    %% User Data Flows (Left to Center)
+    Student <-->|"Credentials, answers / Chevrons, unlocks, EXP"| ARQuest
+    Visitor <-->|"Directory queries / Public map, guest routes"| ARQuest
+    Prof <-->|"Evaluation commands / 3D models, 360° VR"| ARQuest
+    Admin <-->|"Campus data, CMS / Operational KPIs, radar"| ARQuest
 
-    %% System to External Interactions
-    ARQuest -- "Sends OTP verification & security emails" --> EmailSvc
-    ARQuest -- "Reads GPS coordinates & compass azimuth for geofencing, routing, and AR chevrons" --> GPSSvc
-    ARQuest -- "Streams camera frames for live AR overlay and QR code detection" --> CamSvc
-    ARQuest -- "Stores and serves .glb 3D models, 360° panoramas, and thumbnails" --> MediaSvc
-    ARQuest -- "Fetches vector map tiles and satellite base map layer (routing handled internally via A*)" --> MapsSvc
+    %% Service & Hardware Data Flows (Center to Right)
+    ARQuest <-->|"Polling commands / Sensor telemetry"| Sensors
+    ARQuest <-->|"OTP payloads / Delivery receipts"| EmailSvc
+    ARQuest <-->|"Tile requests / Vector tiles, satellite"| MapsSvc
+    ARQuest <-->|"Asset queries / Optimized .glb, panoramas"| MediaSvc
 ```
 
 ---
 
-## Documentation
+## 2. External Entities Data Flow Matrix
 
-### Overview
+| External Entity | Entity Classification | Data Ingested by System (Inputs) | Data Dispatched to Entity (Outputs) |
+|:---|:---|:---|:---|
+| **Student** | Human Actor (Mobile) | • Account registration credentials<br/>• Mandatory legal agreement consent<br/>• 6-digit OTP verification code<br/>• Target navigation selections<br/>• Building trivia quiz answers<br/>• In-app feedback and bug reports | • Directional 3D AR ground chevrons<br/>• 2D off-screen perimeter turn indicators<br/>• Custom WMSU walking path polylines<br/>• Automated building unlock confirmations<br/>• Digital Campus Passport discovery stamps<br/>• EXP level progression and leaderboard rankings |
+| **Visitor / Guest** | Human Actor (Mobile) | • Public campus directory searches<br/>• Point-to-point guest route queries | • Public facility information cards<br/>• Interactive 2D Mapbox vector map<br/>• Custom WMSU pedestrian walking paths |
+| **Professional / Accreditor** | Human Actor (Mobile) | • Evaluation inspection queries<br/>• First-person virtual tour inputs<br/>• Doorway spatial portal triggers<br/>• Facility checklist toggle marks | • Complete ungated campus directory<br/>• Interactive 3D architectural models<br/>• High-resolution 360° panoramic scenes<br/>• Gyroscope-driven Magic Window VR views<br/>• Visited facility evaluation records |
+| **System Administrator** | Human Actor (Web) | • Facility and department configurations<br/>• Circular and polygon geofence definitions<br/>• Walking graph nodes and walkway paths<br/>• 3D spatial doorway anchor coordinates<br/>• CMS quests and building trivia banks<br/>• User role assignments and account provisioning<br/>• Issue resolution status updates | • Live campus operational status cards<br/>• Aggregated foot traffic charts (Daily/Weekly/Monthly/Yearly)<br/>• Content deployment coverage matrix<br/>• Unresolved mobile Feedback Radar queue<br/>• System security audit logs |
+| **Device Hardware & Sensors** | Hardware Telemetry | • GPS latitude, longitude, and accuracy<br/>• Magnetometer compass heading (azimuth)<br/>• 3-axis gyroscope orientation angles<br/>• Optical camera video feed<br/>• Decoded QR code secret strings | • Telemetry polling frequencies<br/>• Hardware sensor lifecycle commands (start/stop) |
+| **Email Service (Brevo SMTP)** | Cloud Service | • SMTP delivery confirmation receipts<br/>• Bounced message delivery notifications | • 6-digit OTP verification email payloads<br/>• Security alerts and system dispatches |
+| **Map Service (Mapbox API)** | Cloud Service | • Dynamic vector map tiles<br/>• High-resolution satellite raster imagery | • Vector tile rendering requests<br/>• Satellite imagery bounding-box queries |
+| **Media Storage** | Data Store / Cloud | • Compressed `.glb` architectural models<br/>• High-resolution 360° equirectangular panoramas<br/>• Campus department thumbnail imagery | • Media file write streams (uploads)<br/>• HTTP media asset fetch requests |
 
-The Context Diagram establishes the operational boundaries of the ARQuest platform. It captures how distinct user roles interact with the system and how the platform leverages device hardware sensors and external cloud services.
+---
 
-### Actors
+## 3. Narrative & Boundary Analysis
 
-- **Student**: Primary mobile users who physically explore the campus. They unlock buildings via geofences or QR codes, follow custom WMSU campus A* walking routes, navigate using native Spatial AR ground arrows, complete academic quests, maintain daily login streaks, participate in building quizzes, review their Campus Passport, and manage their avatars and account preferences.
-- **Visitor / Guest**: Prospective students and campus guests who access public facility information, interactive 2D maps, and custom campus pedestrian wayfinding without mandatory registration.
-- **Professional / Accreditor**: Evaluators and faculty who utilize the mobile app for institutional accreditation. They bypass student gamification constraints, accessing full campus facility directories, visited building evaluation checklists, 3D interactive virtual tours with spatially anchored 360° doorway portals, dynamic proximity HUD controls, and gyroscope-assisted Magic Window VR tours.
-- **Administrator**: Institutional managers who operate the React 19 Web Dashboard to provision campus departments, author and maintain the custom WMSU walking path graph (nodes, walkway junctions, paths) with real-time disconnected way pruning, calibrate 3D model spatial anchors (`pos_x, pos_y, pos_z`), publish 3D building models, calibrate geofence boundaries, author quests and quiz trivia, resolve user bug reports, configure system feature flags, and analyze real-time foot traffic and operational KPIs.
+### 3.1 Operational Boundary & Central System Scope
+The System Context Diagram establishes the operational scope of ARQuest. The platform is treated as a unified computational entity ($0.0$) that encapsulates all client presentation logic, business rule validation, spatial calculations, and persistent data storage.
 
-### External Services & Device Hardware
+A critical design criterion is that **all authoritative validation and route calculations remain internal to ARQuest**:
+1. **Self-Sovereign Pedestrian Routing**: Unlike conventional campus applications that delegate route calculations to commercial providers (such as Google Maps or Mapbox Directions API), ARQuest uses Mapbox solely as a passive basemap renderer. The optimal sidewalk route is computed entirely inside ARQuest's internal server-side $A^*$ Routing Engine (`apps.navigation`), ensuring routes strictly follow real WMSU pedestrian paths.
+2. **Authoritative Geofencing**: While mobile clients perform preliminary distance checks to conserve battery, the ultimate authority for unlocking campus facilities and awarding academic EXP resides strictly within ARQuest's server-side validation engine.
 
-- **Email Service (Brevo)**: Dispatches automated 6-digit One-Time Password (OTP) verification emails for student registration.
-- **Device GPS & Sensor Telemetry**: Provides real-time geolocation coordinates, location accuracy estimates, and compass heading (azimuth) for geofence validation, nearest-node snapping, and AR waypoint projection.
-- **Device Camera & AR Framework (ViroReact)**: Captures live optical feeds for Spatial AR ground chevron rendering and fallback QR code scanning.
-- **Media Storage**: Serves optimized 3D building models (`.glb`), high-resolution equirectangular panorama scenes with spatial coordinate anchors, and department thumbnail images.
-- **Mapbox API**: Powers high-performance vector map rendering, satellite tile layers, and map canvas rendering. Pathfinding and route geometry generation are executed natively by ARQuest's internal server-side A* Campus Routing Engine (`apps.navigation`), avoiding third-party routing dependencies and ensuring precise WMSU pedestrian paths.
+### 3.2 Interaction with Human Actors
+- **Students** engage in an active gamified exploration loop: physical movement verified by sensors triggers building discoveries, spatial AR overlays, academic quizzes, and passport collection.
+- **Visitors** access an unauthenticated, privacy-preserving guest mode designed to provide friction-free pedestrian navigation and public facility information.
+- **Professionals (Accreditors)** operate an ungated evaluation portal providing unrestricted access to 3D digital twins and immersive 360° photo spheres with gyroscope-assisted Magic Window VR inspection.
+- **Administrators** utilize the web dashboard to manage the campus digital twin, author the topological walking network, calibrate geofences, and monitor institutional analytics.
+
+### 3.3 Hardware Sensors and Cloud Integrations
+- **Device Hardware**: Expo Location and Magnetometer modules stream real-time spatial telemetry to drive the 60 FPS ViroReact spatial AR projection engine, while the camera module supplies optical frames for live AR compositing.
+- **External Cloud Infrastructure**: Brevo SMTP handles transactional email verification to guarantee authentic university registrations, while Mapbox supplies high-resolution vector and satellite tile layers. Media assets are maintained in a decoupled media storage architecture that allows seamless deployment to local filesystems or cloud object storage.

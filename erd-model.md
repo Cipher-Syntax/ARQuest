@@ -1,32 +1,36 @@
-# ARQuest — Conceptual ERD Model (Chen's Notation)
+# ARQuest — Conceptual Entity Relationship Model (Chen's Notation)
 
-> Last updated: 2026-09-01
-
-This document illustrates the database schema using classic **Chen's Entity-Relationship notation**, where:
-- **Rectangles** represent Entities (Tables)
-- **Ovals** represent Attributes (Columns)
-- **Diamonds** represent Relationships between Entities
-
-To prevent the diagram from becoming an unreadable web, the models are grouped logically by domain.
+> **Research Paper Component:** Chapter 3 — Database Design / Conceptual Data Model (Chen's Notation)  
+> **System:** ARQuest: A Sensor-Assisted Campus Exploration and Accreditation Support System  
+> **Institution:** Western Mindanao State University (WMSU)
 
 ---
 
-## 1. Authentication Domain
+## 1. Overview of Conceptual Data Modeling
 
-The authentication domain revolves around the `USER` and `EMAIL_OTP` models.
-- **USER**: Extends Django's `AbstractUser` with custom fields such as `role` (admin, student, professional, visitor), `email_verified`, `exploration_points` for gamification, and `streak_count` for daily logins.
-- **EMAIL_OTP**: Stores six-digit one-time passwords for email verification. They expire after 10 minutes and are linked to the user via the `email` field rather than a foreign key to allow OTP creation prior to account verification.
+The Conceptual Data Model formalizes the structural information requirements of **ARQuest** using classic **Chen's Entity-Relationship notation**:
+- **Rectangles** represent independent and weak Entities (Information classes).
+- **Ovals** represent descriptive Attributes (Columns and properties).
+- **Diamonds** represent Relationships and associative actions binding entities.
+
+To maintain clarity and prevent visual congestion in the research manuscript, the conceptual schema is modularized across six distinct functional domains.
+
+---
+
+## 2. Authentication & Identity Domain
+
+This domain captures user identity, role classification, gamification totals, and single-use email verification tokens.
 
 ```mermaid
 flowchart TD
-    %% Entities (Rectangles)
+    %% Entities
     USER["USER"]
     EMAIL_OTP["EMAIL_OTP"]
 
-    %% Relationships (Diamonds)
-    verifies{"verifies email via"}
+    %% Relationship
+    verifies{"verifies email via (1:N)"}
 
-    %% Attributes for USER (Ovals)
+    %% Attributes for USER
     u_id(["id (PK)"])
     u_user(["username"])
     u_pass(["password"])
@@ -51,7 +55,7 @@ flowchart TD
     USER --- u_strk
     USER --- u_ld
 
-    %% Attributes for EMAIL_OTP (Ovals)
+    %% Attributes for EMAIL_OTP
     o_id(["id (PK)"])
     o_email(["email"])
     o_otp(["otp"])
@@ -64,21 +68,16 @@ flowchart TD
     EMAIL_OTP --- o_exp
     EMAIL_OTP --- o_used
 
-    %% Connections
+    %% Connectivity
     USER --- verifies
     verifies --- EMAIL_OTP
 ```
 
 ---
 
-## 2. Buildings (Now tracking model_size and model_active toggles for the 3D compressor) (Now tracking model_size and model_active toggles for the 3D compressor) & Geofencing Domain
+## 3. Campus Facilities & Geofencing Domain
 
-This domain handles the core physical mapping and access control features.
-- **DEPARTMENT**: Groups buildings by academic unit and dictates map pin colors.
-- **BUILDING**: The central entity supporting soft-delete. Contains 3D model metadata, statuses (`DRAFT`, `HIDDEN`, `VISIBLE`, `MAINTENANCE`), and QR secrets for unlock fallbacks.
-- **GEOFENCE**: Defines GPS boundaries (center coordinates and radius) for buildings, evaluated via Haversine calculations.
-- **BUILDING_UNLOCK**: Tracks when a user gains access to a building (via geofence, QR scan, or admin grant).
-- **BUILDING_ASSET**: Manages versioned file metadata for media assets (3D models, panoramas) tied to buildings, using checksums for cache invalidation.
+Governs the physical digital twins of campus buildings, college groupings, circular GPS geofence perimeters, verified user unlock milestones, and media asset versioning.
 
 ```mermaid
 flowchart TD
@@ -90,12 +89,12 @@ flowchart TD
     ASSET["BUILDING_ASSET"]
 
     %% Relationships
-    primary{"primary for"}
-    boundary{"has boundary"}
-    access{"unlocked via"}
-    holds{"stores assets"}
+    primary{"primary for (1:N)"}
+    boundary{"has boundary (1:N)"}
+    access{"unlocked via (1:N)"}
+    holds{"stores assets (1:N)"}
 
-    %% Attributes - Dept
+    %% Attributes - Department
     d_id(["id (PK)"])
     d_name(["name"])
     d_code(["code"])
@@ -106,13 +105,14 @@ flowchart TD
     DEPT --- d_code
     DEPT --- d_col
 
-    %% Attributes - Bldg
+    %% Attributes - Building
     b_id(["id (PK)"])
     b_name(["name"])
     b_slug(["slug"])
     b_stat(["status"])
     b_lat(["latitude"])
     b_lng(["longitude"])
+    b_mod(["model_file"])
     b_qr(["qr_code_secret"])
     
     BLDG --- b_id
@@ -121,6 +121,7 @@ flowchart TD
     BLDG --- b_stat
     BLDG --- b_lat
     BLDG --- b_lng
+    BLDG --- b_mod
     BLDG --- b_qr
 
     %% Attributes - Geofence
@@ -163,97 +164,65 @@ flowchart TD
 
 ---
 
-## 3. Gamification Domain (Quests, Trivia, Quizzes & Badges)
+## 4. Campus Pedestrian Navigation Domain
 
-This domain tracks user engagement and gamification tied to buildings.
-- **QUEST**: A task directing a student to visit a building. Completion grants `reward_points` that add to the user's total `exploration_points`.
-- **USER_QUEST_PROGRESS**: A join table recording whether and when a specific user has completed a quest.
-- **TRIVIA_FACT**: Factual content tied to a building shown in AR upon quest completion. Soft-deletes when the parent building is archived.
-- **QUIZ_QUESTION**: Quiz content tied to a building to reward users with extra points.
-- **USER_QUIZ_PROGRESS**: A join table recording whether and when a specific user answered a quiz question.
-- **BADGE**: Achievement badges that users can earn.
-- **USER_BADGE**: Records indicating a user has earned a specific badge.
+Models the topological walking network, supporting server-side $A^*$ heuristic pathfinding over verified WMSU campus sidewalks.
 
 ```mermaid
 flowchart TD
-    %% External Entity Ref
-    USER["USER"]
-    BLDG["BUILDING"]
-
     %% Entities
-    QUEST["QUEST"]
-    PROG["USER_QUEST_PROGRESS"]
-    TRIVIA["TRIVIA_FACT"]
-    QUIZ["QUIZ_QUESTION"]
-    Q_PROG["USER_QUIZ_PROGRESS"]
-    BADGE["BADGE"]
-    B_PROG["USER_BADGE"]
+    BLDG["BUILDING"]
+    NODE["NAVIGATION_NODE"]
+    PATH["NAVIGATION_PATH"]
 
     %% Relationships
-    target{"is target of"}
-    hosts{"has trivia"}
-    hosts_quiz{"has quiz"}
-    makes{"makes progress"}
-    tracks{"tracks quest"}
-    makes_q{"answers"}
-    tracks_q{"tracks quiz"}
-    earns{"earns"}
-    tracks_b{"tracks badge"}
+    entrance{"anchors entrance (1:1)"}
+    start_pt{"starts at (N:1)"}
+    end_pt{"ends at (N:1)"}
 
-    %% Attributes - Quest
-    q_id(["id (PK)"])
-    q_title(["title"])
-    q_hint(["hint"])
-    q_pts(["reward_points"])
-    q_exp(["expires_at"])
+    %% Attributes for NAVIGATION_NODE
+    nn_id(["id (PK UUID)"])
+    nn_lbl(["label"])
+    nn_lat(["latitude"])
+    nn_lng(["longitude"])
+    nn_type(["node_type"])
+    nn_act(["is_active"])
 
-    QUEST --- q_id
-    QUEST --- q_title
-    QUEST --- q_hint
-    QUEST --- q_pts
-    QUEST --- q_exp
+    NODE --- nn_id
+    NODE --- nn_lbl
+    NODE --- nn_lat
+    NODE --- nn_lng
+    NODE --- nn_type
+    NODE --- nn_act
 
-    %% Attributes - Progress
-    p_id(["id (PK)"])
-    p_comp(["is_completed"])
-    p_at(["completed_at"])
+    %% Attributes for NAVIGATION_PATH
+    np_id(["id (PK UUID)"])
+    np_geo(["geometry (JSON)"])
+    np_dist(["distance_meters"])
+    np_acc(["is_accessible"])
+    np_act(["is_active"])
 
-    PROG --- p_id
-    PROG --- p_comp
-    PROG --- p_at
+    PATH --- np_id
+    PATH --- np_geo
+    PATH --- np_dist
+    PATH --- np_acc
+    PATH --- np_act
 
-    %% Attributes - Trivia
-    t_id(["id (PK)"])
-    t_fact(["fact"])
-    t_act(["is_active"])
-
-    TRIVIA --- t_id
-    TRIVIA --- t_fact
-    TRIVIA --- t_act
-
-    %% Structure
-    BLDG --- target --- QUEST
-    BLDG --- hosts --- TRIVIA
-    BLDG --- hosts_quiz --- QUIZ
-    USER --- makes --- PROG
-    PROG --- tracks --- QUEST
-    USER --- makes_q --- Q_PROG
-    Q_PROG --- tracks_q --- QUIZ
-    USER --- earns --- B_PROG
-    B_PROG --- tracks_b --- BADGE
+    %% Connections
+    NODE --- entrance --- BLDG
+    PATH --- start_pt --- NODE
+    PATH --- end_pt --- NODE
 ```
 
 ---
 
-## 4. Panorama Walkthrough Domain
+## 5. Panorama Walkthrough & Spatial Linking Domain
 
-This domain models the 360° virtual walkthrough feature.
-- **PANORAMA_SCENE**: A single 360° image for a building. Only one scene per building can be marked as the start scene.
-- **PANORAMA_HOTSPOT**: A clickable navigation marker that links a source scene to a target scene using `yaw` and `pitch` coordinates, enabling movement through the building.
+Encapsulates equirectangular indoor photo spheres, interactive room-to-room navigation hotspots, and 3D Cartesian doorway spatial anchors $(X, Y, Z)$ bridging 3D models with panoramic scenes.
 
 ```mermaid
 flowchart TD
-    %% External Entity Ref
+    %% External Entity
     BLDG["BUILDING"]
 
     %% Entities
@@ -261,33 +230,31 @@ flowchart TD
     HOTSPOT["PANORAMA_HOTSPOT"]
 
     %% Relationships
-    contains{"contains scenes"}
-    source{"is source of"}
-    target{"is target of"}
+    contains{"contains scenes (1:N)"}
+    source{"is source of (1:N)"}
+    target{"is target of (N:1)"}
 
     %% Attributes - Scene
     s_id(["id (PK)"])
     s_title(["title"])
     s_img(["image"])
     s_start(["is_start_scene"])
-    s_sort(["sort_order"])
-    s_px(["pos_x (anchor)"])
-    s_py(["pos_y (anchor)"])
-    s_pz(["pos_z (anchor)"])
+    s_px(["pos_x (spatial anchor)"])
+    s_py(["pos_y (spatial anchor)"])
+    s_pz(["pos_z (spatial anchor)"])
 
     SCENE --- s_id
     SCENE --- s_title
     SCENE --- s_img
     SCENE --- s_start
-    SCENE --- s_sort
     SCENE --- s_px
     SCENE --- s_py
     SCENE --- s_pz
 
     %% Attributes - Hotspot
     h_id(["id (PK)"])
-    h_yaw(["yaw"])
-    h_pitch(["pitch"])
+    h_yaw(["yaw (deg)"])
+    h_pitch(["pitch (deg)"])
     h_lbl(["label"])
 
     HOTSPOT --- h_id
@@ -303,16 +270,85 @@ flowchart TD
 
 ---
 
-## 5. API & System Setting Domain
+## 6. Gamification & Academic Assessment Domain
 
-This domain provides global configuration and system-wide tracking for the system.
-- **SYSTEM_SETTING**: A singleton model (`pk=1` always) storing global feature flags such as `maintenance_mode`, GPS and QR toggles, AR/trivia activation status, and default quest rewards. The mobile app reads this state on startup.
-- **FEEDBACK**: Stores user-submitted feedback, bug reports, and feature requests.
-- **NOTIFICATION**: System notifications sent to users regarding various events, read status, and categorization.
+Tracks student motivation mechanics: building discovery quests, educational trivia facts, facility quizzes, and milestone achievement badges.
 
 ```mermaid
 flowchart TD
-    %% External Entity Ref
+    %% External Entities
+    USER["USER"]
+    BLDG["BUILDING"]
+
+    %% Entities
+    QUEST["QUEST"]
+    PROG["USER_QUEST_PROGRESS"]
+    TRIVIA["TRIVIA_FACT"]
+    QUIZ["QUIZ_QUESTION"]
+    Q_PROG["USER_QUIZ_PROGRESS"]
+    BADGE["BADGE"]
+    B_PROG["USER_BADGE"]
+
+    %% Relationships
+    target{"is target of (1:N)"}
+    hosts{"has trivia (1:N)"}
+    hosts_quiz{"has quiz (1:N)"}
+    makes{"progresses (1:N)"}
+    tracks{"tracks quest (N:1)"}
+    makes_q{"answers (1:N)"}
+    tracks_q{"tracks quiz (N:1)"}
+    earns{"earns (1:N)"}
+    tracks_b{"tracks badge (N:1)"}
+
+    %% Attributes - Quest
+    q_id(["id (PK)"])
+    q_title(["title"])
+    q_pts(["reward_points"])
+    QUEST --- q_id
+    QUEST --- q_title
+    QUEST --- q_pts
+
+    %% Attributes - Progress
+    p_id(["id (PK)"])
+    p_comp(["is_completed"])
+    PROG --- p_id
+    PROG --- p_comp
+
+    %% Attributes - Trivia
+    t_id(["id (PK)"])
+    t_fact(["fact"])
+    TRIVIA --- t_id
+    TRIVIA --- t_fact
+
+    %% Attributes - Quiz
+    qz_id(["id (PK)"])
+    qz_q(["question"])
+    qz_exp(["exp_reward"])
+    QUIZ --- qz_id
+    QUIZ --- qz_q
+    QUIZ --- qz_exp
+
+    %% Structure
+    BLDG --- target --- QUEST
+    BLDG --- hosts --- TRIVIA
+    BLDG --- hosts_quiz --- QUIZ
+    USER --- makes --- PROG
+    PROG --- tracks --- QUEST
+    USER --- makes_q --- Q_PROG
+    Q_PROG --- tracks_q --- QUIZ
+    USER --- earns --- B_PROG
+    B_PROG --- tracks_b --- BADGE
+```
+
+---
+
+## 7. System Settings & Operational Governance Domain
+
+Provides singleton platform configuration management, mobile feedback logging, and administrative audit streams.
+
+```mermaid
+flowchart TD
+    %% External Entity
     USER["USER"]
 
     %% Entities
@@ -321,8 +357,8 @@ flowchart TD
     NOTIF["NOTIFICATION"]
 
     %% Relationships
-    submits{"submits"}
-    receives{"receives"}
+    submits{"submits (1:N)"}
+    receives{"receives (1:N)"}
 
     %% Attributes - System Setting
     s_id(["id (Always 1)"])
@@ -330,10 +366,6 @@ flowchart TD
     s_maint(["maintenance_mode"])
     s_gps(["enable_gps"])
     s_qr(["enable_qr"])
-    s_ar(["enable_ar_selfie"])
-    s_triv(["enable_trivia"])
-    s_acc(["enable_accreditation"])
-    s_lead(["enable_leaderboard"])
     s_pts(["default_quest_reward"])
 
     SYS --- s_id
@@ -341,10 +373,6 @@ flowchart TD
     SYS --- s_maint
     SYS --- s_gps
     SYS --- s_qr
-    SYS --- s_ar
-    SYS --- s_triv
-    SYS --- s_acc
-    SYS --- s_lead
     SYS --- s_pts
 
     %% Attributes - Feedback
@@ -352,28 +380,22 @@ flowchart TD
     f_type(["type"])
     f_msg(["message"])
     f_stat(["status"])
-    f_cr(["created_at"])
 
     FDBK --- f_id
     FDBK --- f_type
     FDBK --- f_msg
     FDBK --- f_stat
-    FDBK --- f_cr
 
     %% Attributes - Notification
     n_id(["id (PK UUID)"])
     n_title(["title"])
-    n_msg(["message"])
     n_type(["type"])
     n_read(["is_read"])
-    n_cr(["created_at"])
 
     NOTIF --- n_id
     NOTIF --- n_title
-    NOTIF --- n_msg
     NOTIF --- n_type
     NOTIF --- n_read
-    NOTIF --- n_cr
 
     %% Structure
     USER --- submits --- FDBK
@@ -382,58 +404,9 @@ flowchart TD
 
 ---
 
-## 6. Campus Pedestrian Navigation Domain (Unit 31)
+## 8. Methodological Discussion
 
-This domain governs the self-sovereign WMSU walking network, enabling server-side A* routing without third-party directions dependencies.
-- **NAVIGATION_NODE**: Fixed physical GPS waypoints on campus, representing building access doors (`entrance`), sidewalk turns and walkway intersections (`junction`), campus perimeter gates (`gate`), or open-air landmarks (`poi`).
-- **NAVIGATION_PATH**: Walkable pathway segments linking two nodes, storing multi-coordinate geodesic line strings representing real sidewalks, distance in meters, and accessibility flags.
-
-```mermaid
-flowchart TD
-    %% Entities (Rectangles)
-    BLDG["BUILDING"]
-    NODE["NAVIGATION_NODE"]
-    PATH["NAVIGATION_PATH"]
-
-    %% Relationships (Diamonds)
-    entrance{"entrance for"}
-    start_pt{"starts at"}
-    end_pt{"ends at"}
-
-    %% Attributes for NAVIGATION_NODE (Ovals)
-    nn_id(["id (PK UUID)"])
-    nn_lbl(["label"])
-    nn_lat(["latitude"])
-    nn_lng(["longitude"])
-    nn_type(["node_type"])
-    nn_act(["is_active"])
-    nn_cr(["created_at"])
-
-    NODE --- nn_id
-    NODE --- nn_lbl
-    NODE --- nn_lat
-    NODE --- nn_lng
-    NODE --- nn_type
-    NODE --- nn_act
-    NODE --- nn_cr
-
-    %% Attributes for NAVIGATION_PATH (Ovals)
-    np_id(["id (PK UUID)"])
-    np_geo(["geometry (JSON)"])
-    np_dist(["distance_meters"])
-    np_acc(["is_accessible"])
-    np_act(["is_active"])
-    np_cr(["created_at"])
-
-    PATH --- np_id
-    PATH --- np_geo
-    PATH --- np_dist
-    PATH --- np_acc
-    PATH --- np_act
-    PATH --- np_cr
-
-    %% Structure Connections
-    NODE --- entrance --- BLDG
-    PATH --- start_pt --- NODE
-    PATH --- end_pt --- NODE
-```
+The Conceptual ERD model translates the business rules of the ARQuest digital twin into formal semantic primitives:
+1. **Normalization & Cardinality Integrity**: Entities adhere to 3rd Normal Form (3NF). Many-to-Many associations (e.g., users to quests, users to quizzes, and users to badges) are resolved through associative entities (`USER_QUEST_PROGRESS`, `USER_QUIZ_PROGRESS`, `USER_BADGE`) tracking completion states and audit timestamps.
+2. **Topological Graph Representation**: Pedestrian pathways are decoupled into discrete geometric vertices (`NAVIGATION_NODE`) and directed/bidirectional edges (`NAVIGATION_PATH`), enabling fast graph parsing for Dijkstra and $A^*$ algorithms.
+3. **Cross-Dimensional Spatial Anchoring**: The integration of Cartesian coordinates (`pos_x`, `pos_y`, `pos_z`) within `PANORAMA_SCENE` establishes a formal geometric relationship connecting discrete 2D equirectangular photo spheres to continuous 3D digital twin spaces.

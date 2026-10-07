@@ -1,29 +1,32 @@
-# ARQuest — Entity Relationship Diagram (ERD)
+# ARQuest — Logical Database Design & Entity Relationship Diagram (ERD)
 
-> Last updated: 2026-09-01
-> Reflects all Django models across `authentication`, `buildings`, `panorama`, `geofencing`, and `api` apps.
+> **Research Paper Component:** Chapter 3 — Database Design / Logical Data Model (Crow's Foot Notation)  
+> **System:** ARQuest: A Sensor-Assisted Campus Exploration and Accreditation Support System  
+> **Institution:** Western Mindanao State University (WMSU)
 
 ---
 
-## ERD Diagram
+## 1. Logical Entity Relationship Diagram (Crow's Foot Notation)
+
+The database architecture of **ARQuest** is implemented on **PostgreSQL 16**, encompassing 20 relational entities structured across 8 Django domain applications.
 
 ```mermaid
 erDiagram
 
     USER {
         int         id                  PK
-        string      username
-        string      password
-        string      email
+        string      username            "UNIQUE"
+        string      password            "PBKDF2 SHA256"
+        string      email               "UNIQUE"
         string      first_name
         string      last_name
-        string      role                "admin | student | professional | visitor"
+        string      role                "student | professional | visitor | admin"
         boolean     email_verified
         int         exploration_points
         boolean     is_active
         boolean     is_staff
         boolean     is_superuser
-        string      avatar_id           "e.g. explorer_1"
+        string      avatar_id
         int         streak_count
         date        last_login_date
         datetime    date_joined
@@ -35,16 +38,16 @@ erDiagram
         string      email
         string      otp         "6-digit code"
         datetime    created_at
-        datetime    expires_at  "10 min from created_at"
+        datetime    expires_at  "now + 10 min"
         boolean     is_used
     }
 
     DEPARTMENT {
         uuid        id          PK
         string      name
-        string      code        "unique slug"
+        string      code        "UNIQUE slug"
         text        description
-        string      color_hex   "hex color for map pins"
+        string      color_hex   "Map pin hex color"
         boolean     is_active
         datetime    created_at
         datetime    updated_at
@@ -53,22 +56,22 @@ erDiagram
     BUILDING {
         uuid        id                  PK
         string      name
-        string      slug                "unique; required for publish"
+        string      slug                "UNIQUE"
         text        description
-        decimal     latitude            "nullable; required for publish"
-        decimal     longitude           "nullable; required for publish"
+        decimal     latitude            "WGS84 Lat"
+        decimal     longitude           "WGS84 Lng"
         string      status              "DRAFT | HIDDEN | VISIBLE | MAINTENANCE"
         boolean     is_active
-        file        model_file          "path to .glb/.gltf"
+        file        model_file          "Path to .glb/.gltf"
         string      model_version
-        int         model_file_size     "bytes"
+        int         model_file_size     "Bytes"
         boolean     model_active
-        image       image               "Auto-generated 2D thumbnail"
-        json        hotspots            "[]"
-        uuid        qr_code_secret      "unique; for QR unlock"
+        image       image               "2D thumbnail"
+        json        hotspots
+        uuid        qr_code_secret      "UNIQUE secret for QR unlock"
         datetime    created_at
         datetime    updated_at
-        datetime    deleted_at          "null = not deleted"
+        datetime    deleted_at          "NULL = Active; Non-null = Soft-deleted"
     }
 
     GEOFENCE {
@@ -97,11 +100,58 @@ erDiagram
         string      asset_type  "model | panorama | image"
         file        file
         int         version
-        int         file_size   "bytes"
-        string      checksum    "SHA256 for cache invalidation"
+        int         file_size   "Bytes"
+        string      checksum    "SHA256 hash for cache invalidation"
         boolean     is_active
         datetime    created_at
         datetime    updated_at
+    }
+
+    NAVIGATION_NODE {
+        uuid        id              PK
+        string      label
+        float       latitude
+        float       longitude
+        string      node_type       "entrance | junction | gate | poi"
+        uuid        building_id     FK "Nullable; entrance anchor"
+        boolean     is_active
+        datetime    created_at
+    }
+
+    NAVIGATION_PATH {
+        uuid        id              PK
+        uuid        start_node_id   FK
+        uuid        end_node_id     FK
+        json        geometry        "[[lng, lat], ...] coordinate pairs"
+        float       distance_meters
+        boolean     is_accessible
+        boolean     is_active
+        datetime    created_at
+    }
+
+    PANORAMA_SCENE {
+        int         id              PK
+        uuid        building_id     FK
+        string      title
+        image       image           "Equirectangular photo"
+        int         sort_order
+        boolean     is_start_scene
+        boolean     is_active
+        float       pos_x           "Nullable; 3D spatial anchor X"
+        float       pos_y           "Nullable; 3D spatial anchor Y"
+        float       pos_z           "Nullable; 3D spatial anchor Z"
+        datetime    created_at
+        datetime    updated_at
+    }
+
+    PANORAMA_HOTSPOT {
+        int         id              PK
+        int         source_scene_id FK
+        int         target_scene_id FK
+        string      label
+        float       yaw             "Spherical horizontal deg"
+        float       pitch           "Spherical vertical deg"
+        boolean     is_active
     }
 
     QUEST {
@@ -111,9 +161,9 @@ erDiagram
         text        hint
         int         reward_points
         boolean     is_active
-        datetime    expires_at          "nullable"
+        datetime    expires_at          "Nullable"
         datetime    created_at
-        datetime    deleted_at          "null = not deleted"
+        datetime    deleted_at          "NULL = Active; Non-null = Soft-deleted"
     }
 
     USER_QUEST_PROGRESS {
@@ -121,7 +171,7 @@ erDiagram
         int         user_id         FK
         uuid        quest_id        FK
         boolean     is_completed
-        datetime    completed_at    "nullable"
+        datetime    completed_at    "Nullable"
     }
 
     TRIVIA_FACT {
@@ -131,7 +181,7 @@ erDiagram
         boolean     is_active
         datetime    created_at
         datetime    updated_at
-        datetime    deleted_at  "null = not deleted"
+        datetime    deleted_at  "NULL = Active; Non-null = Soft-deleted"
     }
 
     QUIZ_QUESTION {
@@ -174,55 +224,8 @@ erDiagram
         datetime    earned_at
     }
 
-    PANORAMA_SCENE {
-        int         id              PK
-        uuid        building_id     FK
-        string      title
-        image       image           "upload_to: panoramas/"
-        int         sort_order
-        boolean     is_start_scene  "one per building"
-        boolean     is_active
-        float       pos_x           "nullable; 3D spatial anchor X"
-        float       pos_y           "nullable; 3D spatial anchor Y"
-        float       pos_z           "nullable; 3D spatial anchor Z"
-        datetime    created_at
-        datetime    updated_at
-    }
-
-    PANORAMA_HOTSPOT {
-        int         id              PK
-        int         source_scene_id FK
-        int         target_scene_id FK
-        string      label
-        float       yaw             "horizontal rotation in degrees"
-        float       pitch           "vertical rotation in degrees"
-        boolean     is_active
-    }
-
-    NAVIGATION_NODE {
-        uuid        id              PK
-        string      label
-        float       latitude
-        float       longitude
-        string      node_type       "entrance | junction/walkway | gate | poi"
-        uuid        building_id     FK "nullable"
-        boolean     is_active
-        datetime    created_at
-    }
-
-    NAVIGATION_PATH {
-        uuid        id              PK
-        uuid        start_node_id   FK
-        uuid        end_node_id     FK
-        json        geometry        "[[lng, lat], ...] coordinate pairs"
-        float       distance_meters
-        boolean     is_accessible
-        boolean     is_active
-        datetime    created_at
-    }
-
     SYSTEM_SETTING {
-        int         id                      PK  "always 1 singleton"
+        int         id                      PK  "Singleton pk=1"
         string      app_name
         boolean     maintenance_mode
         string      contact_email
@@ -237,7 +240,7 @@ erDiagram
 
     FEEDBACK {
         int         id          PK
-        int         user_id     FK "nullable"
+        int         user_id     FK "Nullable"
         string      type        "bug | feature | other"
         text        message
         string      status      "open | in_progress | resolved"
@@ -246,7 +249,7 @@ erDiagram
 
     NOTIFICATION {
         uuid        id          PK
-        int         recipient_id FK "nullable"
+        int         recipient_id FK "Nullable"
         string      title
         text        message
         string      type        "SYSTEM | PROFESSIONAL | BUILDING | FEEDBACK"
@@ -254,6 +257,7 @@ erDiagram
         datetime    created_at
     }
 
+    %% Relationships
     USER                ||--o{ EMAIL_OTP              : "verifies email via"
     USER                ||--o{ BUILDING_UNLOCK        : "unlocks"
     USER                ||--o{ USER_QUEST_PROGRESS    : "tracks progress via"
@@ -263,16 +267,16 @@ erDiagram
     USER                ||--o{ NOTIFICATION           : "receives"
 
     DEPARTMENT          ||--o{ BUILDING               : "is primary_department of"
-    DEPARTMENT          }o--o{ BUILDING               : "is associated with M2M"
+    DEPARTMENT          }o--o{ BUILDING               : "is associated with (M2M)"
 
-    BUILDING            ||--o{ GEOFENCE               : "has"
-    BUILDING            ||--o{ BUILDING_UNLOCK        : "is unlocked via"
-    BUILDING            ||--o{ BUILDING_ASSET         : "stores assets via"
-    BUILDING            ||--o{ QUEST                  : "is target of"
-    BUILDING            ||--o{ TRIVIA_FACT            : "has"
-    BUILDING            ||--o{ QUIZ_QUESTION          : "has"
-    BUILDING            ||--o{ PANORAMA_SCENE         : "has"
-    BUILDING            ||--o{ NAVIGATION_NODE        : "has entrance node"
+    BUILDING            ||--o{ GEOFENCE               : "has boundary"
+    BUILDING            ||--o{ BUILDING_UNLOCK        : "unlocked via"
+    BUILDING            ||--o{ BUILDING_ASSET         : "holds assets"
+    BUILDING            ||--o{ QUEST                  : "target of"
+    BUILDING            ||--o{ TRIVIA_FACT            : "hosts trivia"
+    BUILDING            ||--o{ QUIZ_QUESTION          : "hosts quiz"
+    BUILDING            ||--o{ PANORAMA_SCENE         : "contains scenes"
+    BUILDING            ||--o{ NAVIGATION_NODE        : "anchors entrance node"
 
     NAVIGATION_NODE     ||--o{ NAVIGATION_PATH        : "is start_node of"
     NAVIGATION_NODE     ||--o{ NAVIGATION_PATH        : "is end_node of"
@@ -280,218 +284,70 @@ erDiagram
     PANORAMA_SCENE      ||--o{ PANORAMA_HOTSPOT       : "is source of"
     PANORAMA_SCENE      ||--o{ PANORAMA_HOTSPOT       : "is target of"
 
-    QUEST               ||--o{ USER_QUEST_PROGRESS    : "is tracked via"
-    QUIZ_QUESTION       ||--o{ USER_QUIZ_PROGRESS     : "is tracked via"
-    BADGE               ||--o{ USER_BADGE             : "is tracked via"
+    QUEST               ||--o{ USER_QUEST_PROGRESS    : "tracks completion"
+    QUIZ_QUESTION       ||--o{ USER_QUIZ_PROGRESS     : "tracks answer"
+    BADGE               ||--o{ USER_BADGE             : "tracks awarded"
 ```
 
 ---
 
-## Entity Summaries
+## 2. Relational Data Dictionary Specification
 
-### `USER` — `authentication` app
-Django custom user (`AbstractUser`). Stores credentials, role, email verification state, and gamification points.
+### 2.1 Authentication & Security Entities (`authentication`)
+- **`USER`**: Extends Django's `AbstractUser`. Manages identity, RBAC authorization (`role`: `'student'`, `'professional'`, `'visitor'`, `'admin'`), gamification totals (`exploration_points`), streak telemetry (`streak_count`, `last_login_date`), and soft-deactivation status (`is_active`).
+- **`EMAIL_OTP`**: Transient single-use 6-digit verification tokens expiring 10 minutes from creation (`expires_at`), verified prior to setting `email_verified = True`.
 
-| Field | Notes |
-|---|---|
-| `role` | Enum: `admin`, `student`, `professional`, `visitor` |
-| `email_verified` | Set to `true` after OTP confirmation |
-| `exploration_points` | Incremented on quest completion |
-| `avatar_id` | String ID mapping to a local asset |
-| `streak_count` | Number of consecutive daily logins |
-| `last_login_date` | Date of last login for streak tracking |
+### 2.2 Campus Facilities & Geofencing Entities (`buildings`)
+- **`DEPARTMENT`**: Organizational college entities (e.g., College of Computer Studies). Dictates the hex color palette (`color_hex`) for map markers.
+- **`BUILDING`**: Central structural digital twin entity. Supports soft-deletion via `deleted_at`, 3D GLB model asset linking, publication lifecycle (`DRAFT`, `HIDDEN`, `VISIBLE`, `MAINTENANCE`), and anti-spoof QR secrets (`qr_code_secret`).
+- **`GEOFENCE`**: GPS circular boundary zones (`latitude`, `longitude`, `radius_meters`) evaluated by server-side Haversine algorithms.
+- **`BUILDING_UNLOCK`**: Audit log recording facility unlocks, enforcing composite uniqueness on `(user_id, building_id)`.
+- **`BUILDING_ASSET`**: Versioned media asset repository tracking file size and SHA256 checksums for zero-overhead client cache invalidation.
 
----
+### 2.3 Campus Pedestrian Navigation Entities (`navigation`)
+- **`NAVIGATION_NODE`**: Topological waypoints representing building access doors (`entrance`), sidewalk turns and intersections (`junction`), perimeter gates (`gate`), or open-air landmarks (`poi`).
+- **`NAVIGATION_PATH`**: Walkway edges connecting two nodes, storing multi-coordinate GeoJSON geometry arrays (`[[lng, lat], ...]`), calculated geodesic length (`distance_meters`), and wheelchair accessibility flags (`is_accessible`). Deletion of a node cascades to all attached paths via `on_delete=models.CASCADE`.
 
-### `EMAIL_OTP` — `authentication` app
-Stores one-time passwords sent via email for account verification. Expires after 10 minutes and is single-use.
+### 2.4 Panoramic & Spatial Linking Entities (`panorama`)
+- **`PANORAMA_SCENE`**: Equirectangular 360° photo spheres. Features nullable 3D Cartesian doorway anchors (`pos_x`, `pos_y`, `pos_z`) bridging digital 3D models with photographic rooms. Exactly one scene per building can be `is_start_scene = True`.
+- **`PANORAMA_HOTSPOT`**: Spherical coordinate markers (`yaw`, `pitch`) linking source scenes to target scenes. Model-level validation strictly prevents cross-facility linkages.
 
----
+### 2.5 Gamification & Assessment Entities (`gamification`, `quizzes`)
+- **`QUEST`**: Building exploration tasks rewarding `reward_points`. Soft-deletes upon parent building archive.
+- **`USER_QUEST_PROGRESS`**: Per-user quest completion log with composite uniqueness on `(user_id, quest_id)`.
+- **`TRIVIA_FACT`**: Building-specific trivia surfaced in AR overlays. Soft-deletes upon parent building archive.
+- **`QUIZ_QUESTION` & `USER_QUIZ_PROGRESS`**: Multiple-choice assessment questions tied to facilities with per-user answer tracking.
+- **`BADGE` & `USER_BADGE`**: Milestone achievement badges and user award timestamps.
 
-### `DEPARTMENT` — `buildings` app
-Organizational grouping for buildings (e.g., College of Computer Studies). Used for map pin color and building categorization. Building FKs use `SET_NULL` on department deletion to preserve records.
-
-| Field | Notes |
-|---|---|
-| `color_hex` | Hex string used as map pin color for primary buildings |
-| `code` | Unique slug identifier |
-
----
-
-### `BUILDING` — `buildings` app
-Central entity. Supports soft-delete via `SoftDeleteModel`. Soft-deleting a building cascades to its `Quest` and `TriviaFact` records.
-
-| Field | Notes |
-|---|---|
-| `status` | `DRAFT` = no coordinates required; `HIDDEN`/`VISIBLE`/`MAINTENANCE` = lat/lng/slug required |
-| `model_file` | Uploaded `.glb/.gltf` served to mobile WebView |
-| `qr_code_secret` | UUID used for QR-based unlock fallback |
-| `deleted_at` | `null` = live record; non-null = soft-deleted |
-
-**Dual department relationship:**
-- `primary_department` → FK → `DEPARTMENT` (drives map pin color)
-- `departments` → M2M → `DEPARTMENT` (associated colleges)
+### 2.6 System Utility & Audit Entities (`api`)
+- **`SYSTEM_SETTING`**: Singleton configuration table (`pk = 1`) managing global feature toggles (maintenance mode, GPS/QR toggles).
+- **`FEEDBACK`**: User-submitted issue tickets (`type`, `message`, `status`) feeding the admin Feedback Radar.
+- **`NOTIFICATION`**: UUID-keyed system audit alerts and user dispatches.
 
 ---
 
-### `GEOFENCE` — `buildings` app
-Defines a GPS boundary zone for a building. Geofencing validates coordinates server-side (Haversine) and optionally client-side. One building can have multiple geofences; only active ones are evaluated.
+## 3. Database Integrity Constraints & Cascading Architecture
+
+| Constraint / Rule | Target Table & Field | Implementation Mechanism | System Purpose |
+|:---|:---|:---|:---|
+| **One Start Scene per Facility** | `PANORAMA_SCENE.is_start_scene` | `PanoramaScene.clean()` validation override | Prevents ambiguous initial viewpoint mounting in 360° tours. |
+| **Intra-Building Hotspot Isolation** | `PANORAMA_HOTSPOT.target_scene` | `PanoramaHotspot.clean()` validation override | Prevents broken navigation links jumping between unrelated buildings. |
+| **Coordinate Bounds Validation** | `BUILDING`, `GEOFENCE`, `NAVIGATION_NODE` | Lat: $[-90, 90]$, Lng: $[-180, 180]$ | Enforces valid WGS84 geographic coordinates. |
+| **Path Geometry Minimum Vertices** | `NAVIGATION_PATH.geometry` | Serializer check: $\ge 2$ coordinate pairs | Ensures all walkway segments represent valid spatial line strings. |
+| **Cascading Node Pruning** | `NAVIGATION_PATH.start_node / end_node` | `on_delete=models.CASCADE` | Automatically eliminates orphaned walkway paths when a node is deleted. |
+| **Entrance Node Safety Unlink** | `NAVIGATION_NODE.building` | `on_delete=models.SET_NULL` | Preserves navigation nodes if a building record is deleted. |
+| **Unique User Building Unlock** | `BUILDING_UNLOCK(user, building)` | `Meta.unique_together` constraint | Prevents duplicate reward/EXP exploits for the same facility. |
+| **Singleton System Setting** | `SYSTEM_SETTING.id` | `save()` override enforcing `pk = 1` | Guarantees a single system-wide configuration record. |
 
 ---
 
-### `BUILDING_UNLOCK` — `buildings` app
-Records that a user has gained access to a building. Unique per `(user, building)` pair. Re-entry updates `last_validated_at` without creating duplicates.
+## 4. Soft-Deletion Architecture (`SoftDeleteModel`)
 
-| `source` | Meaning |
-|---|---|
-| `geofence` | User physically entered the GPS zone |
-| `admin` | Manually granted by admin |
-| `role_access` | Auto-granted to Professional role |
-| `qr` | Unlocked via QR code scan |
+To preserve academic audit trails and historical records, ARQuest implements a custom soft-deletion architecture:
 
----
-
-### `BUILDING_ASSET` — `buildings` app
-Versioned file metadata for media assets (3D models, panoramas, images). SHA256 `checksum` enables cache invalidation on mobile.
-
----
-
-### `QUEST` — `gamification` app
-Gamification quest targeting a specific building. Soft-deleted when the parent building is archived. Students earn `reward_points` on completion.
-
----
-
-### `USER_QUEST_PROGRESS` — `gamification` app
-Join table tracking per-user quest completion. Unique per `(user, quest)` pair.
-
----
-
-### `TRIVIA_FACT` — `gamification` app
-Building-specific trivia facts surfaced in the AR camera overlay on quest completion. Soft-delete cascades from parent building.
-
----
-
-### `QUIZ_QUESTION` — `quizzes` app
-Building-specific quiz questions surfaced in the AR UI to reward players with extra points upon answering correctly.
-
----
-
-### `USER_QUIZ_PROGRESS` — `quizzes` app
-Records a user answering a quiz question and whether they got it right. Unique per `(user, question)` pair.
-
----
-
-### `BADGE` — `gamification` app
-Achievement badges unlocked via predefined triggers (e.g., number of buildings unlocked, total quests completed, etc.).
-
----
-
-### `USER_BADGE` — `gamification` app
-Records a badge earned by a user along with the timestamp it was awarded. Unique per `(user, badge)`.
-
----
-
-### `PANORAMA_SCENE` — `panorama` app
-One 360° panoramic image within a building's virtual walkthrough. Exactly one scene per building may be `is_start_scene=true` at a time. Under Unit 30, scenes contain nullable 3D spatial anchors (`pos_x`, `pos_y`, `pos_z`) allowing seamless two-way jumps between the first-person 3D Virtual Tour model and the physical 360° photo sphere.
-
----
-
-### `PANORAMA_HOTSPOT` — `panorama` app
-Navigation marker inside a `PanoramaScene`. Links a source scene to a target scene using `yaw`/`pitch` spherical coordinates. Cross-building links are blocked by model-level validation.
-
----
-
-### `NAVIGATION_NODE` — `navigation` app
-A fixed GPS waypoint within the WMSU campus pedestrian network (Unit 31).
-
-| Field | Notes |
-|---|---|
-| `label` | Human-readable name (e.g., "Main Gate", "CICS Front Entrance", "Library Corner") |
-| `latitude` / `longitude` | Exact floating-point WGS84 coordinates |
-| `node_type` | Role: `entrance` (Building Entrance), `junction` (Walkway), `gate` (Campus Gate), `poi` (Point of Interest) |
-| `building` | Nullable FK to `Building` with `SET_NULL` on deletion; populated for entrance waypoints |
-| `is_active` | Boolean flag enabling/disabling waypoint from routing calculations |
-
----
-
-### `NAVIGATION_PATH` — `navigation` app
-A walkable pedestrian path segment connecting two `NavigationNode` records (Unit 31).
-
-| Field | Notes |
-|---|---|
-| `start_node` / `end_node` | Foreign keys to `NavigationNode` with `CASCADE` deletion; models bidirectional pedestrian travel |
-| `geometry` | Native JSON array of `[longitude, latitude]` pairs capturing the real physical curves and bends of campus sidewalks |
-| `distance_meters` | Calculated geodesic path length used by the server-side A* routing algorithm |
-| `is_accessible` | Flag designating wheelchair/PWD accessibility |
-| `is_active` | Boolean flag enabling/disabling pathway segment |
-
----
-
-### `SYSTEM_SETTING` — `api` app
-Singleton model (`pk` always `1`). Global feature flags and system config consumed by mobile and admin dashboard.
-
-| Flag | Purpose |
-|---|---|
-| `maintenance_mode` | Blocks all non-admin API access |
-| `enable_gps` / `enable_qr` | Feature toggles for campus features |
-| `enable_accreditation` | Shows/hides Professional-only features |
-| `default_quest_reward` | Auto-fills reward points for new quests |
-
----
-
-### `FEEDBACK` — `api` app
-Stores user-submitted feedback, bug reports, and feature requests. Can be submitted anonymously (nullable user).
-
----
-
-### `NOTIFICATION` — `api` app
-System notifications sent to users regarding various events (e.g., feedback updates, building status changes). Uses UUID as primary key.
-
----
-
-## Constraints & Invariants
-
-| Constraint | Enforced in |
-|---|---|
-| One active start scene per building | `PanoramaScene.clean()` |
-| Hotspots cannot cross buildings | `PanoramaHotspot.clean()` |
-| DRAFT buildings skip coordinate/slug validation | `Building.clean()` |
-| Soft-deleted buildings cascade to Quests + Trivia | `Building.cascade_soft_delete()` |
-| `BuildingUnlock` unique per `(user, building)` | `Meta.unique_together` |
-| `UserQuestProgress` unique per `(user, quest)` | `Meta.unique_together` |
-| `SystemSetting` always `pk=1` | `save()` override |
-| Inactive building cannot be unlocked | `BuildingUnlock.clean()` |
-| Geofence radius must be > 0 | `Geofence.clean()` |
-| Lat: -90 to 90 / Lng: -180 to 180 | `Building.clean()`, `Geofence.clean()`, `NavigationNode.clean()` |
-| Path geometry must have $\ge 2$ `[lng, lat]` pairs | `NavigationPathSerializer.validate_geometry()` |
-| Node deletion cascades all connected paths | `NavigationPath.start_node` / `end_node` (`on_delete=models.CASCADE`) |
-| Building deletion unlinks entrance nodes | `NavigationNode.building` (`on_delete=models.SET_NULL`) |
-
----
-
-## Soft Delete Scope
-
-Only these models support soft-delete (`SoftDeleteModel`):
-
-| Model | Cascades to |
-|---|---|
-| `Building` | `Quest`, `TriviaFact` |
-| `Quest` | — |
-| `TriviaFact` | — |
-
-All other models use standard **hard delete**.
-
----
-
-## Django App → Model Map
-
-| App | Models |
-|---|---|
-| `authentication` | `User`, `EmailOTP` |
-| `buildings` | `Department`, `Building`, `Geofence`, `BuildingUnlock`, `BuildingAsset` |
-| `navigation` | `NavigationNode`, `NavigationPath` |
-| `gamification` | `Quest`, `UserQuestProgress`, `TriviaFact`, `Badge`, `UserBadge` |
-| `quizzes` | `QuizQuestion`, `UserQuizProgress` |
-| `panorama` | `PanoramaScene`, `PanoramaHotspot` |
-| `geofencing` | _(no models; logic is utility-only via Haversine utils)_ |
-| `api` | `SystemSetting`, `Feedback`, `Notification` |
+| Model | Inherits `SoftDeleteModel` | Cascade Target | Operational Behavior |
+|:---|:---|:---|:---|
+| **`BUILDING`** | Yes | `QUEST`, `TRIVIA_FACT` | When archived, sets `deleted_at = now()`. Automatically cascades soft-deletion to all associated quests and trivia facts. Restoring a building restores child records. |
+| **`QUEST`** | Yes | None | Preserves user historical quest completion logs (`USER_QUEST_PROGRESS`) even when a quest is retired. |
+| **`TRIVIA_FACT`** | Yes | None | Preserves historical educational trivia records. |
+| **All Other Models** | No | None | Standard **hard deletion** (`models.CASCADE` or `models.SET_NULL`). |
