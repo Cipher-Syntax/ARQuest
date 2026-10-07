@@ -17,47 +17,48 @@ flowchart TD
     %% ==========================================
     %% 1. INPUT (TOP TIER)
     %% ==========================================
-    subgraph INPUT ["▼ 1. INPUT"]
-        direction TB
-        IN_1["<b>A. Mobile Hardware & Sensor Telemetry</b><br/>• High-accuracy GPS coordinates & horizontal accuracy estimate<br/>• Magnetometer compass heading (azimuth angle)<br/>• 3-axis gyroscope telemetry (orientation angles α, β, γ)<br/>• Camera optical video feed & QR code secret scans"]
-        IN_2["<b>B. User Profiles & Client Configurations</b><br/>• Registration credentials (username, institutional email, password)<br/>• Mandatory legal agreement consent (Terms & Privacy Policy)<br/>• Avatar character selections & local preferences (SFX, haptics, units, compass lock)<br/>• User-submitted bug reports, feature requests, and feedback"]
-        IN_3["<b>C. University Geospatial & Multimedia Content</b><br/>• Campus facility metadata, department groupings, and geofence boundaries<br/>• Topological walking network (NavigationNodes & NavigationPaths)<br/>• High-fidelity 3D architectural models (.glb) & 360° equirectangular panoramas<br/>• 3D Cartesian doorway spatial anchors (pos_x, pos_y, pos_z)"]
+    subgraph INPUT ["▼ 1. INPUT (SYSTEM INPUTS & SENSORY TELEMETRY)"]
+        direction LR
+        IN_A["<b>A. Hardware & Sensors</b><br/>• High-Accuracy GPS Coordinates<br/>• Magnetometer Azimuth Heading<br/>• 3-Axis Gyroscope Angles<br/>• Camera Video Feed & QR Codes"]
+        IN_B["<b>B. User & Account Data</b><br/>• WMSU Institutional Email<br/>• PBKDF2 Password Credentials<br/>• Avatar & Client Audio Settings<br/>• Categorized User Bug Reports"]
+        IN_C["<b>C. University Geospatial Assets</b><br/>• Campus POIs & Geofences<br/>• Walking Network Sidewalk Graph<br/>• 3D Architectural GLB Models<br/>• 360° Equirectangular Spheres"]
+        IN_A ~~~ IN_B ~~~ IN_C
     end
 
     %% ==========================================
     %% 2. PROCESS (MIDDLE TIER)
     %% ==========================================
-    subgraph PROCESS ["▼ 2. PROCESS"]
-        direction TB
-        PR_1["<b>A. Security, Authentication & Account Lifecycle</b><br/>• PBKDF2 password hashing & SimpleJWT token rotation (60m access / 7d refresh)<br/>• 6-digit email OTP verification via Brevo SMTP<br/>• Role-Based Access Control (RBAC) across 4 user tiers<br/>• Self-service soft-deactivation (is_active=False) with historic EXP preservation"]
-        PR_2["<b>B. Geospatial Verification & Native Spatial AR Engine</b><br/>• Two-stage battery-optimized geofencing (Client Haversine pre-filter + Server validation)<br/>• 60 FPS ViroReact AR engine with EMA heading filter & 2.5° angular deadband<br/>• 45° Camera FOV evaluation: In-view 3D ground chevrons vs. 2D off-screen HUD arrows<br/>• Arrival latching with 20m hysteresis buffer & rotating 3D building miniature"]
-        PR_3["<b>C. Self-Sovereign Campus Pedestrian Routing</b><br/>• Origin coordinate snapping to nearest sidewalk node & target entrance matching<br/>• Server-side heuristic A* shortest-path algorithm traversing verified WMSU walkways<br/>• Dynamic GeoJSON FeatureCollection polyline synthesis"]
-        PR_4["<b>D. Multi-Modal Virtual Exploration & Spatial Linking</b><br/>• Three.js WebViews with PBR material shaders for 3D model inspection<br/>• Gyroscope-synchronized Magic Window VR 360° virtual tours for accreditors<br/>• Proximity-driven doorway spatial linking (1.6m eye-level 3D badges within 5m)"]
-        PR_5["<b>E. Gamification Arena & Administrative Analytics</b><br/>• Rule-based EXP calculation, daily login streak evaluation, and milestone badges<br/>• Satellite GIS walking network authoring with automated pruning of disconnected ways<br/>• Multi-temporal foot traffic analytics aggregation (Daily/Weekly/Monthly/Yearly)"]
+    subgraph PROCESS ["▼ 2. PROCESS (COMPUTATIONAL ALGORITHMS & SPATIAL ENGINES)"]
+        direction LR
+        PR_A["<b>A. Security & Access Control</b><br/>• SimpleJWT Token Rotation<br/>• Brevo SMTP 6-Digit Email OTP<br/>• 4-Tier RBAC Permission Checks<br/>• Soft-Deactivation Lifecycle"]
+        PR_B["<b>B. Geospatial & AR Engines</b><br/>• Two-Stage Haversine Filtering<br/>• 60 FPS EMA Heading Smoothing<br/>• 45° Camera Frustum FOV Check<br/>• Heuristic A* Sidewalk Search"]
+        PR_C["<b>C. Virtual Inspection & Analytics</b><br/>• Three.js PBR Model Rendering<br/>• Gyro Magic Window VR Tours<br/>• Spatial Doorway Anchors (5m)<br/>• Foot Traffic Recharts Metrics"]
+        PR_A ~~~ PR_B ~~~ PR_C
     end
 
     %% ==========================================
     %% 3. OUTPUT (LOWER TIER)
     %% ==========================================
-    subgraph OUTPUT ["▼ 3. OUTPUT"]
-        direction TB
-        OUT_1["<b>A. Location-Aware Guidance & Spatial Wayfinding</b><br/>• Real-time 3D glowing ground chevrons & tactical distance HUD billboards<br/>• Responsive 2D perimeter turn alert arrows (◀ TURN LEFT / TURN RIGHT ▶)<br/>• Electric Cyan GeoJSON WMSU campus walking route overlays on Mapbox"]
-        OUT_2["<b>B. Facility Exploration & Accreditation Deliverables</b><br/>• Automated building unlock confirmations & Campus Passport stamps<br/>• Interactive touch-manipulated 3D architectural digital twins<br/>• Room-to-room 360° panoramic virtual tours & Magic Window VR views<br/>• Preserved camera state transitions between 3D models and interior rooms"]
-        OUT_3["<b>C. Academic Gamification & Administrative Intelligence</b><br/>• Student EXP progression, level titles, streaks, and global leaderboards<br/>• Live operational dashboard cards, Recharts foot traffic graphs, and coverage matrix<br/>• Synchronous network topology validation and resolved Feedback Radar logs"]
+    subgraph OUTPUT ["▼ 3. OUTPUT (DELIVERABLES, WAYFINDING & USER INTERFACES)"]
+        direction LR
+        OUT_A["<b>A. Spatial Wayfinding</b><br/>• 3D Glowing Ground Chevrons<br/>• Tactical Distance Billboards<br/>• 2D Turn Alert Edge Arrows<br/>• Cyan Sidewalk Route Line"]
+        OUT_B["<b>B. Facility Exploration</b><br/>• Verified Building Unlocks<br/>• Touch-Manipulated 3D Twins<br/>• Room-to-Room 360° Spheres<br/>• Seamless Spatial Transitions"]
+        OUT_C["<b>C. Gamification & Operations</b><br/>• Student EXP, Levels & Streaks<br/>• Campus Passport Stamps<br/>• Live Traffic Recharts Cards<br/>• Validated Sidewalk Graph"]
+        OUT_A ~~~ OUT_B ~~~ OUT_C
     end
 
     %% ==========================================
     %% 4. FEEDBACK (BOTTOM TIER)
     %% ==========================================
-    subgraph FEEDBACK ["▼ 4. SYSTEM FEEDBACK & CONTINUOUS RECALIBRATION"]
+    subgraph FEEDBACK ["▼ 4. SYSTEM FEEDBACK & CONTINUOUS RECALIBRATION LOOP"]
         direction TB
-        FB_1["• Real-time user position changes & GPS drift correction continuously re-trigger geofencing<br/>• Dynamic route recalculation when user deviates from WMSU sidewalk walkway paths<br/>• Administrative map updates & geofence recalibrations immediately sync across mobile clients"]
+        FB["• Continuous GPS drift tracking re-evaluates geofencing and facility proximity<br/>• Off-path deviation triggers real-time heuristic A* sidewalk route recalculation<br/>• Administrative GIS updates and geofence changes immediately synchronize to mobile clients"]
     end
 
-    %% Downward Transitions (Strict Top-to-Bottom Flow)
-    INPUT ==>|"Continuous Sensor Streaming & User Requests"| PROCESS
-    PROCESS ==>|"Generated Spatial Guidance & Digital Twins"| OUTPUT
-    OUTPUT ==>|"Iterative Recalibration Loop & User Interactivity"| FEEDBACK
+    %% Top-to-Bottom Transitions
+    INPUT ==>|"Continuous Sensor Polling & User Requests"| PROCESS
+    PROCESS ==>|"Computed Guidance Vectors & Rendered Digital Twins"| OUTPUT
+    OUTPUT ==>|"Dynamic Recalibration Loop & Real-Time Sync"| FEEDBACK
 ```
 
 ---
