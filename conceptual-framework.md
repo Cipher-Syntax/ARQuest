@@ -8,120 +8,42 @@
 
 ---
 
-## 1. Conceptual Framework Diagrams
+## 1. Conceptual Framework Diagram (IPO Model)
 
 The conceptual framework of **ARQuest** is anchored on the classic **Input-Process-Output (IPO)** model, augmented by modern **Cyber-Physical Systems (CPS)** theory. Unlike conventional static transactional software, location-based Augmented Reality operates as a continuous, dynamic feedback control loop where physical real-world user movements and sensor changes continually adjust computational processes and visual overlays.
 
----
-
-### 1.1 High-Level Conceptual Framework (Macro IPO Model)
-
-*Figure 1.1* illustrates the overarching theoretical framework of ARQuest. It outlines how multi-source inputs flow into specialized computing engines to generate actionable spatial and administrative outputs, which subsequently cycle through continuous recalibration mechanisms to maintain spatial fidelity.
-
 ```mermaid
-flowchart TD
-    %% ==========================================
-    %% MACRO IPO CONCEPTUAL MODEL
-    %% ==========================================
-    MACRO_IN["<b>1. INPUT</b><br/>• Device Hardware Telemetry (GPS, Compass, Gyroscope, Camera)<br/>• User Profiles, 4-Tier Roles & Interactive Responses<br/>• University Geospatial Assets, Sidewalk Graph & 3D Twins"]
-    
-    MACRO_PR["<b>2. PROCESS</b><br/>• Security & Access Engine (PBKDF2, SimpleJWT, Brevo OTP)<br/>• Spatial Fusion (Two-Stage Geofencing, EMA Filter, Heuristic A* Engine)<br/>• 3D Graphics & Analytics (Three.js WebViews, Magic Window VR, KPIs)"]
-    
-    MACRO_OUT["<b>3. OUTPUT</b><br/>• Spatial AR Wayfinding (3D Chevrons, 2D Edge HUD Cues, Cyan Routes)<br/>• Campus Exploration (3D Digital Twins, 360° VR Tours, Building Unlocks)<br/>• Gamified Engagement & Ops (EXP, Passport, Live Admin Heatmaps)"]
-    
-    MACRO_FB["<b>4. FEEDBACK & CONTINUOUS RECALIBRATION LOOP</b><br/>• Dynamic GPS Drift Tracking • Heuristic Off-Path Re-routing<br/>• Synchronous Administrative GIS Push • Mobile Feedback Radar Triage"]
-
-    MACRO_IN ==>|"Raw Sensor Telemetry & Ingestion"| MACRO_PR
-    MACRO_PR ==>|"Computed Guidance & Digital Twins"| MACRO_OUT
-    MACRO_OUT ==>|"Telemetry Diagnostics & Route Events"| MACRO_FB
-    MACRO_FB -.->|"Dynamic Drift Correction & GIS Parameter Synchronization"| MACRO_IN
-    MACRO_FB -.->|"Real-Time Heuristic Path Recalculation"| MACRO_PR
-
-    classDef macroIn fill:#F0F9FF,stroke:#0284C7,stroke-width:2px,color:#082F49;
-    classDef macroPr fill:#F5F3FF,stroke:#4F46E5,stroke-width:2px,color:#1E1B4B;
-    classDef macroOut fill:#ECFDF5,stroke:#059669,stroke-width:2px,color:#064E3B;
-    classDef macroFb fill:#FEF2F2,stroke:#B21830,stroke-width:2px,color:#881337;
-
-    class MACRO_IN macroIn;
-    class MACRO_PR macroPr;
-    class MACRO_OUT macroOut;
-    class MACRO_FB macroFb;
-```
-
----
-
-### 1.2 Detailed Cyber-Physical Architecture & Sensor Fusion Pipeline (Micro IPO Model)
-
-*Figure 1.2* presents the granular engineering deconstruction of ARQuest's IPO pipeline. It maps the exact hardware interfaces, computational engines, visual deliverables, and four distinct closed-loop feedback pathways that govern the system during active campus navigation.
-
-```mermaid
-flowchart TD
-    %% ==========================================
-    %% DETAILED IPO CYBER-PHYSICAL ARCHITECTURE
-    %% ==========================================
-    subgraph TIER_INPUT ["<b>1. INPUT TIER: SENSORY TELEMETRY, USER PROFILES & SPATIAL ASSETS</b>"]
-        IN_1["<b>A. Hardware & Physical Sensors</b><br/>• Dual-Band GPS Coordinates & Accuracy Radius (≤5m)<br/>• Magnetometer Azimuth Heading (Digital Compass)<br/>• 3-Axis Gyroscopic Angular Velocity Telemetry<br/>• Optical Camera Video Stream & QR Secret Scans"]
-        IN_2["<b>B. User Profiles & Interaction Data</b><br/>• WMSU Institutional Email & Encrypted Passwords<br/>• 4-Tier Role Profiles (Student, Visitor, Professional, Admin)<br/>• Interactive Target POI Queries & Trivia Quiz Answers<br/>• Audio SFX, Haptics Preferences & User Bug Reports"]
-        IN_3["<b>C. University Geospatial & 3D Assets</b><br/>• Campus POIs, Facility Metadata & Geofence Polygons<br/>• Verified Sidewalk Topological Walking Network<br/>• 3D Architectural CAD Models (.glb Meshes)<br/>• 360° Equirectangular Spheres & Spatial Anchors"]
+graph TB
+    subgraph INPUT ["1. INPUT"]
+        IN_1["Hardware & Sensor Telemetry<br/>• Dual-Band GPS Coordinates (≤5m)<br/>• Magnetometer Compass Heading<br/>• 3-Axis Gyroscope Telemetry<br/>• Camera Stream & QR Scans"]
+        IN_2["User Profiles & Telemetry<br/>• WMSU Institutional Email & Credentials<br/>• 4-Tier Role Permissions (RBAC Profile)<br/>• Target POI Queries & Quiz Answers<br/>• Audio, Haptics & Bug Reports"]
+        IN_3["University Geospatial Assets<br/>• Campus POIs & Geofence Polygons<br/>• Sidewalk Walking Graph (Nodes/Paths)<br/>• 3D Architectural CAD Models (.glb)<br/>• 360° Panoramas & Doorway Anchors"]
     end
 
-    subgraph TIER_PROCESS ["<b>2. PROCESS TIER: SECURITY, SPATIAL FUSION & COMPUTATION ENGINES</b>"]
-        PR_1["<b>A. Security & Access Control Engine</b><br/>• PBKDF2 Password Hashing & SimpleJWT Token Rotation<br/>• Brevo SMTP 6-Digit Email OTP Verification Pipeline<br/>• Role-Based Access Control Guards (RBAC Enforcement)<br/>• Soft-Deactivation & Self-Service Account Restoration"]
-        PR_2["<b>B. Spatial Computing & Sensor Fusion Engine</b><br/>• Battery-Efficient Two-Stage Haversine Geofencing<br/>• 60 FPS EMA Heading Smoothing (2.5° Deadband Filter)<br/>• Server-Side Heuristic A* Pedestrian Pathfinding<br/>• 45° Camera Frustum Line-of-Sight & Proximity Check"]
-        PR_3["<b>C. Virtual Inspection & Analytics Core</b><br/>• Three.js WebViews with PBR Physical Shaders<br/>• Gyroscope-Assisted Magic Window VR Mode<br/>• 3D-to-360° Cartesian Doorway Spatial Portals (≤5m)<br/>• Recharts Foot Traffic & Operational Analytics"]
+    subgraph PROCESS ["2. PROCESS"]
+        PR_1["Security & Access Control Engine<br/>• PBKDF2 Hashing & SimpleJWT Rotation<br/>• Brevo SMTP 6-Digit Email OTP<br/>• Role-Based Access Control Guards<br/>• Soft-Deactivation & Restoration"]
+        PR_2["Spatial & Sensor Fusion Engine<br/>• Two-Stage Haversine Geofencing<br/>• 60 FPS EMA Heading Smoothing (2.5°)<br/>• Server-Side Heuristic A* Routing<br/>• 45° Camera Frustum Line-of-Sight"]
+        PR_3["Virtual Inspection & Analytics Core<br/>• Three.js WebViews with PBR Shaders<br/>• Gyroscope Magic Window VR Mode<br/>• 3D-to-360° Doorway Portals (≤5m)<br/>• Recharts Foot Traffic & KPI Engine"]
     end
 
-    subgraph TIER_OUTPUT ["<b>3. OUTPUT TIER: IMMERSIVE VISUALIZATIONS & OPERATIONAL DELIVERABLES</b>"]
-        OUT_1["<b>A. Spatial AR Wayfinding Overlays</b><br/>• Real-Time 3D Ground Chevrons along Sidewalks<br/>• Tactical 2D Edge HUD Turn Indicators (◀ LEFT / RIGHT ▶)<br/>• Floating Distance Billboards & Target Reticles<br/>• Electric Cyan Walkway Polylines on Mapbox Canvas"]
-        OUT_2["<b>B. Campus Digital Twins & Virtual Exploration</b><br/>• Automated Facility Proximity Unlock Notifications<br/>• Interactive Touch-Manipulated 3D Model Explorer<br/>• Room-to-Room 360° Gyroscopic VR Walkthroughs<br/>• Fluid Exterior Orbit to Interior Room State Transitions"]
-        OUT_3["<b>C. Gamification & Operations Deliverables</b><br/>• Student EXP Progression, Quests & Daily Streaks<br/>• Digital Campus Passport Discovery Stamps<br/>• Live Operational KPI Cards & Foot Traffic Heatmaps<br/>• Validated Self-Healing Campus Sidewalk Topology"]
+    subgraph OUTPUT ["3. OUTPUT"]
+        OUT_1["Spatial AR Wayfinding<br/>• Real-Time 3D Ground Chevrons<br/>• 2D Perimeter HUD Turn Indicators<br/>• Tactical Distance HUD Billboards<br/>• Cyan Walkway Polylines on Mapbox"]
+        OUT_2["Campus Digital Twins & Virtual Tours<br/>• Automated Facility Proximity Unlocks<br/>• Touch-Manipulated 3D Model Explorer<br/>• Room-to-Room 360° Gyroscopic VR Tours<br/>• Fluid Exterior Orbit to Interior State"]
+        OUT_3["Gamification & Operations Deliverables<br/>• Student EXP Progression & Streaks<br/>• Campus Passport Discovery Stamps<br/>• Live Operational KPI Dashboard<br/>• Validated Campus Sidewalk Topology"]
     end
 
-    subgraph TIER_FEEDBACK ["<b>4. FEEDBACK & RECALIBRATION LOOP: CLOSED-LOOP CONTROL</b>"]
-        FB_1["<b>A. GPS Drift & Azimuth Recalibration</b><br/>• Continuous GPS polling re-evaluates geofences<br/>• Heading EMA filter suppresses magnetic noise"]
-        FB_2["<b>B. Dynamic Route Re-Routing</b><br/>• Off-path deviation detection triggers instant<br/>• Server-side heuristic A* path re-calculation"]
-        FB_3["<b>C. Real-Time GIS Parameter Sync</b><br/>• Live web edits to walkways and geofences<br/>• Instantly stream updates to active mobile clients"]
-        FB_4["<b>D. Diagnostic Radar & Quality Triage</b><br/>• In-app student bug tickets and crash telemetry<br/>• Continually refine campus mapping and app health"]
+    subgraph FEEDBACK ["4. FEEDBACK & RECALIBRATION LOOP"]
+        FB_1["Sensor Drift Recalibration<br/>Continuous GPS polling re-evaluates geofences and filters heading noise"]
+        FB_2["Dynamic Route Re-Routing<br/>Off-path deviation triggers instant server-side heuristic A* recalculation"]
+        FB_3["Administrative GIS Sync<br/>Real-time web edits to sidewalks and geofences synchronize to clients"]
+        FB_4["Feedback Radar Triage<br/>Mobile user bug submissions continuously refine mapping precision"]
     end
 
-    %% Pipeline Inter-Tier Connectors (Input -> Process)
-    IN_1 -->|"Hardware Sensor Telemetry"| PR_2
-    IN_2 -->|"Credentials & Interaction Events"| PR_1
-    IN_3 -->|"Campus Walking Graph & CAD"| PR_2
-    IN_3 -->|"3D Meshes & 360° Spheres"| PR_3
-
-    %% Pipeline Inter-Tier Connectors (Process -> Output)
-    PR_2 -->|"Smoothed Heading & A* Routes"| OUT_1
-    PR_3 -->|"Rendered 3D Twins & VR Panos"| OUT_2
-    PR_1 -->|"Authorized Sessions & RBAC"| OUT_3
-
-    %% Output to Feedback Trigger
-    OUT_1 -->|"Continuous Position Telemetry"| FB_1
-    OUT_1 -->|"Sidewalk Path Deviation (>15m)"| FB_2
-    OUT_2 -->|"Inspection State & POI Updates"| FB_3
-    OUT_3 -->|"User Reports & Session Telemetry"| FB_4
-
-    %% Closed-Loop Feedback Recalibration (Dotted Lines)
-    FB_1 -.->|"Dynamic Drift Correction"| IN_1
-    FB_2 -.->|"Instant Heuristic A* Recalculation"| PR_2
-    FB_3 -.->|"Synchronized Graph & Geofences"| IN_3
-    FB_4 -.->|"Triage Logs & Profile Refinement"| IN_2
-
-    %% Styling Classes
-    classDef inputClass fill:#F0F9FF,stroke:#0284C7,stroke-width:2px,color:#082F49;
-    classDef processClass fill:#F5F3FF,stroke:#4F46E5,stroke-width:2px,color:#1E1B4B;
-    classDef outputClass fill:#ECFDF5,stroke:#059669,stroke-width:2px,color:#064E3B;
-    classDef feedbackClass fill:#FEF2F2,stroke:#B21830,stroke-width:2px,color:#881337;
-
-    class IN_1,IN_2,IN_3 inputClass;
-    class PR_1,PR_2,PR_3 processClass;
-    class OUT_1,OUT_2,OUT_3 outputClass;
-    class FB_1,FB_2,FB_3,FB_4 feedbackClass;
-
-    style TIER_INPUT fill:#F8FAFC,stroke:#0284C7,stroke-width:2px,stroke-dasharray: 4 4;
-    style TIER_PROCESS fill:#F8FAFC,stroke:#4F46E5,stroke-width:2px,stroke-dasharray: 4 4;
-    style TIER_OUTPUT fill:#F8FAFC,stroke:#059669,stroke-width:2px,stroke-dasharray: 4 4;
-    style TIER_FEEDBACK fill:#FFF5F5,stroke:#B21830,stroke-width:2px,stroke-dasharray: 4 4;
+    INPUT -->|"Raw Sensor Telemetry, Credentials & Geospatial Ingestion"| PROCESS
+    PROCESS -->|"Computed AR Vectors, Digital Twins & Verified Logic"| OUTPUT
+    OUTPUT -->|"Operational Metrics, Movement Events & Bug Logs"| FEEDBACK
+    FEEDBACK -.->|"Dynamic Drift Correction & GIS Parameter Synchronization"| INPUT
+    FEEDBACK -.->|"Real-Time Heuristic Path Recalculation"| PROCESS
 ```
 
 ---
@@ -219,12 +141,8 @@ When transcribing this conceptual framework into the official Capstone Research 
   > *Conceptual Framework of the System (Input-Process-Output Model with Continuous Recalibration)*
 - In the narrative text, refer to the diagram formally: *"As depicted in Figure 3.1, the conceptual framework operates across four interconnected tiers..."*
 
-### 4.3 Typography & Color Conventions
+### 4.3 Typography & Box Formatting Conventions
 - **Domain Headers**: Set in **12 pt Bold** (e.g., Arial, Times New Roman, or Inter).
 - **Bullet Items**: Set in **10 pt to 10.5 pt Regular** with clean bullet points.
-- **Color Coding**: When rendering or printing in color, preserve the four institutional semantic tints:
-  - **Input Tier**: Ice Blue / Slate (`#F0F9FF` background, `#0284C7` border) — denotes environmental and sensory ingestion.
-  - **Process Tier**: Soft Violet / Indigo (`#F5F3FF` background, `#4F46E5` border) — denotes algorithmic computation and spatial fusion.
-  - **Output Tier**: Soft Mint / Emerald (`#ECFDF5` background, `#059669` border) — denotes verified deliverables and visual overlays.
-  - **Feedback Tier**: Soft Rose / WMSU Crimson (`#FEF2F2` background, `#B21830` border) — denotes closed-loop recalibration and institutional control.
+- **Borders & Connectors**: Standard black / dark slate outlines ($1\text{ pt}$ to $1.5\text{ pt}$ stroke) with dashed connectors ($-\cdot\rightarrow$) for the feedback recalibration loops.
 - **Flow Direction**: Strictly maintain the top-to-bottom vertical progression (**INPUT** $\rightarrow$ **PROCESS** $\rightarrow$ **OUTPUT** $\rightarrow$ **FEEDBACK**), ensuring complete readability without horizontal scaling or clipping.
