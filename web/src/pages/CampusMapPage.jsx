@@ -802,8 +802,10 @@ export default function CampusMapPage() {
             if (activeTab === "perimeter" && perimeterMode === "draw") {
                 const newCoords = [...perimeterCoords];
                 // Insert before the closing point
-                newCoords.splice(newCoords.length - 1, 0, [lng, lat]);
+                const newIdx = newCoords.length - 1;
+                newCoords.splice(newIdx, 0, [lng, lat]);
                 setPerimeterCoords(newCoords);
+                setSelectedVertexIdx(newIdx);
             }
         },
         [activeTab, pathwayMode, drawingFrom, validPaths, perimeterMode, perimeterCoords]
@@ -840,6 +842,36 @@ export default function CampusMapPage() {
         setSelectedVertexIdx(null);
         setPerimeterMode("view");
     }, []);
+
+    // Scroll the sidebar coordinates list to a selected vertex
+    const scrollToVertexInList = useCallback((idx) => {
+        if (idx === null || idx === undefined) return;
+        requestAnimationFrame(() => {
+            const el = document.getElementById(`perimeter-vertex-${idx}`);
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        });
+    }, []);
+
+    // Handle selecting a vertex by clicking its marker handle on the map
+    const handleSelectVertexFromMap = useCallback((idx) => {
+        setSelectedVertexIdx(idx);
+        scrollToVertexInList(idx);
+    }, [scrollToVertexInList]);
+
+    // Automatically ensure the selected vertex is scrolled into view in the sidebar
+    useEffect(() => {
+        if (selectedVertexIdx !== null && activeTab === "perimeter") {
+            const timer = setTimeout(() => {
+                const el = document.getElementById(`perimeter-vertex-${selectedVertexIdx}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [selectedVertexIdx, activeTab]);
 
     // Save perimeter to backend
     const handleSavePerimeter = useCallback(async () => {
@@ -1117,23 +1149,35 @@ export default function CampusMapPage() {
 
                         {/* Vertex List */}
                         <div className="flex-1 overflow-y-auto">
-                            <div className="px-4 py-2 bg-gray-50/80 border-b border-brand-border">
+                            <div className="px-4 py-2 bg-gray-50/90 border-b border-brand-border sticky top-0 z-10 backdrop-blur-xs">
                                 <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
-                                    Vertex Coordinates
+                                    Vertex Coordinates ({perimeterCoords.length > 1 ? perimeterCoords.length - 1 : 0})
                                 </span>
                             </div>
                             <ul className="divide-y divide-gray-50">
                                 {perimeterCoords.slice(0, -1).map((coord, idx) => (
                                     <li
                                         key={idx}
+                                        id={`perimeter-vertex-${idx}`}
                                         onClick={() => setSelectedVertexIdx(idx === selectedVertexIdx ? null : idx)}
-                                        className={`px-4 py-2 flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 transition-colors ${selectedVertexIdx === idx ? "bg-brand-light border-l-2 border-brand" : "border-l-2 border-transparent"}`}
+                                        className={`px-4 py-2 flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 transition-all ${
+                                            selectedVertexIdx === idx
+                                                ? "bg-brand/10 border-l-4 border-brand shadow-2xs font-semibold"
+                                                : "border-l-4 border-transparent"
+                                        }`}
                                     >
                                         <div>
-                                            <p className="text-[10px] font-bold text-gray-700 font-mono">
-                                                V{idx + 1}
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-mono">
+                                            <div className="flex items-center gap-1.5">
+                                                <p className={`text-[10px] font-bold font-mono ${selectedVertexIdx === idx ? "text-brand" : "text-gray-700"}`}>
+                                                    V{idx + 1}
+                                                </p>
+                                                {selectedVertexIdx === idx && (
+                                                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-xs bg-brand text-white">
+                                                        Selected
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className={`text-[10px] font-mono ${selectedVertexIdx === idx ? "text-brand/90 font-medium" : "text-gray-500"}`}>
                                                 {coord[0].toFixed(5)}, {coord[1].toFixed(5)}
                                             </p>
                                         </div>
@@ -1749,7 +1793,7 @@ export default function CampusMapPage() {
                                     onDrag={(e) => handleVertexDrag(idx, e)}
                                     onClick={(e) => {
                                         e.originalEvent.stopPropagation();
-                                        setSelectedVertexIdx(idx === selectedVertexIdx ? null : idx);
+                                        handleSelectVertexFromMap(idx);
                                     }}
                                 >
                                     <div
