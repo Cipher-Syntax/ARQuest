@@ -42,7 +42,7 @@ api.interceptors.response.use(
         if (error.response?.status === 503) {
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");
-            window.location.href = "/login?maintenance=true";
+            window.location.href = "/admin?maintenance=true";
             return Promise.reject(error);
         }
 
@@ -66,7 +66,7 @@ api.interceptors.response.use(
                 } catch (refreshError) {
                     localStorage.removeItem("access_token");
                     localStorage.removeItem("refresh_token");
-                    window.location.href = "/login";
+                    window.location.href = "/admin";
                     return Promise.reject(refreshError);
                 }
             }

@@ -11,7 +11,7 @@ export default function TopBar({ user }) {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout } = useAuth();
-    
+
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -30,14 +30,14 @@ export default function TopBar({ user }) {
         setIsLogoutConfirmOpen(false);
         setIsDropdownOpen(false);
         logout();
-        navigate("/login");
+        navigate("/admin");
     };
 
     return (
         <>
             <header className="h-16 bg-brand-light border-b border-brand-border px-4 lg:px-8 flex items-center justify-between sticky top-0 z-10">
                 <div className="flex items-center gap-6 flex-1">
-                    {}
+                    { }
                     <div className="w-12 lg:hidden" />
                 </div>
 
@@ -56,7 +56,7 @@ export default function TopBar({ user }) {
                     <NotificationDropdown />
 
                     <div className="relative" ref={dropdownRef}>
-                        <button 
+                        <button
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                             className={`flex items-center gap-3 pl-4 border-l border-brand-border hover:bg-gray-50 transition-colors p-1.5 rounded-md text-left ${isDropdownOpen ? 'bg-gray-50' : ''}`}
                         >
@@ -117,7 +117,7 @@ export default function TopBar({ user }) {
                                         <HelpCircle size={16} className="text-gray-400" />
                                         Platform Guide & Tour
                                     </button>
-                                    <Link 
+                                    <Link
                                         to="/settings"
                                         onClick={() => setIsDropdownOpen(false)}
                                         className="w-full flex items-center justify-start gap-3 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-brand transition-colors"
