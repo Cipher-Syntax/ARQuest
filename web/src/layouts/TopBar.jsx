@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Search, User, LogOut, Settings, ShieldCheck, HelpCircle } from "lucide-react";
+import { Search, User, LogOut, Settings, ShieldCheck, HelpCircle, ChevronRight, ChevronDown } from "lucide-react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import NotificationDropdown from "../components/layout/NotificationDropdown";
 import { useAuth } from "../hooks/useAuth";
@@ -35,61 +35,85 @@ export default function TopBar({ user }) {
 
     return (
         <>
-            <header className="h-16 bg-brand-light border-b border-brand-border px-4 lg:px-8 flex items-center justify-between sticky top-0 z-10">
+            <header className="h-16 bg-white border-b border-gray-200 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+                
+                {/* ── Left Side: Navigation & Search ── */}
                 <div className="flex items-center gap-6 flex-1">
-                    { }
-                    <div className="w-12 lg:hidden" />
+                    {/* Mobile Menu Spacer */}
+                    <div className="w-10 lg:hidden" />
+
+                    {/* Breadcrumbs (Desktop only) */}
+                    <div className="hidden lg:flex items-center gap-2 text-[13px] font-semibold tracking-wide">
+                        <Link to="/dashboard" className="text-gray-400 hover:text-brand transition-colors">Home</Link>
+                        {location.pathname !== '/dashboard' && (
+                            <>
+                                <ChevronRight size={14} className="text-gray-300" />
+                                <span className="text-gray-900 capitalize">
+                                    {location.pathname.split('/')[1]?.replace('-', ' ')}
+                                </span>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Global Search */}
+                    <div className="hidden md:flex items-center relative w-64 lg:w-80 group">
+                        <Search size={16} className="absolute left-3 text-gray-400 group-focus-within:text-brand transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search ARQuest..."
+                            className="w-full h-9 pl-9 pr-14 bg-gray-50 border border-gray-200 rounded-md text-sm outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                        />
+                        <div className="absolute right-1.5 flex items-center gap-0.5">
+                            <kbd className="px-1.5 py-0.5 text-[9px] font-bold text-gray-400 bg-white border border-gray-200 rounded shadow-sm">Ctrl</kbd>
+                            <kbd className="px-1.5 py-0.5 text-[9px] font-bold text-gray-400 bg-white border border-gray-200 rounded shadow-sm">K</kbd>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 lg:gap-4">
+                {/* ── Right Side: Action Center ── */}
+                <div className="flex items-center gap-3 lg:gap-4">
+                    
                     {/* Platform Guide Tour Trigger */}
                     <button
                         type="button"
                         onClick={triggerAdminTour}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 hover:text-brand bg-white border border-brand-border rounded-md hover:bg-brand-light/40 transition-all shadow-2xs active:scale-98"
-                        title="Open ARQuest Platform Guide & Onboarding Tour"
+                        className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-brand bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-all shadow-sm active:scale-95"
+                        title="Open Platform Guide"
                     >
-                        <HelpCircle size={15} className="text-brand shrink-0" />
-                        <span className="hidden sm:inline">Guide</span>
+                        <HelpCircle size={18} />
                     </button>
 
                     <NotificationDropdown />
 
+                    {/* Profile Dropdown */}
                     <div className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className={`flex items-center gap-3 pl-4 border-l border-brand-border hover:bg-gray-50 transition-colors p-1.5 rounded-md text-left ${isDropdownOpen ? 'bg-gray-50' : ''}`}
+                            className={`flex items-center gap-1.5 pl-4 ml-1 border-l border-gray-200 hover:bg-gray-50 transition-colors py-1.5 px-2 rounded-md ${isDropdownOpen ? 'bg-gray-50' : ''}`}
                         >
-                            <div className="text-right hidden sm:block">
-                                <p className="text-sm font-bold text-gray-900 leading-none">
-                                    {user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "Admin User"}
-                                </p>
-                                <p className="text-[10px] font-bold text-brand mt-1 uppercase tracking-wider">
-                                    {user?.role || "Administrator"}
-                                </p>
-                            </div>
-                            <div className="w-10 h-10 rounded-full bg-white border border-brand-border flex items-center justify-center text-brand shadow-sm overflow-hidden shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-brand shadow-sm overflow-hidden shrink-0">
                                 {user?.profile_image ? (
                                     <img
                                         src={getProfileImageUrl(user.profile_image)}
-                                        alt={user?.first_name || user?.username || "Admin Profile"}
+                                        alt={user?.first_name || "Admin"}
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <User size={20} />
+                                    <User size={16} />
                                 )}
                             </div>
+                            <ChevronDown size={14} className="text-gray-400" />
                         </button>
 
                         {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-72 bg-white z-50 overflow-hidden rounded-md border border-brand-border shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="absolute right-0 mt-2 w-72 bg-white z-50 overflow-hidden rounded-md border border-gray-200 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
                                 {/* Profile Header */}
                                 <div className="flex flex-col items-center justify-center pt-6 pb-4 px-5">
                                     <div className="w-16 h-16 rounded-full flex items-center justify-center bg-brand/5 text-brand mb-3 overflow-hidden border-2 border-brand/20 shadow-sm shrink-0">
                                         {user?.profile_image ? (
                                             <img
                                                 src={getProfileImageUrl(user.profile_image)}
-                                                alt={user?.first_name || user?.username || "Admin Profile"}
+                                                alt={user?.first_name || "Admin"}
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
@@ -104,19 +128,8 @@ export default function TopBar({ user }) {
                                     </div>
                                 </div>
 
-                                {/* Quick Settings & Guide */}
+                                {/* Quick Settings */}
                                 <div className="py-2 border-t border-gray-100">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsDropdownOpen(false);
-                                            triggerAdminTour();
-                                        }}
-                                        className="w-full flex items-center justify-start gap-3 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-brand transition-colors text-left"
-                                    >
-                                        <HelpCircle size={16} className="text-gray-400" />
-                                        Platform Guide & Tour
-                                    </button>
                                     <Link
                                         to="/settings"
                                         onClick={() => setIsDropdownOpen(false)}
@@ -128,7 +141,7 @@ export default function TopBar({ user }) {
                                 </div>
 
                                 {/* Logout Zone */}
-                                <div className="p-2 border-t border-red-500">
+                                <div className="p-2 border-t border-red-100">
                                     <button
                                         onClick={() => setIsLogoutConfirmOpen(true)}
                                         className="w-full flex items-center justify-start gap-3 px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-md transition-colors"
