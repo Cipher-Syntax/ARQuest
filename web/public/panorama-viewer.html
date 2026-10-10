@@ -311,6 +311,9 @@
                     });
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                    renderer.outputColorSpace = THREE.SRGBColorSpace;
+                    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                    renderer.toneMappingExposure = 1.0;
 
                     setupControls();
                     window.addEventListener("resize", () => {
@@ -329,24 +332,18 @@
                         url,
                         (loadedTexture) => {
                             texture = loadedTexture;
-                            texture.minFilter = THREE.LinearMipmapLinearFilter;
+
+                            // 1. High Definition Clarity & Max Anisotropic Filtering
+                            const maxAnisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 16;
+                            texture.anisotropy = maxAnisotropy;
+                            texture.minFilter = THREE.LinearFilter;
                             texture.magFilter = THREE.LinearFilter;
+                            texture.generateMipmaps = false;
+                            texture.colorSpace = THREE.SRGBColorSpace;
 
-                            const imgWidth = texture.image.width || 4000;
-                            const imgHeight = texture.image.height || 1000;
-                            const radius = 500;
-                            const circumference = 2 * Math.PI * radius;
-                            const cylinderHeight = (imgHeight / imgWidth) * circumference;
-
-                            const geometry = new THREE.CylinderGeometry(
-                                radius,
-                                radius,
-                                cylinderHeight,
-                                60,
-                                1,
-                                true,
-                            );
-                            geometry.scale(-1, 1, 1);
+                            // 2. Full 360° × 180° Equirectangular Sphere (Web Sphere Type)
+                            const geometry = new THREE.SphereGeometry(500, 64, 40);
+                            geometry.scale(-1, 1, 1); // View from inside
 
                             const material = new THREE.MeshBasicMaterial({
                                 map: texture,
@@ -354,12 +351,14 @@
                             sphere = new THREE.Mesh(geometry, material);
                             scene.add(sphere);
 
-                            maxFov = 2 * Math.atan(cylinderHeight / 2 / radius) * (180 / Math.PI);
-                            fov = Math.min(75, maxFov);
+                            // Full spherical camera navigation (look up at ceiling & down at floor freely)
+                            maxFov = 90;
+                            fov = 75;
                             camera.fov = fov;
                             camera.updateProjectionMatrix();
 
-                            maxLat = Math.max(0, (maxFov - fov) / 2);
+                            maxLat = 85;
+                            lat = 0;
 
                             document.getElementById("loading").style.display = "none";
                             createGoogleStreetViewHotspots();
@@ -371,8 +370,8 @@
                         undefined,
                         (error) => {
                             if (retryWithProxy && url.startsWith("http") && !url.includes("images.weserv.nl")) {
-                                console.warn("Direct texture load failed (likely S3 CORS). Retrying via CORS proxy...");
-                                const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=${encodeURIComponent(url)}`;
+                                console.warn("Direct texture load failed (likely S3 CORS). Retrying via high-res CORS proxy fallback...");
+                                const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}&output=jpg&q=100&we`;
                                 loadPanoramaTexture(proxyUrl, false);
                                 return;
                             }
