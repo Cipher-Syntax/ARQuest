@@ -698,7 +698,7 @@ const PanoramaManagerPage = () => {
                     <div style={{ flex: 1, position: "relative", background: "#111" }}>
                         <ReactPhotoSphereViewer
                             ref={photoSphereRef}
-                            src={selectedScene.image_url}
+                            src={selectedScene.image_url + (selectedScene.image_url.includes("?") ? "&" : "?") + "crossorigin=anonymous"}
                             height={"100%"}
                             width={"100%"}
                             littlePlanet={false}
@@ -1070,6 +1070,7 @@ const ScenePreview = ({ selectedScene, building, onUpdateSceneAnchors, onOpen3DP
                 </h2>
                 <img
                     src={selectedScene.image_url}
+                    crossOrigin="anonymous"
                     alt={selectedScene.title}
                     style={{
                         width: "100%",
