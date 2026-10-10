@@ -111,7 +111,10 @@ export default function Dashboard() {
 
         try {
             const res = await api.get("/api/health/");
-            setSystemHealth(res.data?.status === "healthy");
+            const isHealthy =
+                res.data?.data?.status === "healthy" ||
+                res.data?.status === "healthy";
+            setSystemHealth(isHealthy);
         } catch {
             setSystemHealth(false);
         }
