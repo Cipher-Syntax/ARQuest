@@ -24,20 +24,38 @@
             #canvas:active {
                 cursor: grabbing;
             }
+            #canvas.pointer-cursor {
+                cursor: pointer;
+            }
             #loading {
                 position: absolute;
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
                 color: #fff;
-                font-size: 16px;
+                font-size: 15px;
                 font-weight: 600;
                 letter-spacing: 0.5px;
-                background: rgba(0, 0, 0, 0.7);
-                padding: 12px 24px;
-                border-radius: 8px;
+                background: rgba(0, 0, 0, 0.75);
+                padding: 14px 28px;
+                border-radius: 10px;
                 pointer-events: none;
                 z-index: 20;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .spinner {
+                width: 18px;
+                height: 18px;
+                border: 3px solid rgba(255,255,255,0.3);
+                border-top-color: #8A1538;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            @keyframes spin {
+                to { transform: rotate(360deg); }
             }
             #hotspots {
                 position: absolute;
@@ -45,31 +63,32 @@
                 left: 50%;
                 transform: translateX(-50%);
                 display: flex;
-                gap: 10px;
+                gap: 12px;
                 flex-wrap: wrap;
                 justify-content: center;
                 max-width: 90%;
                 z-index: 10;
             }
             .hotspot-btn {
-                background: rgba(138, 21, 56, 0.9);
+                background: rgba(138, 21, 56, 0.92);
                 color: #fff;
-                border: 2px solid rgba(255, 255, 255, 0.85);
-                padding: 10px 18px;
-                border-radius: 20px;
+                border: 2px solid rgba(255, 255, 255, 0.9);
+                padding: 10px 20px;
+                border-radius: 24px;
                 font-size: 13px;
                 font-weight: 700;
                 cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
                 display: flex;
                 align-items: center;
-                gap: 6px;
+                gap: 8px;
+                backdrop-filter: blur(6px);
             }
             .hotspot-btn:hover {
-                background: #8A1538;
-                transform: translateY(-2px);
-                box-shadow: 0 6px 16px rgba(138, 21, 56, 0.5);
+                background: #a31b44;
+                transform: translateY(-2px) scale(1.03);
+                box-shadow: 0 6px 18px rgba(138, 21, 56, 0.55);
             }
             #floating-labels {
                 position: absolute;
@@ -82,20 +101,28 @@
             }
             .floating-label {
                 position: absolute;
-                background: rgba(138, 21, 56, 0.95);
+                background: rgba(20, 20, 20, 0.88);
                 color: #ffffff;
                 font-weight: 700;
-                padding: 6px 14px;
-                border-radius: 16px;
+                padding: 6px 16px;
+                border-radius: 20px;
                 font-size: 13px;
                 pointer-events: none;
                 transform: translate(-50%, -100%);
                 opacity: 0;
                 white-space: nowrap;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
                 transition: opacity 0.2s;
                 text-align: center;
-                border: 1.5px solid rgba(255, 255, 255, 0.9);
+                border: 1.5px solid rgba(255, 255, 255, 0.85);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                backdrop-filter: blur(4px);
+            }
+            .floating-label .arrow-icon {
+                color: #ff6b8b;
+                font-size: 14px;
             }
             .floating-label::after {
                 content: '';
@@ -105,27 +132,53 @@
                 margin-left: -6px;
                 border-width: 6px;
                 border-style: solid;
-                border-color: rgba(138, 21, 56, 0.95) transparent transparent transparent;
+                border-color: rgba(20, 20, 20, 0.88) transparent transparent transparent;
             }
             #hint {
                 position: absolute;
                 top: 16px;
                 left: 50%;
                 transform: translateX(-50%);
-                background: rgba(0, 0, 0, 0.6);
-                color: rgba(255, 255, 255, 0.85);
-                padding: 6px 14px;
+                background: rgba(0, 0, 0, 0.65);
+                color: rgba(255, 255, 255, 0.9);
+                padding: 7px 18px;
                 border-radius: 20px;
                 font-size: 12px;
+                font-weight: 500;
                 pointer-events: none;
                 z-index: 10;
-                backdrop-filter: blur(4px);
+                backdrop-filter: blur(6px);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            /* Transition flash overlay */
+            #flash-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: #ffffff;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+                z-index: 15;
             }
         </style>
     </head>
     <body>
-        <div id="hint">Drag with mouse to look around • Click on hotspots or buttons to navigate</div>
-        <div id="loading">Loading 360° Scene...</div>
+        <div id="hint">
+            <span>🖱️ Drag to look around</span>
+            <span>•</span>
+            <span>👆 Tap the Ground Arrow to walk forward</span>
+        </div>
+        <div id="loading">
+            <div class="spinner"></div>
+            <span>Loading 360° Scene...</span>
+        </div>
+        <div id="flash-overlay"></div>
         <canvas id="canvas"></canvas>
         <div id="floating-labels"></div>
         <div id="hotspots"></div>
@@ -147,10 +200,77 @@
             let previousMousePosition = { x: 0, y: 0 };
             let mouseMovedDistance = 0;
             let currentHotspots = [];
-            let hotspotMeshes = [];
+            let hotspotGroups = [];
+            let clickableHitboxes = [];
+            let rippleMeshes = [];
             let fov = 75;
             let maxFov = 75;
             let maxLat = 0;
+            let chevronTexture = null;
+            let isTransitioning = false;
+
+            // Generate crisp Google Street View Ground Chevron Arrow Texture
+            function createGoogleStreetViewChevronTexture() {
+                const canvas = document.createElement("canvas");
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext("2d");
+
+                ctx.clearRect(0, 0, 256, 256);
+
+                // Subtle shadow
+                ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+                ctx.shadowBlur = 12;
+                ctx.shadowOffsetY = 4;
+
+                // Outer pulsing rim
+                ctx.beginPath();
+                ctx.arc(128, 128, 108, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+                ctx.fill();
+
+                // Disc body
+                ctx.beginPath();
+                ctx.arc(128, 128, 96, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(138, 21, 56, 0.88)";
+                ctx.fill();
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = "#ffffff";
+                ctx.stroke();
+
+                ctx.shadowColor = "transparent";
+
+                // Double Chevron Arrow pointing UP (Forward)
+                ctx.fillStyle = "#ffffff";
+
+                // Top Chevron Arrow
+                ctx.beginPath();
+                ctx.moveTo(128, 56);
+                ctx.lineTo(176, 104);
+                ctx.lineTo(162, 118);
+                ctx.lineTo(128, 84);
+                ctx.lineTo(94, 118);
+                ctx.lineTo(80, 104);
+                ctx.closePath();
+                ctx.fill();
+
+                // Bottom Chevron Arrow
+                ctx.beginPath();
+                ctx.moveTo(128, 112);
+                ctx.lineTo(176, 160);
+                ctx.lineTo(162, 174);
+                ctx.lineTo(128, 140);
+                ctx.lineTo(94, 174);
+                ctx.lineTo(80, 160);
+                ctx.closePath();
+                ctx.fill();
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.needsUpdate = true;
+                return tex;
+            }
+
+            chevronTexture = createGoogleStreetViewChevronTexture();
 
             function init(imageUrl, hotspots) {
                 currentHotspots = hotspots || [];
@@ -162,20 +282,16 @@
                     if (texture) texture.dispose();
                 }
 
-                hotspotMeshes.forEach((mesh) => {
-                    if (mesh.userData && mesh.userData.parentGroup) {
-                        scene.remove(mesh.userData.parentGroup);
-                        mesh.userData.parentGroup.children.forEach((child) => {
-                            if (child.geometry) child.geometry.dispose();
-                            if (child.material) child.material.dispose();
-                        });
-                    } else {
-                        scene.remove(mesh);
-                        mesh.geometry.dispose();
-                        mesh.material.dispose();
-                    }
+                // Cleanup existing hotspots
+                hotspotGroups.forEach((group) => {
+                    scene.remove(group);
+                    group.traverse((child) => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) child.material.dispose();
+                    });
                 });
-                hotspotMeshes = [];
+                hotspotGroups = [];
+                clickableHitboxes = [];
                 document.getElementById("floating-labels").innerHTML = "";
                 document.getElementById("hotspots").innerHTML = "";
 
@@ -204,62 +320,70 @@
                     });
                 }
 
-                document.getElementById("loading").style.display = "block";
-                document.getElementById("loading").textContent = "Loading 360° Scene...";
+                document.getElementById("loading").style.display = "flex";
 
-                const loader = new THREE.TextureLoader();
-                loader.setCrossOrigin("anonymous");
-                loader.load(
-                    imageUrl,
-                    (loadedTexture) => {
-                        texture = loadedTexture;
-                        texture.minFilter = THREE.LinearMipmapLinearFilter;
-                        texture.magFilter = THREE.LinearFilter;
+                function loadPanoramaTexture(url, retryWithProxy = true) {
+                    const loader = new THREE.TextureLoader();
+                    loader.setCrossOrigin("anonymous");
+                    loader.load(
+                        url,
+                        (loadedTexture) => {
+                            texture = loadedTexture;
+                            texture.minFilter = THREE.LinearMipmapLinearFilter;
+                            texture.magFilter = THREE.LinearFilter;
 
-                        const imgWidth = texture.image.width || 4000;
-                        const imgHeight = texture.image.height || 1000;
-                        const radius = 500;
-                        const circumference = 2 * Math.PI * radius;
-                        const cylinderHeight = (imgHeight / imgWidth) * circumference;
+                            const imgWidth = texture.image.width || 4000;
+                            const imgHeight = texture.image.height || 1000;
+                            const radius = 500;
+                            const circumference = 2 * Math.PI * radius;
+                            const cylinderHeight = (imgHeight / imgWidth) * circumference;
 
-                        const geometry = new THREE.CylinderGeometry(
-                            radius,
-                            radius,
-                            cylinderHeight,
-                            60,
-                            1,
-                            true,
-                        );
-                        geometry.scale(-1, 1, 1);
+                            const geometry = new THREE.CylinderGeometry(
+                                radius,
+                                radius,
+                                cylinderHeight,
+                                60,
+                                1,
+                                true,
+                            );
+                            geometry.scale(-1, 1, 1);
 
-                        const material = new THREE.MeshBasicMaterial({
-                            map: texture,
-                        });
-                        sphere = new THREE.Mesh(geometry, material);
-                        scene.add(sphere);
+                            const material = new THREE.MeshBasicMaterial({
+                                map: texture,
+                            });
+                            sphere = new THREE.Mesh(geometry, material);
+                            scene.add(sphere);
 
-                        maxFov = 2 * Math.atan(cylinderHeight / 2 / radius) * (180 / Math.PI);
-                        fov = Math.min(75, maxFov);
-                        camera.fov = fov;
-                        camera.updateProjectionMatrix();
+                            maxFov = 2 * Math.atan(cylinderHeight / 2 / radius) * (180 / Math.PI);
+                            fov = Math.min(75, maxFov);
+                            camera.fov = fov;
+                            camera.updateProjectionMatrix();
 
-                        maxLat = Math.max(0, (maxFov - fov) / 2);
-                        lat = 0;
+                            maxLat = Math.max(0, (maxFov - fov) / 2);
 
-                        document.getElementById("loading").style.display = "none";
-                        create3DHotspots();
-                        renderHotspots();
+                            document.getElementById("loading").style.display = "none";
+                            createGoogleStreetViewHotspots();
+                            renderHotspots();
 
-                        notifyParent({ type: "loaded" });
-                        if (!renderer.info.render.frame) animate();
-                    },
-                    undefined,
-                    (error) => {
-                        console.error("Texture load failed:", error);
-                        document.getElementById("loading").textContent = "Failed to load panorama image";
-                        notifyParent({ type: "error", message: "Failed to load panorama image" });
-                    },
-                );
+                            notifyParent({ type: "loaded" });
+                            if (!renderer.info.render.frame) animate();
+                        },
+                        undefined,
+                        (error) => {
+                            if (retryWithProxy && url.startsWith("http") && !url.includes("images.weserv.nl")) {
+                                console.warn("Direct texture load failed (likely S3 CORS). Retrying via CORS proxy...");
+                                const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=${encodeURIComponent(url)}`;
+                                loadPanoramaTexture(proxyUrl, false);
+                                return;
+                            }
+                            console.error("Texture load failed:", error);
+                            document.getElementById("loading").innerHTML = "Failed to load panorama image (CORS blocked on S3)";
+                            notifyParent({ type: "error", message: "Failed to load panorama image" });
+                        },
+                    );
+                }
+
+                loadPanoramaTexture(imageUrl, true);
             }
 
             function setupControls() {
@@ -273,15 +397,32 @@
                 });
 
                 window.addEventListener("mousemove", (e) => {
-                    if (!isDragging) return;
-                    const deltaX = e.clientX - previousMousePosition.x;
-                    const deltaY = e.clientY - previousMousePosition.y;
-                    mouseMovedDistance += Math.abs(deltaX) + Math.abs(deltaY);
+                    if (isDragging) {
+                        const deltaX = e.clientX - previousMousePosition.x;
+                        const deltaY = e.clientY - previousMousePosition.y;
+                        mouseMovedDistance += Math.abs(deltaX) + Math.abs(deltaY);
 
-                    lon -= deltaX * 0.15;
-                    lat += deltaY * 0.15;
-                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
-                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                        lon -= deltaX * 0.15;
+                        lat += deltaY * 0.15;
+                        lat = Math.max(-maxLat, Math.min(maxLat, lat));
+                        previousMousePosition = { x: e.clientX, y: e.clientY };
+                    }
+
+                    // Hover raycasting for pointer cursor
+                    if (!isDragging && clickableHitboxes.length > 0) {
+                        const raycaster = new THREE.Raycaster();
+                        const mouse = new THREE.Vector2(
+                            (e.clientX / window.innerWidth) * 2 - 1,
+                            -(e.clientY / window.innerHeight) * 2 + 1,
+                        );
+                        raycaster.setFromCamera(mouse, camera);
+                        const intersects = raycaster.intersectObjects(clickableHitboxes);
+                        if (intersects.length > 0) {
+                            canvas.classList.add("pointer-cursor");
+                        } else {
+                            canvas.classList.remove("pointer-cursor");
+                        }
+                    }
                 });
 
                 window.addEventListener("mouseup", () => {
@@ -347,10 +488,9 @@
                     isDragging = false;
                 });
 
-                // Hotspot clicking via 3D raycasting
+                // Single Click on Arrow
                 canvas.addEventListener("click", (e) => {
-                    // Only trigger click if user wasn't dragging
-                    if (mouseMovedDistance > 10) return;
+                    if (mouseMovedDistance > 12 || isTransitioning) return;
 
                     const raycaster = new THREE.Raycaster();
                     const mouse = new THREE.Vector2(
@@ -358,90 +498,195 @@
                         -(e.clientY / window.innerHeight) * 2 + 1,
                     );
                     raycaster.setFromCamera(mouse, camera);
-                    const intersects = raycaster.intersectObjects(hotspotMeshes);
+                    const intersects = raycaster.intersectObjects(clickableHitboxes);
                     if (intersects.length > 0) {
                         const hotspot = intersects[0].object.userData.hotspot;
-                        triggerHotspot(hotspot);
+                        triggerStreetViewStep(hotspot, intersects[0].point);
+                    }
+                });
+
+                // Double Click / Double Tap anywhere on ground to step forward!
+                canvas.addEventListener("dblclick", (e) => {
+                    if (isTransitioning || clickableHitboxes.length === 0) return;
+
+                    const raycaster = new THREE.Raycaster();
+                    const mouse = new THREE.Vector2(
+                        (e.clientX / window.innerWidth) * 2 - 1,
+                        -(e.clientY / window.innerHeight) * 2 + 1,
+                    );
+                    raycaster.setFromCamera(mouse, camera);
+                    
+                    // Check if clicked directly on an arrow
+                    const intersects = raycaster.intersectObjects(clickableHitboxes);
+                    if (intersects.length > 0) {
+                        const hotspot = intersects[0].object.userData.hotspot;
+                        triggerStreetViewStep(hotspot, intersects[0].point);
+                        return;
+                    }
+
+                    // Otherwise find the closest hotspot arrow in the view direction
+                    const camDir = new THREE.Vector3();
+                    camera.getWorldDirection(camDir);
+
+                    let closestHotspot = null;
+                    let closestAngle = Infinity;
+
+                    clickableHitboxes.forEach((mesh) => {
+                        const hsDir = mesh.position.clone().normalize();
+                        const angle = camDir.angleTo(hsDir);
+                        if (angle < closestAngle && angle < 0.8) {
+                            closestAngle = angle;
+                            closestHotspot = mesh.userData.hotspot;
+                        }
+                    });
+
+                    if (closestHotspot) {
+                        triggerStreetViewStep(closestHotspot);
                     }
                 });
             }
 
-            function triggerHotspot(hotspot) {
+            // Google Street View Zoom-Glide Forward Walk Animation
+            function triggerStreetViewStep(hotspot, clickPoint) {
+                if (isTransitioning) return;
+                isTransitioning = true;
+
+                // Spawn expanding ground ripple circle
+                if (clickPoint) {
+                    spawnClickRipple(clickPoint);
+                }
+
+                // Smooth forward dolly zoom into the arrow direction
                 const targetSceneId = hotspot.target_scene_id || hotspot.target_scene;
-                notifyParent({
-                    type: "hotspot_clicked",
-                    target_scene_id: targetSceneId,
-                    label: hotspot.label,
-                });
+                const startFov = camera.fov;
+                const targetFov = 38; // Zoom in dramatically like stepping into the scene
+                const duration = 280;
+                const startTime = performance.now();
+
+                const flash = document.getElementById("flash-overlay");
+                if (flash) flash.style.opacity = "0.4";
+
+                function animateZoom(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1.0);
+                    // Ease-in quad
+                    const ease = progress * progress;
+
+                    camera.fov = startFov + (targetFov - startFov) * ease;
+                    camera.updateProjectionMatrix();
+
+                    if (progress < 1.0) {
+                        requestAnimationFrame(animateZoom);
+                    } else {
+                        // Notify parent to switch scene
+                        notifyParent({
+                            type: "hotspot_clicked",
+                            target_scene_id: targetSceneId,
+                            label: hotspot.label,
+                        });
+
+                        setTimeout(() => {
+                            if (flash) flash.style.opacity = "0";
+                            camera.fov = 75;
+                            camera.updateProjectionMatrix();
+                            isTransitioning = false;
+                        }, 200);
+                    }
+                }
+                requestAnimationFrame(animateZoom);
             }
 
-            function create3DHotspots() {
-                currentHotspots.forEach((hotspot) => {
-                    const phi = THREE.MathUtils.degToRad(90 - (hotspot.pitch || 0));
-                    const theta = THREE.MathUtils.degToRad((hotspot.yaw || 0) - 90);
+            function spawnClickRipple(point) {
+                const geom = new THREE.RingGeometry(2, 6, 32);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.9,
+                    side: THREE.DoubleSide,
+                });
+                const ripple = new THREE.Mesh(geom, mat);
+                ripple.position.copy(point);
+                ripple.lookAt(camera.position);
+                scene.add(ripple);
 
-                    const distance = 300;
+                const rippleObj = {
+                    mesh: ripple,
+                    startTime: performance.now(),
+                    duration: 400,
+                };
+                rippleMeshes.push(rippleObj);
+            }
+
+            function createGoogleStreetViewHotspots() {
+                currentHotspots.forEach((hotspot) => {
+                    const yaw = hotspot.yaw || 0;
+                    // Position ground chevron in 3D:
+                    // If pitch is 0 (eye-level), put chevron on the ground at -20 degrees so it looks like Google Street View!
+                    const pitch = (hotspot.pitch !== undefined && hotspot.pitch !== 0) ? hotspot.pitch : -20;
+                    const phi = THREE.MathUtils.degToRad(90 - pitch);
+                    const theta = THREE.MathUtils.degToRad(yaw - 90);
+
+                    const distance = 280;
                     const x = distance * Math.sin(phi) * Math.cos(theta);
                     const y = distance * Math.cos(phi);
                     const z = distance * Math.sin(phi) * Math.sin(theta);
 
-                    const dotGroup = new THREE.Group();
-                    dotGroup.position.set(x, y, z);
-                    dotGroup.userData = { originalY: y };
+                    const group = new THREE.Group();
+                    group.position.set(x, y, z);
+                    group.userData = { originalY: y, yaw: yaw };
 
-                    // Inner bright dot
-                    const dotGeom = new THREE.SphereGeometry(9, 32, 32);
-                    const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                    const dot = new THREE.Mesh(dotGeom, dotMat);
-                    dotGroup.add(dot);
-
-                    // Outer primary glowing halo
-                    const glowGeom = new THREE.SphereGeometry(15, 32, 32);
-                    const glowMat = new THREE.MeshBasicMaterial({
-                        color: 0x8A1538,
+                    // 1. Google Street View Ground Chevron Disc
+                    const discGeom = new THREE.PlaneGeometry(62, 62);
+                    const discMat = new THREE.MeshBasicMaterial({
+                        map: chevronTexture,
                         transparent: true,
-                        opacity: 0.8,
-                    });
-                    const glow = new THREE.Mesh(glowGeom, glowMat);
-                    dotGroup.add(glow);
-
-                    // Pulsing ring
-                    const ringGeom = new THREE.RingGeometry(18, 22, 32);
-                    const ringMat = new THREE.MeshBasicMaterial({
-                        color: 0xffffff,
                         side: THREE.DoubleSide,
+                        depthWrite: false,
+                    });
+                    const chevronMesh = new THREE.Mesh(discGeom, discMat);
+                    
+                    // Lay on the ground plane, tilted toward camera
+                    chevronMesh.rotation.x = -Math.PI / 2.3;
+                    chevronMesh.rotation.z = THREE.MathUtils.degToRad(90 - yaw);
+                    group.add(chevronMesh);
+
+                    // 2. Animated Pulsing Outer Ring on the ground
+                    const groundRingGeom = new THREE.RingGeometry(34, 38, 32);
+                    const groundRingMat = new THREE.MeshBasicMaterial({
+                        color: 0xffffff,
                         transparent: true,
                         opacity: 0.6,
+                        side: THREE.DoubleSide,
+                        depthWrite: false,
                     });
-                    const ring = new THREE.Mesh(ringGeom, ringMat);
-                    ring.lookAt(0, 0, 0);
-                    dotGroup.add(ring);
+                    const groundRing = new THREE.Mesh(groundRingGeom, groundRingMat);
+                    groundRing.rotation.x = -Math.PI / 2.3;
+                    group.add(groundRing);
 
-                    // Clickable hitbox
-                    const hitBoxGeom = new THREE.SphereGeometry(26, 16, 16);
+                    // 3. Clickable Hitbox Sphere
+                    const hitBoxGeom = new THREE.SphereGeometry(36, 16, 16);
                     const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
                     const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
-
+                    hitBox.position.set(0, 0, 0);
                     hitBox.userData = {
                         hotspot: hotspot,
-                        labelId: "label-" + hotspotMeshes.length,
-                        parentGroup: dotGroup,
-                        glowMesh: glow,
-                        ringMesh: ring,
-                        isHotspot: true,
+                        parentGroup: group,
+                        chevronMesh: chevronMesh,
+                        groundRing: groundRing,
+                        labelId: "label-" + clickableHitboxes.length,
                     };
-                    dotGroup.add(hitBox);
+                    group.add(hitBox);
 
-                    dotGroup.lookAt(0, 0, 0);
-                    scene.add(dotGroup);
-                    hotspotMeshes.push(hitBox);
+                    scene.add(group);
+                    hotspotGroups.push(group);
+                    clickableHitboxes.push(hitBox);
 
-                    // Floating label
+                    // 4. Floating Destination Label Badge
                     const labelContainer = document.getElementById("floating-labels");
                     const labelDiv = document.createElement("div");
                     labelDiv.className = "floating-label";
                     labelDiv.id = hitBox.userData.labelId;
-                    labelDiv.textContent = hotspot.label || hotspot.target_scene_title || "Next Scene";
+                    labelDiv.innerHTML = `<span class="arrow-icon">➔</span> <span>${hotspot.label || hotspot.target_scene_title || "Next Scene"}</span>`;
                     labelContainer.appendChild(labelDiv);
                 });
             }
@@ -453,7 +698,7 @@
                     const btn = document.createElement("button");
                     btn.className = "hotspot-btn";
                     btn.innerHTML = `<span>➔</span> <span>${hotspot.label || hotspot.target_scene_title || "Next Scene"}</span>`;
-                    btn.onclick = () => triggerHotspot(hotspot);
+                    btn.onclick = () => triggerStreetViewStep(hotspot);
                     container.appendChild(btn);
                 });
             }
@@ -461,6 +706,7 @@
             function animate() {
                 animFrameId = requestAnimationFrame(animate);
 
+                // Rotate Camera
                 const phi = THREE.MathUtils.degToRad(90 - lat);
                 const theta = THREE.MathUtils.degToRad(lon - 90);
                 const cameraTarget = new THREE.Vector3(
@@ -471,42 +717,59 @@
                 camera.lookAt(cameraTarget);
 
                 const time = Date.now() * 0.005;
-                const cameraDirection = new THREE.Vector3();
-                camera.getWorldDirection(cameraDirection);
 
-                hotspotMeshes.forEach((mesh, index) => {
-                    if (mesh.userData.isHotspot) {
-                        const group = mesh.userData.parentGroup;
-                        const glowMesh = mesh.userData.glowMesh;
-                        const ringMesh = mesh.userData.ringMesh;
+                // Animate chevron arrows and floating badges
+                clickableHitboxes.forEach((mesh, index) => {
+                    const group = mesh.userData.parentGroup;
+                    const chevron = mesh.userData.chevronMesh;
+                    const ring = mesh.userData.groundRing;
 
-                        // Floating breathing effect
-                        group.position.y = group.userData.originalY + Math.sin(time * 2 + index) * 4.0;
+                    // Subtle floating bob
+                    group.position.y = group.userData.originalY + Math.sin(time * 2.5 + index) * 3.5;
 
-                        // Pulse effect
-                        const scale = 1.0 + Math.abs(Math.sin(time * 3 + index)) * 0.25;
-                        glowMesh.scale.set(scale, scale, scale);
-                        if (ringMesh) ringMesh.scale.set(scale, scale, scale);
+                    // Pulse outer ring
+                    const pulse = 1.0 + Math.abs(Math.sin(time * 3 + index)) * 0.25;
+                    if (ring) {
+                        ring.scale.set(pulse, pulse, pulse);
+                        ring.material.opacity = 0.7 - (pulse - 1.0) * 1.5;
+                    }
 
-                        // 3D to 2D projection for floating label
-                        const pos = group.position.clone();
-                        pos.y += 28.0;
-                        pos.project(camera);
+                    // 3D to 2D projection for floating label badge
+                    const pos = group.position.clone();
+                    pos.y += 24.0; // Above chevron arrow
+                    pos.project(camera);
 
-                        const label = document.getElementById(mesh.userData.labelId);
-                        if (label) {
-                            if (pos.z > 1 || pos.x < -1.1 || pos.x > 1.1 || pos.y < -1.1 || pos.y > 1.1) {
-                                label.style.opacity = "0";
-                            } else {
-                                label.style.opacity = "1";
-                                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                                const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
-                                label.style.left = x + "px";
-                                label.style.top = y + "px";
-                            }
+                    const label = document.getElementById(mesh.userData.labelId);
+                    if (label) {
+                        if (pos.z > 1 || pos.x < -1.1 || pos.x > 1.1 || pos.y < -1.1 || pos.y > 1.1) {
+                            label.style.opacity = "0";
+                        } else {
+                            label.style.opacity = "1";
+                            const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                            const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
+                            label.style.left = x + "px";
+                            label.style.top = y + "px";
                         }
                     }
                 });
+
+                // Animate click ripples
+                const now = performance.now();
+                for (let i = rippleMeshes.length - 1; i >= 0; i--) {
+                    const r = rippleMeshes[i];
+                    const elapsed = now - r.startTime;
+                    const prog = elapsed / r.duration;
+                    if (prog >= 1.0) {
+                        scene.remove(r.mesh);
+                        r.mesh.geometry.dispose();
+                        r.mesh.material.dispose();
+                        rippleMeshes.splice(i, 1);
+                    } else {
+                        const scale = 1.0 + prog * 4.0;
+                        r.mesh.scale.set(scale, scale, scale);
+                        r.mesh.material.opacity = 0.9 * (1.0 - prog);
+                    }
+                }
 
                 renderer.render(scene, camera);
             }
