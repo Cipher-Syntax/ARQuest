@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -7,7 +7,12 @@ import {
     Edit2,
     X,
     Play,
+    Eye,
 } from "lucide-react";
+import { ReactPhotoSphereViewer } from "react-photo-sphere-viewer";
+import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
+import "@photo-sphere-viewer/core/index.css";
+import "@photo-sphere-viewer/markers-plugin/index.css";
 
 import { buildingService } from "../services/buildingService";
 import { panoramaService } from "../services/panoramaService";
@@ -36,6 +41,8 @@ const PanoramaManagerPage = () => {
     const [sceneToDelete, setSceneToDelete] = useState(null);
     const [hotspotToDelete, setHotspotToDelete] = useState(null);
     const [show3DPicker, setShow3DPicker] = useState(false);
+    const [showPreviewer, setShowPreviewer] = useState(false);
+    const photoSphereRef = useRef(null);
 
     useEffect(() => {
         const handleMessage = (event) => {
@@ -322,9 +329,23 @@ const PanoramaManagerPage = () => {
                     <ArrowLeft size={16} />
                     <span>Back to Building</span>
                 </button>
-                <h1 style={{ fontSize: "28px", fontWeight: "bold", margin: 0 }}>
+                <h1 style={{ fontSize: "28px", fontWeight: "bold", margin: 0, flex: 1 }}>
                     Panoramas: {building?.name}
                 </h1>
+                <button
+                    onClick={() => setShowPreviewer(true)}
+                    disabled={!selectedScene}
+                    className="px-4 py-2.5 rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs"
+                    style={{
+                        background: selectedScene ? theme.colors.primary : "#e5e7eb",
+                        color: selectedScene ? "#fff" : "#9ca3af",
+                        cursor: selectedScene ? "pointer" : "not-allowed",
+                        border: "none",
+                    }}
+                >
+                    <Eye size={16} />
+                    <span>Preview Scene</span>
+                </button>
             </div>
 
             <div
@@ -618,6 +639,98 @@ const PanoramaManagerPage = () => {
                             );
                         }}
                     />
+                </div>
+            )}
+
+            {/* 360 Previewer Modal */}
+            {showPreviewer && selectedScene && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100vw",
+                        height: "100vh",
+                        background: "#000",
+                        zIndex: 99999,
+                        display: "flex",
+                        flexDirection: "column",
+                    }}
+                >
+                    <div
+                        style={{
+                            padding: "14px 24px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            background: "rgba(0,0,0,0.8)",
+                            borderBottom: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                    >
+                        <h2
+                            style={{
+                                color: "#ffffff",
+                                margin: 0,
+                                fontSize: "18px",
+                                fontWeight: "700",
+                                letterSpacing: "0.5px",
+                            }}
+                        >
+                            360 PREVIEW: {selectedScene.title}
+                        </h2>
+                        <button
+                            type="button"
+                            onClick={() => setShowPreviewer(false)}
+                            style={{
+                                background: theme.colors.error,
+                                color: "white",
+                                border: "none",
+                                padding: "8px 18px",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontWeight: "bold",
+                                fontSize: "12px",
+                            }}
+                        >
+                            Close Preview
+                        </button>
+                    </div>
+                    <div style={{ flex: 1, position: "relative", background: "#111" }}>
+                        <ReactPhotoSphereViewer
+                            ref={photoSphereRef}
+                            src={selectedScene.image_url}
+                            height={"100%"}
+                            width={"100%"}
+                            littlePlanet={false}
+                            plugins={[
+                                [MarkersPlugin, {
+                                    markers: hotspots.map(h => ({
+                                        id: `hotspot-${h.id}`,
+                                        pitch: (h.pitch * Math.PI) / 180,
+                                        yaw: (h.yaw * Math.PI) / 180,
+                                        html: `<div style="background: white; padding: 6px 10px; border-radius: 6px; font-family: sans-serif; font-size: 13px; font-weight: bold; color: ${theme.colors.primary}; box-shadow: 0 2px 8px rgba(0,0,0,0.4); white-space: nowrap; cursor: pointer; border: 2px solid ${theme.colors.primary};">🔗 ${h.label}</div>`,
+                                        anchor: 'center center',
+                                    }))
+                                }]
+                            ]}
+                            onReady={(instance) => {
+                                const markersPlugin = instance.getPlugin(MarkersPlugin);
+                                if (markersPlugin) {
+                                    markersPlugin.addEventListener('select-marker', (e) => {
+                                        const markerId = e.marker.config.id;
+                                        const hotspotId = parseInt(markerId.replace('hotspot-', ''), 10);
+                                        const hotspot = hotspots.find(h => h.id === hotspotId);
+                                        if (hotspot) {
+                                            const targetScene = scenes.find(s => s.id === hotspot.target_scene);
+                                            if (targetScene) {
+                                                setSelectedScene(targetScene);
+                                            }
+                                        }
+                                    });
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
             )}
         </div>
