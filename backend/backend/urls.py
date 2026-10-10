@@ -35,10 +35,20 @@ urlpatterns = [
     path('api/navigation/', include('apps.navigation.urls')),
 ]
 
+from django.http import HttpResponse
+
 def cached_media_serve(request, path, document_root=None, show_indexes=False):
+    if request.method == 'OPTIONS':
+        response = HttpResponse()
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+        response['Access-Control-Allow-Headers'] = '*'
+        return response
     response = serve(request, path, document_root, show_indexes)
     response['Cache-Control'] = 'public, max-age=2592000'
     response['Access-Control-Allow-Origin'] = '*'
+    response['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+    response['Access-Control-Allow-Headers'] = '*'
     return response
 
 if settings.DEBUG:

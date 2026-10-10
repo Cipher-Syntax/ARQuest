@@ -9,10 +9,6 @@ import {
     Play,
     Eye,
 } from "lucide-react";
-import { ReactPhotoSphereViewer } from "react-photo-sphere-viewer";
-import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
-import "@photo-sphere-viewer/core/index.css";
-import "@photo-sphere-viewer/markers-plugin/index.css";
 
 import { buildingService } from "../services/buildingService";
 import { panoramaService } from "../services/panoramaService";
@@ -42,7 +38,7 @@ const PanoramaManagerPage = () => {
     const [hotspotToDelete, setHotspotToDelete] = useState(null);
     const [show3DPicker, setShow3DPicker] = useState(false);
     const [showPreviewer, setShowPreviewer] = useState(false);
-    const photoSphereRef = useRef(null);
+    const previewIframeRef = useRef(null);
 
     useEffect(() => {
         const handleMessage = (event) => {
@@ -53,11 +49,33 @@ const PanoramaManagerPage = () => {
                 if (window.__setAnchorCoordinates) {
                     window.__setAnchorCoordinates(x, y, z);
                 }
+            } else if (event.data && event.data.type === "hotspot_clicked") {
+                const targetId = event.data.target_scene_id;
+                const target = scenes.find(
+                    (s) => s.id === targetId || String(s.id) === String(targetId)
+                );
+                if (target) {
+                    setSelectedScene(target);
+                }
             }
         };
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, []);
+    }, [scenes]);
+
+    // Send updated scene & hotspots to 360 previewer iframe
+    useEffect(() => {
+        if (showPreviewer && selectedScene && previewIframeRef.current) {
+            previewIframeRef.current.contentWindow?.postMessage(
+                {
+                    type: "init",
+                    imageUrl: selectedScene.image_url,
+                    hotspots: hotspots || [],
+                },
+                "*",
+            );
+        }
+    }, [selectedScene, hotspots, showPreviewer]);
 
 
     const [newScene, setNewScene] = useState({
@@ -695,39 +713,20 @@ const PanoramaManagerPage = () => {
                             Close Preview
                         </button>
                     </div>
-                    <div style={{ flex: 1, position: "relative", background: "#111" }}>
-                        <ReactPhotoSphereViewer
-                            ref={photoSphereRef}
-                            src={selectedScene.image_url + (selectedScene.image_url.includes("?") ? "&" : "?") + "crossorigin=anonymous"}
-                            height={"100%"}
-                            width={"100%"}
-                            littlePlanet={false}
-                            plugins={[
-                                [MarkersPlugin, {
-                                    markers: hotspots.map(h => ({
-                                        id: `hotspot-${h.id}`,
-                                        pitch: (h.pitch * Math.PI) / 180,
-                                        yaw: (h.yaw * Math.PI) / 180,
-                                        html: `<div style="background: white; padding: 6px 10px; border-radius: 6px; font-family: sans-serif; font-size: 13px; font-weight: bold; color: ${theme.colors.primary}; box-shadow: 0 2px 8px rgba(0,0,0,0.4); white-space: nowrap; cursor: pointer; border: 2px solid ${theme.colors.primary};">🔗 ${h.label}</div>`,
-                                        anchor: 'center center',
-                                    }))
-                                }]
-                            ]}
-                            onReady={(instance) => {
-                                const markersPlugin = instance.getPlugin(MarkersPlugin);
-                                if (markersPlugin) {
-                                    markersPlugin.addEventListener('select-marker', (e) => {
-                                        const markerId = e.marker.config.id;
-                                        const hotspotId = parseInt(markerId.replace('hotspot-', ''), 10);
-                                        const hotspot = hotspots.find(h => h.id === hotspotId);
-                                        if (hotspot) {
-                                            const targetScene = scenes.find(s => s.id === hotspot.target_scene);
-                                            if (targetScene) {
-                                                setSelectedScene(targetScene);
-                                            }
-                                        }
-                                    });
-                                }
+                    <div style={{ flex: 1, position: "relative", background: "#000" }}>
+                        <iframe
+                            ref={previewIframeRef}
+                            src="/panorama-viewer.html"
+                            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                            onLoad={(e) => {
+                                e.target.contentWindow.postMessage(
+                                    {
+                                        type: "init",
+                                        imageUrl: selectedScene.image_url,
+                                        hotspots: hotspots || [],
+                                    },
+                                    "*",
+                                );
                             }}
                         />
                     </div>
@@ -1070,7 +1069,6 @@ const ScenePreview = ({ selectedScene, building, onUpdateSceneAnchors, onOpen3DP
                 </h2>
                 <img
                     src={selectedScene.image_url}
-                    crossOrigin="anonymous"
                     alt={selectedScene.title}
                     style={{
                         width: "100%",
