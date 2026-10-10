@@ -1,11 +1,44 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Search, User, LogOut, Settings, ShieldCheck, HelpCircle, ChevronRight, ChevronDown } from "lucide-react";
+import {
+    Search,
+    User,
+    LogOut,
+    Settings,
+    ShieldCheck,
+    HelpCircle,
+    ChevronRight,
+    ChevronDown,
+    Building2,
+    LayoutDashboard,
+    MapPin,
+    Users,
+    FileText,
+    MessageSquare,
+    History,
+    Box,
+    Trash2,
+    X,
+} from "lucide-react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import NotificationDropdown from "../components/layout/NotificationDropdown";
 import { useAuth } from "../hooks/useAuth";
 import { Modal, Button } from "../components/ui";
 import { triggerAdminTour } from "../components/common/AdminOnboardingTour";
 import { getProfileImageUrl } from "../utils/avatarUtils";
+import { buildingService } from "../services/buildingService";
+
+const APP_PAGES = [
+    { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, category: "Pages", keywords: "home overview analytics stats kpi" },
+    { title: "Buildings & Facilities", path: "/buildings", icon: Building2, category: "Pages", keywords: "locations places models facilities structures" },
+    { title: "Campus Map", path: "/campus-map", icon: MapPin, category: "Pages", keywords: "gps geofence coordinates map boundaries" },
+    { title: "User Management", path: "/users", icon: Users, category: "Pages", keywords: "accounts students admins roles permissions" },
+    { title: "Content CMS", path: "/cms", icon: FileText, category: "Pages", keywords: "content trivia facts quests articles" },
+    { title: "User Feedback", path: "/feedback", icon: MessageSquare, category: "Pages", keywords: "reports issues bugs suggestions" },
+    { title: "Audit History", path: "/history", icon: History, category: "Pages", keywords: "logs activity audits changes tracking" },
+    { title: "3D Model Compressor", path: "/compressor", icon: Box, category: "Tools", keywords: "glb gltf 3d optimize draco compression" },
+    { title: "Recycle Bin", path: "/recycle-bin", icon: Trash2, category: "Tools", keywords: "deleted archives trash restore" },
+    { title: "Account Settings", path: "/settings", icon: Settings, category: "System", keywords: "profile password preferences configuration" },
+];
 
 export default function TopBar({ user }) {
     const location = useLocation();
@@ -16,10 +49,34 @@ export default function TopBar({ user }) {
     const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
     const dropdownRef = useRef(null);
 
+    // ── Global Search State ──
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [buildings, setBuildings] = useState([]);
+    const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
+    const searchRef = useRef(null);
+    const searchInputRef = useRef(null);
+
+    const loadBuildings = async () => {
+        if (buildings.length > 0) return;
+        try {
+            setIsLoadingBuildings(true);
+            const data = await buildingService.getBuildings();
+            setBuildings(data || []);
+        } catch (err) {
+            console.error("Failed to load buildings for search", err);
+        } finally {
+            setIsLoadingBuildings(false);
+        }
+    };
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setIsDropdownOpen(false);
+            }
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setIsSearchOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -32,6 +89,35 @@ export default function TopBar({ user }) {
         logout();
         navigate("/admin");
     };
+
+    const handleSelectResult = (path) => {
+        setIsSearchOpen(false);
+        setSearchQuery("");
+        navigate(path);
+    };
+
+    // Filter matched pages and buildings
+    const query = searchQuery.trim().toLowerCase();
+    const matchedPages = query
+        ? APP_PAGES.filter(
+              (p) =>
+                  p.title.toLowerCase().includes(query) ||
+                  p.keywords.toLowerCase().includes(query)
+          )
+        : [];
+
+    const matchedBuildings = query
+        ? buildings
+              .filter(
+                  (b) =>
+                      b.name?.toLowerCase().includes(query) ||
+                      b.code?.toLowerCase().includes(query) ||
+                      b.description?.toLowerCase().includes(query)
+              )
+              .slice(0, 5)
+        : [];
+
+    const hasResults = matchedPages.length > 0 || matchedBuildings.length > 0;
 
     return (
         <>
@@ -55,18 +141,116 @@ export default function TopBar({ user }) {
                         )}
                     </div>
 
-                    {/* Global Search */}
-                    <div className="hidden md:flex items-center relative w-64 lg:w-80 group">
-                        <Search size={16} className="absolute left-3 text-gray-400 group-focus-within:text-brand transition-colors" />
+                    {/* Global Search Input & Dropdown */}
+                    <div className="hidden md:flex items-center relative w-64 lg:w-80" ref={searchRef}>
+                        <Search size={16} className="absolute left-3 text-gray-400 pointer-events-none" />
                         <input
+                            ref={searchInputRef}
                             type="text"
-                            placeholder="Search ARQuest..."
-                            className="w-full h-9 pl-9 pr-14 bg-gray-50 border border-gray-200 rounded-md text-sm outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                            value={searchQuery}
+                            onFocus={() => {
+                                setIsSearchOpen(true);
+                                loadBuildings();
+                            }}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setIsSearchOpen(true);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                    setIsSearchOpen(false);
+                                    searchInputRef.current?.blur();
+                                }
+                            }}
+                            placeholder="Search buildings, pages..."
+                            className="w-full h-9 pl-9 pr-8 bg-gray-50 border border-gray-200 rounded-md text-sm outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
                         />
-                        <div className="absolute right-1.5 flex items-center gap-0.5">
-                            <kbd className="px-1.5 py-0.5 text-[9px] font-bold text-gray-400 bg-white border border-gray-200 rounded shadow-sm">Ctrl</kbd>
-                            <kbd className="px-1.5 py-0.5 text-[9px] font-bold text-gray-400 bg-white border border-gray-200 rounded shadow-sm">K</kbd>
-                        </div>
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchQuery("");
+                                    searchInputRef.current?.focus();
+                                }}
+                                className="absolute right-2.5 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+
+                        {/* Search Results Dropdown */}
+                        {isSearchOpen && query && (
+                            <div className="absolute top-11 left-0 w-80 lg:w-96 bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                                {hasResults ? (
+                                    <div className="max-h-80 overflow-y-auto p-1.5 space-y-2">
+                                        {/* Matched Pages */}
+                                        {matchedPages.length > 0 && (
+                                            <div>
+                                                <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+                                                    Navigation & Pages
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    {matchedPages.map((page) => {
+                                                        const Icon = page.icon;
+                                                        return (
+                                                            <button
+                                                                key={page.path}
+                                                                type="button"
+                                                                onClick={() => handleSelectResult(page.path)}
+                                                                className="w-full flex items-center justify-between px-2.5 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-brand/5 hover:text-brand rounded-md transition-colors group"
+                                                            >
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="w-6 h-6 rounded bg-gray-100 group-hover:bg-brand/10 flex items-center justify-center text-gray-500 group-hover:text-brand transition-colors">
+                                                                        <Icon size={13} />
+                                                                    </div>
+                                                                    <span>{page.title}</span>
+                                                                </div>
+                                                                <span className="text-[10px] text-gray-400 font-mono group-hover:text-brand/70 transition-colors">
+                                                                    {page.path}
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Matched Buildings */}
+                                        {matchedBuildings.length > 0 && (
+                                            <div className="border-t border-gray-100 pt-1.5">
+                                                <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+                                                    Buildings & Facilities
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    {matchedBuildings.map((building) => (
+                                                        <button
+                                                            key={building.id}
+                                                            type="button"
+                                                            onClick={() => handleSelectResult(`/buildings/${building.id}`)}
+                                                            className="w-full flex items-center justify-between px-2.5 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-brand/5 hover:text-brand rounded-md transition-colors group"
+                                                        >
+                                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                                <span className="text-[9px] font-mono font-bold text-gray-500 bg-gray-100 border border-gray-200 px-1 py-0.5 rounded shrink-0">
+                                                                    {building.code || "BLDG"}
+                                                                </span>
+                                                                <span className="truncate">{building.name}</span>
+                                                            </div>
+                                                            <span className="text-[10px] text-brand/80 shrink-0 ml-2">
+                                                                Edit ➔
+                                                            </span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="p-6 text-center text-xs text-gray-400">
+                                        No results found for "<span className="text-gray-700 font-medium">{searchQuery}</span>"
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
