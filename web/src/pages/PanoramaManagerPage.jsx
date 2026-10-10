@@ -71,6 +71,7 @@ const PanoramaManagerPage = () => {
                     type: "init",
                     imageUrl: selectedScene.image_url,
                     hotspots: hotspots || [],
+                    title: selectedScene.title,
                 },
                 "*",
             );
@@ -724,6 +725,7 @@ const PanoramaManagerPage = () => {
                                         type: "init",
                                         imageUrl: selectedScene.image_url,
                                         hotspots: hotspots || [],
+                                        title: selectedScene.title,
                                     },
                                     "*",
                                 );

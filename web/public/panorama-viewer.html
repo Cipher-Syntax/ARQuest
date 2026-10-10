@@ -6,14 +6,19 @@
             name="viewport"
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
-        <title>ARQuest 360 Panorama Viewer</title>
+        <title>ARQuest 360 Panorama Walkthrough</title>
         <style>
-            body {
+            * {
+                box-sizing: border-box;
                 margin: 0;
+                padding: 0;
+            }
+            body {
                 overflow: hidden;
-                background: #000;
-                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background: #09090b;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 user-select: none;
+                -webkit-user-select: none;
             }
             #canvas {
                 width: 100vw;
@@ -27,59 +32,141 @@
             #canvas.pointer-cursor {
                 cursor: pointer;
             }
+
+            /* Loading Overlay */
             #loading {
                 position: absolute;
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                color: #fff;
-                font-size: 15px;
+                color: #ffffff;
+                font-size: 14px;
                 font-weight: 600;
-                letter-spacing: 0.5px;
-                background: rgba(0, 0, 0, 0.75);
-                padding: 14px 28px;
-                border-radius: 10px;
+                letter-spacing: 0.3px;
+                background: rgba(18, 18, 20, 0.88);
+                padding: 14px 24px;
+                border-radius: 12px;
                 pointer-events: none;
-                z-index: 20;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+                z-index: 30;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                backdrop-filter: blur(8px);
             }
             .spinner {
-                width: 18px;
-                height: 18px;
-                border: 3px solid rgba(255,255,255,0.3);
-                border-top-color: #8A1538;
+                width: 20px;
+                height: 20px;
+                border: 2.5px solid rgba(255, 255, 255, 0.2);
+                border-top-color: #e11d48;
                 border-radius: 50%;
                 animation: spin 0.8s linear infinite;
             }
             @keyframes spin {
                 to { transform: rotate(360deg); }
             }
+
+            /* Glassmorphism Header Bar */
+            #top-bar {
+                position: absolute;
+                top: 16px;
+                left: 20px;
+                right: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                pointer-events: none;
+                z-index: 20;
+            }
+            .header-badge {
+                pointer-events: auto;
+                background: rgba(15, 17, 23, 0.82);
+                color: #ffffff;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+                backdrop-filter: blur(10px);
+            }
+            .hint-pill {
+                pointer-events: auto;
+                background: rgba(15, 17, 23, 0.75);
+                color: rgba(255, 255, 255, 0.85);
+                padding: 7px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 500;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                backdrop-filter: blur(10px);
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            }
+
+            /* Floating Controls (Zoom, Reset, Fullscreen) */
+            #controls-toolbar {
+                position: absolute;
+                bottom: 24px;
+                right: 24px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                z-index: 20;
+            }
+            .ctrl-btn {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                background: rgba(15, 17, 23, 0.85);
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+                backdrop-filter: blur(8px);
+                transition: all 0.15s ease;
+            }
+            .ctrl-btn:hover {
+                background: #8A1538;
+                border-color: rgba(255, 255, 255, 0.3);
+                transform: scale(1.06);
+            }
+            .ctrl-btn:active {
+                transform: scale(0.95);
+            }
+
+            /* Hotspots Navigation Dock */
             #hotspots {
                 position: absolute;
                 bottom: 24px;
                 left: 50%;
                 transform: translateX(-50%);
                 display: flex;
-                gap: 12px;
+                gap: 10px;
                 flex-wrap: wrap;
                 justify-content: center;
-                max-width: 90%;
-                z-index: 10;
+                max-width: 80%;
+                z-index: 15;
             }
             .hotspot-btn {
                 background: rgba(138, 21, 56, 0.92);
-                color: #fff;
-                border: 2px solid rgba(255, 255, 255, 0.9);
-                padding: 10px 20px;
+                color: #ffffff;
+                border: 1.5px solid rgba(255, 255, 255, 0.85);
+                padding: 10px 18px;
                 border-radius: 24px;
                 font-size: 13px;
                 font-weight: 700;
                 cursor: pointer;
                 transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
                 display: flex;
                 align-items: center;
                 gap: 8px;
@@ -88,8 +175,10 @@
             .hotspot-btn:hover {
                 background: #a31b44;
                 transform: translateY(-2px) scale(1.03);
-                box-shadow: 0 6px 18px rgba(138, 21, 56, 0.55);
+                box-shadow: 0 6px 18px rgba(138, 21, 56, 0.6);
             }
+
+            /* Floating 3D Destination Labels */
             #floating-labels {
                 position: absolute;
                 top: 0;
@@ -97,11 +186,11 @@
                 width: 100%;
                 height: 100%;
                 pointer-events: none;
-                z-index: 5;
+                z-index: 10;
             }
             .floating-label {
                 position: absolute;
-                background: rgba(20, 20, 20, 0.88);
+                background: rgba(15, 17, 23, 0.9);
                 color: #ffffff;
                 font-weight: 700;
                 padding: 6px 16px;
@@ -114,11 +203,11 @@
                 box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
                 transition: opacity 0.2s;
                 text-align: center;
-                border: 1.5px solid rgba(255, 255, 255, 0.85);
+                border: 1.5px solid rgba(255, 255, 255, 0.9);
                 display: flex;
                 align-items: center;
                 gap: 6px;
-                backdrop-filter: blur(4px);
+                backdrop-filter: blur(6px);
             }
             .floating-label .arrow-icon {
                 color: #ff6b8b;
@@ -132,28 +221,10 @@
                 margin-left: -6px;
                 border-width: 6px;
                 border-style: solid;
-                border-color: rgba(20, 20, 20, 0.88) transparent transparent transparent;
+                border-color: rgba(15, 17, 23, 0.9) transparent transparent transparent;
             }
-            #hint {
-                position: absolute;
-                top: 16px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0, 0, 0, 0.65);
-                color: rgba(255, 255, 255, 0.9);
-                padding: 7px 18px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 500;
-                pointer-events: none;
-                z-index: 10;
-                backdrop-filter: blur(6px);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            /* Transition flash overlay */
+
+            /* Camera Walk Flash Transition */
             #flash-overlay {
                 position: absolute;
                 top: 0;
@@ -163,20 +234,36 @@
                 background: #ffffff;
                 opacity: 0;
                 pointer-events: none;
-                transition: opacity 0.3s ease;
-                z-index: 15;
+                transition: opacity 0.25s ease;
+                z-index: 25;
             }
         </style>
     </head>
     <body>
-        <div id="hint">
-            <span>🖱️ Drag to look around</span>
-            <span>•</span>
-            <span>👆 Tap the Ground Arrow to walk forward</span>
+        <!-- Top Bar with Scene Title & Instructions -->
+        <div id="top-bar">
+            <div class="header-badge" id="scene-badge">
+                <span>📍</span>
+                <span id="scene-title-text">360° Panorama</span>
+            </div>
+            <div class="hint-pill">
+                <span>🖱️ Drag to look around</span>
+                <span style="opacity: 0.5; margin: 0 6px;">•</span>
+                <span>👆 Click ground arrows to walk</span>
+            </div>
         </div>
+
+        <!-- Floating Controls Toolbar -->
+        <div id="controls-toolbar">
+            <button class="ctrl-btn" id="btn-zoom-in" title="Zoom In">+</button>
+            <button class="ctrl-btn" id="btn-zoom-out" title="Zoom Out">−</button>
+            <button class="ctrl-btn" id="btn-reset" title="Reset View">🔄</button>
+            <button class="ctrl-btn" id="btn-fullscreen" title="Toggle Fullscreen">⛶</button>
+        </div>
+
         <div id="loading">
             <div class="spinner"></div>
-            <span>Loading 360° Scene...</span>
+            <span id="loading-text">Loading 360° Scene...</span>
         </div>
         <div id="flash-overlay"></div>
         <canvas id="canvas"></canvas>
@@ -204,6 +291,7 @@
             let clickableHitboxes = [];
             let rippleMeshes = [];
             let fov = 75;
+            let defaultFov = 75;
             let maxFov = 75;
             let maxLat = 0;
             let chevronTexture = null;
@@ -226,13 +314,13 @@
                 // Outer pulsing rim
                 ctx.beginPath();
                 ctx.arc(128, 128, 108, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+                ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
                 ctx.fill();
 
-                // Disc body
+                // Disc body with brand maroon
                 ctx.beginPath();
                 ctx.arc(128, 128, 96, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(138, 21, 56, 0.88)";
+                ctx.fillStyle = "rgba(138, 21, 56, 0.9)";
                 ctx.fill();
                 ctx.lineWidth = 5;
                 ctx.strokeStyle = "#ffffff";
@@ -272,8 +360,13 @@
 
             chevronTexture = createGoogleStreetViewChevronTexture();
 
-            function init(imageUrl, hotspots) {
+            function init(imageUrl, hotspots, sceneTitle) {
                 currentHotspots = hotspots || [];
+
+                if (sceneTitle) {
+                    const badge = document.getElementById("scene-title-text");
+                    if (badge) badge.textContent = sceneTitle;
+                }
 
                 if (sphere) {
                     scene.remove(sphere);
@@ -312,10 +405,9 @@
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                     renderer.outputColorSpace = THREE.SRGBColorSpace;
-                    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-                    renderer.toneMappingExposure = 1.0;
 
                     setupControls();
+                    setupToolbarEvents();
                     window.addEventListener("resize", () => {
                         camera.aspect = window.innerWidth / window.innerHeight;
                         camera.updateProjectionMatrix();
@@ -324,6 +416,7 @@
                 }
 
                 document.getElementById("loading").style.display = "flex";
+                document.getElementById("loading-text").textContent = "Loading 360° Scene...";
 
                 function loadPanoramaTexture(url, retryWithProxy = true) {
                     const loader = new THREE.TextureLoader();
@@ -333,7 +426,7 @@
                         (loadedTexture) => {
                             texture = loadedTexture;
 
-                            // 1. High Definition Clarity & Max Anisotropic Filtering
+                            // Direct crisp 1:1 pixel rendering
                             const maxAnisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 16;
                             texture.anisotropy = maxAnisotropy;
                             texture.minFilter = THREE.LinearFilter;
@@ -341,23 +434,38 @@
                             texture.generateMipmaps = false;
                             texture.colorSpace = THREE.SRGBColorSpace;
 
-                            // 2. Full 360° × 180° Equirectangular Sphere (Web Sphere Type)
-                            const geometry = new THREE.SphereGeometry(500, 64, 40);
-                            geometry.scale(-1, 1, 1); // View from inside
+                            // Exact Cylinder Geometry Matching Mobile App
+                            const imgWidth = texture.image.width || 4000;
+                            const imgHeight = texture.image.height || 1000;
+                            const radius = 500;
+                            const circumference = 2 * Math.PI * radius;
+                            const cylinderHeight = (imgHeight / imgWidth) * circumference;
 
+                            const geometry = new THREE.CylinderGeometry(
+                                radius,
+                                radius,
+                                cylinderHeight,
+                                64,
+                                1,
+                                true,
+                            );
+                            geometry.scale(-1, 1, 1);
+
+                            // Unlit basic material preserves true image brightness & vibrant colors
                             const material = new THREE.MeshBasicMaterial({
                                 map: texture,
                             });
                             sphere = new THREE.Mesh(geometry, material);
                             scene.add(sphere);
 
-                            // Full spherical camera navigation (look up at ceiling & down at floor freely)
-                            maxFov = 90;
-                            fov = 75;
+                            // Calculate ideal FOV and vertical bounds
+                            maxFov = 2 * Math.atan(cylinderHeight / 2 / radius) * (180 / Math.PI);
+                            defaultFov = Math.min(75, maxFov);
+                            fov = defaultFov;
                             camera.fov = fov;
                             camera.updateProjectionMatrix();
 
-                            maxLat = 85;
+                            maxLat = Math.max(0, (maxFov - fov) / 2);
                             lat = 0;
 
                             document.getElementById("loading").style.display = "none";
@@ -376,7 +484,7 @@
                                 return;
                             }
                             console.error("Texture load failed:", error);
-                            document.getElementById("loading").innerHTML = "Failed to load panorama image (CORS blocked on S3)";
+                            document.getElementById("loading-text").innerHTML = "Failed to load panorama image";
                             notifyParent({ type: "error", message: "Failed to load panorama image" });
                         },
                     );
@@ -385,10 +493,48 @@
                 loadPanoramaTexture(imageUrl, true);
             }
 
+            function setupToolbarEvents() {
+                // Zoom In
+                document.getElementById("btn-zoom-in").onclick = () => {
+                    fov = Math.max(25, fov - 10);
+                    camera.fov = fov;
+                    camera.updateProjectionMatrix();
+                    maxLat = Math.max(0, (maxFov - fov) / 2);
+                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
+                };
+
+                // Zoom Out
+                document.getElementById("btn-zoom-out").onclick = () => {
+                    fov = Math.min(maxFov, fov + 10);
+                    camera.fov = fov;
+                    camera.updateProjectionMatrix();
+                    maxLat = Math.max(0, (maxFov - fov) / 2);
+                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
+                };
+
+                // Reset View
+                document.getElementById("btn-reset").onclick = () => {
+                    lon = 0;
+                    lat = 0;
+                    fov = defaultFov;
+                    camera.fov = fov;
+                    camera.updateProjectionMatrix();
+                };
+
+                // Fullscreen
+                document.getElementById("btn-fullscreen").onclick = () => {
+                    if (!document.fullscreenElement) {
+                        document.documentElement.requestFullscreen().catch(() => {});
+                    } else {
+                        document.exitFullscreen().catch(() => {});
+                    }
+                };
+            }
+
             function setupControls() {
                 const canvas = document.getElementById("canvas");
 
-                // Mouse controls
+                // Mouse Drag
                 canvas.addEventListener("mousedown", (e) => {
                     isDragging = true;
                     mouseMovedDistance = 0;
@@ -432,14 +578,14 @@
                 canvas.addEventListener("wheel", (e) => {
                     e.preventDefault();
                     fov += e.deltaY * 0.05;
-                    fov = Math.max(30, Math.min(maxFov, fov));
+                    fov = Math.max(25, Math.min(maxFov, fov));
                     camera.fov = fov;
                     camera.updateProjectionMatrix();
                     maxLat = Math.max(0, (maxFov - fov) / 2);
                     lat = Math.max(-maxLat, Math.min(maxLat, lat));
                 }, { passive: false });
 
-                // Touch controls (mobile / tablet support)
+                // Touch Drag & Pinch Zoom
                 let initialPinchDistance = 0;
                 canvas.addEventListener("touchstart", (e) => {
                     if (e.touches.length === 2) {
@@ -463,7 +609,7 @@
                         const distance = Math.sqrt(dx * dx + dy * dy);
                         const delta = distance - initialPinchDistance;
                         fov -= delta * 0.1;
-                        fov = Math.max(30, Math.min(maxFov, fov));
+                        fov = Math.max(25, Math.min(maxFov, fov));
                         camera.fov = fov;
                         camera.updateProjectionMatrix();
                         initialPinchDistance = distance;
@@ -504,7 +650,7 @@
                     }
                 });
 
-                // Double Click / Double Tap anywhere on ground to step forward!
+                // Double Click / Double Tap to step forward
                 canvas.addEventListener("dblclick", (e) => {
                     if (isTransitioning || clickableHitboxes.length === 0) return;
 
@@ -515,7 +661,6 @@
                     );
                     raycaster.setFromCamera(mouse, camera);
                     
-                    // Check if clicked directly on an arrow
                     const intersects = raycaster.intersectObjects(clickableHitboxes);
                     if (intersects.length > 0) {
                         const hotspot = intersects[0].object.userData.hotspot;
@@ -523,7 +668,7 @@
                         return;
                     }
 
-                    // Otherwise find the closest hotspot arrow in the view direction
+                    // Otherwise find closest hotspot in view direction
                     const camDir = new THREE.Vector3();
                     camera.getWorldDirection(camDir);
 
@@ -550,25 +695,22 @@
                 if (isTransitioning) return;
                 isTransitioning = true;
 
-                // Spawn expanding ground ripple circle
                 if (clickPoint) {
                     spawnClickRipple(clickPoint);
                 }
 
-                // Smooth forward dolly zoom into the arrow direction
                 const targetSceneId = hotspot.target_scene_id || hotspot.target_scene;
                 const startFov = camera.fov;
-                const targetFov = 38; // Zoom in dramatically like stepping into the scene
-                const duration = 280;
+                const targetFov = 35; // Forward walk compression
+                const duration = 260;
                 const startTime = performance.now();
 
                 const flash = document.getElementById("flash-overlay");
-                if (flash) flash.style.opacity = "0.4";
+                if (flash) flash.style.opacity = "0.35";
 
                 function animateZoom(currentTime) {
                     const elapsed = currentTime - startTime;
                     const progress = Math.min(elapsed / duration, 1.0);
-                    // Ease-in quad
                     const ease = progress * progress;
 
                     camera.fov = startFov + (targetFov - startFov) * ease;
@@ -577,7 +719,6 @@
                     if (progress < 1.0) {
                         requestAnimationFrame(animateZoom);
                     } else {
-                        // Notify parent to switch scene
                         notifyParent({
                             type: "hotspot_clicked",
                             target_scene_id: targetSceneId,
@@ -586,7 +727,7 @@
 
                         setTimeout(() => {
                             if (flash) flash.style.opacity = "0";
-                            camera.fov = 75;
+                            camera.fov = defaultFov;
                             camera.updateProjectionMatrix();
                             isTransitioning = false;
                         }, 200);
@@ -608,20 +749,18 @@
                 ripple.lookAt(camera.position);
                 scene.add(ripple);
 
-                const rippleObj = {
+                rippleMeshes.push({
                     mesh: ripple,
                     startTime: performance.now(),
-                    duration: 400,
-                };
-                rippleMeshes.push(rippleObj);
+                    duration: 380,
+                });
             }
 
             function createGoogleStreetViewHotspots() {
                 currentHotspots.forEach((hotspot) => {
                     const yaw = hotspot.yaw || 0;
-                    // Position ground chevron in 3D:
-                    // If pitch is 0 (eye-level), put chevron on the ground at -20 degrees so it looks like Google Street View!
-                    const pitch = (hotspot.pitch !== undefined && hotspot.pitch !== 0) ? hotspot.pitch : -20;
+                    // Lower ground angle for Google Street View look
+                    const pitch = (hotspot.pitch !== undefined && hotspot.pitch !== 0) ? hotspot.pitch : -18;
                     const phi = THREE.MathUtils.degToRad(90 - pitch);
                     const theta = THREE.MathUtils.degToRad(yaw - 90);
 
@@ -634,7 +773,7 @@
                     group.position.set(x, y, z);
                     group.userData = { originalY: y, yaw: yaw };
 
-                    // 1. Google Street View Ground Chevron Disc
+                    // 1. Street View Floor Chevron Disc
                     const discGeom = new THREE.PlaneGeometry(62, 62);
                     const discMat = new THREE.MeshBasicMaterial({
                         map: chevronTexture,
@@ -643,13 +782,11 @@
                         depthWrite: false,
                     });
                     const chevronMesh = new THREE.Mesh(discGeom, discMat);
-                    
-                    // Lay on the ground plane, tilted toward camera
                     chevronMesh.rotation.x = -Math.PI / 2.3;
                     chevronMesh.rotation.z = THREE.MathUtils.degToRad(90 - yaw);
                     group.add(chevronMesh);
 
-                    // 2. Animated Pulsing Outer Ring on the ground
+                    // 2. Animated Pulsing Outer Ring
                     const groundRingGeom = new THREE.RingGeometry(34, 38, 32);
                     const groundRingMat = new THREE.MeshBasicMaterial({
                         color: 0xffffff,
@@ -666,7 +803,6 @@
                     const hitBoxGeom = new THREE.SphereGeometry(36, 16, 16);
                     const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
                     const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
-                    hitBox.position.set(0, 0, 0);
                     hitBox.userData = {
                         hotspot: hotspot,
                         parentGroup: group,
@@ -705,7 +841,6 @@
             function animate() {
                 animFrameId = requestAnimationFrame(animate);
 
-                // Rotate Camera
                 const phi = THREE.MathUtils.degToRad(90 - lat);
                 const theta = THREE.MathUtils.degToRad(lon - 90);
                 const cameraTarget = new THREE.Vector3(
@@ -735,7 +870,7 @@
 
                     // 3D to 2D projection for floating label badge
                     const pos = group.position.clone();
-                    pos.y += 24.0; // Above chevron arrow
+                    pos.y += 24.0;
                     pos.project(camera);
 
                     const label = document.getElementById(mesh.userData.labelId);
@@ -783,7 +918,7 @@
                 try {
                     const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
                     if (data && data.type === "init") {
-                        init(data.imageUrl, data.hotspots);
+                        init(data.imageUrl, data.hotspots, data.title);
                     }
                 } catch (e) {
                     console.error("Message parse error:", e);
