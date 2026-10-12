@@ -180,3 +180,28 @@ class PanoramaAPITestCase(TestCase):
         
         with self.assertRaises(ValidationError):
             hotspot.full_clean()
+
+    def test_admin_set_start_scene_atomically_swaps(self):
+        """Test that updating a scene to be start_scene atomically unsets the previous start scene"""
+        admin_user = User.objects.create_user(
+            username='admin_user',
+            email='admin@test.com',
+            password='testpass123',
+            role='admin'
+        )
+        self.client.force_authenticate(user=admin_user)
+        
+        self.assertTrue(self.scene1.is_start_scene)
+        self.assertFalse(self.scene2.is_start_scene)
+        
+        response = self.client.patch(
+            f'/api/panorama/scenes/{self.scene2.id}/admin/',
+            {'is_start_scene': True},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        self.scene1.refresh_from_db()
+        self.scene2.refresh_from_db()
+        self.assertFalse(self.scene1.is_start_scene)
+        self.assertTrue(self.scene2.is_start_scene)

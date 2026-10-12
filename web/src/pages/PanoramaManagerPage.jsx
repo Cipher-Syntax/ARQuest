@@ -8,6 +8,11 @@ import {
     X,
     Play,
     Eye,
+    Info,
+    ChevronDown,
+    ChevronUp,
+    CheckCircle2,
+    ArrowUpRight,
 } from "lucide-react";
 
 import { buildingService } from "../services/buildingService";
@@ -50,18 +55,74 @@ const PanoramaManagerPage = () => {
                     window.__setAnchorCoordinates(x, y, z);
                 }
             } else if (event.data && event.data.type === "hotspot_clicked") {
-                const targetId = event.data.target_scene_id;
+                const rawTargetId = event.data.target_scene_id;
+                const targetId = typeof rawTargetId === "object" && rawTargetId ? rawTargetId.id : rawTargetId;
                 const target = scenes.find(
                     (s) => s.id === targetId || String(s.id) === String(targetId)
                 );
                 if (target) {
-                    setSelectedScene(target);
+                    if (selectedScene?.id === target.id) {
+                        previewIframeRef.current?.contentWindow?.postMessage(
+                            {
+                                type: "init",
+                                imageUrl: target.image_url,
+                                hotspots: hotspots || target.hotspots || [],
+                                title: target.title,
+                                buildingName: building?.name || "Campus Walkthrough",
+                                allScenes: scenes.map((s) => ({
+                                    id: s.id,
+                                    title: s.title,
+                                    image_url: s.image_url,
+                                    is_start_scene: Boolean(s.is_start_scene),
+                                })),
+                            },
+                            "*",
+                        );
+                    } else {
+                        setSelectedScene(target);
+                        if (target.hotspots) {
+                            setHotspots(target.hotspots);
+                        } else {
+                            setHotspots([]);
+                        }
+                    }
+                } else {
+                    console.warn("Target scene not found:", targetId);
+                }
+            } else if (event.data && event.data.type === "reset_to_start") {
+                const start = scenes.find((s) => s.is_start_scene) || (scenes.length > 0 ? scenes[0] : null);
+                if (start) {
+                    if (selectedScene?.id === start.id) {
+                        previewIframeRef.current?.contentWindow?.postMessage(
+                            {
+                                type: "init",
+                                imageUrl: start.image_url,
+                                hotspots: hotspots || start.hotspots || [],
+                                title: start.title,
+                                buildingName: building?.name || "Campus Walkthrough",
+                                allScenes: scenes.map((s) => ({
+                                    id: s.id,
+                                    title: s.title,
+                                    image_url: s.image_url,
+                                    is_start_scene: Boolean(s.is_start_scene),
+                                })),
+                            },
+                            "*",
+                        );
+                    } else {
+                        setSelectedScene(start);
+                        if (start.hotspots) {
+                            setHotspots(start.hotspots);
+                        } else {
+                            setHotspots([]);
+                        }
+                    }
                 }
             }
         };
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [scenes]);
+    }, [scenes, selectedScene, hotspots, building]);
 
     // Send updated scene & hotspots to 360 previewer iframe
     useEffect(() => {
@@ -72,18 +133,29 @@ const PanoramaManagerPage = () => {
                     imageUrl: selectedScene.image_url,
                     hotspots: hotspots || [],
                     title: selectedScene.title,
+                    buildingName: building?.name || "Campus Walkthrough",
+                    allScenes: scenes.map((s) => ({
+                        id: s.id,
+                        title: s.title,
+                        image_url: s.image_url,
+                        is_start_scene: Boolean(s.is_start_scene),
+                    })),
                 },
                 "*",
             );
         }
-    }, [selectedScene, hotspots, showPreviewer]);
+    }, [selectedScene, hotspots, showPreviewer, scenes, building]);
 
+
+    const [showGuidelines, setShowGuidelines] = useState(true);
+
+    const startScene = scenes.find((s) => s.is_start_scene);
+    const hasStartScene = Boolean(startScene);
 
     const [newScene, setNewScene] = useState({
-
         title: "",
         image: null,
-        is_start_scene: false,
+        is_start_scene: true,
         sort_order: 1,
         is_active: true,
         anchor_x: "",
@@ -102,11 +174,20 @@ const PanoramaManagerPage = () => {
     });
 
     useEffect(() => {
+        setNewScene((prev) => ({
+            ...prev,
+            is_start_scene: !hasStartScene,
+        }));
+    }, [hasStartScene]);
+
+    useEffect(() => {
         loadData();
     }, [id]);
 
     useEffect(() => {
         if (selectedScene) {
+            setEditingHotspot(null);
+            setHotspotErrors({});
             loadHotspots(selectedScene.id);
         }
     }, [selectedScene]);
@@ -161,10 +242,11 @@ const PanoramaManagerPage = () => {
 
         setSaving(true);
         try {
+            const isStart = !hasStartScene;
             const formData = new FormData();
             formData.append("title", newScene.title);
             formData.append("image", newScene.image);
-            formData.append("is_start_scene", newScene.is_start_scene);
+            formData.append("is_start_scene", isStart);
             formData.append("sort_order", newScene.sort_order);
             formData.append("is_active", newScene.is_active);
             if (newScene.anchor_x !== "") formData.append("anchor_x", parseFloat(newScene.anchor_x));
@@ -173,7 +255,7 @@ const PanoramaManagerPage = () => {
             formData.append("anchor_radius", parseFloat(newScene.anchor_radius) || 5.0);
 
             await panoramaService.createScene(id, formData);
-            showSuccess("Scene created successfully!");
+            showSuccess(isStart ? "Entrance scene created successfully!" : "Scene created successfully!");
             setNewScene({
                 title: "",
                 image: null,
@@ -195,6 +277,16 @@ const PanoramaManagerPage = () => {
             );
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleSetStartScene = async (sceneId) => {
+        try {
+            await panoramaService.updateScene(sceneId, { is_start_scene: true });
+            showSuccess("Entrance / Start Scene updated!");
+            loadData();
+        } catch (error) {
+            console.error("Failed to update start scene", error);
         }
     };
 
@@ -262,14 +354,64 @@ const PanoramaManagerPage = () => {
         }
     };
 
-    const handleUpdateHotspot = async (hotspotId, data) => {
-        try {
-            await panoramaService.updateHotspot(hotspotId, data);
-            showSuccess("Hotspot updated!");
+    const handleStartEditHotspot = (hotspot) => {
+        setHotspotErrors({});
+        if (editingHotspot?.id === hotspot.id) {
             setEditingHotspot(null);
+        } else {
+            setEditingHotspot({
+                id: hotspot.id,
+                label: hotspot.label || "",
+                target_scene: hotspot.target_scene_id || hotspot.target_scene || "",
+                yaw: hotspot.yaw != null ? hotspot.yaw : 0,
+                pitch: hotspot.pitch != null ? hotspot.pitch : 0,
+            });
+        }
+    };
+
+    const handleCancelEditHotspot = () => {
+        setEditingHotspot(null);
+        setHotspotErrors({});
+    };
+
+    const handleUpdateHotspot = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!selectedScene || !editingHotspot) return;
+
+        setHotspotErrors({});
+
+        const schema = {
+            label: (val) => validateString(val, 1),
+            target_scene: (val) => validateRequired(val),
+            yaw: (val) => validateNumber(val),
+            pitch: (val) => validateNumber(val),
+        };
+
+        const validationErrors = validateForm(editingHotspot, schema);
+        if (Object.keys(validationErrors).length > 0) {
+            return setHotspotErrors(validationErrors);
+        }
+
+        try {
+            const yawVal = parseFloat(editingHotspot.yaw);
+            const pitchVal = parseFloat(editingHotspot.pitch);
+
+            const hotspotData = {
+                label: editingHotspot.label,
+                target_scene: editingHotspot.target_scene,
+                yaw: isNaN(yawVal) ? 0 : yawVal,
+                pitch: isNaN(pitchVal) ? 0 : pitchVal,
+            };
+            await panoramaService.updateHotspot(editingHotspot.id, hotspotData);
+            showSuccess("Hotspot updated successfully!");
+            setEditingHotspot(null);
+            setHotspotErrors({});
             loadHotspots(selectedScene.id);
         } catch (error) {
             console.error("Failed to update hotspot", error);
+            setHotspotErrors(
+                error.response?.data?.errors || error.response?.data || { form: "Failed to update hotspot" },
+            );
         }
     };
 
@@ -282,6 +424,9 @@ const PanoramaManagerPage = () => {
         try {
             await panoramaService.deleteHotspot(hotspotToDelete);
             showSuccess("Hotspot deleted");
+            if (editingHotspot?.id === hotspotToDelete) {
+                setEditingHotspot(null);
+            }
             loadHotspots(selectedScene.id);
         } catch (error) {
             console.error("Failed to delete hotspot", error);
@@ -331,26 +476,40 @@ const PanoramaManagerPage = () => {
                 </div>
             )}
 
-
+            {/* Page Header — tinted bar */}
             <div
                 style={{
+                    backgroundColor: "rgba(138,21,56,0.04)",
+                    borderBottom: "1px solid rgba(138,21,56,0.12)",
+                    borderRadius: theme.radius.md,
+                    padding: "14px 20px",
+                    marginBottom: theme.spacing.lg,
                     display: "flex",
                     alignItems: "center",
-                    gap: theme.spacing.md,
-                    marginBottom: theme.spacing.lg,
+                    justifyContent: "space-between",
                 }}
             >
-                <button
-                    onClick={() => navigate(id ? `/buildings/${id}` : "/buildings")}
-                    className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs"
-                    title="Return to Building Editor"
-                >
-                    <ArrowLeft size={16} />
-                    <span>Back to Building</span>
-                </button>
-                <h1 style={{ fontSize: "28px", fontWeight: "bold", margin: 0, flex: 1 }}>
-                    Panoramas: {building?.name}
-                </h1>
+                {/* Left group: back button + building info */}
+                <div style={{ display: "flex", alignItems: "center", gap: theme.spacing.md }}>
+                    <button
+                        onClick={() => navigate(id ? `/buildings/${id}` : "/buildings")}
+                        className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs"
+                        title="Return to Building Editor"
+                    >
+                        <ArrowLeft size={16} />
+                        <span>Back</span>
+                    </button>
+                    <div>
+                        <div style={{ fontSize: "17px", fontWeight: "700", color: "#111827" }}>
+                            {building?.name}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#6b7280" }}>
+                            Panorama Studio • {scenes.length} scene{scenes.length !== 1 ? "s" : ""} uploaded
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right group: Preview button */}
                 <button
                     onClick={() => setShowPreviewer(true)}
                     disabled={!selectedScene}
@@ -367,15 +526,200 @@ const PanoramaManagerPage = () => {
                 </button>
             </div>
 
+            {/* 360 Walkthrough & Spatial Tour Guidelines Banner */}
+            <div
+                style={{
+                    backgroundColor: "rgba(127, 3, 3, 0.04)",
+                    border: "1px solid rgba(127, 3, 3, 0.18)",
+                    borderRadius: theme.radius.md,
+                    padding: "14px 18px",
+                    marginBottom: theme.spacing.lg,
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        cursor: "pointer",
+                    }}
+                    onClick={() => setShowGuidelines(!showGuidelines)}
+                >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div
+                            style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: theme.radius.sm,
+                                backgroundColor: theme.colors.primary,
+                                color: "#fff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                            }}
+                        >
+                            <Info size={16} />
+                        </div>
+                        <div>
+                            <h2
+                                style={{
+                                    fontSize: "14px",
+                                    fontWeight: "700",
+                                    margin: 0,
+                                    color: "#111827",
+                                    letterSpacing: "0.2px",
+                                }}
+                            >
+                                360° Virtual Walkthrough &amp; 3D Spatial Tour Guidelines
+                            </h2>
+                            <p
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#6b7280",
+                                    margin: "2px 0 0 0",
+                                }}
+                            >
+                                Follow this 3-step pipeline to build indoor walkthroughs and link 3D building models to real 360° photos.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        style={{
+                            background: "none",
+                            border: "none",
+                            color: theme.colors.primary,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                        }}
+                    >
+                        <span>{showGuidelines ? "Hide Guidelines" : "Show Guidelines"}</span>
+                        {showGuidelines ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                </div>
+
+                {showGuidelines && (
+                    <div
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr 1fr",
+                            gap: "14px",
+                            marginTop: "14px",
+                            paddingTop: "14px",
+                            borderTop: "1px solid rgba(127, 3, 3, 0.1)",
+                        }}
+                    >
+                        <div
+                            style={{
+                                backgroundColor: "#fff",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: theme.radius.sm,
+                                padding: "12px 14px",
+                            }}
+                        >
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                                <span
+                                    style={{
+                                        fontSize: "10px",
+                                        fontWeight: "800",
+                                        background: theme.colors.primary,
+                                        color: "#fff",
+                                        padding: "2px 6px",
+                                        borderRadius: "4px",
+                                        textTransform: "uppercase",
+                                    }}
+                                >
+                                    Step 1 • Left
+                                </span>
+                                <h3 style={{ fontSize: "13px", fontWeight: "700", margin: 0, color: "#111827" }}>
+                                    Scenes &amp; Entrance
+                                </h3>
+                            </div>
+                            <p style={{ fontSize: "11px", color: "#4b5563", lineHeight: "1.5", margin: 0 }}>
+                                Upload 360° equirectangular images. Every building must have <strong>exactly 1 Start Scene</strong> serving as the main entrance. The first uploaded scene is automatically designated as the entrance.
+                            </p>
+                        </div>
+
+                        <div
+                            style={{
+                                backgroundColor: "#fff",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: theme.radius.sm,
+                                padding: "12px 14px",
+                            }}
+                        >
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                                <span
+                                    style={{
+                                        fontSize: "10px",
+                                        fontWeight: "800",
+                                        background: theme.colors.primary,
+                                        color: "#fff",
+                                        padding: "2px 6px",
+                                        borderRadius: "4px",
+                                        textTransform: "uppercase",
+                                    }}
+                                >
+                                    Step 2 • Center
+                                </span>
+                                <h3 style={{ fontSize: "13px", fontWeight: "700", margin: 0, color: "#111827" }}>
+                                    3D Model Anchor
+                                </h3>
+                            </div>
+                            <p style={{ fontSize: "11px", color: "#4b5563", lineHeight: "1.5", margin: 0 }}>
+                                Set where each photo was taken inside the building's 3D model. Click <strong>"Pick Location from 3D Model"</strong> and double-click the doorway or floor. Enables students in the 3D tour to step directly into the panorama.
+                            </p>
+                        </div>
+
+                        <div
+                            style={{
+                                backgroundColor: "#fff",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: theme.radius.sm,
+                                padding: "12px 14px",
+                            }}
+                        >
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                                <span
+                                    style={{
+                                        fontSize: "10px",
+                                        fontWeight: "800",
+                                        background: theme.colors.primary,
+                                        color: "#fff",
+                                        padding: "2px 6px",
+                                        borderRadius: "4px",
+                                        textTransform: "uppercase",
+                                    }}
+                                >
+                                    Step 3 • Right
+                                </span>
+                                <h3 style={{ fontSize: "13px", fontWeight: "700", margin: 0, color: "#111827" }}>
+                                    Room Hotspots
+                                </h3>
+                            </div>
+                            <p style={{ fontSize: "11px", color: "#4b5563", lineHeight: "1.5", margin: 0 }}>
+                                Connect adjacent corridors and rooms. Place doorway waypoints with yaw/pitch angles so visitors can walk between rooms. Click any hotspot card on the right to edit its target or rotation.
+                            </p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div
                 style={{
                     display: "grid",
                     gridTemplateColumns: "300px 1fr 400px",
                     gap: theme.spacing.lg,
-                    height: "calc(100vh - 200px)",
+                    minHeight: "680px",
+                    height: showGuidelines ? "calc(100vh - 350px)" : "calc(100vh - 200px)",
                 }}
             >
-                {}
+                {/* Scenes List */}
                 <ScenesList
                     scenes={scenes}
                     selectedScene={selectedScene}
@@ -386,6 +730,9 @@ const PanoramaManagerPage = () => {
                     onCreateScene={handleCreateScene}
                     saving={saving}
                     errors={errors}
+                    hasStartScene={hasStartScene}
+                    startScene={startScene}
+                    onSetStartScene={handleSetStartScene}
                 />
 
                 {}
@@ -407,10 +754,13 @@ const PanoramaManagerPage = () => {
                     setNewHotspot={setNewHotspot}
                     editingHotspot={editingHotspot}
                     setEditingHotspot={setEditingHotspot}
+                    onStartEditHotspot={handleStartEditHotspot}
+                    onCancelEditHotspot={handleCancelEditHotspot}
                     onCreateHotspot={handleCreateHotspot}
                     onUpdateHotspot={handleUpdateHotspot}
                     onDeleteHotspot={requestDeleteHotspot}
                     errors={hotspotErrors}
+                    setErrors={setHotspotErrors}
                 />
             </div>
 
@@ -433,31 +783,54 @@ const PanoramaManagerPage = () => {
                     <div
                         style={{
                             backgroundColor: "#fff",
-                            padding: theme.spacing.xl,
+                            padding: "28px 28px 24px",
                             borderRadius: theme.radius.md,
                             maxWidth: "400px",
                             width: "100%",
+                            boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
                         }}
                     >
-                        <h3
-                            style={{
-                                fontSize: "18px",
-                                fontWeight: "bold",
-                                marginBottom: theme.spacing.md,
-                            }}
-                        >
-                            Delete Scene
-                        </h3>
-                        <p
-                            style={{
-                                marginBottom: theme.spacing.lg,
-                                color: theme.colors.text.secondary,
-                            }}
-                        >
-                            Are you sure you want to delete this scene? All
-                            hotspots associated with it will also be removed.
-                            This action cannot be undone.
-                        </p>
+                        {/* Icon row */}
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "20px" }}>
+                            <div
+                                style={{
+                                    width: "42px",
+                                    height: "42px",
+                                    borderRadius: "50%",
+                                    backgroundColor: "rgba(211,47,47,0.10)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                }}
+                            >
+                                <Trash2 size={20} color="#d32f2f" />
+                            </div>
+                            <div>
+                                <h3
+                                    style={{
+                                        fontSize: "17px",
+                                        fontWeight: "700",
+                                        margin: "0 0 6px 0",
+                                        color: "#111827",
+                                    }}
+                                >
+                                    Delete Scene
+                                </h3>
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        fontSize: "13px",
+                                        color: "#6b7280",
+                                        lineHeight: "1.5",
+                                    }}
+                                >
+                                    Are you sure you want to delete this scene? All
+                                    hotspots associated with it will also be removed.
+                                    This action cannot be undone.
+                                </p>
+                            </div>
+                        </div>
                         <div
                             style={{
                                 display: "flex",
@@ -470,9 +843,11 @@ const PanoramaManagerPage = () => {
                                 style={{
                                     padding: "8px 16px",
                                     borderRadius: theme.radius.sm,
-                                    border: `1px solid ${theme.colors.border}`,
+                                    border: "1px solid #e5e7eb",
                                     background: "#fff",
+                                    color: "#374151",
                                     cursor: "pointer",
+                                    fontSize: "13px",
                                 }}
                             >
                                 Cancel
@@ -487,6 +862,7 @@ const PanoramaManagerPage = () => {
                                     color: "#fff",
                                     cursor: "pointer",
                                     fontWeight: "bold",
+                                    fontSize: "13px",
                                 }}
                             >
                                 Delete
@@ -515,30 +891,53 @@ const PanoramaManagerPage = () => {
                     <div
                         style={{
                             backgroundColor: "#fff",
-                            padding: theme.spacing.xl,
+                            padding: "28px 28px 24px",
                             borderRadius: theme.radius.md,
                             maxWidth: "400px",
                             width: "100%",
+                            boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
                         }}
                     >
-                        <h3
-                            style={{
-                                fontSize: "18px",
-                                fontWeight: "bold",
-                                marginBottom: theme.spacing.md,
-                            }}
-                        >
-                            Delete Hotspot
-                        </h3>
-                        <p
-                            style={{
-                                marginBottom: theme.spacing.lg,
-                                color: theme.colors.text.secondary,
-                            }}
-                        >
-                            Are you sure you want to delete this hotspot? This
-                            action cannot be undone.
-                        </p>
+                        {/* Icon row */}
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "20px" }}>
+                            <div
+                                style={{
+                                    width: "42px",
+                                    height: "42px",
+                                    borderRadius: "50%",
+                                    backgroundColor: "rgba(211,47,47,0.10)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                }}
+                            >
+                                <Trash2 size={20} color="#d32f2f" />
+                            </div>
+                            <div>
+                                <h3
+                                    style={{
+                                        fontSize: "17px",
+                                        fontWeight: "700",
+                                        margin: "0 0 6px 0",
+                                        color: "#111827",
+                                    }}
+                                >
+                                    Delete Hotspot
+                                </h3>
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        fontSize: "13px",
+                                        color: "#6b7280",
+                                        lineHeight: "1.5",
+                                    }}
+                                >
+                                    Are you sure you want to delete this hotspot? This
+                                    action cannot be undone.
+                                </p>
+                            </div>
+                        </div>
                         <div
                             style={{
                                 display: "flex",
@@ -551,9 +950,11 @@ const PanoramaManagerPage = () => {
                                 style={{
                                     padding: "8px 16px",
                                     borderRadius: theme.radius.sm,
-                                    border: `1px solid ${theme.colors.border}`,
+                                    border: "1px solid #e5e7eb",
                                     background: "#fff",
+                                    color: "#374151",
                                     cursor: "pointer",
+                                    fontSize: "13px",
                                 }}
                             >
                                 Cancel
@@ -568,6 +969,7 @@ const PanoramaManagerPage = () => {
                                     color: "#fff",
                                     cursor: "pointer",
                                     fontWeight: "bold",
+                                    fontSize: "13px",
                                 }}
                             >
                                 Delete
@@ -726,6 +1128,13 @@ const PanoramaManagerPage = () => {
                                         imageUrl: selectedScene.image_url,
                                         hotspots: hotspots || [],
                                         title: selectedScene.title,
+                                        buildingName: building?.name || "Campus Walkthrough",
+                                        allScenes: scenes.map((s) => ({
+                                            id: s.id,
+                                            title: s.title,
+                                            image_url: s.image_url,
+                                            is_start_scene: Boolean(s.is_start_scene),
+                                        })),
                                     },
                                     "*",
                                 );
@@ -751,8 +1160,12 @@ const ScenesList = ({
     onCreateScene,
     saving,
     errors,
+    hasStartScene,
+    startScene,
+    onSetStartScene,
 }) => {
     const [searchQuery, setSearchQuery] = useState("");
+    const [showNewSceneForm, setShowNewSceneForm] = useState(true);
 
     const filteredScenes = scenes
         .filter((scene) =>
@@ -769,138 +1182,309 @@ const ScenesList = ({
             style={{
                 backgroundColor: "#fff",
                 borderRadius: theme.radius.md,
-                padding: theme.spacing.md,
+                border: "1px solid #e5e7eb",
+                display: "flex",
+                flexDirection: "column",
                 overflowY: "auto",
             }}
         >
-            <div style={{ marginBottom: theme.spacing.lg }}>
-                <h3
-                    style={{
-                        fontSize: "16px",
-                        fontWeight: "600",
-                        marginBottom: theme.spacing.sm,
-                    }}
-                >
-                    New Scene
-                </h3>
-                <form onSubmit={onCreateScene}>
-                    <input
-                        type="text"
-                        placeholder="Scene Title"
-                        value={newScene.title}
-                        onChange={(e) => {
-                            setNewScene({ ...newScene, title: e.target.value });
-                            if (errors.title)
-                                setErrors({ ...errors, title: null });
-                        }}
-                        style={{
-                            width: "100%",
-                            padding: "8px",
-                            marginBottom: "8px",
-                            borderRadius: "4px",
-                            border: `1px solid ${errors.title ? theme.colors.error : "#ccc"}`,
-                        }}
-                    />
-                    {errors.title && (
-                        <div
-                            style={{
-                                color: theme.colors.error,
-                                fontSize: "12px",
-                                marginBottom: "8px",
-                            }}
-                        >
-                            {errors.title}
-                        </div>
-                    )}
-                    <div style={{ marginBottom: "8px" }}>
-                        <div
-                            style={{
-                                border: errors.image
-                                    ? `1px solid ${theme.colors.error}`
-                                    : "none",
-                                borderRadius: "4px",
-                            }}
-                        >
-                            <DragDropFileUpload
-                                accept="image/jpeg,image/png,image/jpg"
-                                value={newScene.image}
-                                onChange={(file) => {
-                                    setNewScene({ ...newScene, image: file });
-                                    if (errors.image)
-                                        setErrors({ ...errors, image: null });
-                                }}
-                                placeholder="Drag & drop 360° image here or click to browse"
-                            />
-                        </div>
-                        {errors.image && (
-                            <div
-                                style={{
-                                    color: theme.colors.error,
-                                    fontSize: "12px",
-                                    marginTop: "4px",
-                                }}
-                            >
-                                {errors.image}
-                            </div>
-                        )}
-                    </div>
-                    <label
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            fontSize: "12px",
-                            marginBottom: "8px",
-                        }}
-                    >
-                        <input
-                            type="checkbox"
-                            checked={newScene.is_start_scene}
-                            onChange={(e) =>
-                                setNewScene({
-                                    ...newScene,
-                                    is_start_scene: e.target.checked,
-                                })
-                            }
-                        />
-                        Start Scene
-                    </label>
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        style={{
-                            width: "100%",
-                            padding: "8px",
-                            background: theme.colors.primary,
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: saving ? "not-allowed" : "pointer",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                        }}
-                    >
-                        {saving ? "Uploading..." : "Create Scene"}
-                    </button>
-                </form>
-            </div>
-
+            {/* Sticky panel header */}
             <div
                 style={{
-                    borderTop: `1px solid ${theme.colors.border}`,
-                    paddingTop: theme.spacing.md,
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 2,
+                    backgroundColor: "#fff",
+                    borderBottom: "1.5px solid #f0f0f0",
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
                 }}
             >
-                <h2
+                <div
                     style={{
-                        fontSize: "16px",
-                        fontWeight: "600",
-                        marginBottom: theme.spacing.md,
+                        width: "7px",
+                        height: "7px",
+                        borderRadius: "50%",
+                        backgroundColor: theme.colors.primary,
+                        flexShrink: 0,
+                    }}
+                />
+                <span
+                    style={{
+                        fontSize: "10px",
+                        fontWeight: "800",
+                        letterSpacing: "1.2px",
+                        textTransform: "uppercase",
+                        color: "#374151",
+                        flex: 1,
                     }}
                 >
-                    Scenes
-                </h2>
+                    SCENES
+                </span>
+                {scenes.length > 0 && (
+                    <span
+                        style={{
+                            fontSize: "10px",
+                            fontWeight: "700",
+                            color: theme.colors.primary,
+                            background: "rgba(138,21,56,0.08)",
+                            padding: "2px 7px",
+                            borderRadius: "10px",
+                        }}
+                    >
+                        {scenes.length}
+                    </span>
+                )}
+            </div>
 
+            {/* New Scene accordion */}
+            <div>
+                {/* Accordion header */}
+                <div
+                    onClick={() => setShowNewSceneForm(!showNewSceneForm)}
+                    style={{
+                        padding: "10px 16px",
+                        cursor: "pointer",
+                        backgroundColor: showNewSceneForm ? "rgba(138,21,56,0.03)" : "#f9fafb",
+                        borderBottom: showNewSceneForm ? "1px solid rgba(138,21,56,0.08)" : "1px solid #f0f0f0",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                    }}
+                >
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Plus size={13} color={theme.colors.primary} />
+                        <span style={{ fontSize: "12px", fontWeight: "700", color: "#374151" }}>
+                            New Scene
+                        </span>
+                    </div>
+                    {showNewSceneForm ? (
+                        <ChevronUp size={14} color="#9ca3af" />
+                    ) : (
+                        <ChevronDown size={14} color="#9ca3af" />
+                    )}
+                </div>
+
+                {/* Form body */}
+                {showNewSceneForm && (
+                    <div style={{ padding: "14px 16px" }}>
+                        <form onSubmit={onCreateScene}>
+                            <div style={{ marginBottom: "8px" }}>
+                                <label
+                                    style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: theme.colors.text.primary,
+                                        display: "block",
+                                        marginBottom: "4px",
+                                    }}
+                                >
+                                    Scene Title <span style={{ color: theme.colors.error }}>*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Main Entrance"
+                                    value={newScene.title}
+                                    onChange={(e) => {
+                                        setNewScene({ ...newScene, title: e.target.value });
+                                        if (errors.title)
+                                            setErrors({ ...errors, title: null });
+                                    }}
+                                    style={{
+                                        width: "100%",
+                                        padding: "7px 10px",
+                                        borderRadius: "4px",
+                                        border: `1px solid ${errors.title ? theme.colors.error : "#ccc"}`,
+                                        fontSize: "13px",
+                                        boxSizing: "border-box",
+                                    }}
+                                />
+                                {errors.title && (
+                                    <div
+                                        style={{
+                                            color: theme.colors.error,
+                                            fontSize: "12px",
+                                            marginTop: "4px",
+                                        }}
+                                    >
+                                        {errors.title}
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ marginBottom: "8px" }}>
+                                <label
+                                    style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: theme.colors.text.primary,
+                                        display: "block",
+                                        marginBottom: "4px",
+                                    }}
+                                >
+                                    360° Panoramic Photo <span style={{ color: theme.colors.error }}>*</span>
+                                </label>
+                                <div
+                                    style={{
+                                        border: errors.image
+                                            ? `1px solid ${theme.colors.error}`
+                                            : "none",
+                                        borderRadius: "4px",
+                                    }}
+                                >
+                                    <DragDropFileUpload
+                                        accept="image/jpeg,image/png,image/jpg"
+                                        value={newScene.image}
+                                        onChange={(file) => {
+                                            setNewScene({ ...newScene, image: file });
+                                            if (errors.image)
+                                                setErrors({ ...errors, image: null });
+                                        }}
+                                        placeholder="Drag &amp; drop 360° image here or click to browse"
+                                    />
+                                </div>
+                                {errors.image && (
+                                    <div
+                                        style={{
+                                            color: theme.colors.error,
+                                            fontSize: "12px",
+                                            marginTop: "4px",
+                                        }}
+                                    >
+                                        {errors.image}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Start Scene Requirement / Status Badge */}
+                            {!hasStartScene ? (
+                                <div
+                                    style={{
+                                        padding: "8px 10px",
+                                        backgroundColor: "rgba(46, 204, 113, 0.1)",
+                                        border: "1px solid rgba(46, 204, 113, 0.4)",
+                                        borderRadius: "4px",
+                                        marginBottom: "10px",
+                                        fontSize: "12px",
+                                        display: "flex",
+                                        alignItems: "flex-start",
+                                        gap: "8px",
+                                    }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={true}
+                                        disabled={true}
+                                        style={{
+                                            marginTop: "2px",
+                                            accentColor: theme.colors.primary,
+                                            cursor: "not-allowed",
+                                        }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: "700", color: "#166534" }}>
+                                            Start Scene (Required Entrance)
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontSize: "11px",
+                                                color: "#15803d",
+                                                marginTop: "2px",
+                                                lineHeight: "1.3",
+                                            }}
+                                        >
+                                            This building has no entrance yet. This scene will automatically be designated as the Start Scene.
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div
+                                    style={{
+                                        padding: "8px 10px",
+                                        backgroundColor: "#f9fafb",
+                                        border: `1px solid ${theme.colors.border}`,
+                                        borderRadius: "4px",
+                                        marginBottom: "10px",
+                                        fontSize: "11px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: "6px",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "6px",
+                                            overflow: "hidden",
+                                        }}
+                                    >
+                                        <Play
+                                            size={11}
+                                            fill={theme.colors.primary}
+                                            color={theme.colors.primary}
+                                            style={{ flexShrink: 0 }}
+                                        />
+                                        <span
+                                            style={{
+                                                color: "#4b5563",
+                                                textOverflow: "ellipsis",
+                                                overflow: "hidden",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            Entrance: <strong style={{ color: "#111827" }}>{startScene?.title}</strong>
+                                        </span>
+                                    </div>
+                                    <span
+                                        style={{
+                                            fontSize: "10px",
+                                            fontWeight: "700",
+                                            textTransform: "uppercase",
+                                            background: "#e5e7eb",
+                                            color: "#4b5563",
+                                            padding: "2px 6px",
+                                            borderRadius: "4px",
+                                            whiteSpace: "nowrap",
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        1 Active
+                                    </span>
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                style={{
+                                    width: "100%",
+                                    padding: "8px",
+                                    background: theme.colors.primary,
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    cursor: saving ? "not-allowed" : "pointer",
+                                    fontSize: "13px",
+                                    fontWeight: "600",
+                                }}
+                            >
+                                {saving ? "Uploading..." : "Create Scene"}
+                            </button>
+                        </form>
+                    </div>
+                )}
+            </div>
+
+            {/* Scenes list section */}
+            <div
+                style={{
+                    padding: "12px 16px",
+                    flex: 1,
+                }}
+            >
                 <input
                     type="text"
                     placeholder="Search scenes..."
@@ -908,11 +1492,12 @@ const ScenesList = ({
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
                         width: "100%",
-                        padding: "8px",
+                        padding: "7px 10px",
                         marginBottom: theme.spacing.md,
-                        borderRadius: "4px",
-                        border: "1px solid #ccc",
+                        borderRadius: theme.radius.sm,
+                        border: "1px solid #e5e7eb",
                         fontSize: "14px",
+                        boxSizing: "border-box",
                     }}
                 />
 
@@ -942,7 +1527,12 @@ const ScenesList = ({
                             onClick={() => setSelectedScene(scene)}
                             style={{
                                 padding: theme.spacing.sm,
-                                border: `1px solid ${selectedScene?.id === scene.id ? theme.colors.primary : theme.colors.border}`,
+                                border: selectedScene?.id === scene.id
+                                    ? `1px solid ${theme.colors.primary}`
+                                    : `1px solid ${theme.colors.border}`,
+                                borderLeft: selectedScene?.id === scene.id
+                                    ? `3px solid ${theme.colors.primary}`
+                                    : `1px solid ${theme.colors.border}`,
                                 borderRadius: theme.radius.sm,
                                 cursor: "pointer",
                                 backgroundColor:
@@ -952,34 +1542,68 @@ const ScenesList = ({
                                 display: "flex",
                                 justifyContent: "space-between",
                                 alignItems: "center",
+                                gap: "8px",
+                                transition: "all 0.15s",
                             }}
                         >
-                            <div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
                                 <div
                                     style={{
                                         fontSize: "14px",
-                                        fontWeight: "500",
+                                        fontWeight: "600",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
                                     }}
                                 >
                                     {scene.title}
                                 </div>
-                                {scene.is_start_scene && (
+                                {scene.is_start_scene ? (
                                     <span
                                         style={{
-                                            fontSize: "12px",
+                                            fontSize: "10px",
+                                            fontWeight: "700",
                                             color: theme.colors.primary,
-                                            display: "flex",
+                                            display: "inline-flex",
                                             alignItems: "center",
                                             gap: "4px",
-                                            marginTop: "2px",
+                                            marginTop: "3px",
+                                            background: "rgba(127, 3, 3, 0.08)",
+                                            padding: "2px 6px",
+                                            borderRadius: "4px",
+                                            textTransform: "uppercase",
                                         }}
                                     >
                                         <Play
-                                            size={12}
+                                            size={10}
                                             fill={theme.colors.primary}
                                         />{" "}
-                                        Start Scene
+                                        Start Scene (Entrance)
                                     </span>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onSetStartScene(scene.id);
+                                        }}
+                                        style={{
+                                            fontSize: "11px",
+                                            color: "#6b7280",
+                                            background: "none",
+                                            border: `1px dashed ${theme.colors.border}`,
+                                            padding: "2px 6px",
+                                            borderRadius: "4px",
+                                            marginTop: "3px",
+                                            cursor: "pointer",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "4px",
+                                        }}
+                                        title="Make this scene the entrance point for this building"
+                                    >
+                                        <Play size={9} /> Set as Start
+                                    </button>
                                 )}
                             </div>
                             <button
@@ -993,7 +1617,11 @@ const ScenesList = ({
                                     border: "none",
                                     cursor: "pointer",
                                     padding: "4px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
                                 }}
+                                title="Delete scene"
                             >
                                 <Trash2 size={16} />
                             </button>
@@ -1011,6 +1639,7 @@ const ScenePreview = ({ selectedScene, building, onUpdateSceneAnchors, onOpen3DP
     const [anchorZ, setAnchorZ] = useState("");
     const [anchorRadius, setAnchorRadius] = useState("5.0");
     const [savingAnchor, setSavingAnchor] = useState(false);
+    const [showAxesGuide, setShowAxesGuide] = useState(false);
 
     // Register callback so 3D picker message can set state directly
     useEffect(() => {
@@ -1051,41 +1680,100 @@ const ScenePreview = ({ selectedScene, building, onUpdateSceneAnchors, onOpen3DP
         style={{
             backgroundColor: "#fff",
             borderRadius: theme.radius.md,
-            padding: theme.spacing.md,
+            border: "1px solid #e5e7eb",
+            overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
         }}
     >
+        {/* Sticky panel header */}
+        <div
+            style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 2,
+                backgroundColor: "#fff",
+                borderBottom: "1.5px solid #f0f0f0",
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+            }}
+        >
+            <div
+                style={{
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    backgroundColor: theme.colors.primary,
+                    flexShrink: 0,
+                }}
+            />
+            <span
+                style={{
+                    fontSize: "10px",
+                    fontWeight: "800",
+                    letterSpacing: "1.2px",
+                    textTransform: "uppercase",
+                    color: "#374151",
+                    flex: 1,
+                }}
+            >
+                PREVIEW STUDIO
+            </span>
+            {selectedScene && (
+                <span style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280" }}>
+                    {selectedScene.title}
+                </span>
+            )}
+        </div>
+
+        {/* Scrollable content */}
+        <div style={{ padding: theme.spacing.md, overflowY: "auto", flex: 1 }}>
         {selectedScene ? (
             <>
-                <h2
+                {/* Scene image in card */}
+                <div
                     style={{
-                        fontSize: "18px",
-                        fontWeight: "600",
+                        borderRadius: theme.radius.sm,
+                        border: "1px solid #e5e7eb",
+                        overflow: "hidden",
                         marginBottom: theme.spacing.md,
                     }}
                 >
-                    {selectedScene.title}
-                </h2>
-                <img
-                    src={selectedScene.image_url}
-                    alt={selectedScene.title}
-                    style={{
-                        width: "100%",
-                        maxHeight: "340px",
-                        objectFit: "contain",
-                        borderRadius: theme.radius.sm,
-                        marginBottom: theme.spacing.md,
-                    }}
-                />
+                    <img
+                        src={selectedScene.image_url}
+                        alt={selectedScene.title}
+                        style={{
+                            width: "100%",
+                            maxHeight: "220px",
+                            objectFit: "cover",
+                            display: "block",
+                        }}
+                    />
+                </div>
 
-                {/* Unit 30: 3D Anchor Coordinate Editor */}
+                {/* 3D Anchor Coordinate Editor */}
+                {/* Section label */}
+                <div
+                    style={{
+                        fontSize: "10px",
+                        fontWeight: "700",
+                        letterSpacing: "1.2px",
+                        color: "#9ca3af",
+                        textTransform: "uppercase",
+                        marginBottom: "10px",
+                        paddingTop: "4px",
+                        borderTop: "1px solid #f3f4f6",
+                    }}
+                >
+                    3D Anchor Coordinates
+                </div>
+
                 <div
                     style={{
                         width: "100%",
-                        background: "rgba(0,0,0,0.03)",
+                        background: "#f9fafb",
                         border: `1px solid ${theme.colors.border}`,
                         borderRadius: theme.radius.sm,
                         padding: theme.spacing.sm,
@@ -1109,7 +1797,7 @@ const ScenePreview = ({ selectedScene, building, onUpdateSceneAnchors, onOpen3DP
                             justifyContent: "center",
                             width: "100%",
                             padding: "9px 14px",
-                            marginBottom: "12px",
+                            marginBottom: "10px",
                             background: building?.model_url ? theme.colors.primary : "#e5e7eb",
                             color: building?.model_url ? "#ffffff" : "#9ca3af",
                             border: "none",
@@ -1123,54 +1811,166 @@ const ScenePreview = ({ selectedScene, building, onUpdateSceneAnchors, onOpen3DP
                         {building?.model_url ? "Pick Location from 3D Model" : "No 3D Model Uploaded for Building"}
                     </button>
 
+                    {/* Collapsible 3D Coordinate Axes Guideline Callout */}
+                    <button
+                        type="button"
+                        onClick={() => setShowAxesGuide(!showAxesGuide)}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            width: "100%",
+                            padding: "6px 10px",
+                            marginBottom: "10px",
+                            background: "rgba(138,21,56,0.05)",
+                            border: "1px solid rgba(138,21,56,0.15)",
+                            borderRadius: theme.radius.sm,
+                            fontSize: "11px",
+                            fontWeight: "600",
+                            color: theme.colors.primary,
+                            cursor: "pointer",
+                        }}
+                    >
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <Info size={13} style={{ color: theme.colors.primary, flexShrink: 0 }} />
+                            <span>3D Coordinate Axes Guide (X, Y, Z, Radius)</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "3px", fontSize: "10.5px" }}>
+                            <span>{showAxesGuide ? "Hide" : "Show Guide"}</span>
+                            {showAxesGuide ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        </div>
+                    </button>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                    {showAxesGuide && (
+                        <div
+                            style={{
+                                padding: "8px 10px",
+                                background: "rgba(138,21,56,0.05)",
+                                border: "1px solid rgba(138,21,56,0.15)",
+                                borderRadius: theme.radius.sm,
+                                fontSize: "11px",
+                                color: "#6b0f24",
+                                marginBottom: "10px",
+                                lineHeight: "1.4",
+                            }}
+                        >
+                            <p style={{ margin: "0 0 6px 0", fontSize: "10.5px", color: "#6b0f24" }}>
+                                Anchors tie this 360° photo to the 3D model coordinate space so AR visitors can step directly into this room.
+                            </p>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "10.5px" }}>
+                                <div>• <strong>X Axis:</strong> East / West (side-to-side position in 3D model)</div>
+                                <div>• <strong>Y Axis:</strong> Eye-level height from ground (standard: 1.6m)</div>
+                                <div>• <strong>Z Axis:</strong> North / South (forward / back depth in 3D model)</div>
+                                <div>• <strong>Radius:</strong> Walking proximity (meters) to trigger tour</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 3D Coordinate Inputs (X, Y, Z, Radius) */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
                         <div>
-                            <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px" }}>Anchor X</label>
+                            <label
+                                style={{
+                                    fontSize: "11px",
+                                    fontWeight: "600",
+                                    display: "block",
+                                    marginBottom: "4px",
+                                    color: theme.colors.text.primary,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                }}
+                                title="Anchor X (East / West)"
+                            >
+                                Anchor X (East/West)
+                            </label>
                             <input
                                 type="number"
                                 step="0.1"
                                 placeholder="e.g. 12.5"
                                 value={anchorX}
                                 onChange={(e) => setAnchorX(e.target.value)}
-                                style={{ width: "100%", padding: "6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                                style={{ width: "100%", padding: "6px 8px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
                             />
                         </div>
                         <div>
-                            <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px" }}>Anchor Y (Eye Level)</label>
+                            <label
+                                style={{
+                                    fontSize: "11px",
+                                    fontWeight: "600",
+                                    display: "block",
+                                    marginBottom: "4px",
+                                    color: theme.colors.text.primary,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                }}
+                                title="Anchor Y (Eye Level Height)"
+                            >
+                                Anchor Y (Eye Level)
+                            </label>
                             <input
                                 type="number"
                                 step="0.1"
-                                placeholder="default: 1.6"
+                                placeholder="1.6"
                                 value={anchorY}
                                 onChange={(e) => setAnchorY(e.target.value)}
-                                style={{ width: "100%", padding: "6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                                style={{ width: "100%", padding: "6px 8px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
                             />
                         </div>
                         <div>
-                            <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px" }}>Anchor Z</label>
+                            <label
+                                style={{
+                                    fontSize: "11px",
+                                    fontWeight: "600",
+                                    display: "block",
+                                    marginBottom: "4px",
+                                    color: theme.colors.text.primary,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                }}
+                                title="Anchor Z (North / South)"
+                            >
+                                Anchor Z (North/South)
+                            </label>
                             <input
                                 type="number"
                                 step="0.1"
                                 placeholder="e.g. -8.0"
                                 value={anchorZ}
                                 onChange={(e) => setAnchorZ(e.target.value)}
-                                style={{ width: "100%", padding: "6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                                style={{ width: "100%", padding: "6px 8px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
                             />
                         </div>
                         <div>
-                            <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px" }}>Radius (meters)</label>
+                            <label
+                                style={{
+                                    fontSize: "11px",
+                                    fontWeight: "600",
+                                    display: "block",
+                                    marginBottom: "4px",
+                                    color: theme.colors.text.primary,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                }}
+                                title="Catchment Radius (Meters)"
+                            >
+                                Radius (Meters)
+                            </label>
                             <input
                                 type="number"
                                 step="0.5"
                                 min="1"
-                                placeholder="default: 5"
+                                placeholder="5.0"
                                 value={anchorRadius}
                                 onChange={(e) => setAnchorRadius(e.target.value)}
-                                style={{ width: "100%", padding: "6px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                                style={{ width: "100%", padding: "6px 8px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ccc", boxSizing: "border-box" }}
                             />
                         </div>
                     </div>
+
                     {(selectedScene.anchor_x != null && selectedScene.anchor_z != null) && (
                         <div style={{ fontSize: "11px", color: theme.colors.primary, fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
                             Anchor saved: ({selectedScene.anchor_x}, {selectedScene.anchor_y}, {selectedScene.anchor_z}) — radius {selectedScene.anchor_radius}m
@@ -1198,15 +1998,13 @@ const ScenePreview = ({ selectedScene, building, onUpdateSceneAnchors, onOpen3DP
                 </div>
             </>
         ) : (
-            <div
-                style={{
-                    textAlign: "center",
-                    color: theme.colors.text.secondary,
-                }}
-            >
-                <p>Select a scene to preview</p>
+            <div style={{ padding: "60px 24px", textAlign: "center" }}>
+                <Eye size={40} color="#d1d5db" style={{ margin: "0 auto 12px", display: "block" }} />
+                <div style={{ fontSize: "14px", fontWeight: "600", color: "#6b7280", marginBottom: "6px" }}>No scene selected</div>
+                <div style={{ fontSize: "12px", color: "#9ca3af", lineHeight: "1.5" }}>Select a scene from the left panel to preview it and configure its 3D anchor.</div>
             </div>
         )}
+        </div>
     </div>
     );
 };
@@ -1220,330 +2018,684 @@ const HotspotsPanel = ({
     setNewHotspot,
     editingHotspot,
     setEditingHotspot,
+    onStartEditHotspot,
+    onCancelEditHotspot,
     onCreateHotspot,
     onUpdateHotspot,
     onDeleteHotspot,
     errors,
-}) => (
-    <div
-        style={{
-            backgroundColor: "#fff",
-            borderRadius: theme.radius.md,
-            padding: theme.spacing.md,
-            overflowY: "auto",
-        }}
-    >
-        <h2
+    setErrors,
+}) => {
+    const isEditing = Boolean(editingHotspot);
+    const [showHotspotGuide, setShowHotspotGuide] = useState(false);
+
+    return (
+        <div
             style={{
-                fontSize: "16px",
-                fontWeight: "600",
-                marginBottom: theme.spacing.md,
+                backgroundColor: "#fff",
+                borderRadius: theme.radius.md,
+                border: "1px solid #e5e7eb",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
             }}
         >
-            Hotspots
-        </h2>
+            {/* Sticky panel header */}
+            <div
+                style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 2,
+                    backgroundColor: "#fff",
+                    borderBottom: "1.5px solid #f0f0f0",
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                }}
+            >
+                <div
+                    style={{
+                        width: "7px",
+                        height: "7px",
+                        borderRadius: "50%",
+                        backgroundColor: theme.colors.primary,
+                        flexShrink: 0,
+                    }}
+                />
+                <span
+                    style={{
+                        fontSize: "10px",
+                        fontWeight: "800",
+                        letterSpacing: "1.2px",
+                        textTransform: "uppercase",
+                        color: "#374151",
+                        flex: 1,
+                    }}
+                >
+                    HOTSPOTS
+                </span>
+                {hotspots.length > 0 && (
+                    <span
+                        style={{
+                            fontSize: "10px",
+                            fontWeight: "700",
+                            color: theme.colors.primary,
+                            background: "rgba(138,21,56,0.08)",
+                            padding: "2px 7px",
+                            borderRadius: "10px",
+                        }}
+                    >
+                        {hotspots.length}
+                    </span>
+                )}
+            </div>
 
-        {!selectedScene ? (
-            <p style={{ fontSize: "14px", color: theme.colors.text.secondary }}>
-                Select a scene to manage hotspots
-            </p>
-        ) : (
-            <>
-                <div style={{ marginBottom: theme.spacing.md }}>
-                    {hotspots.map((hotspot) => (
-                        <div
-                            key={hotspot.id}
-                            style={{
-                                padding: theme.spacing.sm,
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: theme.radius.sm,
-                                marginBottom: theme.spacing.xs,
-                            }}
-                        >
+            {/* Scrollable content */}
+            <div style={{ padding: theme.spacing.md, overflowY: "auto", flex: 1 }}>
+            {!selectedScene ? (
+                <p style={{ fontSize: "14px", color: theme.colors.text.secondary }}>
+                    Select a scene to manage hotspots
+                </p>
+            ) : (
+                <>
+                    <div style={{ marginBottom: theme.spacing.md }}>
+                        {hotspots.length === 0 ? (
                             <div
                                 style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "start",
+                                    textAlign: "center",
+                                    padding: "20px 12px",
+                                    color: theme.colors.text.muted,
+                                    fontSize: "13px",
+                                    border: `1px dashed ${theme.colors.border}`,
+                                    borderRadius: theme.radius.sm,
                                 }}
                             >
-                                <div style={{ flex: 1 }}>
+                                No hotspots in this scene. Use the form below to create a waypoint link.
+                            </div>
+                        ) : (
+                            hotspots.map((hotspot) => {
+                                const isCurrentEditing = editingHotspot?.id === hotspot.id;
+                                return (
                                     <div
+                                        key={hotspot.id}
+                                        onClick={() => onStartEditHotspot(hotspot)}
                                         style={{
-                                            fontSize: "14px",
-                                            fontWeight: "500",
+                                            padding: theme.spacing.sm,
+                                            border: isCurrentEditing
+                                                ? `2px solid ${theme.colors.primary}`
+                                                : `1px solid ${theme.colors.border}`,
+                                            borderRadius: theme.radius.sm,
+                                            marginBottom: theme.spacing.xs,
+                                            backgroundColor: isCurrentEditing
+                                                ? "rgba(127, 3, 3, 0.05)"
+                                                : "#fff",
+                                            cursor: "pointer",
+                                            transition: "all 0.15s",
                                         }}
+                                        title={
+                                            isCurrentEditing
+                                                ? "Currently editing this hotspot"
+                                                : "Click to edit this hotspot"
+                                        }
                                     >
-                                        {hotspot.label}
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "flex-start",
+                                                gap: "8px",
+                                            }}
+                                        >
+                                            {/* ArrowUpRight icon */}
+                                            <div style={{ paddingTop: "2px", flexShrink: 0 }}>
+                                                <ArrowUpRight
+                                                    size={14}
+                                                    color={isCurrentEditing ? theme.colors.primary : "#9ca3af"}
+                                                />
+                                            </div>
+
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: "6px",
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            fontSize: "14px",
+                                                            fontWeight: "600",
+                                                            color: isCurrentEditing
+                                                                ? theme.colors.primary
+                                                                : "#111827",
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                            whiteSpace: "nowrap",
+                                                        }}
+                                                    >
+                                                        {hotspot.label}
+                                                    </span>
+                                                    {isCurrentEditing && (
+                                                        <span
+                                                            style={{
+                                                                fontSize: "10px",
+                                                                fontWeight: "700",
+                                                                textTransform: "uppercase",
+                                                                background: theme.colors.primary,
+                                                                color: "#fff",
+                                                                padding: "2px 6px",
+                                                                borderRadius: "4px",
+                                                                letterSpacing: "0.5px",
+                                                            }}
+                                                        >
+                                                            Editing
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: "12px",
+                                                        color: theme.colors.text.secondary,
+                                                        marginTop: "2px",
+                                                    }}
+                                                >
+                                                    → {hotspot.target_scene_title}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: "11px",
+                                                        color: theme.colors.text.muted,
+                                                        marginTop: "2px",
+                                                    }}
+                                                >
+                                                    Yaw: {hotspot.yaw}°, Pitch: {hotspot.pitch}°
+                                                </div>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "4px",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onStartEditHotspot(hotspot);
+                                                    }}
+                                                    style={{
+                                                        color: isCurrentEditing
+                                                            ? theme.colors.primary
+                                                            : "#6b7280",
+                                                        background: isCurrentEditing
+                                                            ? "rgba(127, 3, 3, 0.12)"
+                                                            : "none",
+                                                        border: "none",
+                                                        borderRadius: "4px",
+                                                        cursor: "pointer",
+                                                        padding: "4px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                    }}
+                                                    title={
+                                                        isCurrentEditing
+                                                            ? "Cancel editing"
+                                                            : "Edit hotspot"
+                                                    }
+                                                >
+                                                    {isCurrentEditing ? (
+                                                        <X size={15} />
+                                                    ) : (
+                                                        <Edit2 size={15} />
+                                                    )}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDeleteHotspot(hotspot.id);
+                                                    }}
+                                                    style={{
+                                                        color: theme.colors.error,
+                                                        background: "none",
+                                                        border: "none",
+                                                        borderRadius: "4px",
+                                                        cursor: "pointer",
+                                                        padding: "4px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                    }}
+                                                    title="Delete hotspot"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: theme.colors.text.secondary,
-                                        }}
-                                    >
-                                        → {hotspot.target_scene_title}
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontSize: "12px",
-                                            color: theme.colors.text.muted,
-                                        }}
-                                    >
-                                        Yaw: {hotspot.yaw}°, Pitch:{" "}
-                                        {hotspot.pitch}°
-                                    </div>
-                                </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    <div
+                        style={{
+                            borderTop: `1px solid ${theme.colors.border}`,
+                            paddingTop: theme.spacing.md,
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: theme.spacing.sm,
+                            }}
+                        >
+                            <h3
+                                style={{
+                                    fontSize: "14px",
+                                    fontWeight: "600",
+                                    margin: 0,
+                                    color: isEditing ? theme.colors.primary : "#111827",
+                                }}
+                            >
+                                {isEditing ? "Edit Hotspot" : "New Hotspot"}
+                            </h3>
+                            {isEditing && (
                                 <button
-                                    onClick={() => onDeleteHotspot(hotspot.id)}
+                                    type="button"
+                                    onClick={onCancelEditHotspot}
                                     style={{
-                                        color: theme.colors.error,
+                                        fontSize: "12px",
+                                        color: "#6b7280",
                                         background: "none",
                                         border: "none",
                                         cursor: "pointer",
-                                        padding: "4px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "4px",
+                                        padding: "2px 6px",
+                                        fontWeight: "500",
                                     }}
                                 >
-                                    <Trash2 size={16} />
+                                    <X size={14} />
+                                    <span>Cancel</span>
                                 </button>
-                            </div>
+                            )}
                         </div>
-                    ))}
-                </div>
 
-                <div
-                    style={{
-                        borderTop: `1px solid ${theme.colors.border}`,
-                        paddingTop: theme.spacing.md,
-                    }}
-                >
-                    <h3
-                        style={{
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            marginBottom: theme.spacing.sm,
-                        }}
-                    >
-                        New Hotspot
-                    </h3>
-                    <form onSubmit={onCreateHotspot}>
-                        {errors?.form && (
+                        <form onSubmit={isEditing ? onUpdateHotspot : onCreateHotspot}>
+                            {errors?.form && (
+                                <div
+                                    style={{
+                                        color: theme.colors.error,
+                                        fontSize: "12px",
+                                        marginBottom: "8px",
+                                    }}
+                                >
+                                    {typeof errors.form === "string"
+                                        ? errors.form
+                                        : JSON.stringify(errors.form)}
+                                </div>
+                            )}
+                            {/* Collapsible Hotspot Direction & Angle Guide Callout */}
+                            <button
+                                type="button"
+                                onClick={() => setShowHotspotGuide(!showHotspotGuide)}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    width: "100%",
+                                    padding: "6px 10px",
+                                    marginBottom: "10px",
+                                    background: "rgba(138,21,56,0.05)",
+                                    border: "1px solid rgba(138,21,56,0.15)",
+                                    borderRadius: theme.radius.sm,
+                                    fontSize: "11px",
+                                    fontWeight: "600",
+                                    color: theme.colors.primary,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    <Info size={13} style={{ color: theme.colors.primary, flexShrink: 0 }} />
+                                    <span>Hotspot Orientation Guide (Yaw &amp; Pitch)</span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "3px", fontSize: "10.5px" }}>
+                                    <span>{showHotspotGuide ? "Hide" : "Show Guide"}</span>
+                                    {showHotspotGuide ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                </div>
+                            </button>
+
+                            {showHotspotGuide && (
+                                <div
+                                    style={{
+                                        padding: "8px 10px",
+                                        background: "rgba(138,21,56,0.05)",
+                                        border: "1px solid rgba(138,21,56,0.15)",
+                                        borderRadius: theme.radius.sm,
+                                        fontSize: "11px",
+                                        color: "#6b0f24",
+                                        marginBottom: "10px",
+                                        lineHeight: "1.4",
+                                    }}
+                                >
+                                    <p style={{ margin: "0 0 4px 0", fontSize: "10.5px" }}>
+                                        Hotspots are clickable door or pathway pins inside the 360° photo to jump between rooms.
+                                    </p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "10.5px" }}>
+                                        <div>• <strong>Yaw (°):</strong> Horizontal rotation (0° front, 90° right, 180° back, 270° left)</div>
+                                        <div>• <strong>Pitch (°):</strong> Vertical look (-90° floor, 0° horizon, +90° ceiling)</div>
+                                    </div>
+                                    <div style={{ marginTop: "4px", fontSize: "10px", color: theme.colors.primary }}>
+                                        🎯 <em>Tip: Click anywhere directly on the 360° preview to auto-fill exact Yaw and Pitch coordinates!</em>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ marginBottom: "8px" }}>
+                                <label
+                                    style={{
+                                        display: "block",
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        marginBottom: "4px",
+                                        color: theme.colors.text.primary,
+                                    }}
+                                >
+                                    Hotspot Label <span style={{ color: theme.colors.error }}>*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Go to Hallway"
+                                    value={isEditing ? editingHotspot.label : newHotspot.label}
+                                    onChange={(e) => {
+                                        if (isEditing) {
+                                            setEditingHotspot({
+                                                ...editingHotspot,
+                                                label: e.target.value,
+                                            });
+                                        } else {
+                                            setNewHotspot({
+                                                ...newHotspot,
+                                                label: e.target.value,
+                                            });
+                                        }
+                                        if (errors?.label && setErrors) {
+                                            const newErrs = { ...errors };
+                                            delete newErrs.label;
+                                            setErrors(newErrs);
+                                        }
+                                    }}
+                                    style={{
+                                        width: "100%",
+                                        padding: "7px 10px",
+                                        borderRadius: "4px",
+                                        border: `1px solid ${errors?.label ? theme.colors.error : "#ccc"}`,
+                                        fontSize: "13px",
+                                        boxSizing: "border-box",
+                                    }}
+                                />
+                                {errors?.label && (
+                                    <div
+                                        style={{
+                                            color: theme.colors.error,
+                                            fontSize: "12px",
+                                            marginTop: "4px",
+                                        }}
+                                    >
+                                        {errors.label}
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ marginBottom: "8px" }}>
+                                <label
+                                    style={{
+                                        display: "block",
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        marginBottom: "4px",
+                                        color: theme.colors.text.primary,
+                                    }}
+                                >
+                                    Target Scene (Destination) <span style={{ color: theme.colors.error }}>*</span>
+                                </label>
+                                <select
+                                    value={isEditing ? editingHotspot.target_scene : newHotspot.target_scene}
+                                    onChange={(e) => {
+                                        if (isEditing) {
+                                            setEditingHotspot({
+                                                ...editingHotspot,
+                                                target_scene: e.target.value,
+                                            });
+                                        } else {
+                                            setNewHotspot({
+                                                ...newHotspot,
+                                                target_scene: e.target.value,
+                                            });
+                                        }
+                                        if (errors?.target_scene && setErrors) {
+                                            const newErrs = { ...errors };
+                                            delete newErrs.target_scene;
+                                            setErrors(newErrs);
+                                        }
+                                    }}
+                                    style={{
+                                        width: "100%",
+                                        padding: "7px 10px",
+                                        borderRadius: "4px",
+                                        border: `1px solid ${errors?.target_scene ? theme.colors.error : "#ccc"}`,
+                                        fontSize: "13px",
+                                        boxSizing: "border-box",
+                                    }}
+                                >
+                                    <option value="">Select Target Scene</option>
+                                    {scenes
+                                        .filter((s) => s.id !== selectedScene?.id)
+                                        .map((scene) => (
+                                            <option key={scene.id} value={scene.id}>
+                                                {scene.title}
+                                            </option>
+                                        ))}
+                                </select>
+                                {errors?.target_scene && (
+                                    <div
+                                        style={{
+                                            color: theme.colors.error,
+                                            fontSize: "12px",
+                                            marginTop: "4px",
+                                        }}
+                                    >
+                                        {errors.target_scene}
+                                    </div>
+                                )}
+                            </div>
                             <div
                                 style={{
-                                    color: theme.colors.error,
-                                    fontSize: "12px",
-                                    marginBottom: "8px",
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr",
+                                    gap: "8px",
+                                    marginBottom: "12px",
                                 }}
                             >
-                                {typeof errors.form === "string"
-                                    ? errors.form
-                                    : JSON.stringify(errors.form)}
+                                <div>
+                                    <label
+                                        style={{
+                                            display: "block",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            marginBottom: "4px",
+                                            color: theme.colors.text.primary,
+                                        }}
+                                    >
+                                        Yaw (°) <span style={{ color: theme.colors.error }}>*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={isEditing ? editingHotspot.yaw : newHotspot.yaw}
+                                        onChange={(e) => {
+                                            if (isEditing) {
+                                                setEditingHotspot({
+                                                    ...editingHotspot,
+                                                    yaw: e.target.value,
+                                                });
+                                            } else {
+                                                setNewHotspot({
+                                                    ...newHotspot,
+                                                    yaw: e.target.value,
+                                                });
+                                            }
+                                            if (errors?.yaw && setErrors) {
+                                                const newErrs = { ...errors };
+                                                delete newErrs.yaw;
+                                                setErrors(newErrs);
+                                            }
+                                        }}
+                                        style={{
+                                            width: "100%",
+                                            padding: "7px 10px",
+                                            borderRadius: "4px",
+                                            border: `1px solid ${errors?.yaw ? theme.colors.error : "#ccc"}`,
+                                            fontSize: "13px",
+                                            boxSizing: "border-box",
+                                        }}
+                                    />
+                                    {errors?.yaw && (
+                                        <div
+                                            style={{
+                                                color: theme.colors.error,
+                                                fontSize: "12px",
+                                                marginTop: "4px",
+                                            }}
+                                        >
+                                            {errors.yaw}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label
+                                        style={{
+                                            display: "block",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            marginBottom: "4px",
+                                            color: theme.colors.text.primary,
+                                        }}
+                                    >
+                                        Pitch (°) <span style={{ color: theme.colors.error }}>*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={isEditing ? editingHotspot.pitch : newHotspot.pitch}
+                                        onChange={(e) => {
+                                            if (isEditing) {
+                                                setEditingHotspot({
+                                                    ...editingHotspot,
+                                                    pitch: e.target.value,
+                                                });
+                                            } else {
+                                                setNewHotspot({
+                                                    ...newHotspot,
+                                                    pitch: e.target.value,
+                                                });
+                                            }
+                                            if (errors?.pitch && setErrors) {
+                                                const newErrs = { ...errors };
+                                                delete newErrs.pitch;
+                                                setErrors(newErrs);
+                                            }
+                                        }}
+                                        style={{
+                                            width: "100%",
+                                            padding: "7px 10px",
+                                            borderRadius: "4px",
+                                            border: `1px solid ${errors?.pitch ? theme.colors.error : "#ccc"}`,
+                                            fontSize: "13px",
+                                            boxSizing: "border-box",
+                                        }}
+                                    />
+                                    {errors?.pitch && (
+                                        <div
+                                            style={{
+                                                color: theme.colors.error,
+                                                fontSize: "12px",
+                                                marginTop: "4px",
+                                            }}
+                                        >
+                                            {errors.pitch}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                        <div style={{ marginBottom: "8px" }}>
-                            <label
-                                style={{
-                                    display: "block",
-                                    fontSize: "12px",
-                                    marginBottom: "4px",
-                                }}
-                            >
-                                Label
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Go to Entrance"
-                                value={newHotspot.label}
-                                onChange={(e) => {
-                                    setNewHotspot({
-                                        ...newHotspot,
-                                        label: e.target.value,
-                                    });
-                                    if (errors?.label) {
-                                        const newErrs = { ...errors };
-                                        delete newErrs.label;
-                                        errors.form
-                                            ? null
-                                            : setEditingHotspot
-                                              ? null
-                                              : null; // Hack to use some props, wait, let's just use form
-                                    }
-                                }}
-                                style={{
-                                    width: "100%",
-                                    padding: "8px",
-                                    borderRadius: "4px",
-                                    border: `1px solid ${errors?.label ? theme.colors.error : "#ccc"}`,
-                                    fontSize: "14px",
-                                }}
-                            />
-                            {errors?.label && (
-                                <div
-                                    style={{
-                                        color: theme.colors.error,
-                                        fontSize: "12px",
-                                        marginTop: "4px",
-                                    }}
-                                >
-                                    {errors.label}
+
+                            {isEditing ? (
+                                <div style={{ display: "flex", gap: "8px" }}>
+                                    <button
+                                        type="button"
+                                        onClick={onCancelEditHotspot}
+                                        style={{
+                                            flex: 1,
+                                            padding: "8px",
+                                            background: "#f3f4f6",
+                                            color: "#374151",
+                                            border: `1px solid ${theme.colors.border}`,
+                                            borderRadius: "4px",
+                                            cursor: "pointer",
+                                            fontSize: "13px",
+                                            fontWeight: "600",
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        style={{
+                                            flex: 2,
+                                            padding: "8px",
+                                            background: theme.colors.primary,
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: "4px",
+                                            cursor: "pointer",
+                                            fontSize: "13px",
+                                            fontWeight: "600",
+                                        }}
+                                    >
+                                        Save Changes
+                                    </button>
                                 </div>
-                            )}
-                        </div>
-                        <div style={{ marginBottom: "8px" }}>
-                            <label
-                                style={{
-                                    display: "block",
-                                    fontSize: "12px",
-                                    marginBottom: "4px",
-                                }}
-                            >
-                                Target Scene
-                            </label>
-                            <select
-                                value={newHotspot.target_scene}
-                                onChange={(e) =>
-                                    setNewHotspot({
-                                        ...newHotspot,
-                                        target_scene: e.target.value,
-                                    })
-                                }
-                                style={{
-                                    width: "100%",
-                                    padding: "8px",
-                                    borderRadius: "4px",
-                                    border: `1px solid ${errors?.target_scene ? theme.colors.error : "#ccc"}`,
-                                    fontSize: "14px",
-                                }}
-                            >
-                                <option value="">Select Target Scene</option>
-                                {scenes
-                                    .filter((s) => s.id !== selectedScene?.id)
-                                    .map((scene) => (
-                                        <option key={scene.id} value={scene.id}>
-                                            {scene.title}
-                                        </option>
-                                    ))}
-                            </select>
-                            {errors?.target_scene && (
-                                <div
-                                    style={{
-                                        color: theme.colors.error,
-                                        fontSize: "12px",
-                                        marginTop: "4px",
-                                    }}
-                                >
-                                    {errors.target_scene}
-                                </div>
-                            )}
-                        </div>
-                        <div
-                            style={{
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                gap: "8px",
-                                marginBottom: "8px",
-                            }}
-                        >
-                            <div>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        fontSize: "12px",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    Yaw (°)
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    value={newHotspot.yaw}
-                                    onChange={(e) =>
-                                        setNewHotspot({
-                                            ...newHotspot,
-                                            yaw: e.target.value,
-                                        })
-                                    }
+                            ) : (
+                                <button
+                                    type="submit"
                                     style={{
                                         width: "100%",
                                         padding: "8px",
+                                        background: theme.colors.primary,
+                                        color: "white",
+                                        border: "none",
                                         borderRadius: "4px",
-                                        border: `1px solid ${errors?.yaw ? theme.colors.error : "#ccc"}`,
+                                        cursor: "pointer",
                                         fontSize: "14px",
-                                    }}
-                                />
-                                {errors?.yaw && (
-                                    <div
-                                        style={{
-                                            color: theme.colors.error,
-                                            fontSize: "12px",
-                                            marginTop: "4px",
-                                        }}
-                                    >
-                                        {errors.yaw}
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <label
-                                    style={{
-                                        display: "block",
-                                        fontSize: "12px",
-                                        marginBottom: "4px",
+                                        fontWeight: "600",
                                     }}
                                 >
-                                    Pitch (°)
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    value={newHotspot.pitch}
-                                    onChange={(e) =>
-                                        setNewHotspot({
-                                            ...newHotspot,
-                                            pitch: e.target.value,
-                                        })
-                                    }
-                                    style={{
-                                        width: "100%",
-                                        padding: "8px",
-                                        borderRadius: "4px",
-                                        border: `1px solid ${errors?.pitch ? theme.colors.error : "#ccc"}`,
-                                        fontSize: "14px",
-                                    }}
-                                />
-                                {errors?.pitch && (
-                                    <div
-                                        style={{
-                                            color: theme.colors.error,
-                                            fontSize: "12px",
-                                            marginTop: "4px",
-                                        }}
-                                    >
-                                        {errors.pitch}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <button
-                            type="submit"
-                            style={{
-                                width: "100%",
-                                padding: "8px",
-                                background: theme.colors.primary,
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "600",
-                            }}
-                        >
-                            Create Hotspot
-                        </button>
-                    </form>
-                </div>
-            </>
-        )}
-    </div>
-);
+                                    Create Hotspot
+                                </button>
+                            )}
+                        </form>
+                    </div>
+                </>
+            )}
+            </div>
+        </div>
+    );
+};

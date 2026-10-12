@@ -102,6 +102,9 @@ def scene_detail_admin(request, id):
         return error_response(ErrorCodes.NOT_FOUND, 'Scene not found', status_code=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PATCH':
+        is_start = request.data.get('is_start_scene')
+        if is_start is True or is_start == 'true' or is_start == 'True':
+            PanoramaScene.objects.filter(building=scene.building, is_start_scene=True).exclude(pk=scene.pk).update(is_start_scene=False)
         serializer = PanoramaSceneWriteSerializer(scene, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()

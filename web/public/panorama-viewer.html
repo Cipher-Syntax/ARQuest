@@ -6,7 +6,7 @@
             name="viewport"
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
-        <title>ARQuest 360 Panorama Walkthrough</title>
+        <title>360° Virtual Walkthrough</title>
         <style>
             * {
                 box-sizing: border-box;
@@ -40,26 +40,26 @@
                 left: 50%;
                 transform: translate(-50%, -50%);
                 color: #ffffff;
-                font-size: 14px;
+                font-size: 13px;
                 font-weight: 600;
                 letter-spacing: 0.3px;
-                background: rgba(18, 18, 20, 0.88);
-                padding: 14px 24px;
-                border-radius: 12px;
+                background: rgba(15, 17, 23, 0.88);
+                padding: 12px 22px;
+                border-radius: 24px;
                 pointer-events: none;
                 z-index: 30;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
                 display: flex;
                 align-items: center;
-                gap: 12px;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                backdrop-filter: blur(8px);
+                gap: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                backdrop-filter: blur(10px);
             }
             .spinner {
-                width: 20px;
-                height: 20px;
-                border: 2.5px solid rgba(255, 255, 255, 0.2);
-                border-top-color: #e11d48;
+                width: 18px;
+                height: 18px;
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-top-color: #8A1538;
                 border-radius: 50%;
                 animation: spin 0.8s linear infinite;
             }
@@ -67,118 +67,141 @@
                 to { transform: rotate(360deg); }
             }
 
-            /* Glassmorphism Header Bar */
-            #top-bar {
+            /* Google Street View Top Header Card */
+            #top-header {
                 position: absolute;
-                top: 16px;
+                top: 18px;
                 left: 20px;
-                right: 20px;
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
-                pointer-events: none;
+                flex-direction: column;
+                gap: 4px;
                 z-index: 20;
+                pointer-events: none;
             }
-            .header-badge {
+            .header-glass-card {
                 pointer-events: auto;
                 background: rgba(15, 17, 23, 0.82);
                 color: #ffffff;
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-size: 13px;
-                font-weight: 600;
+                padding: 10px 18px;
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                backdrop-filter: blur(12px);
+                max-width: 380px;
+            }
+            .building-tag {
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 1.2px;
+                text-transform: uppercase;
+                color: rgba(255, 255, 255, 0.65);
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-                backdrop-filter: blur(10px);
+                gap: 6px;
+                margin-bottom: 2px;
             }
-            .hint-pill {
-                pointer-events: auto;
-                background: rgba(15, 17, 23, 0.75);
-                color: rgba(255, 255, 255, 0.85);
-                padding: 7px 16px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 500;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                backdrop-filter: blur(10px);
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            .building-tag .dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: #8A1538;
+            }
+            .scene-title {
+                font-size: 15px;
+                font-weight: 700;
+                color: #ffffff;
+                letter-spacing: -0.2px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .interaction-hint {
+                font-size: 11px;
+                color: rgba(255, 255, 255, 0.6);
+                margin-top: 3px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
             }
 
-            /* Floating Controls (Zoom, Reset, Fullscreen) */
+            /* Google Street View Floating Toolbar (Right Side) */
             #controls-toolbar {
                 position: absolute;
-                bottom: 24px;
-                right: 24px;
+                top: 20px;
+                right: 20px;
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
+                gap: 6px;
                 z-index: 20;
             }
-            .ctrl-btn {
-                width: 40px;
-                height: 40px;
-                border-radius: 10px;
+            .ctrl-box {
                 background: rgba(15, 17, 23, 0.85);
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+                backdrop-filter: blur(10px);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            .ctrl-btn {
+                width: 38px;
+                height: 38px;
+                background: transparent;
                 color: #ffffff;
-                border: 1px solid rgba(255, 255, 255, 0.15);
+                border: none;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
-                font-size: 16px;
-                font-weight: bold;
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-                backdrop-filter: blur(8px);
+                font-size: 15px;
+                font-weight: 700;
                 transition: all 0.15s ease;
             }
             .ctrl-btn:hover {
-                background: #8A1538;
-                border-color: rgba(255, 255, 255, 0.3);
-                transform: scale(1.06);
+                background: rgba(255, 255, 255, 0.15);
+                color: #ffffff;
             }
             .ctrl-btn:active {
-                transform: scale(0.95);
+                background: #8A1538;
+            }
+            .ctrl-divider {
+                width: 100%;
+                height: 1px;
+                background: rgba(255, 255, 255, 0.1);
             }
 
-            /* Hotspots Navigation Dock */
-            #hotspots {
-                position: absolute;
-                bottom: 24px;
-                left: 50%;
-                transform: translateX(-50%);
-                display: flex;
-                gap: 10px;
-                flex-wrap: wrap;
-                justify-content: center;
-                max-width: 80%;
-                z-index: 15;
-            }
-            .hotspot-btn {
-                background: rgba(138, 21, 56, 0.92);
-                color: #ffffff;
-                border: 1.5px solid rgba(255, 255, 255, 0.85);
-                padding: 10px 18px;
-                border-radius: 24px;
-                font-size: 13px;
-                font-weight: 700;
-                cursor: pointer;
-                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            /* Google Street View Compass Dial */
+            #compass-widget {
+                width: 38px;
+                height: 38px;
+                background: rgba(15, 17, 23, 0.85);
+                border-radius: 50%;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+                backdrop-filter: blur(10px);
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                backdrop-filter: blur(6px);
+                justify-content: center;
+                cursor: pointer;
+                position: relative;
+                margin-bottom: 4px;
+                transition: transform 0.15s ease;
             }
-            .hotspot-btn:hover {
-                background: #a31b44;
-                transform: translateY(-2px) scale(1.03);
-                box-shadow: 0 6px 18px rgba(138, 21, 56, 0.6);
+            #compass-widget:hover {
+                transform: scale(1.08);
+                border-color: rgba(255, 255, 255, 0.3);
+            }
+            #compass-needle {
+                width: 22px;
+                height: 22px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.05s linear;
             }
 
-            /* Floating 3D Destination Labels */
+            /* Floating 3D Hover Tooltip */
             #floating-labels {
                 position: absolute;
                 top: 0;
@@ -190,85 +213,263 @@
             }
             .floating-label {
                 position: absolute;
-                background: rgba(15, 17, 23, 0.9);
+                background: rgba(15, 17, 23, 0.92);
                 color: #ffffff;
                 font-weight: 700;
-                padding: 6px 16px;
-                border-radius: 20px;
-                font-size: 13px;
+                padding: 6px 14px;
+                border-radius: 18px;
+                font-size: 12px;
                 pointer-events: none;
                 transform: translate(-50%, -100%);
                 opacity: 0;
                 white-space: nowrap;
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-                transition: opacity 0.2s;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+                transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
                 text-align: center;
-                border: 1.5px solid rgba(255, 255, 255, 0.9);
+                border: 1px solid rgba(255, 255, 255, 0.8);
                 display: flex;
                 align-items: center;
                 gap: 6px;
-                backdrop-filter: blur(6px);
+                backdrop-filter: blur(8px);
             }
             .floating-label .arrow-icon {
-                color: #ff6b8b;
-                font-size: 14px;
+                color: #ff476f;
+                font-size: 12px;
             }
             .floating-label::after {
                 content: '';
                 position: absolute;
                 top: 100%;
                 left: 50%;
-                margin-left: -6px;
-                border-width: 6px;
+                margin-left: -5px;
+                border-width: 5px;
                 border-style: solid;
-                border-color: rgba(15, 17, 23, 0.9) transparent transparent transparent;
+                border-color: rgba(15, 17, 23, 0.92) transparent transparent transparent;
             }
 
-            /* Camera Walk Flash Transition */
-            #flash-overlay {
+            /* Google Street View Connected Rooms / Hotspots Dock */
+            #hotspots-dock {
+                position: absolute;
+                bottom: 56px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+                max-width: 88vw;
+                z-index: 20;
+                pointer-events: none;
+            }
+            .hotspot-chip {
+                pointer-events: auto;
+                background: rgba(15, 17, 23, 0.88);
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 0.22);
+                padding: 8px 18px;
+                border-radius: 22px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+                backdrop-filter: blur(10px);
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .hotspot-chip:hover {
+                background: #8A1538;
+                border-color: rgba(255, 255, 255, 0.6);
+                transform: translateY(-2px) scale(1.04);
+                box-shadow: 0 8px 24px rgba(138, 21, 56, 0.6);
+            }
+            .hotspot-chip .chip-arrow {
+                color: #ff476f;
+                font-size: 13px;
+                transition: transform 0.15s ease;
+            }
+            .hotspot-chip:hover .chip-arrow {
+                color: #ffffff;
+                transform: translateX(2px);
+            }
+
+            /* Google Street View Collapsible Bottom Filmstrip Drawer */
+            #bottom-dock {
+                position: absolute;
+                bottom: 16px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                z-index: 20;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            #toggle-filmstrip-btn {
+                background: rgba(15, 17, 23, 0.85);
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                border-radius: 20px;
+                padding: 6px 14px;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.3px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+                backdrop-filter: blur(10px);
+                transition: all 0.15s ease;
+            }
+            #toggle-filmstrip-btn:hover {
+                background: #8A1538;
+                border-color: rgba(255, 255, 255, 0.3);
+            }
+            #filmstrip-container {
+                display: none;
+                margin-top: 10px;
+                background: rgba(12, 14, 20, 0.92);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 14px;
+                padding: 10px 14px;
+                box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+                backdrop-filter: blur(14px);
+                max-width: 90vw;
+                overflow-x: auto;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+            }
+            #filmstrip-container::-webkit-scrollbar {
+                height: 5px;
+            }
+            #filmstrip-container::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 4px;
+            }
+            #filmstrip-cards {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+            .filmstrip-card {
+                width: 105px;
+                flex-shrink: 0;
+                cursor: pointer;
+                border-radius: 8px;
+                overflow: hidden;
+                border: 1.5px solid rgba(255, 255, 255, 0.15);
+                background: #18181b;
+                transition: all 0.18s ease;
+                display: flex;
+                flex-direction: column;
+            }
+            .filmstrip-card:hover {
+                border-color: #ffffff;
+                transform: translateY(-2px);
+            }
+            .filmstrip-card.active {
+                border-color: #8A1538;
+                box-shadow: 0 0 12px rgba(138, 21, 56, 0.7);
+            }
+            .filmstrip-card img {
+                width: 100%;
+                height: 54px;
+                object-fit: cover;
+                display: block;
+            }
+            .filmstrip-card-title {
+                padding: 4px 6px;
+                font-size: 10px;
+                font-weight: 600;
+                color: #ffffff;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                text-align: center;
+                background: rgba(0, 0, 0, 0.6);
+            }
+
+            /* Cinematic Dolly Crossfade Transition Overlay */
+            #crossfade-overlay {
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: #ffffff;
+                background: #000000;
                 opacity: 0;
                 pointer-events: none;
-                transition: opacity 0.25s ease;
+                transition: opacity 0.35s ease;
                 z-index: 25;
             }
         </style>
     </head>
     <body>
-        <!-- Top Bar with Scene Title & Instructions -->
-        <div id="top-bar">
-            <div class="header-badge" id="scene-badge">
-                <span>📍</span>
-                <span id="scene-title-text">360° Panorama</span>
-            </div>
-            <div class="hint-pill">
-                <span>🖱️ Drag to look around</span>
-                <span style="opacity: 0.5; margin: 0 6px;">•</span>
-                <span>👆 Click ground arrows to walk</span>
+        <!-- Google Street View Top Header Card -->
+        <div id="top-header">
+            <div class="header-glass-card">
+                <div class="building-tag">
+                    <span class="dot"></span>
+                    <span id="building-name-text">ARQuest Campus Tour</span>
+                </div>
+                <div class="scene-title" id="scene-title-text">
+                    360° Panorama Walkthrough
+                </div>
+                <div class="interaction-hint">
+                    <span>🖱️ Drag to look</span>
+                    <span>•</span>
+                    <span>👆 Click floor chevrons to walk</span>
+                </div>
             </div>
         </div>
 
-        <!-- Floating Controls Toolbar -->
+        <!-- Google Street View Controls Panel (Right Side) -->
         <div id="controls-toolbar">
-            <button class="ctrl-btn" id="btn-zoom-in" title="Zoom In">+</button>
-            <button class="ctrl-btn" id="btn-zoom-out" title="Zoom Out">−</button>
-            <button class="ctrl-btn" id="btn-reset" title="Reset View">🔄</button>
-            <button class="ctrl-btn" id="btn-fullscreen" title="Toggle Fullscreen">⛶</button>
+            <!-- Compass Needle Dial -->
+            <div id="compass-widget" title="Face North (Click to Reorient)">
+                <div id="compass-needle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <polygon points="12,2 16,12 12,9 8,12" fill="#e11d48"/>
+                        <polygon points="12,22 16,12 12,9 8,12" fill="#ffffff" opacity="0.8"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Zoom & View Tools -->
+            <div class="ctrl-box">
+                <button class="ctrl-btn" id="btn-zoom-in" title="Zoom In (+)">+</button>
+                <div class="ctrl-divider"></div>
+                <button class="ctrl-btn" id="btn-zoom-out" title="Zoom Out (−)">−</button>
+                <div class="ctrl-divider"></div>
+                <button class="ctrl-btn" id="btn-reset" title="Reset to Entrance (Start Scene)">🔄</button>
+                <div class="ctrl-divider"></div>
+                <button class="ctrl-btn" id="btn-fullscreen" title="Toggle Fullscreen">⛶</button>
+            </div>
+        </div>
+
+        <!-- Connected Rooms / Hotspots Navigation Chips -->
+        <div id="hotspots-dock"></div>
+
+        <!-- Collapsible Bottom Filmstrip Drawer -->
+        <div id="bottom-dock">
+            <button id="toggle-filmstrip-btn" title="Show or hide scenes strip">
+                <span>🖼️ Browse Scenes</span>
+                <span id="filmstrip-arrow">▴</span>
+            </button>
+            <div id="filmstrip-container">
+                <div id="filmstrip-cards"></div>
+            </div>
         </div>
 
         <div id="loading">
             <div class="spinner"></div>
             <span id="loading-text">Loading 360° Scene...</span>
         </div>
-        <div id="flash-overlay"></div>
+        <div id="crossfade-overlay"></div>
         <canvas id="canvas"></canvas>
         <div id="floating-labels"></div>
-        <div id="hotspots"></div>
 
         <script type="importmap">
             {
@@ -280,24 +481,30 @@
         <script type="module">
             import * as THREE from "three";
 
-            let scene, camera, renderer, sphere, texture, animFrameId;
+            let scene, camera, renderer, sphereMesh, texture, animFrameId;
             let lon = 0,
                 lat = 0,
                 isDragging = false;
             let previousMousePosition = { x: 0, y: 0 };
+            let velocityLon = 0,
+                velocityLat = 0;
             let mouseMovedDistance = 0;
             let currentHotspots = [];
+            let allScenesList = [];
+            let currentSceneTitle = "";
             let hotspotGroups = [];
             let clickableHitboxes = [];
+            let hoveredHitbox = null;
             let rippleMeshes = [];
             let fov = 75;
             let defaultFov = 75;
-            let maxFov = 75;
-            let maxLat = 0;
+            let minFov = 30;
+            let maxFov = 85;
             let chevronTexture = null;
             let isTransitioning = false;
+            let filmstripOpen = false;
 
-            // Generate crisp Google Street View Ground Chevron Arrow Texture
+            // Generate authentic Google Street View Ground Chevron Texture
             function createGoogleStreetViewChevronTexture() {
                 const canvas = document.createElement("canvas");
                 canvas.width = 256;
@@ -306,76 +513,127 @@
 
                 ctx.clearRect(0, 0, 256, 256);
 
-                // Subtle shadow
-                ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-                ctx.shadowBlur = 12;
-                ctx.shadowOffsetY = 4;
-
-                // Outer pulsing rim
+                // 1. Soft Ambient Floor Shadow
+                const shadowGrad = ctx.createRadialGradient(128, 134, 40, 128, 134, 108);
+                shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0.35)");
+                shadowGrad.addColorStop(0.8, "rgba(0, 0, 0, 0.15)");
+                shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
                 ctx.beginPath();
-                ctx.arc(128, 128, 108, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+                ctx.arc(128, 134, 108, 0, Math.PI * 2);
+                ctx.fillStyle = shadowGrad;
                 ctx.fill();
 
-                // Disc body with brand maroon
+                // 2. Google Street View Frosted Glass Disc Body
+                const discGrad = ctx.createRadialGradient(128, 128, 20, 128, 128, 96);
+                discGrad.addColorStop(0, "rgba(255, 255, 255, 0.65)");
+                discGrad.addColorStop(0.7, "rgba(255, 255, 255, 0.45)");
+                discGrad.addColorStop(1, "rgba(255, 255, 255, 0.22)");
+
                 ctx.beginPath();
                 ctx.arc(128, 128, 96, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(138, 21, 56, 0.9)";
+                ctx.fillStyle = discGrad;
                 ctx.fill();
-                ctx.lineWidth = 5;
-                ctx.strokeStyle = "#ffffff";
+
+                // Disc rim
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
                 ctx.stroke();
 
-                ctx.shadowColor = "transparent";
+                // 3. Crisp High-Contrast Forward Double Chevron Arrow
+                ctx.lineJoin = "round";
+                ctx.lineCap = "round";
 
-                // Double Chevron Arrow pointing UP (Forward)
-                ctx.fillStyle = "#ffffff";
+                // Function to draw chevron with shadow & stroke for 100% ground visibility
+                function drawChevron(yOffset) {
+                    ctx.beginPath();
+                    ctx.moveTo(128, yOffset);
+                    ctx.lineTo(176, yOffset + 48);
+                    ctx.lineTo(162, yOffset + 62);
+                    ctx.lineTo(128, yOffset + 28);
+                    ctx.lineTo(94, yOffset + 62);
+                    ctx.lineTo(80, yOffset + 48);
+                    ctx.closePath();
 
-                // Top Chevron Arrow
-                ctx.beginPath();
-                ctx.moveTo(128, 56);
-                ctx.lineTo(176, 104);
-                ctx.lineTo(162, 118);
-                ctx.lineTo(128, 84);
-                ctx.lineTo(94, 118);
-                ctx.lineTo(80, 104);
-                ctx.closePath();
-                ctx.fill();
+                    // Dark outline for contrast on white tile floors
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+                    ctx.stroke();
 
-                // Bottom Chevron Arrow
-                ctx.beginPath();
-                ctx.moveTo(128, 112);
-                ctx.lineTo(176, 160);
-                ctx.lineTo(162, 174);
-                ctx.lineTo(128, 140);
-                ctx.lineTo(94, 174);
-                ctx.lineTo(80, 160);
-                ctx.closePath();
-                ctx.fill();
+                    // Pure white fill
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fill();
+                }
+
+                drawChevron(56);
+                drawChevron(112);
 
                 const tex = new THREE.CanvasTexture(canvas);
+                tex.colorSpace = THREE.SRGBColorSpace;
                 tex.needsUpdate = true;
                 return tex;
             }
 
             chevronTexture = createGoogleStreetViewChevronTexture();
 
-            function init(imageUrl, hotspots, sceneTitle) {
-                currentHotspots = hotspots || [];
+            let currentImageUrl = "";
+            let currentLoadRequestId = 0;
 
-                if (sceneTitle) {
-                    const badge = document.getElementById("scene-title-text");
-                    if (badge) badge.textContent = sceneTitle;
+            function createFallbackGridTexture(title) {
+                const canvas = document.createElement("canvas");
+                canvas.width = 2048;
+                canvas.height = 1024;
+                const ctx = canvas.getContext("2d");
+
+                // Deep modern dark gradient
+                const grad = ctx.createLinearGradient(0, 0, 0, 1024);
+                grad.addColorStop(0, "#080c14");
+                grad.addColorStop(0.48, "#141c2c");
+                grad.addColorStop(0.52, "#101624");
+                grad.addColorStop(1, "#070a12");
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 2048, 1024);
+
+                // Horizon accent band
+                ctx.strokeStyle = "rgba(138, 21, 56, 0.45)";
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(0, 512);
+                ctx.lineTo(2048, 512);
+                ctx.stroke();
+
+                // Spatial coordinate grid
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+                ctx.lineWidth = 1.5;
+                for (let x = 0; x <= 2048; x += 128) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, 1024);
+                    ctx.stroke();
+                }
+                for (let y = 0; y <= 1024; y += 64) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(2048, y);
+                    ctx.stroke();
                 }
 
-                if (sphere) {
-                    scene.remove(sphere);
-                    sphere.geometry.dispose();
-                    sphere.material.dispose();
-                    if (texture) texture.dispose();
-                }
+                // Centered Room Title
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 44px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(title || "360° Panorama Studio", 1024, 460);
 
-                // Cleanup existing hotspots
+                ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+                ctx.font = "24px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+                ctx.fillText("Interactive Walkthrough • Click chevrons or chips to navigate", 1024, 550);
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.colorSpace = THREE.SRGBColorSpace;
+                tex.needsUpdate = true;
+                return tex;
+            }
+
+            function cleanupHotspots() {
                 hotspotGroups.forEach((group) => {
                     scene.remove(group);
                     group.traverse((child) => {
@@ -385,8 +643,125 @@
                 });
                 hotspotGroups = [];
                 clickableHitboxes = [];
-                document.getElementById("floating-labels").innerHTML = "";
-                document.getElementById("hotspots").innerHTML = "";
+                hoveredHitbox = null;
+                const labels = document.getElementById("floating-labels");
+                if (labels) labels.innerHTML = "";
+            }
+
+            function renderHotspotChips() {
+                const container = document.getElementById("hotspots-dock");
+                if (!container) return;
+                container.innerHTML = "";
+                if (!currentHotspots || currentHotspots.length === 0) return;
+
+                currentHotspots.forEach((hotspot) => {
+                    const chip = document.createElement("button");
+                    chip.className = "hotspot-chip";
+                    chip.innerHTML = `<span class="chip-arrow">➔</span> <span>${hotspot.label || hotspot.target_scene_title || "Next Room"}</span>`;
+                    chip.onclick = (e) => {
+                        e.stopPropagation();
+                        triggerGoogleStreetViewStep(hotspot);
+                    };
+                    container.appendChild(chip);
+                });
+            }
+
+            function applyTextureToSphere(loadedTexture, isFallback = false) {
+                if (sphereMesh) {
+                    scene.remove(sphereMesh);
+                    sphereMesh.geometry.dispose();
+                    sphereMesh.material.dispose();
+                    sphereMesh = null;
+                    if (texture) {
+                        texture.dispose();
+                        texture = null;
+                    }
+                }
+                texture = loadedTexture;
+
+                const maxAnisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 16;
+                texture.anisotropy = maxAnisotropy;
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                texture.generateMipmaps = false;
+                texture.colorSpace = THREE.SRGBColorSpace;
+
+                const imgWidth = texture.image ? (texture.image.width || 4000) : 4000;
+                const imgHeight = texture.image ? (texture.image.height || 2000) : 2000;
+                const aspectRatio = imgWidth / imgHeight;
+
+                let geometry;
+                if (aspectRatio >= 1.6 && aspectRatio <= 2.4) {
+                    geometry = new THREE.SphereGeometry(500, 64, 40);
+                    geometry.scale(-1, 1, 1);
+                } else {
+                    const radius = 500;
+                    const circumference = 2 * Math.PI * radius;
+                    const cylinderHeight = (imgHeight / imgWidth) * circumference;
+                    geometry = new THREE.CylinderGeometry(radius, radius, cylinderHeight, 64, 1, true);
+                    geometry.scale(-1, 1, 1);
+                }
+
+                const material = new THREE.MeshBasicMaterial({ map: texture });
+                sphereMesh = new THREE.Mesh(geometry, material);
+                scene.add(sphereMesh);
+
+                fov = defaultFov;
+                camera.fov = fov;
+                camera.updateProjectionMatrix();
+                lat = 0;
+                lon = 0;
+                velocityLon = 0;
+                velocityLat = 0;
+
+                const loadingEl = document.getElementById("loading");
+                if (loadingEl) loadingEl.style.display = "none";
+
+                createGoogleStreetViewHotspots();
+                renderHotspotChips();
+                renderFilmstrip();
+
+                isTransitioning = false;
+                const crossfade = document.getElementById("crossfade-overlay");
+                if (crossfade) crossfade.style.opacity = "0";
+
+                notifyParent({ type: isFallback ? "fallback_loaded" : "loaded" });
+                if (!renderer.info.render.frame) animate();
+            }
+
+            function init(imageUrl, hotspots, sceneTitle, buildingName, allScenes) {
+                currentHotspots = hotspots || [];
+                currentSceneTitle = sceneTitle || "360° Scene";
+                if (allScenes && Array.isArray(allScenes)) {
+                    allScenesList = allScenes;
+                }
+                renderFilmstrip();
+                renderHotspotChips();
+
+                if (sceneTitle) {
+                    const badge = document.getElementById("scene-title-text");
+                    if (badge) badge.textContent = sceneTitle;
+                }
+                if (buildingName) {
+                    const bText = document.getElementById("building-name-text");
+                    if (bText) bText.textContent = buildingName;
+                }
+
+                // If texture is already loaded for this same image URL, just rebuild hotspots without reloading image
+                if (sphereMesh && texture && currentImageUrl === imageUrl) {
+                    createGoogleStreetViewHotspots();
+                    renderHotspotChips();
+                    renderFilmstrip();
+                    isTransitioning = false;
+                    const loadingEl = document.getElementById("loading");
+                    if (loadingEl) loadingEl.style.display = "none";
+                    const crossfade = document.getElementById("crossfade-overlay");
+                    if (crossfade) crossfade.style.opacity = "0";
+                    return;
+                }
+
+                currentImageUrl = imageUrl;
+                cleanupHotspots();
 
                 if (!scene) {
                     scene = new THREE.Scene();
@@ -394,7 +769,7 @@
                         fov,
                         window.innerWidth / window.innerHeight,
                         0.1,
-                        1000,
+                        1100,
                     );
                     camera.position.set(0, 0, 0.1);
                     renderer = new THREE.WebGLRenderer({
@@ -415,8 +790,25 @@
                     });
                 }
 
-                document.getElementById("loading").style.display = "flex";
-                document.getElementById("loading-text").textContent = "Loading 360° Scene...";
+                const loadingEl = document.getElementById("loading");
+                if (loadingEl) {
+                    loadingEl.style.display = "flex";
+                    document.getElementById("loading-text").textContent = "Loading 360° Scene...";
+                }
+
+                const requestId = ++currentLoadRequestId;
+                const timeoutId = setTimeout(() => {
+                    if (requestId === currentLoadRequestId && !sphereMesh) {
+                        console.warn("Panorama load timeout reached. Applying fallback grid...");
+                        applyTextureToSphere(createFallbackGridTexture(currentSceneTitle), true);
+                    }
+                }, 4000);
+
+                if (!imageUrl) {
+                    clearTimeout(timeoutId);
+                    applyTextureToSphere(createFallbackGridTexture(currentSceneTitle), true);
+                    return;
+                }
 
                 function loadPanoramaTexture(url, retryWithProxy = true) {
                     const loader = new THREE.TextureLoader();
@@ -424,68 +816,27 @@
                     loader.load(
                         url,
                         (loadedTexture) => {
-                            texture = loadedTexture;
-
-                            // Direct crisp 1:1 pixel rendering
-                            const maxAnisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 16;
-                            texture.anisotropy = maxAnisotropy;
-                            texture.minFilter = THREE.LinearFilter;
-                            texture.magFilter = THREE.LinearFilter;
-                            texture.generateMipmaps = false;
-                            texture.colorSpace = THREE.SRGBColorSpace;
-
-                            // Exact Cylinder Geometry Matching Mobile App
-                            const imgWidth = texture.image.width || 4000;
-                            const imgHeight = texture.image.height || 1000;
-                            const radius = 500;
-                            const circumference = 2 * Math.PI * radius;
-                            const cylinderHeight = (imgHeight / imgWidth) * circumference;
-
-                            const geometry = new THREE.CylinderGeometry(
-                                radius,
-                                radius,
-                                cylinderHeight,
-                                64,
-                                1,
-                                true,
-                            );
-                            geometry.scale(-1, 1, 1);
-
-                            // Unlit basic material preserves true image brightness & vibrant colors
-                            const material = new THREE.MeshBasicMaterial({
-                                map: texture,
-                            });
-                            sphere = new THREE.Mesh(geometry, material);
-                            scene.add(sphere);
-
-                            // Calculate ideal FOV and vertical bounds
-                            maxFov = 2 * Math.atan(cylinderHeight / 2 / radius) * (180 / Math.PI);
-                            defaultFov = Math.min(75, maxFov);
-                            fov = defaultFov;
-                            camera.fov = fov;
-                            camera.updateProjectionMatrix();
-
-                            maxLat = Math.max(0, (maxFov - fov) / 2);
-                            lat = 0;
-
-                            document.getElementById("loading").style.display = "none";
-                            createGoogleStreetViewHotspots();
-                            renderHotspots();
-
-                            notifyParent({ type: "loaded" });
-                            if (!renderer.info.render.frame) animate();
+                            clearTimeout(timeoutId);
+                            if (requestId !== currentLoadRequestId) {
+                                loadedTexture.dispose();
+                                return;
+                            }
+                            applyTextureToSphere(loadedTexture, false);
                         },
                         undefined,
                         (error) => {
-                            if (retryWithProxy && url.startsWith("http") && !url.includes("images.weserv.nl")) {
-                                console.warn("Direct texture load failed (likely S3 CORS). Retrying via high-res CORS proxy fallback...");
+                            const isPrivate = url.includes("localhost") || url.includes("127.0.0.1") || url.includes("10.") || url.includes("192.168.");
+                            if (retryWithProxy && url.startsWith("http") && !isPrivate && !url.includes("images.weserv.nl")) {
+                                console.warn("Direct texture load failed. Retrying via CORS proxy fallback...");
                                 const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}&output=jpg&q=100&we`;
                                 loadPanoramaTexture(proxyUrl, false);
                                 return;
                             }
-                            console.error("Texture load failed:", error);
-                            document.getElementById("loading-text").innerHTML = "Failed to load panorama image";
-                            notifyParent({ type: "error", message: "Failed to load panorama image" });
+                            clearTimeout(timeoutId);
+                            console.warn("Texture load failed. Applying schematic grid fallback...", error);
+                            if (requestId === currentLoadRequestId) {
+                                applyTextureToSphere(createFallbackGridTexture(currentSceneTitle), true);
+                            }
                         },
                     );
                 }
@@ -494,13 +845,25 @@
             }
 
             function setupToolbarEvents() {
+                // Compass click -> smoothly face North (lon = 0)
+                document.getElementById("compass-widget").onclick = () => {
+                    const duration = 300;
+                    const startLon = lon;
+                    const startTime = performance.now();
+                    function animCompass(now) {
+                        const prog = Math.min((now - startTime) / duration, 1.0);
+                        const ease = prog * (2 - prog);
+                        lon = startLon * (1 - ease);
+                        if (prog < 1.0) requestAnimationFrame(animCompass);
+                    }
+                    requestAnimationFrame(animCompass);
+                };
+
                 // Zoom In
                 document.getElementById("btn-zoom-in").onclick = () => {
-                    fov = Math.max(25, fov - 10);
+                    fov = Math.max(minFov, fov - 10);
                     camera.fov = fov;
                     camera.updateProjectionMatrix();
-                    maxLat = Math.max(0, (maxFov - fov) / 2);
-                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
                 };
 
                 // Zoom Out
@@ -508,17 +871,19 @@
                     fov = Math.min(maxFov, fov + 10);
                     camera.fov = fov;
                     camera.updateProjectionMatrix();
-                    maxLat = Math.max(0, (maxFov - fov) / 2);
-                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
                 };
 
-                // Reset View
+                // Reset View (Reset to Start Scene & forward orientation)
                 document.getElementById("btn-reset").onclick = () => {
                     lon = 0;
                     lat = 0;
+                    velocityLon = 0;
+                    velocityLat = 0;
                     fov = defaultFov;
                     camera.fov = fov;
                     camera.updateProjectionMatrix();
+
+                    notifyParent({ type: "reset_to_start" });
                 };
 
                 // Fullscreen
@@ -529,14 +894,34 @@
                         document.exitFullscreen().catch(() => {});
                     }
                 };
+
+                // Toggle Bottom Filmstrip Drawer
+                const toggleBtn = document.getElementById("toggle-filmstrip-btn");
+                const filmstripBox = document.getElementById("filmstrip-container");
+                const arrowSpan = document.getElementById("filmstrip-arrow");
+                toggleBtn.onclick = () => {
+                    filmstripOpen = !filmstripOpen;
+                    const hotspotsDock = document.getElementById("hotspots-dock");
+                    if (filmstripOpen) {
+                        filmstripBox.style.display = "block";
+                        arrowSpan.textContent = "▾";
+                        if (hotspotsDock) hotspotsDock.style.bottom = "165px";
+                    } else {
+                        filmstripBox.style.display = "none";
+                        arrowSpan.textContent = "▴";
+                        if (hotspotsDock) hotspotsDock.style.bottom = "56px";
+                    }
+                };
             }
 
             function setupControls() {
                 const canvas = document.getElementById("canvas");
 
-                // Mouse Drag
+                // Mouse Drag with Momentum Tracking
                 canvas.addEventListener("mousedown", (e) => {
                     isDragging = true;
+                    velocityLon = 0;
+                    velocityLat = 0;
                     mouseMovedDistance = 0;
                     previousMousePosition = { x: e.clientX, y: e.clientY };
                 });
@@ -547,13 +932,16 @@
                         const deltaY = e.clientY - previousMousePosition.y;
                         mouseMovedDistance += Math.abs(deltaX) + Math.abs(deltaY);
 
-                        lon -= deltaX * 0.15;
-                        lat += deltaY * 0.15;
-                        lat = Math.max(-maxLat, Math.min(maxLat, lat));
+                        velocityLon = -deltaX * 0.12;
+                        velocityLat = deltaY * 0.12;
+
+                        lon += velocityLon;
+                        lat += velocityLat;
+                        lat = Math.max(-85, Math.min(85, lat));
                         previousMousePosition = { x: e.clientX, y: e.clientY };
                     }
 
-                    // Hover raycasting for pointer cursor
+                    // Hover Raycasting for Ground Chevron Glow & Pointer
                     if (!isDragging && clickableHitboxes.length > 0) {
                         const raycaster = new THREE.Raycaster();
                         const mouse = new THREE.Vector2(
@@ -562,10 +950,21 @@
                         );
                         raycaster.setFromCamera(mouse, camera);
                         const intersects = raycaster.intersectObjects(clickableHitboxes);
+
                         if (intersects.length > 0) {
                             canvas.classList.add("pointer-cursor");
+                            const hit = intersects[0].object;
+                            if (hoveredHitbox !== hit) {
+                                if (hoveredHitbox) setChevronHoverState(hoveredHitbox, false);
+                                hoveredHitbox = hit;
+                                setChevronHoverState(hoveredHitbox, true);
+                            }
                         } else {
                             canvas.classList.remove("pointer-cursor");
+                            if (hoveredHitbox) {
+                                setChevronHoverState(hoveredHitbox, false);
+                                hoveredHitbox = null;
+                            }
                         }
                     }
                 });
@@ -574,15 +973,13 @@
                     isDragging = false;
                 });
 
-                // Mouse wheel zoom
+                // Smooth Mouse Wheel Zoom
                 canvas.addEventListener("wheel", (e) => {
                     e.preventDefault();
                     fov += e.deltaY * 0.05;
-                    fov = Math.max(25, Math.min(maxFov, fov));
+                    fov = Math.max(minFov, Math.min(maxFov, fov));
                     camera.fov = fov;
                     camera.updateProjectionMatrix();
-                    maxLat = Math.max(0, (maxFov - fov) / 2);
-                    lat = Math.max(-maxLat, Math.min(maxLat, lat));
                 }, { passive: false });
 
                 // Touch Drag & Pinch Zoom
@@ -594,6 +991,8 @@
                         initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
                     } else if (e.touches.length === 1) {
                         isDragging = true;
+                        velocityLon = 0;
+                        velocityLat = 0;
                         mouseMovedDistance = 0;
                         previousMousePosition = {
                             x: e.touches[0].clientX,
@@ -609,19 +1008,21 @@
                         const distance = Math.sqrt(dx * dx + dy * dy);
                         const delta = distance - initialPinchDistance;
                         fov -= delta * 0.1;
-                        fov = Math.max(25, Math.min(maxFov, fov));
+                        fov = Math.max(minFov, Math.min(maxFov, fov));
                         camera.fov = fov;
                         camera.updateProjectionMatrix();
                         initialPinchDistance = distance;
-                        maxLat = Math.max(0, (maxFov - fov) / 2);
-                        lat = Math.max(-maxLat, Math.min(maxLat, lat));
                     } else if (isDragging && e.touches.length === 1) {
                         const deltaX = e.touches[0].clientX - previousMousePosition.x;
                         const deltaY = e.touches[0].clientY - previousMousePosition.y;
                         mouseMovedDistance += Math.abs(deltaX) + Math.abs(deltaY);
-                        lon -= deltaX * 0.15;
-                        lat += deltaY * 0.15;
-                        lat = Math.max(-maxLat, Math.min(maxLat, lat));
+
+                        velocityLon = -deltaX * 0.12;
+                        velocityLat = deltaY * 0.12;
+
+                        lon += velocityLon;
+                        lat += velocityLat;
+                        lat = Math.max(-85, Math.min(85, lat));
                         previousMousePosition = {
                             x: e.touches[0].clientX,
                             y: e.touches[0].clientY,
@@ -633,9 +1034,9 @@
                     isDragging = false;
                 });
 
-                // Single Click on Arrow
+                // Single Click on Floor Chevron
                 canvas.addEventListener("click", (e) => {
-                    if (mouseMovedDistance > 12 || isTransitioning) return;
+                    if (mouseMovedDistance > 10 || isTransitioning) return;
 
                     const raycaster = new THREE.Raycaster();
                     const mouse = new THREE.Vector2(
@@ -646,11 +1047,11 @@
                     const intersects = raycaster.intersectObjects(clickableHitboxes);
                     if (intersects.length > 0) {
                         const hotspot = intersects[0].object.userData.hotspot;
-                        triggerStreetViewStep(hotspot, intersects[0].point);
+                        triggerGoogleStreetViewStep(hotspot, intersects[0].point);
                     }
                 });
 
-                // Double Click / Double Tap to step forward
+                // Double Click anywhere on ground to step towards that doorway
                 canvas.addEventListener("dblclick", (e) => {
                     if (isTransitioning || clickableHitboxes.length === 0) return;
 
@@ -660,11 +1061,10 @@
                         -(e.clientY / window.innerHeight) * 2 + 1,
                     );
                     raycaster.setFromCamera(mouse, camera);
-                    
                     const intersects = raycaster.intersectObjects(clickableHitboxes);
                     if (intersects.length > 0) {
                         const hotspot = intersects[0].object.userData.hotspot;
-                        triggerStreetViewStep(hotspot, intersects[0].point);
+                        triggerGoogleStreetViewStep(hotspot, intersects[0].point);
                         return;
                     }
 
@@ -685,13 +1085,33 @@
                     });
 
                     if (closestHotspot) {
-                        triggerStreetViewStep(closestHotspot);
+                        triggerGoogleStreetViewStep(closestHotspot);
                     }
                 });
             }
 
-            // Google Street View Zoom-Glide Forward Walk Animation
-            function triggerStreetViewStep(hotspot, clickPoint) {
+            function setChevronHoverState(hitboxMesh, isHovered) {
+                const group = hitboxMesh.userData.parentGroup;
+                const label = document.getElementById(hitboxMesh.userData.labelId);
+                const chevron = hitboxMesh.userData.chevronMesh;
+
+                if (isHovered) {
+                    if (chevron) chevron.scale.set(1.12, 1.12, 1.12);
+                    if (label) {
+                        label.style.opacity = "1";
+                        label.style.transform = "translate(-50%, -100%) scale(1.05)";
+                    }
+                } else {
+                    if (chevron) chevron.scale.set(1.0, 1.0, 1.0);
+                    if (label) {
+                        label.style.opacity = "0";
+                        label.style.transform = "translate(-50%, -100%) scale(1.0)";
+                    }
+                }
+            }
+
+            // Google Street View Forward Dolly & Crossfade Walkthrough Animation
+            function triggerGoogleStreetViewStep(hotspot, clickPoint) {
                 if (isTransitioning) return;
                 isTransitioning = true;
 
@@ -699,25 +1119,32 @@
                     spawnClickRipple(clickPoint);
                 }
 
-                const targetSceneId = hotspot.target_scene_id || hotspot.target_scene;
+                const rawTargetId = hotspot.target_scene_id || hotspot.target_scene;
+                const targetSceneId = (typeof rawTargetId === "object" && rawTargetId) ? rawTargetId.id : rawTargetId;
+                if (!targetSceneId) {
+                    console.warn("Hotspot has no target scene:", hotspot);
+                    isTransitioning = false;
+                    return;
+                }
+
                 const startFov = camera.fov;
-                const targetFov = 35; // Forward walk compression
-                const duration = 260;
+                const targetFov = 38; // Dolly zoom forward into room
+                const duration = 280;
                 const startTime = performance.now();
 
-                const flash = document.getElementById("flash-overlay");
-                if (flash) flash.style.opacity = "0.35";
+                const crossfade = document.getElementById("crossfade-overlay");
+                if (crossfade) crossfade.style.opacity = "0.45";
 
-                function animateZoom(currentTime) {
+                function animateStep(currentTime) {
                     const elapsed = currentTime - startTime;
                     const progress = Math.min(elapsed / duration, 1.0);
-                    const ease = progress * progress;
+                    const ease = progress * (2 - progress); // smooth quadratic ease-out
 
                     camera.fov = startFov + (targetFov - startFov) * ease;
                     camera.updateProjectionMatrix();
 
                     if (progress < 1.0) {
-                        requestAnimationFrame(animateZoom);
+                        requestAnimationFrame(animateStep);
                     } else {
                         notifyParent({
                             type: "hotspot_clicked",
@@ -726,22 +1153,22 @@
                         });
 
                         setTimeout(() => {
-                            if (flash) flash.style.opacity = "0";
+                            if (crossfade) crossfade.style.opacity = "0";
                             camera.fov = defaultFov;
                             camera.updateProjectionMatrix();
                             isTransitioning = false;
                         }, 200);
                     }
                 }
-                requestAnimationFrame(animateZoom);
+                requestAnimationFrame(animateStep);
             }
 
             function spawnClickRipple(point) {
-                const geom = new THREE.RingGeometry(2, 6, 32);
+                const geom = new THREE.RingGeometry(2, 8, 32);
                 const mat = new THREE.MeshBasicMaterial({
                     color: 0xffffff,
                     transparent: true,
-                    opacity: 0.9,
+                    opacity: 0.85,
                     side: THREE.DoubleSide,
                 });
                 const ripple = new THREE.Mesh(geom, mat);
@@ -757,9 +1184,9 @@
             }
 
             function createGoogleStreetViewHotspots() {
+                cleanupHotspots();
                 currentHotspots.forEach((hotspot) => {
                     const yaw = hotspot.yaw || 0;
-                    // Lower ground angle for Google Street View look
                     const pitch = (hotspot.pitch !== undefined && hotspot.pitch !== 0) ? hotspot.pitch : -18;
                     const phi = THREE.MathUtils.degToRad(90 - pitch);
                     const theta = THREE.MathUtils.degToRad(yaw - 90);
@@ -771,9 +1198,10 @@
 
                     const group = new THREE.Group();
                     group.position.set(x, y, z);
+                    group.lookAt(0, y, 0); // Always point group directly towards camera/origin so -Z points forward
                     group.userData = { originalY: y, yaw: yaw };
 
-                    // 1. Street View Floor Chevron Disc
+                    // 1. Google Street View Floor Chevron Disc
                     const discGeom = new THREE.PlaneGeometry(62, 62);
                     const discMat = new THREE.MeshBasicMaterial({
                         map: chevronTexture,
@@ -783,15 +1211,14 @@
                     });
                     const chevronMesh = new THREE.Mesh(discGeom, discMat);
                     chevronMesh.rotation.x = -Math.PI / 2.3;
-                    chevronMesh.rotation.z = THREE.MathUtils.degToRad(90 - yaw);
                     group.add(chevronMesh);
 
-                    // 2. Animated Pulsing Outer Ring
-                    const groundRingGeom = new THREE.RingGeometry(34, 38, 32);
+                    // 2. Subtle Ground Outer Ring
+                    const groundRingGeom = new THREE.RingGeometry(34, 37, 32);
                     const groundRingMat = new THREE.MeshBasicMaterial({
                         color: 0xffffff,
                         transparent: true,
-                        opacity: 0.6,
+                        opacity: 0.45,
                         side: THREE.DoubleSide,
                         depthWrite: false,
                     });
@@ -799,7 +1226,7 @@
                     groundRing.rotation.x = -Math.PI / 2.3;
                     group.add(groundRing);
 
-                    // 3. Clickable Hitbox Sphere
+                    // 3. Invisible Raycast Hitbox Sphere
                     const hitBoxGeom = new THREE.SphereGeometry(36, 16, 16);
                     const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
                     const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
@@ -821,26 +1248,45 @@
                     const labelDiv = document.createElement("div");
                     labelDiv.className = "floating-label";
                     labelDiv.id = hitBox.userData.labelId;
-                    labelDiv.innerHTML = `<span class="arrow-icon">➔</span> <span>${hotspot.label || hotspot.target_scene_title || "Next Scene"}</span>`;
+                    labelDiv.innerHTML = `<span class="arrow-icon">➔</span> <span>${hotspot.label || hotspot.target_scene_title || "Walk Forward"}</span>`;
                     labelContainer.appendChild(labelDiv);
                 });
             }
 
-            function renderHotspots() {
-                const container = document.getElementById("hotspots");
+            function renderFilmstrip() {
+                const container = document.getElementById("filmstrip-cards");
+                if (!container) return;
                 container.innerHTML = "";
-                currentHotspots.forEach((hotspot) => {
-                    const btn = document.createElement("button");
-                    btn.className = "hotspot-btn";
-                    btn.innerHTML = `<span>➔</span> <span>${hotspot.label || hotspot.target_scene_title || "Next Scene"}</span>`;
-                    btn.onclick = () => triggerStreetViewStep(hotspot);
-                    container.appendChild(btn);
+
+                allScenesList.forEach((sceneItem) => {
+                    const card = document.createElement("div");
+                    card.className = "filmstrip-card" + (sceneItem.title === currentSceneTitle ? " active" : "");
+                    card.innerHTML = `
+                        <img src="${sceneItem.image_url}" alt="${sceneItem.title}" onerror="this.style.display='none'" />
+                        <div class="filmstrip-card-title">${sceneItem.title}</div>
+                    `;
+                    card.onclick = () => {
+                        triggerGoogleStreetViewStep({ target_scene_id: sceneItem.id, label: sceneItem.title });
+                    };
+                    container.appendChild(card);
                 });
             }
 
             function animate() {
                 animFrameId = requestAnimationFrame(animate);
 
+                // Inertia & Friction Momentum Damping
+                if (!isDragging) {
+                    lon += velocityLon;
+                    lat += velocityLat;
+                    velocityLon *= 0.88;
+                    velocityLat *= 0.88;
+                    if (Math.abs(velocityLon) < 0.001) velocityLon = 0;
+                    if (Math.abs(velocityLat) < 0.001) velocityLat = 0;
+                }
+                lat = Math.max(-85, Math.min(85, lat));
+
+                // Camera Look Target
                 const phi = THREE.MathUtils.degToRad(90 - lat);
                 const theta = THREE.MathUtils.degToRad(lon - 90);
                 const cameraTarget = new THREE.Vector3(
@@ -850,25 +1296,27 @@
                 );
                 camera.lookAt(cameraTarget);
 
-                const time = Date.now() * 0.005;
+                // Update Compass Needle Orientation
+                const compassNeedle = document.getElementById("compass-needle");
+                if (compassNeedle) {
+                    compassNeedle.style.transform = `rotate(${-lon}deg)`;
+                }
+
+                const time = Date.now() * 0.004;
 
                 // Animate chevron arrows and floating badges
                 clickableHitboxes.forEach((mesh, index) => {
                     const group = mesh.userData.parentGroup;
-                    const chevron = mesh.userData.chevronMesh;
                     const ring = mesh.userData.groundRing;
 
-                    // Subtle floating bob
-                    group.position.y = group.userData.originalY + Math.sin(time * 2.5 + index) * 3.5;
-
-                    // Pulse outer ring
-                    const pulse = 1.0 + Math.abs(Math.sin(time * 3 + index)) * 0.25;
+                    // Subtle breathing pulse
+                    const pulse = 1.0 + Math.abs(Math.sin(time * 2.5 + index)) * 0.18;
                     if (ring) {
                         ring.scale.set(pulse, pulse, pulse);
-                        ring.material.opacity = 0.7 - (pulse - 1.0) * 1.5;
+                        ring.material.opacity = 0.5 - (pulse - 1.0) * 1.5;
                     }
 
-                    // 3D to 2D projection for floating label badge
+                    // 3D to 2D screen projection for floating label badge
                     const pos = group.position.clone();
                     pos.y += 24.0;
                     pos.project(camera);
@@ -876,9 +1324,9 @@
                     const label = document.getElementById(mesh.userData.labelId);
                     if (label) {
                         if (pos.z > 1 || pos.x < -1.1 || pos.x > 1.1 || pos.y < -1.1 || pos.y > 1.1) {
-                            label.style.opacity = "0";
+                            label.style.display = "none";
                         } else {
-                            label.style.opacity = "1";
+                            label.style.display = "flex";
                             const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
                             const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
                             label.style.left = x + "px";
@@ -901,7 +1349,7 @@
                     } else {
                         const scale = 1.0 + prog * 4.0;
                         r.mesh.scale.set(scale, scale, scale);
-                        r.mesh.material.opacity = 0.9 * (1.0 - prog);
+                        r.mesh.material.opacity = 0.85 * (1.0 - prog);
                     }
                 }
 
@@ -918,7 +1366,7 @@
                 try {
                     const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
                     if (data && data.type === "init") {
-                        init(data.imageUrl, data.hotspots, data.title);
+                        init(data.imageUrl, data.hotspots, data.title, data.buildingName, data.allScenes);
                     }
                 } catch (e) {
                     console.error("Message parse error:", e);
