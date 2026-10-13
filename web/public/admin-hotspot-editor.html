@@ -200,6 +200,41 @@
             .floating-label.restricted::after {
                 border-color: #dc2626 transparent transparent transparent;
             }
+
+            #cache-badge {
+                position: absolute;
+                bottom: 20px;
+                left: 20px;
+                z-index: 100;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(8px);
+                border: 1px solid #e2e8f0;
+                border-radius: 20px;
+                padding: 6px 14px;
+                font-family: system-ui, sans-serif;
+                font-size: 12px;
+                color: #1e293b;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                display: none;
+                align-items: center;
+                gap: 8px;
+            }
+            #cache-badge button {
+                background: none;
+                border: 1px solid #cbd5e1;
+                border-radius: 10px;
+                padding: 2px 8px;
+                font-size: 10px;
+                font-weight: 600;
+                color: #8A1538;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            #cache-badge button:hover {
+                background: #8A1538;
+                color: #ffffff;
+                border-color: #8A1538;
+            }
         </style>
     </head>
     <body>
@@ -218,6 +253,12 @@
             <p>2. Double-Click anywhere on the model to place a hotspot.</p>
             <p>3. Click on an existing hotspot to Edit or Delete it.</p>
             <p>4. Click "Save All Hotspots" when finished.</p>
+        </div>
+
+        <div id="cache-badge">
+            <span id="cache-status-icon" style="color: #16a34a; font-weight: bold;">⚡ Cached</span>
+            <span id="cache-status-text" style="color: #64748b; font-size: 11px;">Instant load</span>
+            <button id="btn-reload-cache" title="Clear cache and re-download latest model from server">Reload</button>
         </div>
 
         <div id="hotspot-form">
@@ -391,83 +432,299 @@
                     }
                 });
 
+                THREE.Cache.enabled = true;
                 loadModel(modelUrl);
                 animate();
             }
 
-            function loadModel(url) {
+            const CACHE_NAME = "arquest-3d-cache-v1";
+            let currentModelUrl = null;
+
+            async function loadModel(url, forceRefresh = false) {
                 if (!url) return;
+                currentModelUrl = url;
+
+                const progressBar = document.getElementById("progress-bar");
+                const progressText = document.getElementById("progress-text");
+                const loadingEl = document.getElementById("loading");
+                const cacheBadge = document.getElementById("cache-badge");
+                const cacheStatusIcon = document.getElementById("cache-status-icon");
+                const cacheStatusText = document.getElementById("cache-status-text");
+
+                if (loadingEl) {
+                    loadingEl.style.display = "flex";
+                    // Restore original HTML if it was previously set to an error message
+                    if (!document.getElementById("progress-bar")) {
+                        loadingEl.innerHTML = `
+                            <div>LOADING 3D ENGINE...</div>
+                            <div class="progress-container">
+                                <div id="progress-bar"></div>
+                            </div>
+                            <div id="progress-text">Connecting to server...</div>
+                        `;
+                    }
+                }
+                const activeProgressBar = document.getElementById("progress-bar");
+                const activeProgressText = document.getElementById("progress-text");
+                if (activeProgressBar) {
+                    activeProgressBar.style.width = "0%";
+                    activeProgressBar.style.animation = "none";
+                }
+
+                // If reloading an already loaded model, clean up previous model
+                if (model) {
+                    scene.remove(model);
+                    model = null;
+                }
+                // Clear existing hotspot meshes if any
+                hotspotMeshes.forEach((m) => {
+                    if (m.userData && m.userData.parentGroup) {
+                        scene.remove(m.userData.parentGroup);
+                    }
+                    if (m.userData && m.userData.labelId) {
+                        const lbl = document.getElementById(m.userData.labelId);
+                        if (lbl) lbl.remove();
+                    }
+                });
+                hotspotMeshes = [];
+
                 const loader = new GLTFLoader();
-                
                 const dracoLoader = new DRACOLoader();
-                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.6/");
                 loader.setDRACOLoader(dracoLoader);
-                loader.setCrossOrigin('anonymous');
-                
+                loader.setCrossOrigin("anonymous");
+
+                const onModelLoaded = (gltf, fromCache = false) => {
+                    model = gltf.scene;
+                    scene.add(model);
+
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+
+                    camera.position.set(
+                        center.x,
+                        center.y + size.y / 2,
+                        center.z + size.z,
+                    );
+                    controls.target.copy(center);
+                    controls.update();
+
+                    if (loadingEl) loadingEl.style.display = "none";
+
+                    if (cacheBadge && cacheStatusIcon && cacheStatusText) {
+                        cacheBadge.style.display = "flex";
+                        if (fromCache) {
+                            cacheStatusIcon.textContent = "⚡ Cached";
+                            cacheStatusText.textContent = "Instant load from cache";
+                        } else {
+                            cacheStatusIcon.textContent = "💾 Cached";
+                            cacheStatusText.textContent = "Saved to local cache";
+                        }
+                    }
+
+                    if (editorMode === "PICK_ANCHOR") {
+                        const overlay = document.getElementById("ui-overlay");
+                        if (overlay) {
+                            overlay.innerHTML = `
+                                <h3 style="color:#8A1538;margin:0 0 6px 0;font-size:15px;font-weight:700;">3D Anchor Picker</h3>
+                                <p style="margin:0 0 3px 0;color:#64748b;font-size:12px;">1. Drag to rotate, Right-click to pan, Scroll to zoom.</p>
+                                <p style="margin:0;color:#8A1538;font-weight:bold;font-size:12px;">2. Double-Click anywhere on the entrance doorway or room to pick coordinates.</p>
+                            `;
+                        }
+                        const saveBtn = document.querySelector(".btn-save-all");
+                        if (saveBtn) saveBtn.style.display = "none";
+                    }
+
+                    // Re-render saved hotspots
+                    hotspotsData.forEach((h) => {
+                        if (!h.id)
+                            h.id = Math.random().toString(36).substr(2, 9);
+                        createHotspotMesh(h);
+                    });
+                };
+
+                const onModelProgress = (xhr) => {
+                    const pb = document.getElementById("progress-bar");
+                    const pt = document.getElementById("progress-text");
+                    if (xhr.total > 0) {
+                        const percent = (xhr.loaded / xhr.total) * 100;
+                        if (pb) pb.style.width = Math.round(percent) + "%";
+                        if (pt) pt.innerText = `Downloading Model: ${Math.round(percent)}%`;
+                    } else {
+                        const mbs = (xhr.loaded / (1024 * 1024)).toFixed(2);
+                        if (pt) pt.innerText = `Downloading Model: ${mbs} MB loaded...`;
+                        if (pb) {
+                            pb.style.width = "100%";
+                            pb.style.animation = "pulse 1s infinite";
+                        }
+                    }
+                };
+
+                const onModelError = (error) => {
+                    console.error("Failed to load model", error);
+                    const lEl = document.getElementById("loading");
+                    if (lEl) {
+                        lEl.innerHTML =
+                            '<div style="color:#ff4444;font-weight:bold;">FAILED TO LOAD 3D MODEL</div>';
+                    }
+                };
+
+                // Setup reload button click handler
+                const reloadBtn = document.getElementById("btn-reload-cache");
+                if (reloadBtn) {
+                    reloadBtn.onclick = async () => {
+                        reloadBtn.disabled = true;
+                        reloadBtn.textContent = "Clearing...";
+                        if ("caches" in window) {
+                            try {
+                                const c = await caches.open(CACHE_NAME);
+                                await c.delete(url);
+                            } catch (e) {
+                                console.warn("Failed deleting cache entry", e);
+                            }
+                        }
+                        reloadBtn.disabled = false;
+                        reloadBtn.textContent = "Reload";
+                        loadModel(url, true);
+                    };
+                }
+
+                // --- 1. Check Browser Cache Storage API ---
+                let cache = null;
+                let cachedResponse = null;
+                const hasCacheApi = "caches" in window;
+
+                if (hasCacheApi && !forceRefresh) {
+                    try {
+                        cache = await caches.open(CACHE_NAME);
+                        cachedResponse = await cache.match(url);
+                    } catch (err) {
+                        console.warn("[Cache API] Lookup error, proceeding to network:", err);
+                    }
+                } else if (hasCacheApi) {
+                    try {
+                        cache = await caches.open(CACHE_NAME);
+                    } catch (err) {
+                        console.warn("[Cache API] Open error:", err);
+                    }
+                }
+
+                if (cachedResponse) {
+                    // Cache Hit! Instant load from persistent storage
+                    try {
+                        if (activeProgressText) activeProgressText.innerText = "⚡ Loading from local cache (Instant)...";
+                        if (activeProgressBar) activeProgressBar.style.width = "100%";
+
+                        const blob = await cachedResponse.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+
+                        loader.load(
+                            blobUrl,
+                            (gltf) => {
+                                URL.revokeObjectURL(blobUrl);
+                                onModelLoaded(gltf, true);
+                            },
+                            undefined,
+                            (blobErr) => {
+                                URL.revokeObjectURL(blobUrl);
+                                console.warn("[Cache API] Error parsing cached blob, falling back to network:", blobErr);
+                                loader.load(url, (gltf) => onModelLoaded(gltf, false), onModelProgress, onModelError);
+                            }
+                        );
+                        return;
+                    } catch (readErr) {
+                        console.warn("[Cache API] Error reading cached response, falling back to network:", readErr);
+                    }
+                }
+
+                // --- 2. Cache Miss: Stream fetch with progress and store into Cache API ---
+                if (hasCacheApi) {
+                    try {
+                        if (activeProgressText) activeProgressText.innerText = "Connecting to server...";
+                        const response = await fetch(url, { mode: "cors" });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                        const contentLength = response.headers.get("content-length");
+                        const total = contentLength ? parseInt(contentLength, 10) : 0;
+                        let loaded = 0;
+                        let blob = null;
+
+                        if (response.body && typeof response.body.getReader === "function") {
+                            const reader = response.body.getReader();
+                            const chunks = [];
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                chunks.push(value);
+                                loaded += value.length;
+                                if (total > 0) {
+                                    const percent = Math.round((loaded / total) * 100);
+                                    if (activeProgressBar) activeProgressBar.style.width = percent + "%";
+                                    if (activeProgressText) activeProgressText.innerText = `Downloading Model: ${percent}%`;
+                                } else {
+                                    const mbs = (loaded / (1024 * 1024)).toFixed(2);
+                                    if (activeProgressText) activeProgressText.innerText = `Downloading Model: ${mbs} MB...`;
+                                    if (activeProgressBar) {
+                                        activeProgressBar.style.width = "100%";
+                                        activeProgressBar.style.animation = "pulse 1s infinite";
+                                    }
+                                }
+                            }
+                            blob = new Blob(chunks, {
+                                type: response.headers.get("content-type") || "model/gltf-binary",
+                            });
+                        } else {
+                            blob = await response.blob();
+                        }
+
+                        // Store in cache for subsequent opens
+                        if (cache && blob && blob.size > 0) {
+                            try {
+                                const responseToCache = new Response(blob.slice(), {
+                                    headers: {
+                                        "Content-Type": blob.type || "model/gltf-binary",
+                                        "Content-Length": blob.size.toString(),
+                                        "X-ARQuest-Cached-At": new Date().toISOString(),
+                                    },
+                                });
+                                await cache.put(url, responseToCache);
+                                console.log("[Cache API] Stored 3D model in persistent cache:", url);
+                            } catch (putErr) {
+                                console.warn("[Cache API] Failed to store in cache:", putErr);
+                            }
+                        }
+
+                        if (activeProgressText) activeProgressText.innerText = "Parsing 3D scene...";
+                        if (activeProgressBar) activeProgressBar.style.width = "100%";
+
+                        const blobUrl = URL.createObjectURL(blob);
+                        loader.load(
+                            blobUrl,
+                            (gltf) => {
+                                URL.revokeObjectURL(blobUrl);
+                                onModelLoaded(gltf, false);
+                            },
+                            undefined,
+                            (loadErr) => {
+                                URL.revokeObjectURL(blobUrl);
+                                console.warn("[Cache API] Blob parse error, falling back to direct GLTFLoader:", loadErr);
+                                loader.load(url, (gltf) => onModelLoaded(gltf, false), onModelProgress, onModelError);
+                            }
+                        );
+                        return;
+                    } catch (fetchErr) {
+                        console.warn("[Cache API] Fetch stream failed (likely CORS or network), falling back to standard loader:", fetchErr);
+                        // Fall back to standard Three.js loader
+                    }
+                }
+
+                // --- 3. Direct Three.js GLTFLoader fallback ---
                 loader.load(
                     url,
-                    (gltf) => {
-                        model = gltf.scene;
-                        scene.add(model);
-
-                        const box = new THREE.Box3().setFromObject(model);
-                        const center = box.getCenter(new THREE.Vector3());
-                        const size = box.getSize(new THREE.Vector3());
-
-                        camera.position.set(
-                            center.x,
-                            center.y + size.y / 2,
-                            center.z + size.z,
-                        );
-                        controls.target.copy(center);
-                        controls.update();
-
-                        document.getElementById("loading").style.display =
-                            "none";
-
-                        if (editorMode === "PICK_ANCHOR") {
-                            const overlay = document.getElementById("ui-overlay");
-                            if (overlay) {
-                                overlay.innerHTML = `
-                                    <h3 style="color:#8A1538;margin:0 0 6px 0;font-size:15px;font-weight:700;">3D Anchor Picker</h3>
-                                    <p style="margin:0 0 3px 0;color:#64748b;font-size:12px;">1. Drag to rotate, Right-click to pan, Scroll to zoom.</p>
-                                    <p style="margin:0;color:#8A1538;font-weight:bold;font-size:12px;">2. Double-Click anywhere on the entrance doorway or room to pick coordinates.</p>
-                                `;
-
-                            }
-                            const saveBtn = document.querySelector(".btn-save-all");
-                            if (saveBtn) saveBtn.style.display = "none";
-                        }
-
-                        // Re-render saved hotspots
-                        hotspotsData.forEach((h) => {
-                            if (!h.id)
-                                h.id = Math.random().toString(36).substr(2, 9);
-                            createHotspotMesh(h);
-                        });
-                    },
-                    (xhr) => {
-                        const progressBar = document.getElementById('progress-bar');
-                        const progressText = document.getElementById('progress-text');
-                        if (xhr.total > 0) {
-                            const percent = (xhr.loaded / xhr.total) * 100;
-                            if (progressBar) progressBar.style.width = Math.round(percent) + '%';
-                            if (progressText) progressText.innerText = `Downloading Model: ${Math.round(percent)}%`;
-                        } else {
-                            // If lengthComputable is false (e.g. gzip without content-length)
-                            const mbs = (xhr.loaded / (1024 * 1024)).toFixed(2);
-                            if (progressText) progressText.innerText = `Downloading Model: ${mbs} MB loaded...`;
-                            if (progressBar) {
-                                progressBar.style.width = '100%';
-                                progressBar.style.animation = 'pulse 1s infinite';
-                            }
-                        }
-                    },
-                    (error) => {
-                        console.error("Failed to load model", error);
-                        document.getElementById("loading").innerHTML =
-                            '<div style="color:#ff4444;font-weight:bold;">FAILED TO LOAD 3D MODEL</div>';
-                    },
+                    (gltf) => onModelLoaded(gltf, false),
+                    onModelProgress,
+                    onModelError
                 );
             }
 
