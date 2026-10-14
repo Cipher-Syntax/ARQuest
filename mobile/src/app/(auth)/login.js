@@ -122,6 +122,7 @@ export default function LoginScreen() {
                     params: {
                         username,
                         email: unverifiedEmail,
+                        from: "login",
                     },
                 });
                 return;

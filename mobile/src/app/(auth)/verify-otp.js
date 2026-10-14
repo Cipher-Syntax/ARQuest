@@ -14,6 +14,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
+import { CheckCircle, AlertCircle } from "lucide-react-native";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 
@@ -24,13 +25,21 @@ export default function VerifyOTP() {
 
     const email = params?.email || "";
     const username = params?.username;
-    const cameFromLogin = !params?.email; // no email = redirected from login due to unverified account
+    const isFromLogin = params?.from === "login" || (!params?.email && !params?.from);
+
+    const getInitialMessage = () => {
+        if (isFromLogin) {
+            return "Your email isn't verified yet. A new verification code has been sent to your registered email.";
+        }
+        if (email) {
+            return `A 6-digit verification code has been sent to ${email}. Please check your inbox or spam folder.`;
+        }
+        return "A 6-digit verification code has been sent to your registered email.";
+    };
 
     const [otp, setOtp] = useState("");
     const [error, setError] = useState("");
-    const [message, setMessage] = useState(
-        cameFromLogin ? "Your email isn't verified yet. A new code has been sent to your registered email." : ""
-    );
+    const [message, setMessage] = useState(getInitialMessage);
     const [isResending, setIsResending] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
 
@@ -40,7 +49,7 @@ export default function VerifyOTP() {
             router.replace("/(auth)/login");
             return;
         }
-        if (cameFromLogin && email) {
+        if (isFromLogin && email) {
             resendOTP(email).catch(() => {
                 // Non-fatal — user can still tap "Resend Code" manually
             });
@@ -87,7 +96,11 @@ export default function VerifyOTP() {
         
         try {
             await resendOTP(email);
-            setMessage("A new code has been sent to your email.");
+            setMessage(
+                email
+                    ? `A new 6-digit code has been sent to ${email}. Please check your inbox or spam folder.`
+                    : "A new 6-digit code has been sent to your email."
+            );
             setOtp("");
         } catch (err) {
             console.log("Resend OTP error:", err);
@@ -129,8 +142,18 @@ export default function VerifyOTP() {
                         </View>
 
                         <View style={styles.formCard}>
-                            {error ? <Text style={styles.error}>{error}</Text> : null}
-                            {message ? <Text style={styles.message}>{message}</Text> : null}
+                            {error ? (
+                                <View style={styles.errorBox}>
+                                    <AlertCircle color="#EF4444" size={18} style={styles.bannerIcon} />
+                                    <Text style={styles.errorTextBanner}>{error}</Text>
+                                </View>
+                            ) : null}
+                            {message ? (
+                                <View style={styles.messageBox}>
+                                    <CheckCircle color={theme.colors.success} size={18} style={styles.bannerIcon} />
+                                    <Text style={styles.messageText}>{message}</Text>
+                                </View>
+                            ) : null}
 
                             <View style={styles.inputWrapper}>
                                 <View style={[styles.inputContainer, fieldErrors.otp && styles.inputError]}>
@@ -281,27 +304,45 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         textAlign: 'center',
     },
-    error: {
-        color: '#EF4444',
-        marginBottom: 15,
-        textAlign: "center",
-        fontSize: 14,
-        fontWeight: "600",
-        backgroundColor: "#FEF2F2",
-        padding: 12,
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: '#FEF2F2',
+        borderWidth: 1,
+        borderColor: '#FECACA',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
         borderRadius: 6,
-        overflow: 'hidden',
+        marginBottom: 16,
     },
-    message: {
-        color: theme.colors.success,
-        marginBottom: 15,
-        textAlign: "center",
-        fontSize: 14,
-        fontWeight: "600",
-        backgroundColor: "rgba(56, 142, 60, 0.1)",
-        padding: 12,
+    errorTextBanner: {
+        flex: 1,
+        color: '#DC2626',
+        fontSize: 13,
+        fontWeight: '600',
+        lineHeight: 18,
+    },
+    messageBox: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: 'rgba(56, 142, 60, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(56, 142, 60, 0.25)',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
         borderRadius: 6,
-        overflow: 'hidden',
+        marginBottom: 16,
+    },
+    messageText: {
+        flex: 1,
+        color: '#15803D',
+        fontSize: 13,
+        fontWeight: '600',
+        lineHeight: 18,
+    },
+    bannerIcon: {
+        marginRight: 10,
+        marginTop: 1,
     },
     mainButton: {
         borderRadius: 6,

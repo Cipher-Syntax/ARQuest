@@ -63,6 +63,7 @@ export default function RegisterScreen() {
                 params: { 
                     username: formData.username,
                     email: returnedEmail,
+                    from: "register",
                 }
             });
         } catch (err) {
