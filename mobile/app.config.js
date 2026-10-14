@@ -22,6 +22,7 @@ export default {
 
         android: {
             package: "com.arquest.app",
+            usesCleartextTraffic: true,
             googleServicesFile: "./google-services.json",
             adaptiveIcon: {
                 backgroundColor: "#E6F4FE",

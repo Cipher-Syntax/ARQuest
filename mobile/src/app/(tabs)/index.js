@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import {
     View,
@@ -162,11 +162,14 @@ export default function HomeScreen() {
 
     useEffect(() => {
         if (webViewReady && webViewRef.current && buildings.length > 0) {
+            const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
+            const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
             const message = JSON.stringify({
                 type: "update",
                 buildings: buildings.slice(0, 5), // Just a few for preview
                 unlockedIds: buildings.map((b) => b.id), // Pretend all unlocked for preview map
-                mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
+                mapboxToken: token,
+                apiBase: apiBase,
                 userLocation: location,
             });
             webViewRef.current.postMessage(message);
@@ -215,7 +218,16 @@ export default function HomeScreen() {
         loadData();
     }, []);
 
-    const mapHtml = require("../../../assets/buildings-map.html");
+    const { mapHtmlString } = require("../../../assets/buildings-map");
+
+    const mapHtml = useMemo(() => {
+        const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
+        const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
+        return mapHtmlString
+            .replaceAll("__MAPBOX_TOKEN__", token)
+            .replaceAll("__ARQUEST_API_BASE__", apiBase)
+            .replaceAll("__ARQUEST_AUTH_TOKEN__", "");
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -1118,7 +1130,7 @@ export default function HomeScreen() {
                                 <WebView
                                     ref={webViewRef}
                                     onLoadEnd={() => setWebViewReady(true)}
-                                    source={mapHtml}
+                                    source={{ html: mapHtml, baseUrl: "https://api.mapbox.com/" }}
                                     style={styles.mapPreviewWebview}
                                     javaScriptEnabled={true}
                                     domStorageEnabled={true}
