@@ -10,6 +10,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db import models
 from rest_framework.throttling import AnonRateThrottle
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
