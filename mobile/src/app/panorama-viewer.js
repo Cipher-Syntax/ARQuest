@@ -11,7 +11,6 @@ import { WebView } from "react-native-webview";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { DeviceMotion } from "expo-sensors";
 import ViewerHeader from "../components/viewer/ViewerHeader";
 import { theme } from "../theme/tokens";
 import { api } from "../services";
@@ -29,71 +28,6 @@ export default function PanoramaViewerScreen() {
     const [currentScene, setCurrentScene] = useState(null);
     const [localImageUrl, setLocalImageUrl] = useState(null);
     const webViewRef = useRef(null);
-    const gyroSubscriptionRef = useRef(null);
-
-    // ── Native Gyroscope Bridge for Panorama ──────────────────────────────
-    // Android WebViews never fire deviceorientation events, so we read
-    // DeviceMotion natively and post the values into the WebView at ~30fps.
-    useEffect(() => {
-        let active = true;
-
-        const getOrientAngleDeg = async () => {
-            try {
-                const info = await ScreenOrientation.getOrientationAsync();
-                if (info === 3) return 270; // LANDSCAPE_LEFT
-                if (info === 4) return 90;  // LANDSCAPE_RIGHT
-                return 0;
-            } catch {
-                return 90;
-            }
-        };
-
-        const startGyro = async () => {
-            DeviceMotion.setUpdateInterval(33); // ~30fps
-            let orientAngleDeg = await getOrientAngleDeg();
-
-            const orientSub = ScreenOrientation.addOrientationChangeListener(async () => {
-                orientAngleDeg = await getOrientAngleDeg();
-            });
-
-            // Tell the WebView to enable gyro mode
-            if (webViewRef.current) {
-                webViewRef.current.postMessage(JSON.stringify({ type: "gyro_start" }));
-            }
-
-            gyroSubscriptionRef.current = DeviceMotion.addListener((motionData) => {
-                if (!active || !webViewRef.current || !motionData.rotation) return;
-                const { alpha, beta, gamma } = motionData.rotation;
-                const toDeg = 180 / Math.PI;
-                webViewRef.current.postMessage(
-                    JSON.stringify({
-                        type: "gyro_data",
-                        alpha: alpha * toDeg,
-                        beta:  beta  * toDeg,
-                        gamma: gamma * toDeg,
-                        orientAngle: orientAngleDeg,
-                    })
-                );
-            });
-
-            gyroSubscriptionRef.current._orientSub = orientSub;
-        };
-
-        startGyro();
-
-        return () => {
-            active = false;
-            if (gyroSubscriptionRef.current) {
-                if (gyroSubscriptionRef.current._orientSub) {
-                    ScreenOrientation.removeOrientationChangeListener(
-                        gyroSubscriptionRef.current._orientSub,
-                    );
-                }
-                gyroSubscriptionRef.current.remove();
-                gyroSubscriptionRef.current = null;
-            }
-        };
-    }, []);
 
     // ── Screen orientation: lock to landscape for 360 viewer ──
     useFocusEffect(
@@ -154,6 +88,14 @@ export default function PanoramaViewerScreen() {
                             type: "init",
                             imageUrl: resolvedUrl,
                             hotspots: currentScene.hotspots || [],
+                            title: currentScene.title || "Room View",
+                            buildingName: buildingName || walkthrough?.building_name || "Campus Walkthrough",
+                            allScenes: walkthrough?.scenes?.map((s) => ({
+                                id: s.id,
+                                title: s.title,
+                                image_url: s.image_url,
+                                is_start_scene: Boolean(s.id === walkthrough.start_scene?.id),
+                            })) || [],
                         }),
                     );
                 }
@@ -163,7 +105,7 @@ export default function PanoramaViewerScreen() {
                 isCancelled = true;
             };
         }
-    }, [currentScene]);
+    }, [currentScene, walkthrough, buildingName]);
 
     useEffect(() => {
         return () => {
@@ -215,22 +157,28 @@ export default function PanoramaViewerScreen() {
             const data = JSON.parse(event.nativeEvent.data);
             console.log("WebView message:", data);
 
-            if (data.type === "loaded" || data.type === "scene_loaded") {
+            if (data.type === "loaded" || data.type === "scene_loaded" || data.type === "fallback_loaded") {
                 setLoading(false);
             } else if (data.type === "hotspot_clicked") {
                 console.log(
                     "Hotspot clicked, target_scene_id:",
                     data.target_scene_id,
                 );
-                console.log("Available scenes:", walkthrough?.scenes);
+                const rawTargetId = data.target_scene_id;
+                const targetId = typeof rawTargetId === "object" && rawTargetId ? rawTargetId.id : rawTargetId;
                 const targetScene = walkthrough?.scenes?.find(
-                    (s) => s.id === data.target_scene_id,
+                    (s) => s.id === targetId || String(s.id) === String(targetId),
                 );
                 if (targetScene) {
                     console.log("Loading scene:", targetScene.title);
                     setCurrentScene(targetScene);
                 } else {
-                    console.log("Scene not found");
+                    console.log("Scene not found:", targetId);
+                }
+            } else if (data.type === "reset_to_start") {
+                const start = walkthrough?.scenes?.find((s) => s.is_start_scene) || walkthrough?.start_scene || walkthrough?.scenes?.[0];
+                if (start) {
+                    setCurrentScene(start);
                 }
             } else if (data.type === "error") {
                 setLoading(false);
@@ -265,7 +213,7 @@ export default function PanoramaViewerScreen() {
                 </View>
             ) : null}
 
-            {/* Gamified Floating Back Button */}
+            {/* Floating Back Button */}
             <TouchableOpacity
                 style={styles.floatingBackButton}
                 onPress={handleBack}
@@ -273,17 +221,9 @@ export default function PanoramaViewerScreen() {
                 <Ionicons
                     name="close"
                     size={24}
-                    color={theme.colors.arHighlight}
+                    color="#FFFFFF"
                 />
             </TouchableOpacity>
-
-            {/* Gamified WMSU HUD Overlay - Title (Top) */}
-            <View style={styles.hudTopContainer} pointerEvents="none">
-                <Text style={styles.buildingName}>
-                    {buildingName || "UNKNOWN"}
-                </Text>
-                <Text style={styles.hudSubtitle}>360 WALKTHROUGH ACTIVE</Text>
-            </View>
 
             {walkthrough && currentScene && (
                 <ErrorBoundary
@@ -297,21 +237,24 @@ export default function PanoramaViewerScreen() {
                         style={styles.webview}
                         onMessage={handleMessage}
                         onLoad={() => {
-                            if (webViewRef.current && currentScene) {
+                            if (webViewRef.current && currentScene && walkthrough) {
                                 setTimeout(() => {
-                                    // Send panorama scene data
                                     webViewRef.current.postMessage(
                                         JSON.stringify({
                                             type: "init",
                                             imageUrl: currentScene.image_url,
                                             hotspots: currentScene.hotspots || [],
+                                            title: currentScene.title || "Room View",
+                                            buildingName: buildingName || walkthrough?.building_name || "Campus Walkthrough",
+                                            allScenes: walkthrough?.scenes?.map((s) => ({
+                                                id: s.id,
+                                                title: s.title,
+                                                image_url: s.image_url,
+                                                is_start_scene: Boolean(s.id === walkthrough.start_scene?.id),
+                                            })) || [],
                                         }),
                                     );
-                                    // Activate gyroscope mode in the HTML viewer
-                                    webViewRef.current.postMessage(
-                                        JSON.stringify({ type: "gyro_start" }),
-                                    );
-                                }, 1000);
+                                }, 300);
                             }
                         }}
                         javaScriptEnabled={true}
@@ -353,33 +296,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         zIndex: 20,
-    },
-    hudTopContainer: {
-        position: "absolute",
-        top: 20,
-        left: 20,
-        zIndex: 10,
-        alignItems: "flex-start",
-    },
-    buildingName: {
-        fontSize: 16,
-        fontWeight: "900",
-        color: theme.colors.arHighlight,
-        letterSpacing: 3,
-        textTransform: "uppercase",
-        textShadowColor: "rgba(0, 0, 0, 0.75)",
-        textShadowOffset: { width: -1, height: 1 },
-        textShadowRadius: 10,
-    },
-    hudSubtitle: {
-        fontSize: 10,
-        color: theme.colors.success,
-        fontWeight: "bold",
-        letterSpacing: 2,
-        marginTop: 4,
-        textShadowColor: "rgba(0, 0, 0, 0.75)",
-        textShadowOffset: { width: -1, height: 1 },
-        textShadowRadius: 10,
     },
     loadingContainer: {
         position: "absolute",
