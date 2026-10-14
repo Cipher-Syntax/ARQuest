@@ -203,9 +203,102 @@ export default function BuildingsScreen() {
     const [originQuery, setOriginQuery] = useState("");
     const [isOriginFocused, setIsOriginFocused] = useState(false);
     const [routeOrigin, setRouteOrigin] = useState(null);
+    const [calculatedRoute, setCalculatedRoute] = useState(null);
+    const [isRouteLoading, setIsRouteLoading] = useState(false);
+    const activeRouteKeyRef = useRef("");
 
     const webViewRef = useRef(null);
     const [webViewReady, setWebViewReady] = useState(false);
+
+    const fetchRouteData = async (target, origin = null) => {
+        if (!target) return null;
+        let fromLat, fromLng;
+        if (origin) {
+            fromLat = parseFloat(origin.latitude);
+            fromLng = parseFloat(origin.longitude);
+        } else if (location && location.latitude && location.longitude) {
+            fromLat = parseFloat(location.latitude);
+            fromLng = parseFloat(location.longitude);
+        } else {
+            // Default WMSU campus center
+            fromLat = 6.9125;
+            fromLng = 122.0594;
+        }
+
+        try {
+            const res = await api.get("/api/navigation/route/", {
+                params: {
+                    from_lat: fromLat,
+                    from_lng: fromLng,
+                    to_building_id: target.id,
+                },
+            });
+
+            if (res.data?.success && res.data?.data?.features?.[0]) {
+                const feat = res.data.data.features[0];
+                const coords = feat.geometry?.coordinates;
+                if (Array.isArray(coords) && coords.length >= 2) {
+                    return {
+                        coordinates: coords,
+                        distanceMeters: feat.properties?.distance_meters,
+                        estimatedMinutes: feat.properties?.estimated_minutes,
+                        isFallback: Boolean(feat.properties?.fallback),
+                    };
+                }
+            }
+        } catch (err) {
+            console.log(
+                "[BuildingsScreen] Route calculation notice:",
+                err?.response?.data || err?.message
+            );
+        }
+
+        // Fallback straight line if server route is unavailable
+        const targetLat = parseFloat(target.latitude);
+        const targetLng = parseFloat(target.longitude);
+        if (
+            !isNaN(fromLat) &&
+            !isNaN(fromLng) &&
+            !isNaN(targetLat) &&
+            !isNaN(targetLng)
+        ) {
+            return {
+                coordinates: [
+                    [fromLng, fromLat],
+                    [targetLng, targetLat],
+                ],
+                distanceMeters: null,
+                estimatedMinutes: null,
+                isFallback: true,
+            };
+        }
+        return null;
+    };
+
+    const triggerDrawRoute = async (target, origin = null) => {
+        if (!target || !webViewRef.current) return;
+        setIsRouteLoading(true);
+        try {
+            const route = await fetchRouteData(target, origin);
+            if (route && webViewRef.current) {
+                setCalculatedRoute(route);
+                const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
+                const message = createBridgeMessage("draw_route", {
+                    buildingId: target.id,
+                    sourceBuildingId: origin ? origin.id : null,
+                    coordinates: route.coordinates,
+                    distanceMeters: route.distanceMeters,
+                    estimatedMinutes: route.estimatedMinutes,
+                    isFallback: route.isFallback,
+                    apiBase: apiBase,
+                    authToken: authToken,
+                });
+                webViewRef.current.postMessage(message);
+            }
+        } finally {
+            setIsRouteLoading(false);
+        }
+    };
 
     useEffect(() => {
         const fetchBuildings = async () => {
@@ -250,19 +343,18 @@ export default function BuildingsScreen() {
         }
     }, [targetBuildingId, allBuildings]);
 
-    // Send draw_route only when navigation is actively started
+    // Send draw_route when route navigation is active and parameters change
     useEffect(() => {
-        if (isRouteActive && routeTarget && webViewReady && webViewRef.current) {
-            const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
-            const message = createBridgeMessage("draw_route", {
-                buildingId: routeTarget.id,
-                sourceBuildingId: routeOrigin ? routeOrigin.id : null,
-                apiBase: apiBase,
-                authToken: authToken,
-            });
-            webViewRef.current.postMessage(message);
+        if (isRouteActive && routeTarget && webViewReady) {
+            const routeKey = `${routeTarget.id}_${routeOrigin ? routeOrigin.id : "gps"}`;
+            if (activeRouteKeyRef.current !== routeKey) {
+                activeRouteKeyRef.current = routeKey;
+                triggerDrawRoute(routeTarget, routeOrigin);
+            }
+        } else if (!isRouteActive) {
+            activeRouteKeyRef.current = "";
         }
-    }, [isRouteActive, routeTarget, routeOrigin, webViewReady, location, authToken]);
+    }, [isRouteActive, routeTarget, routeOrigin, webViewReady]);
 
     const handleMessage = (event) => {
         const result = parseBridgeMessage(event.nativeEvent.data);
@@ -394,6 +486,9 @@ export default function BuildingsScreen() {
     );
 
     const routeDistance = useMemo(() => {
+        if (calculatedRoute?.distanceMeters) {
+            return calculatedRoute.distanceMeters;
+        }
         if (!routeTarget) return null;
         let lat1, lon1;
         if (routeOrigin) {
@@ -416,7 +511,7 @@ export default function BuildingsScreen() {
             return Math.round(dist);
         }
         return null;
-    }, [routeTarget, routeOrigin, location]);
+    }, [calculatedRoute, routeTarget, routeOrigin, location]);
 
     const handleSelectRouteTarget = (building) => {
         if (role === "visitor") {
@@ -430,6 +525,8 @@ export default function BuildingsScreen() {
         setSearchQuery(building.name);
         setIsSearchFocused(false);
         setIsRouteActive(false);
+        setCalculatedRoute(null);
+        activeRouteKeyRef.current = "";
 
         if (webViewRef.current) {
             const message = createBridgeMessage("clear_route");
@@ -442,24 +539,18 @@ export default function BuildingsScreen() {
         setOriginQuery(building.name);
         setIsOriginFocused(false);
 
-        if (isRouteActive && routeTarget && webViewRef.current) {
-            const message = createBridgeMessage("draw_route", {
-                buildingId: routeTarget.id,
-                sourceBuildingId: building.id,
-            });
-            webViewRef.current.postMessage(message);
+        if (isRouteActive && routeTarget) {
+            activeRouteKeyRef.current = `${routeTarget.id}_${building.id}`;
+            triggerDrawRoute(routeTarget, building);
         }
     };
 
     const handleClearOrigin = () => {
         setRouteOrigin(null);
         setOriginQuery("");
-        if (isRouteActive && routeTarget && webViewRef.current) {
-            const message = createBridgeMessage("draw_route", {
-                buildingId: routeTarget.id,
-                sourceBuildingId: null,
-            });
-            webViewRef.current.postMessage(message);
+        if (isRouteActive && routeTarget) {
+            activeRouteKeyRef.current = `${routeTarget.id}_gps`;
+            triggerDrawRoute(routeTarget, null);
         }
     };
 
@@ -467,6 +558,8 @@ export default function BuildingsScreen() {
         setRouteTarget(null);
         setSearchQuery("");
         setIsRouteActive(false);
+        setCalculatedRoute(null);
+        activeRouteKeyRef.current = "";
         setTurnHUD({ visible: false, turnType: "STRAIGHT", distance: 0, instruction: "" });
 
         if (webViewRef.current) {
@@ -486,20 +579,14 @@ export default function BuildingsScreen() {
         }
         if (!routeTarget) return;
         setIsRouteActive(true);
-        if (webViewRef.current) {
-            const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
-            const message = createBridgeMessage("draw_route", {
-                buildingId: routeTarget.id,
-                sourceBuildingId: routeOrigin ? routeOrigin.id : null,
-                apiBase: apiBase,
-                authToken: authToken,
-            });
-            webViewRef.current.postMessage(message);
-        }
+        activeRouteKeyRef.current = `${routeTarget.id}_${routeOrigin ? routeOrigin.id : "gps"}`;
+        triggerDrawRoute(routeTarget, routeOrigin);
     };
 
     const handleStopRoute = () => {
         setIsRouteActive(false);
+        setCalculatedRoute(null);
+        activeRouteKeyRef.current = "";
         setTurnHUD({ visible: false, turnType: "STRAIGHT", distance: 0, instruction: "" });
         if (webViewRef.current) {
             const message = createBridgeMessage("clear_route");
@@ -519,6 +606,8 @@ export default function BuildingsScreen() {
             setRouteOrigin(null);
             setOriginQuery("");
             setIsRouteActive(false);
+            setCalculatedRoute(null);
+            activeRouteKeyRef.current = "";
             setQuickModalVisible(false);
             if (webViewRef.current) {
                 const message = createBridgeMessage("clear_route");
@@ -1289,9 +1378,16 @@ export default function BuildingsScreen() {
                                 style={styles.startNavBtn}
                                 onPress={handleStartRoute}
                                 activeOpacity={0.8}
+                                disabled={isRouteLoading}
                             >
-                                <Ionicons name="navigate" size={18} color="#FFFFFF" />
-                                <Text style={styles.startNavBtnText}>Start</Text>
+                                {isRouteLoading ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="navigate" size={18} color="#FFFFFF" />
+                                        <Text style={styles.startNavBtnText}>Start</Text>
+                                    </>
+                                )}
                             </TouchableOpacity>
                         ) : (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

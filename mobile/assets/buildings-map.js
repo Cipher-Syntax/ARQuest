@@ -812,6 +812,22 @@ export const mapHtmlString = `<!DOCTYPE html>
                                 }]
                             });
                         }
+                    } else if (activeFullRouteCoords && activeFullRouteCoords.length >= 2 && activeTargetId == targetBuildingId) {
+                        // Render full pre-calculated pedestrian walkway network
+                        checkTurnInstruction(activeFullRouteCoords);
+                        if (map.getSource('route')) {
+                            map.getSource('route').setData({
+                                type: 'FeatureCollection',
+                                features: [{
+                                    type: 'Feature',
+                                    properties: {},
+                                    geometry: {
+                                        type: 'LineString',
+                                        coordinates: activeFullRouteCoords
+                                    }
+                                }]
+                            });
+                        }
                     } else {
                         // Fetch walking route from ARQuest Campus Navigation API
                         const routeUrl = ARQUEST_API_BASE + '/api/navigation/route/?from_lat=' + sourceLat + '&from_lng=' + sourceLng + '&to_building_id=' + targetBuildingId;
@@ -898,17 +914,19 @@ export const mapHtmlString = `<!DOCTYPE html>
                             });
                     }
 
-                    // If route was already cached and slicedCoords was used, fit once
+                    // If route was already available and slicedCoords or activeFullRouteCoords was used, fit once
                     if (shouldRefitRoute && (slicedCoords || activeFullRouteCoords)) {
                         shouldRefitRoute = false;
-                        const coords = slicedCoords || activeFullRouteCoords;
-                        const routeBounds = new mapboxgl.LngLatBounds();
-                        coords.forEach(c => routeBounds.extend(c));
-                        map.fitBounds(routeBounds, {
-                            padding: { top: 140, bottom: 140, left: 40, right: 40 },
-                            maxZoom: 17,
-                            duration: 600
-                        });
+                        const coords = (slicedCoords && slicedCoords.length >= 2) ? slicedCoords : activeFullRouteCoords;
+                        if (coords && coords.length >= 2) {
+                            const routeBounds = new mapboxgl.LngLatBounds();
+                            coords.forEach(c => routeBounds.extend(c));
+                            map.fitBounds(routeBounds, {
+                                padding: { top: 140, bottom: 140, left: 40, right: 40 },
+                                maxZoom: 17,
+                                duration: 600
+                            });
+                        }
                     }
                 }
             } else {
@@ -973,6 +991,12 @@ export const mapHtmlString = `<!DOCTYPE html>
                     }
                     targetBuildingId = payloadData.buildingId;
                     sourceBuildingId = payloadData.sourceBuildingId || null;
+
+                    if (payloadData && Array.isArray(payloadData.coordinates) && payloadData.coordinates.length >= 2) {
+                        activeFullRouteCoords = payloadData.coordinates;
+                        activeTargetId = payloadData.buildingId;
+                    }
+
                     shouldRefitRoute = true;
                     if (window.lastMapData) processUpdateMap(window.lastMapData);
                 } else if (data.type === "clear_route") {
