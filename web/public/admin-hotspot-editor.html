@@ -62,13 +62,15 @@
                 top: 20px;
                 left: 20px;
                 color: #1e293b;
-                pointer-events: none;
-                background: rgba(255, 255, 255, 0.95);
+                pointer-events: auto;
+                background: rgba(255, 255, 255, 0.96);
                 padding: 14px 18px;
                 border-radius: 8px;
                 border: 1px solid #e2e8f0;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
                 backdrop-filter: blur(8px);
+                max-width: 380px;
+                z-index: 25;
             }
             #ui-overlay h3 {
                 margin: 0 0 6px 0;
@@ -201,6 +203,94 @@
                 border-color: #dc2626 transparent transparent transparent;
             }
 
+            /* 3D Virtual Tour Anchor Labels */
+            .anchor-label {
+                position: absolute;
+                background: rgba(15, 23, 42, 0.94);
+                color: #ffffff;
+                font-weight: 600;
+                padding: 6px 12px;
+                border-radius: 8px;
+                font-family: system-ui, -apple-system, sans-serif;
+                font-size: 11px;
+                pointer-events: auto;
+                cursor: pointer;
+                transform: translate(-50%, -100%);
+                display: none;
+                white-space: nowrap;
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+                text-align: center;
+                border: 1.5px solid #3b82f6;
+                transition: transform 0.15s ease, box-shadow 0.15s ease;
+                user-select: none;
+                z-index: 15;
+            }
+            .anchor-label:hover {
+                transform: translate(-50%, -105%) scale(1.05);
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.38);
+                z-index: 50;
+            }
+            .anchor-label::after {
+                content: '';
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -6px;
+                border-width: 6px;
+                border-style: solid;
+                border-color: #3b82f6 transparent transparent transparent;
+            }
+            .anchor-label.current {
+                background: rgba(245, 158, 11, 0.96);
+                color: #1e1b4b;
+                border-color: #d97706;
+                box-shadow: 0 0 16px rgba(245, 158, 11, 0.55);
+            }
+            .anchor-label.current::after {
+                border-color: #d97706 transparent transparent transparent;
+            }
+            .anchor-label.start {
+                background: rgba(16, 185, 129, 0.96);
+                color: #ffffff;
+                border-color: #059669;
+                box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+            }
+            .anchor-label.start::after {
+                border-color: #059669 transparent transparent transparent;
+            }
+
+            .anchor-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 4px 9px;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 600;
+                background: #f1f5f9;
+                color: #1e293b;
+                border: 1px solid #cbd5e1;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                margin: 2px;
+            }
+            .anchor-chip:hover {
+                background: #e2e8f0;
+                border-color: #94a3b8;
+                transform: translateY(-1px);
+            }
+            .anchor-chip.current {
+                background: #fef3c7;
+                color: #92400e;
+                border-color: #f59e0b;
+                font-weight: 700;
+            }
+            .anchor-chip.start {
+                background: #d1fae5;
+                color: #065f46;
+                border-color: #10b981;
+            }
+
             #cache-badge {
                 position: absolute;
                 bottom: 20px;
@@ -317,6 +407,9 @@
             let scene, camera, renderer, controls, model;
             let hotspotsData = [];
             let hotspotMeshes = [];
+            let existingAnchorsData = [];
+            let anchorMeshes = [];
+            let currentTargetScene = null;
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
             let pendingCoordinate = null;
@@ -341,10 +434,16 @@
                 if (data.type === "INIT_EDITOR") {
                     if (data.mode) editorMode = data.mode;
                     if (data.hotspots) hotspotsData = data.hotspots;
+                    if (data.anchors) existingAnchorsData = data.anchors;
+                    if (data.currentScene) currentTargetScene = data.currentScene;
                     init(data.modelUrl);
                 }
             });
 
+            // Signal parent that editor listener is attached and ready
+            try {
+                window.parent.postMessage({ type: "EDITOR_READY" }, "*");
+            } catch (e) {}
 
             // Fallback for direct testing (if opened without React)
             if (!window.parent || window === window.parent) {
@@ -353,6 +452,18 @@
             }
 
             function init(modelUrl) {
+                if (renderer && scene && model && currentModelUrl === modelUrl) {
+                    if (editorMode === "PICK_ANCHOR") {
+                        const overlay = document.getElementById("ui-overlay");
+                        if (overlay) renderAnchorPickerOverlay(overlay);
+                        const saveBtn = document.querySelector(".btn-save-all");
+                        if (saveBtn) saveBtn.style.display = "none";
+                        clearAnchorMeshes();
+                        existingAnchorsData.forEach((a) => createAnchorMesh(a));
+                    }
+                    return;
+                }
+
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0xf8fafc);
 
@@ -526,22 +637,24 @@
                     if (editorMode === "PICK_ANCHOR") {
                         const overlay = document.getElementById("ui-overlay");
                         if (overlay) {
-                            overlay.innerHTML = `
-                                <h3 style="color:#8A1538;margin:0 0 6px 0;font-size:15px;font-weight:700;">3D Anchor Picker</h3>
-                                <p style="margin:0 0 3px 0;color:#64748b;font-size:12px;">1. Drag to rotate, Right-click to pan, Scroll to zoom.</p>
-                                <p style="margin:0;color:#8A1538;font-weight:bold;font-size:12px;">2. Double-Click anywhere on the entrance doorway or room to pick coordinates.</p>
-                            `;
+                            renderAnchorPickerOverlay(overlay);
                         }
                         const saveBtn = document.querySelector(".btn-save-all");
                         if (saveBtn) saveBtn.style.display = "none";
-                    }
 
-                    // Re-render saved hotspots
-                    hotspotsData.forEach((h) => {
-                        if (!h.id)
-                            h.id = Math.random().toString(36).substr(2, 9);
-                        createHotspotMesh(h);
-                    });
+                        // Render existing virtual tour anchors in the 3D model
+                        clearAnchorMeshes();
+                        existingAnchorsData.forEach((a) => {
+                            createAnchorMesh(a);
+                        });
+                    } else {
+                        // Re-render saved hotspots
+                        hotspotsData.forEach((h) => {
+                            if (!h.id)
+                                h.id = Math.random().toString(36).substr(2, 9);
+                            createHotspotMesh(h);
+                        });
+                    }
                 };
 
                 const onModelProgress = (xhr) => {
@@ -736,11 +849,30 @@
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
                 raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(model, true);
 
-                if (intersects.length > 0) {
-                    if (editorMode === "PICK_ANCHOR") {
-                        const pt = intersects[0].point;
+                if (editorMode === "PICK_ANCHOR") {
+                    // Check if double-clicked directly on an existing anchor pin
+                    const anchorHits = raycaster.intersectObjects(anchorMeshes, true);
+                    if (anchorHits.length > 0) {
+                        const hitAnchor = anchorHits[0].object.userData.anchor;
+                        if (hitAnchor) {
+                            window.parent.postMessage(
+                                {
+                                    type: "ANCHOR_PICKED",
+                                    x: Number(hitAnchor.x.toFixed(2)),
+                                    y: Number(hitAnchor.y.toFixed(2)),
+                                    z: Number(hitAnchor.z.toFixed(2)),
+                                },
+                                "*",
+                            );
+                            return;
+                        }
+                    }
+
+                    // Otherwise check intersection on 3D model
+                    const modelHits = raycaster.intersectObject(model, true);
+                    if (modelHits.length > 0) {
+                        const pt = modelHits[0].point;
                         window.parent.postMessage(
                             {
                                 type: "ANCHOR_PICKED",
@@ -752,6 +884,11 @@
                         );
                         return;
                     }
+                    return;
+                }
+
+                const intersects = raycaster.intersectObject(model, true);
+                if (intersects.length > 0) {
                     pendingCoordinate = intersects[0].point;
                     editingHotspotId = null;
                     document.getElementById("form-title").innerText =
@@ -769,6 +906,20 @@
             function onPointerDown(event) {
                 if (event.target.id !== "canvas") return;
                 pointerDownPos.set(event.clientX, event.clientY);
+
+                if (editorMode === "PICK_ANCHOR") {
+                    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                    raycaster.setFromCamera(mouse, camera);
+                    const anchorHits = raycaster.intersectObjects(anchorMeshes, true);
+                    if (anchorHits.length > 0) {
+                        const hitAnchor = anchorHits[0].object.userData.anchor;
+                        if (hitAnchor) {
+                            teleportToAnchor(hitAnchor);
+                        }
+                    }
+                    return;
+                }
 
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -831,6 +982,8 @@
                     raycaster.setFromCamera(mouse, camera);
                     const hsIntersects = raycaster.intersectObjects(hotspotMeshes, true);
                     if (hsIntersects.length > 0) return;
+                    const anchorIntersects = raycaster.intersectObjects(anchorMeshes, true);
+                    if (anchorIntersects.length > 0) return;
 
                     if (model) {
                         const intersects = raycaster.intersectObject(model, true);
@@ -1073,6 +1226,248 @@
                 labelContainer.appendChild(labelDiv);
             }
 
+            // --- 3D Virtual Tour Anchor Helper Functions ---
+            function renderAnchorPickerOverlay(overlay) {
+                if (!overlay) return;
+                const count = existingAnchorsData.length;
+                const targetTitle = currentTargetScene?.title || "Current Scene";
+
+                let chipsHtml = "";
+                if (count > 0) {
+                    chipsHtml = `
+                        <div style="margin-top: 10px; max-height: 140px; overflow-y: auto; padding-right: 4px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 6px; display: flex; justify-content: space-between;">
+                                <span>EXISTING ANCHORS (${count})</span>
+                                <span style="font-size: 10px; color: #64748b; font-weight: normal;">Click to focus</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                ${existingAnchorsData.map((a) => {
+                                    const cls = a.isCurrent ? "current" : (a.isStart ? "start" : "");
+                                    const icon = a.isCurrent ? "🎯" : (a.isStart ? "⭐" : "📍");
+                                    return `
+                                        <button 
+                                            type="button" 
+                                            class="anchor-chip ${cls}" 
+                                            onclick="window.teleportToAnchorById('${a.id}')"
+                                            title="Fly camera to ${a.title} (${a.x.toFixed(1)}, ${a.y.toFixed(1)}, ${a.z.toFixed(1)})"
+                                        >
+                                            <span>${icon}</span>
+                                            <span>${a.title}</span>
+                                        </button>
+                                    `;
+                                }).join("")}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    chipsHtml = `
+                        <div style="margin-top: 10px; font-size: 11px; color: #64748b; font-style: italic;">
+                            No other anchors created yet for this building. Double-click anywhere to set this room's location!
+                        </div>
+                    `;
+                }
+
+                overlay.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <h3 style="color:#8A1538;margin:0;font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:16px;">📍</span> 3D Virtual Tour Anchors
+                        </h3>
+                        <span style="font-size: 11px; background: #e0e7ff; color: #3730a3; padding: 2px 7px; border-radius: 10px; font-weight: 700;">
+                            ${count} in 3D
+                        </span>
+                    </div>
+                    <p style="margin:0 0 4px 0;color:#0f172a;font-size:12px;font-weight:600;">
+                        Target: <span style="color:#8A1538;">${targetTitle}</span>
+                    </p>
+                    <p style="margin:0 0 3px 0;color:#64748b;font-size:11.5px;line-height:1.4;">
+                        • <b>Double-Click</b> on the entrance doorway or floor to pick coordinates.<br>
+                        • <b>Drag</b> to rotate, <b>Right-click</b> to pan, <b>Scroll</b> to zoom, <b>WASD</b> to walk.
+                    </p>
+                    <div style="display: flex; gap: 8px; font-size: 10px; color: #64748b; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e2e8f0;">
+                        <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> Target Scene</span>
+                        <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span> Entrance</span>
+                        <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#2563eb;display:inline-block;"></span> Other Anchors</span>
+                    </div>
+                    ${chipsHtml}
+                `;
+            }
+
+            window.teleportToAnchorById = (id) => {
+                const a = existingAnchorsData.find((x) => String(x.id) === String(id));
+                if (a) teleportToAnchor(a);
+            };
+
+            function teleportToAnchor(anchor) {
+                if (!anchor || !controls || !camera) return;
+                teleportStartControls.copy(controls.target);
+                teleportStartCamera.copy(camera.position);
+
+                const targetPoint = new THREE.Vector3(anchor.x, anchor.y, anchor.z);
+                teleportTargetControls = targetPoint.clone();
+
+                const lookDir = new THREE.Vector3().subVectors(camera.position, targetPoint).normalize();
+                if (lookDir.lengthSq() < 0.01) lookDir.set(0, 0.3, 1).normalize();
+                lookDir.y = Math.max(lookDir.y, 0.2);
+                lookDir.normalize();
+
+                teleportTargetCamera = targetPoint.clone().add(lookDir.multiplyScalar(3.2));
+                teleportProgress = 0;
+            }
+
+            function clearAnchorMeshes() {
+                anchorMeshes.forEach((hitMesh) => {
+                    const group = hitMesh.userData.parentGroup;
+                    if (group) {
+                        scene.remove(group);
+                        group.traverse((child) => {
+                            if (child.geometry) child.geometry.dispose();
+                            if (child.material) {
+                                if (Array.isArray(child.material)) {
+                                    child.material.forEach((m) => m.dispose());
+                                } else {
+                                    child.material.dispose();
+                                }
+                            }
+                        });
+                    }
+                    const label = document.getElementById(hitMesh.userData.labelId);
+                    if (label) label.remove();
+                });
+                anchorMeshes = [];
+            }
+
+            function createAnchorMesh(anchor) {
+                const anchorGroup = new THREE.Group();
+                anchorGroup.position.set(anchor.x, anchor.y, anchor.z);
+
+                const isCurrent = Boolean(anchor.isCurrent);
+                const isStart = Boolean(anchor.isStart);
+
+                // Colors: Amber for Target Scene, Emerald for Entrance, Blue for other scenes
+                let mainColor = 0x2563eb;
+                let glowColor = 0x60a5fa;
+                if (isCurrent) {
+                    mainColor = 0xf59e0b;
+                    glowColor = 0xfbbf24;
+                } else if (isStart) {
+                    mainColor = 0x10b981;
+                    glowColor = 0x34d399;
+                }
+
+                // 1. Floor Base Ring & Disc
+                const floorY = -1.5;
+                const ringGeom = new THREE.RingGeometry(0.35, 0.48, 32);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: mainColor,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: isCurrent ? 0.9 : 0.65,
+                });
+                const ringMesh = new THREE.Mesh(ringGeom, ringMat);
+                ringMesh.rotation.x = -Math.PI / 2;
+                ringMesh.position.y = floorY + 0.02;
+                anchorGroup.add(ringMesh);
+
+                const discGeom = new THREE.CircleGeometry(0.35, 32);
+                const discMat = new THREE.MeshBasicMaterial({
+                    color: glowColor,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: isCurrent ? 0.35 : 0.18,
+                });
+                const discMesh = new THREE.Mesh(discGeom, discMat);
+                discMesh.rotation.x = -Math.PI / 2;
+                discMesh.position.y = floorY + 0.015;
+                anchorGroup.add(discMesh);
+
+                // 2. Vertical Pin Pole
+                const poleHeight = 1.45;
+                const poleGeom = new THREE.CylinderGeometry(0.02, 0.02, poleHeight, 12);
+                const poleMat = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    roughness: 0.2,
+                    metalness: 0.8,
+                    emissive: glowColor,
+                    emissiveIntensity: 0.25,
+                });
+                const poleMesh = new THREE.Mesh(poleGeom, poleMat);
+                poleMesh.position.y = floorY + poleHeight / 2;
+                anchorGroup.add(poleMesh);
+
+                // 3. Eye-Level Beacon Pin
+                const coneGeom = new THREE.ConeGeometry(0.2, 0.45, 16);
+                const pinMat = new THREE.MeshStandardMaterial({
+                    color: mainColor,
+                    roughness: 0.3,
+                    metalness: 0.3,
+                    emissive: glowColor,
+                    emissiveIntensity: isCurrent ? 0.6 : 0.3,
+                });
+                const coneMesh = new THREE.Mesh(coneGeom, pinMat);
+                coneMesh.rotation.x = Math.PI; // point downward towards floor
+                coneMesh.position.y = 0.05;
+                anchorGroup.add(coneMesh);
+
+                const sphereGeom = new THREE.SphereGeometry(0.24, 20, 20);
+                const sphereMesh = new THREE.Mesh(sphereGeom, pinMat);
+                sphereMesh.position.y = 0.26;
+                anchorGroup.add(sphereMesh);
+
+                // 360 Camera Equator Ring
+                const torusGeom = new THREE.TorusGeometry(0.32, 0.025, 8, 24);
+                const torusMat = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    roughness: 0.2,
+                    metalness: 0.8,
+                    emissive: 0xffffff,
+                    emissiveIntensity: isCurrent ? 0.8 : 0.4,
+                });
+                const torusMesh = new THREE.Mesh(torusGeom, torusMat);
+                torusMesh.rotation.x = Math.PI / 2;
+                torusMesh.position.y = 0.26;
+                anchorGroup.add(torusMesh);
+
+                // 4. Hitbox for Raycasting & Click interaction
+                const hitGeom = new THREE.CylinderGeometry(0.5, 0.5, 2.2, 12);
+                const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+                const hitMesh = new THREE.Mesh(hitGeom, hitMat);
+                hitMesh.position.y = floorY + 1.1;
+                hitMesh.userData = {
+                    isAnchor: true,
+                    anchor: anchor,
+                    parentGroup: anchorGroup,
+                    ringMesh: ringMesh,
+                    torusMesh: torusMesh,
+                    labelId: "anchor-label-" + anchor.id,
+                };
+                anchorGroup.add(hitMesh);
+
+                scene.add(anchorGroup);
+                anchorMeshes.push(hitMesh);
+
+                // 5. Floating HTML Label
+                const labelContainer = document.getElementById("floating-labels");
+                if (labelContainer) {
+                    const labelDiv = document.createElement("div");
+                    labelDiv.className = `anchor-label ${isCurrent ? "current" : ""} ${isStart ? "start" : ""}`;
+                    labelDiv.id = hitMesh.userData.labelId;
+
+                    const badgeText = isCurrent ? "🎯 TARGET SCENE" : (isStart ? "⭐ ENTRANCE" : "📍 360 ROOM");
+                    labelDiv.innerHTML = `
+                        <div style="font-size:9.5px;font-weight:800;letter-spacing:0.8px;opacity:0.9;margin-bottom:2px;">${badgeText}</div>
+                        <div style="font-size:12px;font-weight:700;">${anchor.title || "Scene Anchor"}</div>
+                        <div style="font-size:10px;opacity:0.85;margin-top:2px;font-family:monospace;">(${anchor.x.toFixed(1)}, ${anchor.y.toFixed(1)}, ${anchor.z.toFixed(1)})</div>
+                    `;
+
+                    labelDiv.onclick = (e) => {
+                        e.stopPropagation();
+                        teleportToAnchor(anchor);
+                    };
+
+                    labelContainer.appendChild(labelDiv);
+                }
+            }
+
             window.sendDataToReact = () => {
                 window.parent.postMessage(
                     {
@@ -1213,6 +1608,44 @@
                             } else {
                                 labelDiv.style.display = "none";
                             }
+                        }
+                    }
+                });
+                
+                // Animate and project 3D Virtual Tour Anchors
+                const anchorTime = Date.now() * 0.003;
+                anchorMeshes.forEach((hitMesh) => {
+                    const anchor = hitMesh.userData.anchor;
+                    const group = hitMesh.userData.parentGroup;
+                    const ringMesh = hitMesh.userData.ringMesh;
+                    const torusMesh = hitMesh.userData.torusMesh;
+                    const labelDiv = document.getElementById(hitMesh.userData.labelId);
+
+                    if (torusMesh) {
+                        torusMesh.rotation.z = anchorTime * 0.8;
+                    }
+                    if (ringMesh && anchor.isCurrent) {
+                        const s = 1.0 + Math.sin(anchorTime * 3.5) * 0.12;
+                        ringMesh.scale.set(s, s, s);
+                    }
+
+                    if (group && labelDiv && camera) {
+                        const dist = camera.position.distanceTo(group.position);
+                        const pos = group.position.clone();
+                        pos.y += 0.65; // Position label right above the beacon head
+                        pos.project(camera);
+
+                        if (pos.z < 1) { // In front of camera
+                            labelDiv.style.display = "block";
+                            labelDiv.style.left = (pos.x * 0.5 + 0.5) * window.innerWidth + "px";
+                            labelDiv.style.top = (-(pos.y * 0.5) + 0.5) * window.innerHeight + "px";
+                            if (dist > 40) {
+                                labelDiv.style.opacity = Math.max(0, 1 - (dist - 40) / 20);
+                            } else {
+                                labelDiv.style.opacity = "1";
+                            }
+                        } else {
+                            labelDiv.style.display = "none";
                         }
                     }
                 });

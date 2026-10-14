@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -44,6 +44,60 @@ const PanoramaManagerPage = () => {
     const [show3DPicker, setShow3DPicker] = useState(false);
     const [showPreviewer, setShowPreviewer] = useState(false);
     const previewIframeRef = useRef(null);
+    const pickerIframeRef = useRef(null);
+
+    const sendInitTo3DPicker = useCallback(() => {
+        if (!pickerIframeRef.current?.contentWindow) return;
+        const validAnchors = scenes
+            .filter(
+                (s) =>
+                    s.anchor_x !== null &&
+                    s.anchor_x !== undefined &&
+                    s.anchor_x !== "" &&
+                    !isNaN(Number(s.anchor_x)) &&
+                    s.anchor_z !== null &&
+                    s.anchor_z !== undefined &&
+                    s.anchor_z !== "" &&
+                    !isNaN(Number(s.anchor_z)),
+            )
+            .map((s) => ({
+                id: s.id,
+                title: s.title,
+                x: Number(s.anchor_x),
+                y: Number(s.anchor_y ?? 1.6),
+                z: Number(s.anchor_z),
+                radius: Number(s.anchor_radius ?? 5.0),
+                isCurrent: selectedScene?.id === s.id,
+                isStart: Boolean(s.is_start_scene),
+            }));
+
+        pickerIframeRef.current.contentWindow.postMessage(
+            {
+                type: "INIT_EDITOR",
+                mode: "PICK_ANCHOR",
+                modelUrl: building?.model_url,
+                anchors: validAnchors,
+                currentScene: selectedScene
+                    ? {
+                          id: selectedScene.id,
+                          title: selectedScene.title,
+                          is_start_scene: Boolean(selectedScene.is_start_scene),
+                          anchor_x: selectedScene.anchor_x,
+                          anchor_y: selectedScene.anchor_y,
+                          anchor_z: selectedScene.anchor_z,
+                          anchor_radius: selectedScene.anchor_radius,
+                      }
+                    : null,
+            },
+            "*",
+        );
+    }, [scenes, selectedScene, building?.model_url]);
+
+    useEffect(() => {
+        if (show3DPicker) {
+            sendInitTo3DPicker();
+        }
+    }, [show3DPicker, sendInitTo3DPicker]);
 
     useEffect(() => {
         const handleMessage = (event) => {
@@ -53,6 +107,10 @@ const PanoramaManagerPage = () => {
                 showSuccess(`Captured from 3D Model: (${x}, ${y}, ${z})`);
                 if (window.__setAnchorCoordinates) {
                     window.__setAnchorCoordinates(x, y, z);
+                }
+            } else if (event.data && event.data.type === "EDITOR_READY") {
+                if (show3DPicker) {
+                    sendInitTo3DPicker();
                 }
             } else if (event.data && event.data.type === "hotspot_clicked") {
                 const rawTargetId = event.data.target_scene_id;
@@ -122,7 +180,7 @@ const PanoramaManagerPage = () => {
         };
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [scenes, selectedScene, hotspots, building]);
+    }, [scenes, selectedScene, hotspots, building, show3DPicker, sendInitTo3DPicker]);
 
     // Send updated scene & hotspots to 360 previewer iframe
     useEffect(() => {
@@ -1047,18 +1105,10 @@ const PanoramaManagerPage = () => {
                         </button>
                     </div>
                     <iframe
+                        ref={pickerIframeRef}
                         src="/admin-hotspot-editor.html"
                         style={{ width: "100%", flex: 1, border: "none" }}
-                        onLoad={(e) => {
-                            e.target.contentWindow.postMessage(
-                                {
-                                    type: "INIT_EDITOR",
-                                    mode: "PICK_ANCHOR",
-                                    modelUrl: building?.model_url,
-                                },
-                                "*",
-                            );
-                        }}
+                        onLoad={sendInitTo3DPicker}
                     />
                 </div>
             )}
