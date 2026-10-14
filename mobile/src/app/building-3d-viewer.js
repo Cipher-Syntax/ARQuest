@@ -14,6 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { theme } from "../theme/tokens";
 import { assetService } from "../services";
 import { api } from "../services";
+import { viewer3dHtmlString } from "../../assets/viewer3d";
 
 export default function Building3DViewerScreen() {
     const { buildingId, buildingName, buildingDescription, modelUrl } =
@@ -218,8 +219,6 @@ export default function Building3DViewerScreen() {
         }
     };
 
-    const viewerHtml = require("../../assets/viewer3d.html");
-
     return (
         <View style={styles.container}>
             <StatusBar style="dark" />
@@ -227,7 +226,7 @@ export default function Building3DViewerScreen() {
             {/* Fullscreen 3D Canvas */}
             <WebView
                 ref={webViewRef}
-                source={viewerHtml}
+                source={{ html: viewer3dHtmlString, baseUrl: "https://localhost/" }}
                 style={styles.webview}
                 onMessage={handleMessage}
                 onLoadEnd={() => setWebViewReady(true)}

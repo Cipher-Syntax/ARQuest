@@ -17,6 +17,7 @@ import { theme } from "../theme/tokens";
 import { api } from "../services";
 import { assetService } from "../services";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
+import { panoramaViewerHtmlString } from "../../assets/panorama-viewer";
 
 export default function PanoramaViewerScreen() {
     const { buildingId, buildingName, targetSceneId, fromVirtualTour } =
@@ -292,7 +293,7 @@ export default function PanoramaViewerScreen() {
                 >
                     <WebView
                         ref={webViewRef}
-                        source={require("../../assets/panorama-viewer.html")}
+                        source={{ html: panoramaViewerHtmlString, baseUrl: "https://localhost/" }}
                         style={styles.webview}
                         onMessage={handleMessage}
                         onLoad={() => {

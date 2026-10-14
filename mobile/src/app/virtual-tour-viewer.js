@@ -19,6 +19,7 @@ import { theme } from "../theme/tokens";
 import { assetService } from "../services";
 import { api } from "../services";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
+import { virtualTourViewerHtmlString } from "../../assets/virtual-tour-viewer";
 
 export default function VirtualTourViewerScreen() {
     const {
@@ -590,8 +591,6 @@ export default function VirtualTourViewerScreen() {
     };
 
 
-    const viewerHtml = require("../../assets/virtual-tour-viewer.html");
-
     return (
         <View style={styles.container}>
             <StatusBar style="dark" hidden={true} />
@@ -607,7 +606,7 @@ export default function VirtualTourViewerScreen() {
             >
                 <WebView
                     ref={webViewRef}
-                    source={viewerHtml}
+                    source={{ html: virtualTourViewerHtmlString, baseUrl: "https://localhost/" }}
                     style={styles.webview}
                     onMessage={handleMessage}
                     onLoadEnd={() => setWebViewReady(true)}
