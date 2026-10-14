@@ -1,3 +1,4 @@
+import logging
 from rest_framework.decorators import api_view, permission_classes, throttle_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -15,10 +16,13 @@ from apps.api.errors import ErrorCodes
 from .serializers import (
     LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer,
     ResendOTPSerializer, CreateProfessionalSerializer, ChangePasswordSerializer,
-    DeactivateAccountSerializer, AdminCreateUserSerializer
+    DeactivateAccountSerializer, AdminCreateUserSerializer,
+    ForgotPasswordSerializer, ResetPasswordSerializer
 )
 from .models import User, EmailOTP
-from .emails import send_verification_email
+from .emails import send_verification_email, send_password_reset_email
+
+logger = logging.getLogger(__name__)
 
 class OTPRateThrottle(AnonRateThrottle):
     scope = 'auth_otp'
@@ -547,4 +551,86 @@ def deactivate_account(request):
             
     return success_response({
         'message': 'Your account has been deactivated successfully. You can reactivate it at any time by logging in again.'
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([OTPRateThrottle])
+def forgot_password(request):
+    serializer = ForgotPasswordSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(
+            code='validation_error',
+            message='Email or username is required.',
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=serializer.errors
+        )
+
+    identifier = serializer.validated_data['email']
+    user = User.objects.filter(
+        models.Q(email__iexact=identifier) | models.Q(username__iexact=identifier)
+    ).first()
+
+    if not user or not user.email:
+        return error_response(
+            code='user_not_found',
+            message='No registered account found with that email or username.',
+            status_code=status.HTTP_404_NOT_FOUND
+        )
+
+    # Invalidate previous unused OTPs for this email to prevent replay attacks
+    EmailOTP.objects.filter(email__iexact=user.email, is_used=False).update(is_used=True)
+
+    # Generate fresh 6-digit OTP
+    otp = EmailOTP.generate_otp()
+    EmailOTP.objects.create(email=user.email, otp=otp)
+
+    try:
+        send_password_reset_email(
+            email=user.email,
+            otp=otp,
+            username=user.username
+        )
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {user.email}: {e}")
+        return error_response(
+            code='email_error',
+            message='Failed to send password reset email. Please try again later.',
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    return success_response({
+        'message': 'Password reset code sent. Please check your email.',
+        'email': user.email
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([OTPRateThrottle])
+def reset_password(request):
+    serializer = ResetPasswordSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(
+            code='validation_error',
+            message='Password reset failed.',
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=serializer.errors
+        )
+
+    user = serializer.validated_data['user']
+    otp_obj = serializer.validated_data['otp_obj']
+    new_password = serializer.validated_data['new_password']
+
+    user.set_password(new_password)
+    user.email_verified = True
+    user.is_active = True
+    user.save()
+
+    otp_obj.is_used = True
+    otp_obj.save()
+
+    return success_response({
+        'message': 'Password has been reset successfully. You can now log in.'
     })

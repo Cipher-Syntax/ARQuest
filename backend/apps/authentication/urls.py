@@ -19,5 +19,7 @@ urlpatterns = [
     path('checkin/', views.daily_checkin, name='daily_checkin'),
     path('push-token/', views.register_push_token, name='register_push_token'),
     path('change-password/', views.change_password, name='change_password'),
+    path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('reset-password/', views.reset_password, name='reset_password'),
     path('deactivate/', views.deactivate_account, name='deactivate_account'),
 ]

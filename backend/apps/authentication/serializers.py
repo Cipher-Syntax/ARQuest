@@ -259,3 +259,56 @@ class AdminCreateUserSerializer(serializers.Serializer):
             user.save(update_fields=['profile_image'])
         return user
 
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.CharField(required=True)
+
+    def validate_email(self, value):
+        val = value.strip().lower()
+        if not val:
+            raise serializers.ValidationError("Email or username is required.")
+        return val
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.CharField(required=True)
+    otp = serializers.CharField(required=True, max_length=6, min_length=6)
+    new_password = serializers.CharField(required=True, write_only=True, min_length=8)
+    new_password_confirm = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, data):
+        email = data.get('email', '').strip().lower()
+        otp = data.get('otp', '').strip()
+        new_password = data.get('new_password')
+        new_password_confirm = data.get('new_password_confirm')
+
+        if new_password != new_password_confirm:
+            raise serializers.ValidationError({'new_password_confirm': 'Passwords do not match.'})
+
+        try:
+            validate_password(new_password)
+        except Exception as e:
+            raise serializers.ValidationError({'new_password': list(e.messages)})
+
+        user = User.objects.filter(models.Q(email__iexact=email) | models.Q(username__iexact=email)).first()
+        if not user:
+            raise serializers.ValidationError({'email': 'No account found with this email or username.'})
+
+        target_email = user.email.lower()
+        try:
+            otp_obj = EmailOTP.objects.filter(
+                email__iexact=target_email,
+                otp=otp,
+                is_used=False
+            ).latest('created_at')
+
+            if not otp_obj.is_valid():
+                raise serializers.ValidationError({'otp': 'Verification code has expired. Please request a new one.'})
+
+            data['otp_obj'] = otp_obj
+        except EmailOTP.DoesNotExist:
+            raise serializers.ValidationError({'otp': 'Invalid verification code.'})
+
+        data['user'] = user
+        return data
+

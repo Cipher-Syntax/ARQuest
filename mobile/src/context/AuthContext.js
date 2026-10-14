@@ -149,6 +149,45 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
+    const forgotPassword = useCallback(async (email) => {
+        setIsLoading(true);
+        try {
+            const response = await api.post("/api/auth/forgot-password/", { email });
+            return response.data?.data || response.data;
+        } catch (err) {
+            if (err.response) {
+                const thrownErr = new Error("Forgot password request failed");
+                thrownErr.data = err.response.data?.data || err.response.data;
+                throw thrownErr;
+            }
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const resetPassword = useCallback(async (email, otp, newPassword, newPasswordConfirm) => {
+        setIsLoading(true);
+        try {
+            const response = await api.post("/api/auth/reset-password/", {
+                email,
+                otp,
+                new_password: newPassword,
+                new_password_confirm: newPasswordConfirm,
+            });
+            return response.data?.data || response.data;
+        } catch (err) {
+            if (err.response) {
+                const thrownErr = new Error("Password reset failed");
+                thrownErr.data = err.response.data?.data || err.response.data;
+                throw thrownErr;
+            }
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     const logout = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -202,10 +241,12 @@ export const AuthProvider = ({ children }) => {
         register,
         verifyOTP,
         resendOTP,
+        forgotPassword,
+        resetPassword,
         checkToken,
         showStreakModal,
         hideStreakModal,
-    }), [login, logout, register, verifyOTP, resendOTP, checkToken, showStreakModal, hideStreakModal]);
+    }), [login, logout, register, verifyOTP, resendOTP, forgotPassword, resetPassword, checkToken, showStreakModal, hideStreakModal]);
 
     return (
         <AuthStateContext.Provider value={stateValue}>
