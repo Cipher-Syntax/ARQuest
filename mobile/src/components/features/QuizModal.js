@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Animated,
+    Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import theme from "../../theme/tokens";
@@ -184,9 +185,11 @@ export default function QuizModal({ visible, building, onClose }) {
                     ) : isRoundFinished ? (
                         /* ── Round Summary Screen (After 3 Questions) ── */
                         <View style={styles.summaryContainer}>
-                            <View style={styles.summaryIconCircle}>
-                                <Ionicons name="trophy" size={38} color="#FFD700" />
-                            </View>
+                            <Image
+                                source={require("../../../assets/images/characters/justine_celebrating.png")}
+                                style={styles.mascotImage}
+                                resizeMode="contain"
+                            />
                             <Text style={styles.summaryTitle}>SESSION COMPLETED!</Text>
                             <Text style={styles.summarySubtitle} numberOfLines={1}>
                                 {building?.name || "Campus Facility"}
@@ -220,9 +223,11 @@ export default function QuizModal({ visible, building, onClose }) {
                     ) : dailyInfo.isLocked && questions.length === 0 ? (
                         /* ── Daily Lock Screen (Already completed 3 questions today) ── */
                         <View style={styles.summaryContainer}>
-                            <View style={[styles.summaryIconCircle, { backgroundColor: "rgba(0, 229, 255, 0.12)", borderColor: "rgba(0, 229, 255, 0.4)" }]}>
-                                <Ionicons name="time" size={36} color="#00E5FF" />
-                            </View>
+                            <Image
+                                source={require("../../../assets/images/characters/justine_thinking.png")}
+                                style={styles.mascotImage}
+                                resizeMode="contain"
+                            />
                             <Text style={styles.summaryTitle}>DAILY QUIZ COMPLETED</Text>
                             <Text style={styles.summarySubtitle}>
                                 {building?.name || "Campus Facility"} • 3/3 Done Today
@@ -238,9 +243,11 @@ export default function QuizModal({ visible, building, onClose }) {
                     ) : dailyInfo.allCompleted && questions.length === 0 ? (
                         /* ── All Questions Mastered Screen ── */
                         <View style={styles.summaryContainer}>
-                            <View style={[styles.summaryIconCircle, { backgroundColor: "rgba(178, 24, 48, 0.12)", borderColor: "rgba(178, 24, 48, 0.4)" }]}>
-                                <Ionicons name="school" size={36} color={theme.colors.primary} />
-                            </View>
+                            <Image
+                                source={require("../../../assets/images/characters/justine_celebrating.png")}
+                                style={styles.mascotImage}
+                                resizeMode="contain"
+                            />
                             <Text style={styles.summaryTitle}>BUILDING MASTERED! 🎓</Text>
                             <Text style={styles.summarySubtitle}>
                                 {building?.name || "Campus Facility"}
@@ -516,6 +523,11 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         paddingHorizontal: 8,
         alignItems: "center",
+    },
+    mascotImage: {
+        width: 100,
+        height: 100,
+        marginBottom: 12,
     },
     summaryIconCircle: {
         width: 80,

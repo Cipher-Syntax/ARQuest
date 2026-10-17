@@ -28,6 +28,14 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const MISSIONS_CARD_HEIGHT = Math.min(SCREEN_HEIGHT * 0.58, 480);
 const MISSIONS_CHAR_BOTTOM = MISSIONS_CARD_HEIGHT - 32;
 
+const CHAR_IMAGES = {
+    guide: require("../../../assets/images/characters/justine_guide.png"),
+    pointing: require("../../../assets/images/characters/justine_pointing.png"),
+    explorer: require("../../../assets/images/characters/justine_explorer.png"),
+    celebrating: require("../../../assets/images/characters/justine_celebrating.png"),
+    thinking: require("../../../assets/images/characters/justine_thinking.png"),
+};
+
 export default function QuickMissionsModal({
     visible,
     onClose,
@@ -181,7 +189,7 @@ export default function QuickMissionsModal({
                             ]}
                         >
                             <Image
-                                source={require("../../../assets/images/characters/justine_guide.png")}
+                                source={CHAR_IMAGES.explorer}
                                 style={S.vnCharImage}
                                 resizeMode="contain"
                             />
@@ -277,7 +285,7 @@ export default function QuickMissionsModal({
                             ]}
                         >
                             <Image
-                                source={require("../../../assets/images/characters/justine_guide.png")}
+                                source={missionsTab === "completed" ? CHAR_IMAGES.celebrating : CHAR_IMAGES.pointing}
                                 style={S.missionsCharImage}
                                 resizeMode="contain"
                             />

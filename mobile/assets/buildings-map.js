@@ -681,7 +681,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                     if (!userMarkerObj) {
                         const el = document.createElement('div');
                         el.className = 'user-marker-container';
-                        el.innerHTML = '<div class="user-marker-label">You\'re here</div><div class="user-marker-pulse"></div><div class="user-marker-dot"></div><div class="user-marker-heading" style="display:none;"></div>';
+                        el.innerHTML = '<div class="user-marker-label">You&#39;re here</div><div class="user-marker-pulse"></div><div class="user-marker-dot"></div><div class="user-marker-heading" style="display:none;"></div>';
                         
                         userMarkerObj = new mapboxgl.Marker({ element: el, anchor: 'center' })
                             .setLngLat(userCoords)

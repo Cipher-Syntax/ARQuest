@@ -38,6 +38,15 @@ const TAB_ICON_CENTER_FROM_BOTTOM = 58;   // aligned to center of tab icon acros
 const MISSION_CARD_TOP    = 228;
 const MISSION_CARD_HEIGHT = 170;
 
+// ── Character Sprites ────────────────────────────────────────────────────────
+const CHAR_IMAGES = {
+    guide: require("../../../assets/images/characters/justine_guide.png"),
+    pointing: require("../../../assets/images/characters/justine_pointing.png"),
+    explorer: require("../../../assets/images/characters/justine_explorer.png"),
+    celebrating: require("../../../assets/images/characters/justine_celebrating.png"),
+    thinking: require("../../../assets/images/characters/justine_thinking.png"),
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 const TOUR_STEPS = [
     {
@@ -45,12 +54,14 @@ const TOUR_STEPS = [
         speech: "Yo, Adventurer! 🎉 Welcome to WMSU! I'm Justine — your campus guide! You're holding ARQuest, our high-tech campus radar. Ready to turn this campus into your playground? Let me show you around real quick!",
         button: "LET'S GO! ⚡",
         layout: "vn_bar",
+        image: CHAR_IMAGES.guide,
     },
     {
         id: "missions",
         speech: "Right here 👉 — every day you get 3 Daily Missions! Visit buildings, rack up EXP, and rise from Freshman to Campus Legend!",
         button: "NICE, WHAT ELSE? 📍",
         layout: "spotlight",
+        image: CHAR_IMAGES.pointing,
     },
     {
         id: "maps",
@@ -60,6 +71,7 @@ const TOUR_STEPS = [
         tabCX: MAPS_TAB_CX,
         label: "MAPS",
         isAR: false,
+        image: CHAR_IMAGES.explorer,
     },
     {
         id: "ar",
@@ -69,6 +81,7 @@ const TOUR_STEPS = [
         tabCX: AR_TAB_CX,
         label: "AR SCAN",
         isAR: true,
+        image: CHAR_IMAGES.celebrating,
     },
 ];
 
@@ -222,7 +235,9 @@ export default function JustineGuideModal() {
     // ─────────────────────────────────────────────────────────────────────────
     // LAYOUT 1 — VN Dialog Bar  (Step 1 + Hint)
     // ─────────────────────────────────────────────────────────────────────────
-    const renderVNBar = () => (
+    const renderVNBar = () => {
+        const charImage = mode === "hint" ? CHAR_IMAGES.thinking : (step?.image || CHAR_IMAGES.guide);
+        return (
         <>
             <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={handleDismiss} />
 
@@ -232,7 +247,7 @@ export default function JustineGuideModal() {
                 style={[S.vnCharWrap, { transform: [{ translateY: charSlideY }, { scale: charBreath }] }]}
             >
                 <Image
-                    source={require("../../../assets/images/characters/justine_guide.png")}
+                    source={charImage}
                     style={S.vnCharImage}
                     resizeMode="contain"
                 />
@@ -277,6 +292,7 @@ export default function JustineGuideModal() {
             </Animated.View>
         </>
     );
+};
 
     // ─────────────────────────────────────────────────────────────────────────
     // LAYOUT 2 — Spotlight on mission card  (Step 2)
@@ -331,7 +347,7 @@ export default function JustineGuideModal() {
                 style={[S.spotlightCharWrap, { transform: [{ translateY: charSlideY }, { scale: charBreath }] }]}
             >
                 <Image
-                    source={require("../../../assets/images/characters/justine_guide.png")}
+                    source={step?.image || CHAR_IMAGES.pointing}
                     style={S.spotlightCharImage}
                     resizeMode="contain"
                 />
@@ -417,7 +433,7 @@ export default function JustineGuideModal() {
                     ]}
                 >
                     <Image
-                        source={require("../../../assets/images/characters/justine_guide.png")}
+                        source={step?.image || CHAR_IMAGES.explorer}
                         style={S.tabCharImage}
                         resizeMode="contain"
                     />
