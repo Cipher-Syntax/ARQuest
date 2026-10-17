@@ -694,16 +694,16 @@ const BuildingEditorPage = () => {
                     </div>
                 </div>
 
-                {/* Right side: More Features Button - Only appears after we clicked Save All Changes and building is saved */}
+                {/* Right side: Interactive Features Button - Only appears after we clicked Save All Changes and building is saved */}
                 {(!isNew || hasSaved) && (
                     <button
                         type="button"
                         onClick={() => setShowHubModal(true)}
                         className="px-4 py-2.5 bg-brand hover:bg-brand/90 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-colors shadow-xs shrink-0 animate-in fade-in duration-300"
-                        title="Open More Features (Panoramas, 3D Hotspots, Quests)"
+                        title="Open Interactive Features (Panoramas, 3D Hotspots, Quests)"
                     >
                         <Layers size={16} />
-                        <span>More Features</span>
+                        <span>Interactive Features</span>
                     </button>
                 )}
             </div>
@@ -1261,11 +1261,11 @@ const BuildingEditorPage = () => {
                                 </div>
                             </form>
 
-            {/* More Features Modal */}
+            {/* Interactive Features Modal */}
             <Modal
                 isOpen={showHubModal}
                 onClose={() => setShowHubModal(false)}
-                title={`More Features: ${building.name || "Building"}`}
+                title={`Interactive Features: ${building.name || "Building"}`}
                 maxWidth="max-w-4xl w-full"
                 footer={
                     <Button
@@ -1287,7 +1287,7 @@ const BuildingEditorPage = () => {
                                 ✓ Building details saved successfully!
                             </p>
                             <p className="text-gray-600 text-xs">
-                                This <strong>"More Features"</strong> menu appears after saving so you can immediately configure additional landmark features — including 360° virtual tours, 3D AR hotspots, and gamification quests. You can close this modal at any time and reopen it whenever needed using the <strong>"More Features"</strong> button in the top-right header.
+                                This <strong>"Interactive Features"</strong> menu appears after saving so you can immediately configure additional landmark features — including 360° virtual tours, 3D AR hotspots, and gamification quests. You can close this modal at any time and reopen it whenever needed using the <strong>"Interactive Features"</strong> button in the top-right header.
                             </p>
                         </div>
                     </div>

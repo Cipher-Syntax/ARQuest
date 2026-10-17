@@ -77,6 +77,7 @@ export default function ARScreen() {
     // Reset arrival latch and stable references whenever navigation target changes
     useEffect(() => {
         setIsArrivedLatched(false);
+        lastAnnouncedArrivalBldgIdRef.current = null;
         stableModelUrlRef.current = null;
         stableBuildingNameRef.current = null;
     }, [activeTargetId]);
@@ -123,6 +124,13 @@ export default function ARScreen() {
     const toggleQrScanner = useCallback((enable) => {
         setIsCameraTransitioning(true);
         setIsScanningQr(enable);
+        if (enable) {
+            if (arrivalTimerRef.current) {
+                clearTimeout(arrivalTimerRef.current);
+            }
+            setShowArrivalModal(false);
+            arrivalModalAnim.setValue(0);
+        }
         setTimeout(() => {
             setIsCameraTransitioning(false);
         }, 250);
@@ -163,6 +171,7 @@ export default function ARScreen() {
     const [showArrivalModal, setShowArrivalModal] = useState(false);
     const arrivalModalAnim = useRef(new Animated.Value(0)).current;
     const arrivalTimerRef = useRef(null);
+    const lastAnnouncedArrivalBldgIdRef = useRef(null);
 
     const fetchQuests = useCallback(async () => {
         if (user?.role !== "student") return;
@@ -603,9 +612,19 @@ export default function ARScreen() {
 
     const isArrived = Boolean(isArrivedLatched || rawArrived);
 
-    // Center Arrival Modal: Triggers for ~3.5 seconds when arriving at destination
+    // Center Arrival Modal: Triggers for ~3.5 seconds ONCE when arriving at destination
     useEffect(() => {
-        if (isArrived) {
+        const currentBldgId = isTargetMode
+            ? navTargetFull?.id
+            : (nearbyBuildingFull?.id || nearbyBuilding?.id);
+
+        if (isArrived && currentBldgId) {
+            // Only announce arrival ONCE per building session — do not re-trigger while standing inside
+            if (lastAnnouncedArrivalBldgIdRef.current === currentBldgId) {
+                return;
+            }
+            lastAnnouncedArrivalBldgIdRef.current = currentBldgId;
+
             try {
                 SoundManager.play("building_unlock");
             } catch {
@@ -624,16 +643,12 @@ export default function ARScreen() {
             }
 
             arrivalTimerRef.current = setTimeout(() => {
-                Animated.timing(arrivalModalAnim, {
-                    toValue: 0,
-                    duration: 400,
-                    easing: Easing.in(Easing.ease),
-                    useNativeDriver: true,
-                }).start(() => {
-                    setShowArrivalModal(false);
-                });
+                setShowArrivalModal(false);
+                arrivalModalAnim.setValue(0);
             }, 3500);
-        } else {
+        } else if (!isArrived) {
+            // Reset announced building reference when user departs the building geofence
+            lastAnnouncedArrivalBldgIdRef.current = null;
             if (arrivalTimerRef.current) {
                 clearTimeout(arrivalTimerRef.current);
             }
@@ -646,19 +661,27 @@ export default function ARScreen() {
                 clearTimeout(arrivalTimerRef.current);
             }
         };
-    }, [isArrived]);
+    }, [isArrived, navTargetFull?.id, nearbyBuildingFull?.id, nearbyBuilding?.id, isTargetMode]);
+
+    // Cleanup arrival modal immediately when switching away from the AR tab
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                if (arrivalTimerRef.current) {
+                    clearTimeout(arrivalTimerRef.current);
+                }
+                setShowArrivalModal(false);
+                arrivalModalAnim.setValue(0);
+            };
+        }, [])
+    );
 
     const handleDismissArrivalModal = () => {
         if (arrivalTimerRef.current) {
             clearTimeout(arrivalTimerRef.current);
         }
-        Animated.timing(arrivalModalAnim, {
-            toValue: 0,
-            duration: 250,
-            useNativeDriver: true,
-        }).start(() => {
-            setShowArrivalModal(false);
-        });
+        setShowArrivalModal(false);
+        arrivalModalAnim.setValue(0);
     };
 
     if (navTargetFull && navUserLat && navUserLng && heading !== undefined && heading !== null && !isArrived) {

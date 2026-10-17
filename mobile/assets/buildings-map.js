@@ -67,6 +67,34 @@ export const mapHtmlString = `<!DOCTYPE html>
             z-index: 1;
             transition: transform 0.2s ease-out;
         }
+        .user-marker-label {
+            position: absolute;
+            bottom: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1A73E8;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 12px;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            pointer-events: none;
+            letter-spacing: 0.3px;
+            z-index: 10;
+            line-height: 14px;
+        }
+        .user-marker-label::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 4px;
+            border-style: solid;
+            border-color: #1A73E8 transparent transparent transparent;
+        }
         @keyframes userPulse {
             0% { transform: scale(0.6); opacity: 0.9; }
             70% { transform: scale(1.6); opacity: 0; }
@@ -653,7 +681,7 @@ export const mapHtmlString = `<!DOCTYPE html>
                     if (!userMarkerObj) {
                         const el = document.createElement('div');
                         el.className = 'user-marker-container';
-                        el.innerHTML = '<div class="user-marker-pulse"></div><div class="user-marker-dot"></div><div class="user-marker-heading" style="display:none;"></div>';
+                        el.innerHTML = '<div class="user-marker-label">You\'re here</div><div class="user-marker-pulse"></div><div class="user-marker-dot"></div><div class="user-marker-heading" style="display:none;"></div>';
                         
                         userMarkerObj = new mapboxgl.Marker({ element: el, anchor: 'center' })
                             .setLngLat(userCoords)

@@ -701,7 +701,7 @@ export default function ExploreScreen() {
                                             <Ionicons
                                                 name="compass"
                                                 size={16}
-                                                color={theme.colors.white}
+                                                color="#FFFFFF"
                                             />
                                             <Text style={styles.navigateText}>
                                                 AR Nav
@@ -1190,7 +1190,7 @@ const styles = StyleSheet.create({
     },
     navigateText: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.white,
+        color: "#FFFFFF",
         fontSize: 12,
         marginLeft: 6,
     },

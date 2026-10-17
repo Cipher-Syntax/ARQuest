@@ -3,6 +3,7 @@ export const colors = {
     bgSecondary: "#F5F5F5",
     surface: "#FFFFFF",
     surfaceSoft: "#F9F9F9",
+    white: "#FFFFFF",
     primary: "#B21830", // Web Exact Primary
     primaryDark: "#850F22",
     accent: "#1A1A1A", // Dark Grey Accent
