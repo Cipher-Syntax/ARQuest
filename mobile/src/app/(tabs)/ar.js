@@ -1383,6 +1383,115 @@ export default function ARScreen() {
                     </>
                 )}
 
+                {/* 4. Persistent Compass Navigation Overlay */}
+                {/* Always visible during active navigation (not arrived, not QR scanning, not capturing) */}
+                {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && heading !== null && heading !== undefined && (arrowAngle !== null) && (
+                    <View
+                        pointerEvents="none"
+                        style={{
+                            position: 'absolute',
+                            bottom: 195,
+                            alignSelf: 'center',
+                            alignItems: 'center',
+                            zIndex: 40,
+                        }}
+                    >
+                        {/* Outer compass dial */}
+                        <View style={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 36,
+                            backgroundColor: 'rgba(15, 23, 42, 0.78)',
+                            borderWidth: 2,
+                            borderColor: 'rgba(255, 255, 255, 0.35)',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 6,
+                            elevation: 8,
+                        }}>
+                            {/* Forward / Device heading tick mark (always top of device) */}
+                            <View style={{
+                                position: 'absolute',
+                                top: 3,
+                                width: 4,
+                                height: 4,
+                                borderRadius: 2,
+                                backgroundColor: '#EBBC26',
+                            }} />
+
+                            {/* Rotating Target Needle (rotates around center pivot to target bearing) */}
+                            <View style={{
+                                width: 52,
+                                height: 52,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transform: [{ rotate: `${Math.round(arrowAngle)}deg` }],
+                            }}>
+                                {/* Forward Pointer (Crimson Arrow pointing toward target) */}
+                                <View style={{
+                                    width: 0,
+                                    height: 0,
+                                    borderLeftWidth: 7,
+                                    borderRightWidth: 7,
+                                    borderBottomWidth: 17,
+                                    borderLeftColor: 'transparent',
+                                    borderRightColor: 'transparent',
+                                    borderBottomColor: '#B21830',
+                                    marginBottom: 1,
+                                }} />
+                                {/* Opposite Tail (Muted White/Silver pointing away) */}
+                                <View style={{
+                                    width: 0,
+                                    height: 0,
+                                    borderLeftWidth: 5,
+                                    borderRightWidth: 5,
+                                    borderTopWidth: 11,
+                                    borderLeftColor: 'transparent',
+                                    borderRightColor: 'transparent',
+                                    borderTopColor: 'rgba(255, 255, 255, 0.45)',
+                                    marginTop: 1,
+                                }} />
+                                {/* Center Pivot Pin */}
+                                <View style={{
+                                    position: 'absolute',
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: 4,
+                                    backgroundColor: '#EBBC26',
+                                    borderWidth: 1.5,
+                                    borderColor: '#FFFFFF',
+                                }} />
+                            </View>
+                        </View>
+
+                        {/* Distance Badge below compass */}
+                        {distanceToTarget !== null && (
+                            <View style={{
+                                marginTop: 6,
+                                backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                                borderRadius: 6,
+                                borderWidth: 1,
+                                borderColor: 'rgba(255, 255, 255, 0.2)',
+                                paddingHorizontal: 10,
+                                paddingVertical: 3,
+                            }}>
+                                <Text style={{
+                                    color: '#FFFFFF',
+                                    fontSize: 11,
+                                    fontWeight: '800',
+                                    letterSpacing: 0.6,
+                                    textAlign: 'center',
+                                }}>
+                                    {`${Math.round(distanceToTarget)}m AWAY`}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                )}
+
                 {/* 3. Reticle Overlays */}
                 {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
                 {isScanningQr && (
