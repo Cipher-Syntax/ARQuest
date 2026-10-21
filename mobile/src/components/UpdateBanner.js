@@ -2,13 +2,14 @@ import React from "react";
 import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "./styles/UpdateBanner.styles";
+import theme from "../theme/tokens";
 
 const UpdateBanner = ({
     visible,
     isUpdating = false,
     onUpdatePress,
     onDismissPress,
-    title = "Update available",
+    title = "Update Available",
 }) => {
     if (!visible) return null;
 
@@ -23,12 +24,14 @@ const UpdateBanner = ({
             <View style={styles.backdrop}>
                 <View style={styles.modalCard}>
                     <View style={styles.iconWrap}>
-                        <Ionicons name="cloud-download-outline" size={34} color="#1D4ED8" />
+                        <Ionicons name="cloud-download-outline" size={32} color={theme.colors.primary} />
                     </View>
 
                     <View style={styles.headerRow}>
                         <Text style={styles.title}>{title}</Text>
-                        <Text style={styles.subtitle}>A newer version is ready. Update now for the latest fixes and features. </Text>
+                        <Text style={styles.subtitle}>
+                            A newer version is ready. Update now for the latest fixes and improvements.
+                        </Text>
                     </View>
 
                     <View style={styles.actionsRow}>
@@ -60,7 +63,7 @@ const UpdateBanner = ({
                                     <Text style={styles.updateButtonText}>Updating...</Text>
                                 </View>
                             ) : (
-                                <Text style={styles.updateButtonText}>Update now</Text>
+                                <Text style={styles.updateButtonText}>Update Now</Text>
                             )}
                         </TouchableOpacity>
                     </View>
