@@ -1384,38 +1384,38 @@ export default function ARScreen() {
                 )}
 
                 {/* 4. Persistent Compass Navigation Overlay */}
-                {/* Always visible during active navigation (not arrived, not QR scanning, not capturing) */}
+                {/* Positioned in top-right corner below the white header background */}
                 {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && heading !== null && heading !== undefined && (arrowAngle !== null) && (
                     <View
                         pointerEvents="none"
                         style={{
                             position: 'absolute',
-                            bottom: 195,
-                            alignSelf: 'center',
+                            top: 175,
+                            right: 16,
                             alignItems: 'center',
                             zIndex: 40,
                         }}
                     >
                         {/* Outer compass dial */}
                         <View style={{
-                            width: 72,
-                            height: 72,
-                            borderRadius: 36,
-                            backgroundColor: 'rgba(15, 23, 42, 0.78)',
+                            width: 58,
+                            height: 58,
+                            borderRadius: 29,
+                            backgroundColor: 'rgba(15, 23, 42, 0.80)',
                             borderWidth: 2,
-                            borderColor: 'rgba(255, 255, 255, 0.35)',
+                            borderColor: 'rgba(255, 255, 255, 0.40)',
                             alignItems: 'center',
                             justifyContent: 'center',
                             shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 4 },
+                            shadowOffset: { width: 0, height: 3 },
                             shadowOpacity: 0.35,
-                            shadowRadius: 6,
+                            shadowRadius: 5,
                             elevation: 8,
                         }}>
-                            {/* Forward / Device heading tick mark (always top of device) */}
+                            {/* Forward / Device heading tick mark (top of dial) */}
                             <View style={{
                                 position: 'absolute',
-                                top: 3,
+                                top: 2.5,
                                 width: 4,
                                 height: 4,
                                 borderRadius: 2,
@@ -1424,8 +1424,8 @@ export default function ARScreen() {
 
                             {/* Rotating Target Needle (rotates around center pivot to target bearing) */}
                             <View style={{
-                                width: 52,
-                                height: 52,
+                                width: 44,
+                                height: 44,
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 transform: [{ rotate: `${Math.round(arrowAngle)}deg` }],
@@ -1434,9 +1434,9 @@ export default function ARScreen() {
                                 <View style={{
                                     width: 0,
                                     height: 0,
-                                    borderLeftWidth: 7,
-                                    borderRightWidth: 7,
-                                    borderBottomWidth: 17,
+                                    borderLeftWidth: 6,
+                                    borderRightWidth: 6,
+                                    borderBottomWidth: 15,
                                     borderLeftColor: 'transparent',
                                     borderRightColor: 'transparent',
                                     borderBottomColor: '#B21830',
@@ -1446,9 +1446,9 @@ export default function ARScreen() {
                                 <View style={{
                                     width: 0,
                                     height: 0,
-                                    borderLeftWidth: 5,
-                                    borderRightWidth: 5,
-                                    borderTopWidth: 11,
+                                    borderLeftWidth: 4,
+                                    borderRightWidth: 4,
+                                    borderTopWidth: 10,
                                     borderLeftColor: 'transparent',
                                     borderRightColor: 'transparent',
                                     borderTopColor: 'rgba(255, 255, 255, 0.45)',
@@ -1457,9 +1457,9 @@ export default function ARScreen() {
                                 {/* Center Pivot Pin */}
                                 <View style={{
                                     position: 'absolute',
-                                    width: 8,
-                                    height: 8,
-                                    borderRadius: 4,
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: 3.5,
                                     backgroundColor: '#EBBC26',
                                     borderWidth: 1.5,
                                     borderColor: '#FFFFFF',
@@ -1470,22 +1470,22 @@ export default function ARScreen() {
                         {/* Distance Badge below compass */}
                         {distanceToTarget !== null && (
                             <View style={{
-                                marginTop: 6,
+                                marginTop: 4,
                                 backgroundColor: 'rgba(15, 23, 42, 0.85)',
                                 borderRadius: 6,
                                 borderWidth: 1,
-                                borderColor: 'rgba(255, 255, 255, 0.2)',
-                                paddingHorizontal: 10,
-                                paddingVertical: 3,
+                                borderColor: 'rgba(255, 255, 255, 0.25)',
+                                paddingHorizontal: 7,
+                                paddingVertical: 2,
                             }}>
                                 <Text style={{
                                     color: '#FFFFFF',
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     fontWeight: '800',
-                                    letterSpacing: 0.6,
+                                    letterSpacing: 0.5,
                                     textAlign: 'center',
                                 }}>
-                                    {`${Math.round(distanceToTarget)}m AWAY`}
+                                    {`${Math.round(distanceToTarget)}m`}
                                 </Text>
                             </View>
                         )}
