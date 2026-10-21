@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import {
     ViroARScene,
@@ -72,6 +72,8 @@ export default function ARQuestScene(props) {
     const [hudPosition, setHudPosition] = useState([0, -0.1, -2]);
     const [modelError, setModelError] = useState(false);
     const [modelLoaded, setModelLoaded] = useState(false);
+    // Camera-following position for the arrived 3D model — updated every camera frame
+    const [arrivedModelPosition, setArrivedModelPosition] = useState([0, -0.60, -2.6]);
 
     // Retain last valid modelUrl and buildingName so background network re-fetches cannot wipe them out mid-session
     const stableModelUrlRef = useRef(modelUrl);
@@ -104,6 +106,8 @@ export default function ARQuestScene(props) {
     const lastAngleRef = useRef(0);
     const lastAnchorPosRef = useRef([0, 0, 0]);
     const lastRecomputeTimeRef = useRef(0);
+    // Ref so onCameraTransformUpdate (a memoized callback) can read hasArrived without stale closure
+    const hasArrivedRef = useRef(false);
 
     // Target to aim at (immediate walking waypoint or destination)
     const effectiveLat = nextWaypoint?.latitude ?? targetLat;
@@ -137,6 +141,23 @@ export default function ARQuestScene(props) {
 
     const isNearby = (distanceToTarget !== null && distanceToTarget <= 25) || isArrived;
     const hasArrived = isArrived || isNearby || latchedArrived;
+
+    // Keep the callback ref in sync with the latest hasArrived value every render
+    hasArrivedRef.current = hasArrived;
+
+    // Seed an accurate arrived model position the instant hasArrived first becomes true
+    // so the model appears in front of the user right away, before the next camera frame
+    useEffect(() => {
+        if (hasArrived) {
+            const [cx, cy, cz] = cameraPositionRef.current;
+            const rad = (lastAngleRef.current * Math.PI) / 180;
+            setArrivedModelPosition([
+                cx + 2.6 * Math.sin(rad),
+                cy - 0.60,
+                cz - 2.6 * Math.cos(rad),
+            ]);
+        }
+    }, [hasArrived]);
 
     // Report model loading status to the parent 2D HUD overlay
     useEffect(() => {
@@ -195,6 +216,15 @@ export default function ARQuestScene(props) {
             lastRecomputeTimeRef.current = now;
             lastAnchorPosRef.current = [pos[0], pos[1], pos[2]];
             recomputeNavPositions(lastAngleRef.current, pos);
+            // When arrived: keep the 3D model floating in front of the camera as the user walks
+            if (hasArrivedRef.current) {
+                const rad = (lastAngleRef.current * Math.PI) / 180;
+                setArrivedModelPosition([
+                    pos[0] + 2.6 * Math.sin(rad),
+                    pos[1] - 0.60,
+                    pos[2] - 2.6 * Math.cos(rad),
+                ]);
+            }
         }
     }, [recomputeNavPositions]);
 
@@ -334,7 +364,7 @@ export default function ARQuestScene(props) {
                 ============================================================
             */}
             {hasArrived && (
-                <ViroNode position={[0, -0.60, -2.6]}>
+                <ViroNode position={arrivedModelPosition}>
                     {/* Header: Building Name (Hovering clearly above the building) */}
                     <ViroText
                         text={effectiveBuildingName || 'Destination'}
