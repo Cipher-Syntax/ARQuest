@@ -17,14 +17,22 @@ import { api } from "../services";
 import { viewer3dHtmlString } from "../../assets/viewer3d";
 
 export default function Building3DViewerScreen() {
-    const { buildingId, buildingName, buildingDescription, modelUrl } =
-        useLocalSearchParams();
+    const {
+        buildingId,
+        buildingName,
+        buildingDescription,
+        modelUrl,
+        modelVersion,
+    } = useLocalSearchParams();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState(null);
     const [webViewReady, setWebViewReady] = useState(false);
     const [modelTarget, setModelTarget] = useState(null);
+    // Authoritative model info from the detail endpoint, used to key the cache
+    // correctly when only the route params are available.
+    const [serverModel, setServerModel] = useState(null);
     const [statusText, setStatusText] = useState("Loading 3D Model...");
     const [fetchedTrivia, setFetchedTrivia] = useState(null);
     const webViewRef = useRef(null);
@@ -71,7 +79,21 @@ export default function Building3DViewerScreen() {
                     resBuilding.data.success &&
                     resBuilding.data.data
                 ) {
-                    setFetchedDescription(resBuilding.data.data.description);
+                    const detail = resBuilding.data.data;
+                    setFetchedDescription(detail.description);
+                    if (detail.model_url) {
+                        setServerModel({
+                            id: detail.id,
+                            model_url: detail.model_url,
+                            model_version: detail.model_version,
+                        });
+                    } else if (!modelUrl) {
+                        // No model URL for this account (visitors never receive
+                        // one) and nothing was passed in: fail instead of
+                        // spinning forever.
+                        setError("3D model not available");
+                        setLoading(false);
+                    }
                 }
             } catch (err) {
                 console.error(
@@ -81,13 +103,19 @@ export default function Building3DViewerScreen() {
             }
         };
         fetchTriviaAndDetails();
-    }, [buildingId]);
+    }, [buildingId, modelUrl]);
 
     useEffect(() => {
-        const initAsset = async () => {
+        let cancelled = false;
+
+        const resolveTarget = async () => {
             if (!buildingId) {
                 if (modelUrl) {
-                    setModelTarget({ url: modelUrl, assetId: "direct", version: 1 });
+                    setModelTarget({
+                        url: modelUrl,
+                        assetId: "direct",
+                        version: 1,
+                    });
                 } else {
                     setError("3D model not available");
                     setLoading(false);
@@ -95,35 +123,33 @@ export default function Building3DViewerScreen() {
                 return;
             }
 
-            try {
-                const assets = await assetService.getBuildingAssets(buildingId);
-                const modelAsset = assets.find((a) => a.asset_type === "model");
+            // One canonical key for every surface. The URL fingerprint inside
+            // the cache path means a replaced model is picked up automatically,
+            // while an unchanged one keeps hitting the same local file.
+            const key = assetService.getModelKey(
+                serverModel || {
+                    id: buildingId,
+                    model_url: modelUrl,
+                    model_version: modelVersion,
+                },
+            );
 
-                const targetUrl = modelAsset?.file_url || modelUrl;
+            if (cancelled) return;
 
-                if (targetUrl) {
-                    setModelTarget({
-                        url: targetUrl,
-                        assetId: modelAsset?.id || buildingId,
-                        version: modelAsset?.version || 1,
-                    });
-                } else {
-                    setError("3D model not available");
-                    setLoading(false);
-                }
-            } catch (err) {
-                console.error("Failed to fetch building assets:", err);
-                if (modelUrl) {
-                    setModelTarget({ url: modelUrl, assetId: buildingId || "direct", version: 1 });
-                } else {
-                    setError("Failed to load asset metadata");
-                    setLoading(false);
-                }
+            if (key) {
+                setModelTarget(key);
+            } else if (serverModel || modelUrl) {
+                setError("3D model not available");
+                setLoading(false);
             }
         };
 
-        initAsset();
-    }, [buildingId, modelUrl]);
+        resolveTarget();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [buildingId, modelUrl, modelVersion, serverModel]);
 
     useEffect(() => {
         if (!webViewReady || !modelTarget || !webViewRef.current || hasStreamedRef.current) {
@@ -135,6 +161,7 @@ export default function Building3DViewerScreen() {
         const loadModel = async () => {
             hasStreamedRef.current = true;
             const { url, assetId, version } = modelTarget;
+            let streamStarted = false;
 
             try {
                 const isCached = await assetService.isCached(assetId, version, url);
@@ -167,19 +194,28 @@ export default function Building3DViewerScreen() {
                     }
                 }
 
-                if (localUri && webViewRef.current) {
+                if (localUri) {
                     if (isMounted) setStatusText("Rendering 3D Model...");
-                    const streamed = await assetService.streamModelToWebView(localUri, webViewRef, url);
-                    if (!streamed && webViewRef.current) {
-                        webViewRef.current.postMessage(JSON.stringify({ type: "init", modelUrl: url }));
-                    }
+                    // streamModelToWebView delivers either the cached chunks or
+                    // the network fallback exactly once, so this must not post
+                    // its own `init` afterwards or the model loads twice.
+                    streamStarted = true;
+                    await assetService.streamModelToWebView(
+                        localUri,
+                        webViewRef,
+                        url,
+                    );
                 } else if (webViewRef.current) {
-                    webViewRef.current.postMessage(JSON.stringify({ type: "init", modelUrl: url }));
+                    webViewRef.current.postMessage(
+                        JSON.stringify({ type: "init", modelUrl: url }),
+                    );
                 }
             } catch (err) {
                 console.error("Error preparing 3D model:", err);
-                if (webViewRef.current) {
-                    webViewRef.current.postMessage(JSON.stringify({ type: "init", modelUrl: url }));
+                if (!streamStarted && webViewRef.current) {
+                    webViewRef.current.postMessage(
+                        JSON.stringify({ type: "init", modelUrl: url }),
+                    );
                 }
             }
         };

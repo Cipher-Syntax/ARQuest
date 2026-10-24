@@ -270,12 +270,13 @@ export default function ExploreScreen() {
                     // Fetch building details to get model URL in background
                     api.get(`/api/buildings/${buildingId}/`).then(async (bldgRes) => {
                         if (bldgRes.data?.success && bldgRes.data.data?.model_url) {
-                            const bldgData = bldgRes.data.data;
-                            const assetId = `building_${bldgData.id}_model`;
-                            const version = bldgData.updated_at ? new Date(bldgData.updated_at).getTime() : "1";
-                            const cached = await assetService.isCached(assetId, version, bldgData.model_url);
+                            // Same key as AR / 3D viewer / virtual tour, so the
+                            // prefetch warms the exact file they will open.
+                            const key = assetService.getModelKey(bldgRes.data.data);
+                            if (!key) return;
+                            const cached = await assetService.isCached(key.assetId, key.version, key.url);
                             if (!cached) {
-                                await assetService.downloadAsset(bldgData.model_url, assetId, version);
+                                await assetService.downloadAsset(key.url, key.assetId, key.version);
                             }
                         }
                     }).catch(err => console.warn("Failed to pre-fetch building assets", err));

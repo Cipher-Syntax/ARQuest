@@ -450,6 +450,7 @@ export default function BuildingsScreen() {
                 buildingName: selectedBuilding.name,
                 buildingDescription: selectedBuilding.description,
                 modelUrl: selectedBuilding.model_url,
+                modelVersion: selectedBuilding.model_version,
             },
         });
     };
@@ -468,6 +469,7 @@ export default function BuildingsScreen() {
                 buildingId: selectedBuilding.id,
                 buildingName: selectedBuilding.name,
                 modelUrl: selectedBuilding.model_url,
+                modelVersion: selectedBuilding.model_version,
                 hotspots: JSON.stringify(selectedBuilding.hotspots || []),
                 controlMode: controlMode, // 'joystick' | 'gyroscope'
             },

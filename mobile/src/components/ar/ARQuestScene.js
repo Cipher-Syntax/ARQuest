@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 import {
     ViroARScene,
@@ -61,6 +61,7 @@ export default function ARQuestScene(props) {
         userLng,
         userHeading,
         modelUrl,
+        modelFallbackUrl,
         nextWaypoint,
         buildingName,
         isArrived = false,
@@ -81,6 +82,19 @@ export default function ARQuestScene(props) {
         stableModelUrlRef.current = modelUrl;
     }
     const effectiveModelUrl = modelUrl || stableModelUrlRef.current;
+
+    // Viro's support for local file:// model URIs is not guaranteed on every
+    // device, so a failed local load falls back to the network URL once. The
+    // override is tagged with the URL it belongs to so a target change cannot
+    // inherit the previous building's fallback.
+    const [sourceOverride, setSourceOverride] = useState(null);
+    const sceneModelUri = useMemo(
+        () =>
+            sourceOverride && sourceOverride.forUrl === effectiveModelUrl
+                ? sourceOverride.uri
+                : effectiveModelUrl,
+        [sourceOverride, effectiveModelUrl],
+    );
 
     const stableBuildingNameRef = useRef(buildingName);
     if (buildingName) {
@@ -439,7 +453,7 @@ export default function ARQuestScene(props) {
                     />
 
                     {/* 3D Building Model (Smooth 360° turntable rotation on top of concentric ground rings) */}
-                    {effectiveModelUrl && !modelError && (
+                    {sceneModelUri && !modelError && (
                         <ViroNode
                             position={[0, 0, 0]}
                             animation={{
@@ -449,12 +463,12 @@ export default function ARQuestScene(props) {
                             }}
                         >
                             <Viro3DObject
-                                source={{ uri: effectiveModelUrl }}
+                                source={{ uri: sceneModelUri }}
                                 position={[0, 0, 0]}
                                 scale={[0.038, 0.038, 0.038]}
                                 type="GLB"
                                 onLoadStart={() => {
-                                    console.log('[ARQuestScene] Loading 3D model:', effectiveModelUrl);
+                                    console.log('[ARQuestScene] Loading 3D model:', sceneModelUri);
                                 }}
                                 onLoadEnd={() => {
                                     console.log('[ARQuestScene] 3D Model loaded successfully');
@@ -462,6 +476,19 @@ export default function ARQuestScene(props) {
                                 }}
                                 onError={(e) => {
                                     console.warn('[ARQuestScene] AR Model native load failed:', e?.nativeEvent?.error || 'Failed to load model');
+                                    // A cached file:// path may be unsupported by the native
+                                    // renderer; retry once with the network URL.
+                                    if (
+                                        modelFallbackUrl &&
+                                        sceneModelUri !== modelFallbackUrl
+                                    ) {
+                                        setSourceOverride({
+                                            forUrl: effectiveModelUrl,
+                                            uri: modelFallbackUrl,
+                                        });
+                                        setModelLoaded(false);
+                                        return;
+                                    }
                                     setModelError(true);
                                 }}
                             />
@@ -469,7 +496,7 @@ export default function ARQuestScene(props) {
                     )}
 
                     {/* While 3D model is loading, show clean gold status text floating above the ground rings */}
-                    {effectiveModelUrl && !modelLoaded && !modelError && (
+                    {sceneModelUri && !modelLoaded && !modelError && (
                         <ViroText
                             text="Loading 3D Model..."
                             width={4}

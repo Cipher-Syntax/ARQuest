@@ -27,6 +27,7 @@ export default function VirtualTourViewerScreen() {
         buildingName,
         buildingDescription,
         modelUrl,
+        modelVersion,
         hotspots,
         controlMode,
     } = useLocalSearchParams();
@@ -93,10 +94,14 @@ export default function VirtualTourViewerScreen() {
 
             try {
                 // Fetch fresh building data for latest hotspots
+                let buildingDetail = null;
                 try {
                     const bRes = await api.get(`/api/buildings/${buildingId}/`);
-                    if (bRes.data.success && bRes.data.data.hotspots) {
-                        setLiveHotspots(bRes.data.data.hotspots);
+                    if (bRes.data.success && bRes.data.data) {
+                        buildingDetail = bRes.data.data;
+                        if (buildingDetail.hotspots) {
+                            setLiveHotspots(buildingDetail.hotspots);
+                        }
                     }
                 } catch (bErr) {
                     console.log(
@@ -112,23 +117,22 @@ export default function VirtualTourViewerScreen() {
                     }
                 }
 
-                const assets = await assetService.getBuildingAssets(buildingId);
-                const modelAsset = assets.find((a) => a.asset_type === "model");
+                const key = assetService.getModelKey(
+                    buildingDetail || {
+                        id: buildingId,
+                        model_url: modelUrl,
+                        model_version: modelVersion,
+                    },
+                );
 
-                const targetUrl = modelAsset?.file_url || modelUrl;
-
-                if (targetUrl) {
-                    setModelTarget({
-                        url: targetUrl,
-                        assetId: modelAsset?.id || buildingId,
-                        version: modelAsset?.version || 1,
-                    });
+                if (key) {
+                    setModelTarget(key);
                 } else {
                     setError("3D model not available");
                     setLoading(false);
                 }
             } catch (err) {
-                console.error("Failed to fetch building assets:", err);
+                console.error("Failed to resolve the 3D model for this tour:", err);
                 if (modelUrl) {
                     setModelTarget({
                         url: modelUrl,
@@ -143,7 +147,7 @@ export default function VirtualTourViewerScreen() {
         };
 
         initAsset();
-    }, [buildingId, modelUrl]);
+    }, [buildingId, modelUrl, modelVersion, hotspots]);
 
     // ── Check if 360° Panorama equivalent exists for this building ──
     useEffect(() => {
@@ -270,6 +274,7 @@ export default function VirtualTourViewerScreen() {
         const loadModel = async () => {
             hasInitializedRef.current = true;
             const { url, assetId, version } = modelTarget;
+            let streamStarted = false;
 
             const extraData = {
                 hotspots: liveHotspots,
@@ -321,25 +326,17 @@ export default function VirtualTourViewerScreen() {
                     }
                 }
 
-                if (localUri && webViewRef.current) {
+                if (localUri) {
                     if (isMounted)
                         setStatusText("Rendering Interior Model...");
-                    const streamed =
-                        await assetService.streamModelToWebView(
-                            localUri,
-                            webViewRef,
-                            url,
-                            extraData,
-                        );
-                    if (!streamed && webViewRef.current) {
-                        webViewRef.current.postMessage(
-                            JSON.stringify({
-                                type: "init",
-                                modelUrl: url,
-                                ...extraData,
-                            }),
-                        );
-                    }
+                    // Delivers the cached chunks or the network fallback once.
+                    streamStarted = true;
+                    await assetService.streamModelToWebView(
+                        localUri,
+                        webViewRef,
+                        url,
+                        extraData,
+                    );
                 } else if (webViewRef.current) {
                     webViewRef.current.postMessage(
                         JSON.stringify({
@@ -351,7 +348,7 @@ export default function VirtualTourViewerScreen() {
                 }
             } catch (err) {
                 console.error("Error preparing 3D tour model:", err);
-                if (webViewRef.current) {
+                if (!streamStarted && webViewRef.current) {
                     webViewRef.current.postMessage(
                         JSON.stringify({
                             type: "init",

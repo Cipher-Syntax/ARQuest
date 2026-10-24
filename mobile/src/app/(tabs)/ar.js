@@ -69,7 +69,8 @@ export default function ARScreen() {
     const [scannedData, setScannedData] = useState(null);
     const [isARSupported, setIsARSupported] = useState(true); // Assume supported; set false if check fails
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
-    const [cachedModelUri, setCachedModelUri] = useState(null);
+    const [cachedModel, setCachedModel] = useState(null);
+    const prefetchedModelKeysRef = useRef(new Set());
     const [claimErrorModalVisible, setClaimErrorModalVisible] = useState(false);
     const [claimErrorMessage, setClaimErrorMessage] = useState("");
     const [claimTargetQuest, setClaimTargetQuest] = useState(null);
@@ -114,24 +115,85 @@ export default function ARScreen() {
     const effectiveBuildingName = candidateBuildingName || (isTargetMode ? (navTargetFull?.name || "Loading Destination...") : stableBuildingNameRef.current);
 
     useEffect(() => {
-        const targetBldg = navTargetFull || (!isTargetMode ? nearbyBuildingFull : null);
-        if (targetBldg && targetBldg.model_url) {
-            const assetId = `building_${targetBldg.id}_model`;
-            const version = targetBldg.updated_at ? new Date(targetBldg.updated_at).getTime() : "1";
-            assetService.isCached(assetId, version, targetBldg.model_url).then((isCached) => {
-                if (isCached) {
-                    const localPath = assetService.getLocalPath(assetId, version, targetBldg.model_url);
-                    setCachedModelUri(localPath);
-                } else {
-                    setCachedModelUri(targetBldg.model_url);
+        const targetBldg =
+            navTargetFull || (!isTargetMode ? nearbyBuildingFull : null);
+        const key = assetService.getModelKey(targetBldg);
+
+        // No model for this target: the derived `activeModelUri` below falls
+        // back to the stable/remote URL on its own.
+        if (!key) return;
+
+        let cancelled = false;
+        const targetId = targetBldg.id;
+
+        const resolveModel = async () => {
+            const localPath = assetService.getLocalPath(
+                key.assetId,
+                key.version,
+                key.url,
+            );
+
+            try {
+                if (
+                    await assetService.isCached(
+                        key.assetId,
+                        key.version,
+                        key.url,
+                    )
+                ) {
+                    if (!cancelled) {
+                        setCachedModel({ id: targetId, uri: localPath });
+                    }
+                    return;
                 }
-            }).catch(() => {
-                setCachedModelUri(targetBldg.model_url);
-            });
-        } else {
-            setCachedModelUri(null);
-        }
-    }, [navTargetFull?.id, isTargetMode ? null : nearbyBuildingFull?.id, navTargetFull?.model_url, isTargetMode ? null : nearbyBuildingFull?.model_url]);
+
+                // Nothing on disk yet: show the network model now and warm the
+                // cache in the background, without swapping sources mid-session
+                // (a swap would make Viro reload the model a second time).
+                if (!cancelled) {
+                    setCachedModel({ id: targetId, uri: key.url });
+                }
+
+                const prefetchKey = `${key.assetId}_v${key.version}_${key.url}`;
+                if (prefetchedModelKeysRef.current.has(prefetchKey)) return;
+                prefetchedModelKeysRef.current.add(prefetchKey);
+
+                await assetService.downloadAsset(
+                    key.url,
+                    key.assetId,
+                    key.version,
+                );
+            } catch (e) {
+                console.warn(
+                    "AR model cache unavailable, streaming from network:",
+                    e,
+                );
+                if (!cancelled) {
+                    setCachedModel({ id: targetId, uri: key.url });
+                }
+            }
+        };
+
+        resolveModel();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        navTargetFull?.id,
+        isTargetMode ? null : nearbyBuildingFull?.id,
+        navTargetFull?.model_url,
+        isTargetMode ? null : nearbyBuildingFull?.model_url,
+        navTargetFull?.model_version,
+        isTargetMode ? null : nearbyBuildingFull?.model_version,
+    ]);
+
+    // Only trust a cached URI that belongs to the building currently targeted:
+    // a stale path from the previous target would point at the wrong model.
+    const activeModelUri =
+        cachedModel && cachedModel.id === activeTarget?.id
+            ? cachedModel.uri
+            : effectiveModelUrl;
 
     const toggleQrScanner = useCallback((enable) => {
         setIsCameraTransitioning(true);
@@ -1160,7 +1222,8 @@ export default function ARScreen() {
                                     userLat: navUserLat,
                                     userLng: navUserLng,
                                     userHeading: heading,
-                                    modelUrl: effectiveModelUrl,
+                                    modelUrl: activeModelUri,
+                                    modelFallbackUrl: effectiveModelUrl,
                                     buildingName: effectiveBuildingName,
                                     nextWaypoint: nextWaypoint,
                                     isArrived: isArrived,

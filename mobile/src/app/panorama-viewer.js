@@ -26,7 +26,6 @@ export default function PanoramaViewerScreen() {
     const [error, setError] = useState(null);
     const [walkthrough, setWalkthrough] = useState(null);
     const [currentScene, setCurrentScene] = useState(null);
-    const [localImageUrl, setLocalImageUrl] = useState(null);
     const webViewRef = useRef(null);
 
     // ── Screen orientation: lock to landscape for 360 viewer ──
@@ -75,12 +74,47 @@ export default function PanoramaViewerScreen() {
         loadWalkthrough();
     }, [buildingId, targetSceneId]);
 
+    /**
+     * Resolve a panorama scene image to something the WebView can render
+     * without a network round trip. Falls back to the remote URL when the
+     * image is missing, too large, or the cache is unavailable.
+     */
+    const resolveSceneImageUrl = useCallback(async (scene) => {
+        const remoteUrl = scene?.image_url;
+        if (!remoteUrl) return null;
+
+        try {
+            const assetId = `panorama_${scene.id}`;
+            const version = 1;
+            const isCached = await assetService.isCached(
+                assetId,
+                version,
+                remoteUrl,
+            );
+            const localUri = isCached
+                ? assetService.getLocalPath(assetId, version, remoteUrl)
+                : await assetService.downloadAsset(remoteUrl, assetId, version);
+
+            const dataUri = await assetService.getAssetDataUri(localUri);
+            return dataUri || remoteUrl;
+        } catch (e) {
+            console.warn(
+                "Panorama image cache unavailable, using network:",
+                e,
+            );
+            return remoteUrl;
+        }
+    }, []);
+
     useEffect(() => {
         if (currentScene && webViewRef.current && walkthrough) {
             console.log("Sending scene to WebView:", currentScene.title);
             let isCancelled = false;
             const sendScene = async () => {
-                const resolvedUrl = currentScene.image_url;
+                // Panorama images are cached on disk like the 3D models, then
+                // handed to the WebView as a data URI: file:// URLs are blocked
+                // from an https://localhost baseUrl.
+                const resolvedUrl = await resolveSceneImageUrl(currentScene);
 
                 if (!isCancelled && webViewRef.current) {
                     webViewRef.current.postMessage(
@@ -105,7 +139,7 @@ export default function PanoramaViewerScreen() {
                 isCancelled = true;
             };
         }
-    }, [currentScene, walkthrough, buildingName]);
+    }, [currentScene, walkthrough, buildingName, resolveSceneImageUrl]);
 
     useEffect(() => {
         return () => {
