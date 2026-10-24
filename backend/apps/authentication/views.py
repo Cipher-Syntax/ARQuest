@@ -33,6 +33,12 @@ class LoginRateThrottle(AnonRateThrottle):
     scope = 'auth_login'
     rate = '10/minute'
 
+class GuestRateThrottle(AnonRateThrottle):
+    # Guest sessions are cheap and password-free, and whole classrooms often
+    # share one public IP, so this sits well above the password-login budget.
+    scope = 'auth_guest'
+    rate = '60/minute'
+
 # Username of the single shared guest account. Created and repaired by
 # `guest_login`, never reachable through the password login endpoint because
 # it holds an unusable password.
@@ -257,7 +263,7 @@ def login(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([LoginRateThrottle])
+@throttle_classes([GuestRateThrottle])
 def guest_login(request):
     """Issue a visitor session for the shared guest account.
 

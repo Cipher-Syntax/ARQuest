@@ -84,6 +84,7 @@ REST_FRAMEWORK = {
         'user': '1000/minute',
         'auth_otp': '3/minute',
         'auth_login': '10/minute',
+        'auth_guest': '60/minute',
     },
 }
 
