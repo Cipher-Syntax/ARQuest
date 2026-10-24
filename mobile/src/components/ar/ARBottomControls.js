@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { QrCode, Camera as CameraIcon } from "lucide-react-native";
 
 import { theme } from "../../theme/tokens";
-import { styles } from "../../app/(tabs)/arStyles";
+import { styles } from "./arStyles";
 
 /**
  * Bottom action bar: QR scanner toggle and AR snapshot capture.

@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { X } from "lucide-react-native";
 
 import { theme } from "../../theme/tokens";
-import { styles } from "../../app/(tabs)/arStyles";
+import { styles } from "./arStyles";
 
 /**
  * Bottom sheet with building trivia or the completion message for a mission.

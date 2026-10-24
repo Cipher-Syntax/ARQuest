@@ -45,7 +45,7 @@ import ARQuestScene from "../../components/ar/ARQuestScene";
 import ARPostcardModal from "../../components/ar/ARPostcardModal";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
-import { styles } from "./arStyles";
+import { styles } from "../../components/ar/arStyles";
 import SoundManager from "../../utils/SoundManager";
 import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
 import ErrorBoundary from "../../components/ui/ErrorBoundary";
@@ -252,7 +252,7 @@ export default function ARScreen() {
     const { canUseAR } = useRoleAccess();
 
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
-    const { unlockedBuildings } = useUnlockedBuildings();
+    const { unlockedBuildings, attemptUnlock, unlockViaQr } = useUnlockedBuildings();
 
     useEffect(() => {
         if (!isCameraActive || !navTargetFull?.id) {
@@ -605,6 +605,63 @@ export default function ARScreen() {
         }, [])
     );
 
+    // Geofence unlock: a student physically entering a building unlocks it here,
+    // mirroring the Explore tab so AR-only sessions still credit the visit.
+    // Fires at most once per building entry; resets when the status leaves 'inside'.
+    const lastGeofenceUnlockBldgIdRef = useRef(null);
+
+    useEffect(() => {
+        const insideBuilding =
+            geofenceStatus?.status === "inside" ? geofenceStatus.building : null;
+
+        if (!insideBuilding) {
+            lastGeofenceUnlockBldgIdRef.current = null;
+            return;
+        }
+
+        // Only students earn unlocks; visitors and professionals have role access.
+        if (user?.role !== "student") return;
+        if (insideBuilding.is_active === false) return;
+        if (insideBuilding.status === "MAINTENANCE") return;
+        if (
+            unlockedBuildings.some(
+                (b) => String(b.id) === String(insideBuilding.id)
+            )
+        ) {
+            return;
+        }
+        if (
+            String(lastGeofenceUnlockBldgIdRef.current) ===
+            String(insideBuilding.id)
+        ) {
+            return;
+        }
+
+        lastGeofenceUnlockBldgIdRef.current = insideBuilding.id;
+
+        const runUnlock = async () => {
+            try {
+                // No sound here: the arrival effect already announces arrival.
+                await attemptUnlock(
+                    location.latitude,
+                    location.longitude,
+                    location.accuracy || 10
+                );
+            } catch (err) {
+                // Non-fatal: next entry (or Explore) will retry.
+                console.warn("AR geofence unlock failed:", err?.message || err);
+            }
+        };
+
+        runUnlock();
+    }, [
+        geofenceStatus,
+        user?.role,
+        location,
+        unlockedBuildings,
+        attemptUnlock,
+    ]);
+
     const handleDismissArrivalModal = () => {
         if (arrivalTimerRef.current) {
             clearTimeout(arrivalTimerRef.current);
@@ -878,57 +935,57 @@ export default function ARScreen() {
         }
 
         try {
-            const res = await api.post("/api/buildings/unlock/qr/", {
-                qr_code_secret: data,
-                lat: location?.latitude,
-                lng: location?.longitude
-            });
-            if (res.data.success) {
-                if (user?.role === "student") {
-                    SoundManager.play("building_unlock");
-                }
-                Alert("Unlocked!", `Successfully unlocked via QR code!`);
-                if (
-                    nearbyBuildingFull &&
-                    nearbyBuildingFull.id === res.data.data.building
-                ) {
-                    setNearbyBuildingFull({
-                        ...nearbyBuildingFull,
-                        is_unlocked: true,
-                    });
-                }
-                // Show badge toast if earned (students only)
-                const earned = res.data.data?.newly_earned_badges || [];
-                if (user?.role === "student" && earned.length > 0) {
+            // Routed through the shared context so the global unlocked list
+            // refreshes immediately and the Maps tab reflects the unlock.
+            const result = await unlockViaQr(
+                data,
+                location.latitude,
+                location.longitude
+            );
+
+            if (user?.role === "student") {
+                SoundManager.play("building_unlock");
+            }
+            Alert("Unlocked!", `Successfully unlocked via QR code!`);
+            if (
+                nearbyBuildingFull &&
+                String(nearbyBuildingFull.id) === String(result?.building)
+            ) {
+                setNearbyBuildingFull({
+                    ...nearbyBuildingFull,
+                    is_unlocked: true,
+                });
+            }
+            // Show badge toast if earned (students only)
+            const earned = result?.newly_earned_badges || [];
+            if (user?.role === "student" && earned.length > 0) {
+                setTimeout(() => {
+                    SoundManager.play("badge_earned");
+                }, 1200);
+                setNewlyEarnedBadges(earned);
+                badgeAnim.setValue(0);
+                Animated.sequence([
+                    Animated.spring(badgeAnim, {
+                        toValue: 1,
+                        tension: 60,
+                        friction: 8,
+                        useNativeDriver: true,
+                    }),
+                ]).start(() => {
                     setTimeout(() => {
-                        SoundManager.play("badge_earned");
-                    }, 1200);
-                    setNewlyEarnedBadges(earned);
-                    badgeAnim.setValue(0);
-                    Animated.sequence([
-                        Animated.spring(badgeAnim, {
-                            toValue: 1,
-                            tension: 60,
-                            friction: 8,
+                        Animated.timing(badgeAnim, {
+                            toValue: 0,
+                            duration: 300,
                             useNativeDriver: true,
-                        }),
-                    ]).start(() => {
-                        setTimeout(() => {
-                            Animated.timing(badgeAnim, {
-                                toValue: 0,
-                                duration: 300,
-                                useNativeDriver: true,
-                            }).start(() => setNewlyEarnedBadges([]));
-                        }, 3500);
-                    });
-                }
-            } else {
-                Alert("Scan Failed", res.data.error || "Invalid QR Code");
-                setScannedData(null);
+                        }).start(() => setNewlyEarnedBadges([]));
+                    }, 3500);
+                });
             }
         } catch (error) {
             console.error("QR unlock error:", error);
-            const errorMsg = error.response?.data?.error || "Failed to connect to server.";
+            const errorMsg =
+                error.response?.data?.error?.message ||
+                "Failed to connect to server.";
             Alert("Error", errorMsg);
             setScannedData(null); // allow rescan
         }

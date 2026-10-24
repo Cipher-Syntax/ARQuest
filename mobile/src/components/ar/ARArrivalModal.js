@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { styles } from "../../app/(tabs)/arStyles";
+import { styles } from "./arStyles";
 
 /**
  * Reward-style arrival card shown when the user reaches a destination.

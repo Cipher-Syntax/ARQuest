@@ -9,7 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { AlertTriangle, RefreshCw } from "lucide-react-native";
 
-import { styles } from "../../app/(tabs)/arStyles";
+import { styles } from "./arStyles";
 
 /**
  * Shown when claiming a quest fails (e.g. timeout) so progress is not lost.

@@ -1,6 +1,6 @@
 import { View, Text, Animated } from "react-native";
 
-import { styles } from "../../app/(tabs)/arStyles";
+import { styles } from "./arStyles";
 
 /**
  * Slide-down reward toast for a newly earned badge or a level-up.

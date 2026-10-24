@@ -67,8 +67,11 @@ const BuildingListItem = React.memo(({ item, isUnlocked, isVisitor, isLast, onPr
 
 export default function BuildingsScreen() {
     const isFocused = useIsFocused();
-    const { unlockedBuildings, isLoading: isUnlockedLoading } =
-        useUnlockedBuildings();
+    const {
+        unlockedBuildings,
+        isLoading: isUnlockedLoading,
+        refresh: refreshUnlocked,
+    } = useUnlockedBuildings();
     const { location, startTracking, stopTracking } = useLocationTracking();
     const { canAccessBuildingFeatures, canView3D, canViewPanorama, role } =
         useRoleAccess();
@@ -176,6 +179,9 @@ export default function BuildingsScreen() {
             );
             startTracking();
             fetchQuickMissions();
+            // Silent refresh: catches unlocks made elsewhere (AR QR scan, AR/Explore
+            // geofence) without flashing a loading state over the map.
+            refreshUnlocked(true);
             SoundManager.init();
             if (sendMapUpdateRef.current) {
                 sendMapUpdateRef.current();
@@ -183,7 +189,7 @@ export default function BuildingsScreen() {
             return () => {
                 stopTracking();
             };
-        }, [startTracking, stopTracking, role])
+        }, [startTracking, stopTracking, role, refreshUnlocked])
     );
 
     const [allBuildings, setAllBuildings] = useState([]);

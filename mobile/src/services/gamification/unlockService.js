@@ -10,6 +10,15 @@ export const unlockService = {
         return response.data.data;
     },
 
+    async unlockBuildingViaQr(qrCodeSecret, latitude, longitude) {
+        const response = await api.post("/api/buildings/unlock/qr/", {
+            qr_code_secret: qrCodeSecret,
+            lat: latitude,
+            lng: longitude,
+        });
+        return response.data.data;
+    },
+
     async getUnlockedBuildings() {
         const response = await api.get("/api/buildings/unlocked/");
         return response.data.data;

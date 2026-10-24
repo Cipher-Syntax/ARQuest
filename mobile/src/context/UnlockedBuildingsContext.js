@@ -9,8 +9,12 @@ export const UnlockedBuildingsProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const fetchUnlocked = useCallback(async () => {
-        setIsLoading(true);
+    // silent = true refreshes in the background without flipping isLoading,
+    // so focus-driven refreshes do not flash a loading state over existing data.
+    const fetchUnlocked = useCallback(async (silent = false) => {
+        if (!silent) {
+            setIsLoading(true);
+        }
         setError(null);
         try {
             const buildings = await unlockService.getUnlockedBuildings();
@@ -18,13 +22,25 @@ export const UnlockedBuildingsProvider = ({ children }) => {
         } catch (err) {
             setError(err.message || "Failed to fetch unlocked buildings");
         } finally {
-            setIsLoading(false);
+            if (!silent) {
+                setIsLoading(false);
+            }
         }
     }, []);
 
     const attemptUnlock = useCallback(async (latitude, longitude, accuracy) => {
         try {
             const result = await unlockService.unlockBuilding(latitude, longitude, accuracy);
+            await fetchUnlocked(); // Refresh the list globally
+            return result;
+        } catch (err) {
+            throw err;
+        }
+    }, [fetchUnlocked]);
+
+    const unlockViaQr = useCallback(async (qrCodeSecret, latitude, longitude) => {
+        try {
+            const result = await unlockService.unlockBuildingViaQr(qrCodeSecret, latitude, longitude);
             await fetchUnlocked(); // Refresh the list globally
             return result;
         } catch (err) {
@@ -44,8 +60,9 @@ export const UnlockedBuildingsProvider = ({ children }) => {
 
     const actionsValue = useMemo(() => ({
         refresh: fetchUnlocked,
-        attemptUnlock
-    }), [fetchUnlocked, attemptUnlock]);
+        attemptUnlock,
+        unlockViaQr
+    }), [fetchUnlocked, attemptUnlock, unlockViaQr]);
 
     return (
         <UnlockedBuildingsStateContext.Provider value={stateValue}>

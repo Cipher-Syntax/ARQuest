@@ -2,7 +2,7 @@ import React from "react";
 import { Animated, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { styles } from "../../app/(tabs)/arStyles";
+import { styles } from "./arStyles";
 
 /**
  * Pulsing directional prompts shown at walking-turn moments.
