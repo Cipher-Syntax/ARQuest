@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.http import FileResponse, Http404
@@ -77,6 +78,21 @@ def department_detail(request, id):
         return success_response({'message': 'Department deleted successfully'}, status_code=status.HTTP_204_NO_CONTENT)
 
 
+def _annotate_unlock_state(queryset, user):
+    """Annotate a building queryset with whether a student has unlocked it.
+
+    Keeps BuildingSerializer's model_url gating from issuing one query per
+    building. Non-student roles never need the annotation.
+    """
+    if not getattr(user, 'is_student_role', False):
+        return queryset
+    return queryset.annotate(
+        user_has_unlock=Exists(
+            BuildingUnlock.objects.filter(user=user, building=OuterRef('pk'))
+        )
+    )
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def building_list_create(request):
@@ -85,6 +101,7 @@ def building_list_create(request):
             buildings = Building.objects.prefetch_related('geofences', 'departments').select_related('primary_department').all()
         else:
             buildings = Building.objects.prefetch_related('geofences', 'departments').select_related('primary_department').filter(status__in=['VISIBLE', 'MAINTENANCE'])
+        buildings = _annotate_unlock_state(buildings, request.user)
         serializer = BuildingSerializer(buildings, many=True, context={'request': request})
         return success_response(serializer.data)
     
@@ -118,8 +135,11 @@ def building_list_create(request):
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def building_detail(request, id):
+    queryset = Building.objects.all()
+    if request.method == 'GET':
+        queryset = _annotate_unlock_state(queryset, request.user)
     try:
-        building = Building.objects.get(id=id)
+        building = queryset.get(id=id)
     except Building.DoesNotExist:
         return error_response(ErrorCodes.NOT_FOUND, 'Building not found', status_code=status.HTTP_404_NOT_FOUND)
     

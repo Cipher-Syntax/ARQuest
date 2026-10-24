@@ -1050,3 +1050,163 @@ class DefaultQuestRewardTests(APITestCase):
             print("Response data:", res.data)
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.data['data']['reward_points'], 75)
+
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+
+
+TEST_STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class BuildingModelAccessTests(APITestCase):
+    """model_url is gated by role/unlock; has_model reports asset existence."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='model_admin', email='model_admin@test.com',
+            password='testpass123', role='admin', is_staff=True,
+        )
+        self.student = User.objects.create_user(
+            username='model_student', email='model_student@test.com',
+            password='testpass123', role='student',
+        )
+        self.professional = User.objects.create_user(
+            username='model_professional', email='model_professional@test.com',
+            password='testpass123', role='professional',
+        )
+        self.visitor = User.objects.create_user(
+            username='model_visitor', email='model_visitor@test.com',
+            password='testpass123', role='visitor',
+        )
+        self.building = Building.objects.create(
+            name='Model Building',
+            slug='model-building',
+            description='Has a 3D model',
+            latitude=14.5995,
+            longitude=120.9842,
+            status='VISIBLE',
+            is_active=True,
+            model_active=True,
+            model_file=SimpleUploadedFile(
+                'model-building.glb', b'glTF-test-bytes', content_type='model/gltf-binary'
+            ),
+        )
+        self.empty_building = Building.objects.create(
+            name='Empty Building',
+            slug='empty-building',
+            latitude=14.6000,
+            longitude=120.9850,
+            status='VISIBLE',
+            is_active=True,
+        )
+
+    def _list_item(self, user, building=None):
+        building = building or self.building
+        self.client.force_authenticate(user=user)
+        response = self.client.get('/api/buildings/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        items = {str(item['id']): item for item in response.data['data']}
+        self.assertIn(str(building.id), items)
+        return items[str(building.id)]
+
+    def test_admin_receives_model_url(self):
+        item = self._list_item(self.admin)
+        self.assertTrue(item['has_model'])
+        self.assertIsNotNone(item['model_url'])
+        self.assertIn('model-building', item['model_url'])
+
+    def test_professional_receives_model_url(self):
+        item = self._list_item(self.professional)
+        self.assertTrue(item['has_model'])
+        self.assertIsNotNone(item['model_url'])
+
+    def test_locked_student_gets_has_model_but_no_url(self):
+        item = self._list_item(self.student)
+        self.assertTrue(item['has_model'])
+        self.assertIsNone(item['model_url'])
+
+    def test_unlocked_student_receives_model_url(self):
+        BuildingUnlock.objects.create(
+            user=self.student, building=self.building, source='geofence'
+        )
+        item = self._list_item(self.student)
+        self.assertTrue(item['has_model'])
+        self.assertIsNotNone(item['model_url'])
+
+    def test_visitor_gets_has_model_but_no_url(self):
+        item = self._list_item(self.visitor)
+        self.assertTrue(item['has_model'])
+        self.assertIsNone(item['model_url'])
+
+    def test_building_without_model_reports_no_asset(self):
+        item = self._list_item(self.admin, building=self.empty_building)
+        self.assertFalse(item['has_model'])
+        self.assertIsNone(item['model_url'])
+
+    def test_detail_endpoint_gates_like_list(self):
+        url = f'/api/buildings/{self.building.id}/'
+
+        self.client.force_authenticate(user=self.visitor)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data['data']['model_url'])
+        self.assertTrue(response.data['data']['has_model'])
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get(url)
+        self.assertIsNone(response.data['data']['model_url'])
+
+        BuildingUnlock.objects.create(
+            user=self.student, building=self.building, source='geofence'
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(response.data['data']['model_url'])
+
+    def test_student_unlock_is_isolated_per_user(self):
+        other_student = User.objects.create_user(
+            username='model_student_2', email='model_student_2@test.com',
+            password='testpass123', role='student',
+        )
+        BuildingUnlock.objects.create(
+            user=other_student, building=self.building, source='geofence'
+        )
+        item = self._list_item(self.student)
+        self.assertIsNone(item['model_url'])
+
+    def test_list_unlock_lookup_does_not_scale_with_building_count(self):
+        """The unlock annotation must keep list queries constant."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        BuildingUnlock.objects.create(
+            user=self.student, building=self.building, source='geofence'
+        )
+        self.client.force_authenticate(user=self.student)
+        self.client.get('/api/buildings/')  # warm up auth/session queries
+
+        with CaptureQueriesContext(connection) as baseline:
+            self.client.get('/api/buildings/')
+
+        for index in range(4):
+            Building.objects.create(
+                name=f'Extra Building {index}',
+                slug=f'extra-building-{index}',
+                latitude=14.6010 + index / 1000,
+                longitude=120.9860 + index / 1000,
+                status='VISIBLE',
+                is_active=True,
+            )
+
+        with CaptureQueriesContext(connection) as expanded:
+            self.client.get('/api/buildings/')
+
+        self.assertEqual(len(baseline), len(expanded))
+
+

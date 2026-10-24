@@ -59,6 +59,7 @@ class GeofenceWriteSerializer(serializers.ModelSerializer):
 class BuildingSerializer(serializers.ModelSerializer):
     geofences = GeofenceSerializer(many=True, read_only=True)
     model_url = serializers.SerializerMethodField()
+    has_model = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
     qr_code_secret = serializers.SerializerMethodField()
     departments = DepartmentSerializer(many=True, read_only=True)
@@ -67,16 +68,46 @@ class BuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
         fields = ['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'status', 'is_active', 'geofences',
-                  'model_url', 'model_version', 'model_file_size', 'model_active', 'image_url', 'hotspots', 'qr_code_secret',
-                  'departments', 'primary_department', 'created_at', 'updated_at', 'deleted_at']
-    
+                  'model_url', 'has_model', 'model_version', 'model_file_size', 'model_active', 'image_url', 'hotspots',
+                  'qr_code_secret', 'departments', 'primary_department', 'created_at', 'updated_at', 'deleted_at']
+
+    def get_has_model(self, obj):
+        """Whether a 3D model exists, independent of whether this user may load it."""
+        return bool(obj.model_file)
+
     def get_model_url(self, obj):
-        if obj.model_file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.model_file.url)
-            return obj.model_file.url
-        return None
+        """Only expose the 3D model file to roles allowed to load it.
+
+        Admins and professionals bypass the unlock requirement; students require a
+        BuildingUnlock row; visitors never receive the URL. Panorama access is
+        handled by a separate endpoint and is unaffected.
+        """
+        if not obj.model_file:
+            return None
+        if not self._can_view_model(obj):
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.model_file.url)
+        return obj.model_file.url
+
+    def _can_view_model(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None) if request else None
+        if user is None or not getattr(user, 'is_authenticated', False):
+            return False
+        if getattr(user, 'is_admin_role', False) or getattr(user, 'is_professional_role', False):
+            return True
+        if getattr(user, 'is_student_role', False):
+            return self._is_unlocked_for_user(obj, user)
+        return False
+
+    def _is_unlocked_for_user(self, obj, user):
+        # Views annotate students with `user_has_unlock` to avoid an N+1 query.
+        annotated = getattr(obj, 'user_has_unlock', None)
+        if annotated is not None:
+            return bool(annotated)
+        return BuildingUnlock.objects.filter(user=user, building=obj).exists()
 
     def get_image_url(self, obj):
         if obj.image:

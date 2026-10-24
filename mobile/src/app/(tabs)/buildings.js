@@ -428,6 +428,14 @@ export default function BuildingsScreen() {
     };
 
     const handleView3D = () => {
+        if (!selectedBuilding?.model_url) {
+            Alert(
+                "3D MODEL LOCKED",
+                `Unlock ${selectedBuilding?.name || "this building"} by visiting it or scanning its QR code to view the 3D model.`,
+                [{ text: "UNDERSTOOD" }],
+            );
+            return;
+        }
         setModalVisible(false);
         router.push({
             pathname: "/building-3d-viewer",
@@ -668,6 +676,12 @@ export default function BuildingsScreen() {
         offset: 85 * index,
         index,
     }), []);
+
+    // `has_model` reports asset existence; `model_url` is role/unlock gated.
+    const selectedBuildingHasModel = Boolean(
+        selectedBuilding?.has_model ?? selectedBuilding?.model_url
+    );
+    const selectedBuildingModelUrl = selectedBuilding?.model_url || null;
 
     return (
         <View style={styles.container}>
@@ -1070,67 +1084,92 @@ export default function BuildingsScreen() {
                                     </View>
                                 ) : canAccessBuildingFeatures(true) ? (
                                     <View style={styles.tacticalActionGrid}>
-                                        {selectedBuilding.model_active &&
-                                        selectedBuilding.model_url ? (
-                                            role === "visitor" ? (
-                                                <TouchableOpacity
+                                        {!selectedBuilding.model_active ||
+                                        !selectedBuildingHasModel ? (
+                                            <View
+                                                style={[
+                                                    styles.tacticalActionBtn,
+                                                    styles.tacticalActionBtnDisabled,
+                                                ]}
+                                            >
+                                                <Text
                                                     style={[
-                                                        styles.tacticalActionBtn,
-                                                        styles.tacticalActionBtnDisabled,
+                                                        styles.tacticalActionText,
+                                                        {
+                                                            color: theme.colors
+                                                                .textMuted,
+                                                        },
                                                     ]}
-                                                    onPress={() =>
-                                                        Alert(
-                                                            "Guest Access Restricted",
-                                                            "3D architectural models are only accessible to registered students. Guests can view the 360° panorama tour below.",
-                                                            [{ text: "Understood" }]
-                                                        )
+                                                >
+                                                    3D Assets Offline
+                                                </Text>
+                                            </View>
+                                        ) : role === "visitor" ? (
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.tacticalActionBtn,
+                                                    styles.tacticalActionBtnDisabled,
+                                                ]}
+                                                onPress={() =>
+                                                    Alert(
+                                                        "Guest Access Restricted",
+                                                        "3D architectural models are only accessible to registered students. Guests can view the 360° panorama tour below.",
+                                                        [{ text: "Understood" }]
+                                                    )
+                                                }
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.tacticalActionText,
+                                                        {
+                                                            color: theme.colors
+                                                                .textMuted,
+                                                        },
+                                                    ]}
+                                                >
+                                                    3D Model (Student Only) 🔒
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ) : selectedBuildingModelUrl &&
+                                          canView3D ? (
+                                            <TouchableOpacity
+                                                style={styles.tacticalActionBtn}
+                                                onPress={handleView3D}
+                                            >
+                                                <Text
+                                                    style={
+                                                        styles.tacticalActionText
                                                     }
                                                 >
-                                                    <Text
-                                                        style={[
-                                                            styles.tacticalActionText,
-                                                            {
-                                                                color: theme.colors
-                                                                    .textMuted,
-                                                            },
-                                                        ]}
-                                                    >
-                                                        3D Model (Student Only) 🔒
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ) : canView3D ? (
-                                                <TouchableOpacity
-                                                    style={styles.tacticalActionBtn}
-                                                    onPress={handleView3D}
-                                                >
-                                                    <Text
-                                                        style={
-                                                            styles.tacticalActionText
-                                                        }
-                                                    >
-                                                        View 3D Model
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ) : (
-                                                <View
+                                                    View 3D Model
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ) : role === "student" ? (
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.tacticalActionBtn,
+                                                    styles.tacticalActionBtnDisabled,
+                                                ]}
+                                                onPress={() =>
+                                                    Alert(
+                                                        "3D MODEL LOCKED",
+                                                        `Unlock ${selectedBuilding.name} by visiting it or scanning its QR code to view the 3D model.`,
+                                                        [{ text: "UNDERSTOOD" }]
+                                                    )
+                                                }
+                                            >
+                                                <Text
                                                     style={[
-                                                        styles.tacticalActionBtn,
-                                                        styles.tacticalActionBtnDisabled,
+                                                        styles.tacticalActionText,
+                                                        {
+                                                            color: theme.colors
+                                                                .textMuted,
+                                                        },
                                                     ]}
                                                 >
-                                                    <Text
-                                                        style={[
-                                                            styles.tacticalActionText,
-                                                            {
-                                                                color: theme.colors
-                                                                    .textMuted,
-                                                            },
-                                                        ]}
-                                                    >
-                                                        3D Assets Offline
-                                                    </Text>
-                                                </View>
-                                            )
+                                                    Unlock to View 3D 🔒
+                                                </Text>
+                                            </TouchableOpacity>
                                         ) : (
                                             <View
                                                 style={[
