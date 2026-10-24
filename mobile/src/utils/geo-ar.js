@@ -237,3 +237,49 @@ export const getUpcomingWaypoint = (coords, userLat, userLng) => {
     const targetCoord = coords[Math.min(targetIdx, coords.length - 1)];
     return { longitude: targetCoord[0], latitude: targetCoord[1] };
 };
+
+/**
+ * Bearing in degrees (0-360, true north = 0) from one GPS point to another.
+ *
+ * @param {number} lat1 - Origin latitude.
+ * @param {number} lon1 - Origin longitude.
+ * @param {number} lat2 - Destination latitude.
+ * @param {number} lon2 - Destination longitude.
+ * @returns {number} Bearing in degrees.
+ */
+export const getBearing = (lat1, lon1, lat2, lon2) => {
+    const toRad = (val) => (val * Math.PI) / 180;
+    const toDeg = (val) => (val * 180) / Math.PI;
+
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+    const x =
+        Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+        Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
+};
+
+/**
+ * Great-circle distance in meters between two GPS points (haversine).
+ *
+ * @param {number} lat1 - Origin latitude.
+ * @param {number} lon1 - Origin longitude.
+ * @param {number} lat2 - Destination latitude.
+ * @param {number} lon2 - Destination longitude.
+ * @returns {number} Distance in meters.
+ */
+export const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3;
+    const p1 = (lat1 * Math.PI) / 180;
+    const p2 = (lat2 * Math.PI) / 180;
+    const dp = ((lat2 - lat1) * Math.PI) / 180;
+    const dl = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+        Math.sin(dp / 2) * Math.sin(dp / 2) +
+        Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+};

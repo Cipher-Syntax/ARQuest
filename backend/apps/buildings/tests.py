@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from apps.authentication.models import User
-from .models import Building, Geofence, BuildingUnlock
+from .models import Building, Geofence, BuildingUnlock, BuildingAsset
 
 
 class BuildingModelTest(TestCase):
@@ -1208,5 +1208,224 @@ class BuildingModelAccessTests(APITestCase):
             self.client.get('/api/buildings/')
 
         self.assertEqual(len(baseline), len(expanded))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class BuildingAssetEndpointTests(APITestCase):
+    """Role matrix for /buildings/<id>/assets/ and /assets/<id>/metadata/."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='asset_admin', email='asset_admin@test.com',
+            password='testpass123', role='admin', is_staff=True,
+        )
+        self.professional = User.objects.create_user(
+            username='asset_professional', email='asset_professional@test.com',
+            password='testpass123', role='professional',
+        )
+        self.student = User.objects.create_user(
+            username='asset_student', email='asset_student@test.com',
+            password='testpass123', role='student',
+        )
+        self.visitor = User.objects.create_user(
+            username='asset_visitor', email='asset_visitor@test.com',
+            password='testpass123', role='visitor',
+        )
+
+        self.building = Building.objects.create(
+            name='Asset Building',
+            slug='asset-building',
+            latitude=14.5995,
+            longitude=120.9842,
+            status='VISIBLE',
+            is_active=True,
+        )
+        self.model_asset = BuildingAsset.objects.create(
+            building=self.building,
+            asset_type='model',
+            file=SimpleUploadedFile(
+                'asset-model.glb', b'glTF-test-bytes', content_type='model/gltf-binary'
+            ),
+            version=3,
+            file_size=15,
+            checksum='a' * 64,
+            is_active=True,
+        )
+        self.retired_asset = BuildingAsset.objects.create(
+            building=self.building,
+            asset_type='image',
+            file=SimpleUploadedFile(
+                'asset-retired.png', b'png-test-bytes', content_type='image/png'
+            ),
+            is_active=False,
+        )
+
+        self.hidden_building = Building.objects.create(
+            name='Hidden Asset Building',
+            slug='hidden-asset-building',
+            latitude=14.6010,
+            longitude=120.9860,
+            status='HIDDEN',
+            is_active=True,
+        )
+        self.hidden_asset = BuildingAsset.objects.create(
+            building=self.hidden_building,
+            asset_type='model',
+            file=SimpleUploadedFile(
+                'hidden-model.glb', b'glTF-hidden', content_type='model/gltf-binary'
+            ),
+            is_active=True,
+        )
+
+    # --- helpers -----------------------------------------------------------
+
+    def _get_assets(self, user=None, building=None):
+        self.client.force_authenticate(user=user)
+        building = building or self.building
+        return self.client.get(f'/api/buildings/{building.id}/assets/')
+
+    def _get_metadata(self, user, asset=None):
+        self.client.force_authenticate(user=user)
+        asset = asset or self.model_asset
+        return self.client.get(f'/api/assets/{asset.id}/metadata/')
+
+    def _unlock_student(self, user=None):
+        return BuildingUnlock.objects.create(
+            user=user or self.student, building=self.building, source='geofence'
+        )
+
+    # --- /buildings/<id>/assets/ -------------------------------------------
+
+    def test_assets_endpoint_requires_authentication(self):
+        response = self.client.get(f'/api/buildings/{self.building.id}/assets/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_admin_receives_active_assets_with_file_url(self):
+        response = self._get_assets(self.admin)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+
+        assets = response.data['data']
+        self.assertEqual(len(assets), 1)
+        asset = assets[0]
+        self.assertEqual(str(asset['id']), str(self.model_asset.id))
+        self.assertEqual(asset['asset_type'], 'model')
+        self.assertEqual(asset['version'], 3)
+        self.assertEqual(asset['file_size'], 15)
+        self.assertEqual(asset['checksum'], 'a' * 64)
+        self.assertTrue(asset['is_active'])
+        self.assertIsNotNone(asset['file_url'])
+        self.assertIn('asset-model', asset['file_url'])
+
+    def test_inactive_assets_are_never_listed(self):
+        """The list endpoint filters is_active=True for every role."""
+        for user in (self.admin, self.professional):
+            response = self._get_assets(user)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            ids = {str(asset['id']) for asset in response.data['data']}
+            self.assertIn(str(self.model_asset.id), ids)
+            self.assertNotIn(str(self.retired_asset.id), ids)
+
+    def test_professional_receives_assets(self):
+        response = self._get_assets(self.professional)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['data']), 1)
+
+    def test_visitor_is_denied_assets(self):
+        response = self._get_assets(self.visitor)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['error']['code'], 'PERMISSION_DENIED')
+
+    def test_locked_student_is_denied_assets(self):
+        response = self._get_assets(self.student)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['error']['code'], 'PERMISSION_DENIED')
+
+    def test_unlocked_student_receives_assets(self):
+        self._unlock_student()
+        response = self._get_assets(self.student)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['data']), 1)
+
+    def test_student_unlock_does_not_leak_between_users(self):
+        other_student = User.objects.create_user(
+            username='asset_student_2', email='asset_student_2@test.com',
+            password='testpass123', role='student',
+        )
+        self._unlock_student(user=other_student)
+        response = self._get_assets(self.student)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_hidden_building_assets_are_404_for_non_admin(self):
+        response = self._get_assets(self.professional, building=self.hidden_building)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error']['code'], 'NOT_FOUND')
+
+        response = self._get_assets(self.admin, building=self.hidden_building)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['data']), 1)
+
+    def test_unknown_building_assets_are_404(self):
+        import uuid
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(f'/api/buildings/{uuid.uuid4()}/assets/')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # --- /assets/<id>/metadata/ --------------------------------------------
+
+    def test_metadata_endpoint_requires_authentication(self):
+        response = self.client.get(f'/api/assets/{self.model_asset.id}/metadata/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_metadata_route_accepts_uuid_asset_ids(self):
+        """Regression: the route must accept UUID ids, not ints."""
+        response = self._get_metadata(self.admin)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(str(response.data['data']['id']), str(self.model_asset.id))
+
+    def test_metadata_available_to_admin_and_professional(self):
+        for user in (self.admin, self.professional):
+            response = self._get_metadata(user)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(str(response.data['data']['building']), str(self.building.id))
+
+    def test_metadata_denied_for_visitor(self):
+        response = self._get_metadata(self.visitor)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['error']['code'], 'PERMISSION_DENIED')
+
+    def test_metadata_denied_for_locked_student_and_allowed_after_unlock(self):
+        response = self._get_metadata(self.student)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['error']['code'], 'PERMISSION_DENIED')
+
+        self._unlock_student()
+        response = self._get_metadata(self.student)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_metadata_hides_inactive_asset_from_non_admin(self):
+        response = self._get_metadata(self.professional, asset=self.retired_asset)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error']['code'], 'NOT_FOUND')
+
+        response = self._get_metadata(self.admin, asset=self.retired_asset)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_metadata_hides_asset_of_hidden_building_from_non_admin(self):
+        response = self._get_metadata(self.professional, asset=self.hidden_asset)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        response = self._get_metadata(self.admin, asset=self.hidden_asset)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_unknown_asset_metadata_is_404(self):
+        import uuid
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(f'/api/assets/{uuid.uuid4()}/metadata/')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 

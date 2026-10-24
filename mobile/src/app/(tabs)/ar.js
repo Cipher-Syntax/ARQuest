@@ -9,7 +9,6 @@ import {
     Animated,
     ActivityIndicator,
     Easing,
-    Modal,
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -19,21 +18,34 @@ import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
 import { router, useLocalSearchParams, useFocusEffect, useNavigation } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
-import { X, Camera as CameraIcon, QrCode, Navigation, AlertTriangle, Smartphone, RefreshCw } from "lucide-react-native";
+import { X, Camera as CameraIcon, Navigation } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService, assetService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
+import ARCompassOverlay from "../../components/ar/ARCompassOverlay";
+import ARTurnIndicator from "../../components/ar/ARTurnIndicator";
+import ARUnsupportedModal from "../../components/ar/ARUnsupportedModal";
+import ARArrivalModal from "../../components/ar/ARArrivalModal";
+import ARClaimErrorModal from "../../components/ar/ARClaimErrorModal";
+import ARTriviaModal from "../../components/ar/ARTriviaModal";
+import ARBottomControls from "../../components/ar/ARBottomControls";
+import ARRewardToast from "../../components/ar/ARRewardToast";
 import { checkARSupport } from "../../utils/ar-hardware-check";
-import { getUpcomingWaypoint, snapToWalkway } from "../../utils/geo-ar";
+import {
+    getBearing,
+    getHaversineDistance,
+    getUpcomingWaypoint,
+    snapToWalkway,
+} from "../../utils/geo-ar";
 import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
 import ARPostcardModal from "../../components/ar/ARPostcardModal";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
-import { fonts } from "../../constants/typography";
+import { styles } from "./arStyles";
 import SoundManager from "../../utils/SoundManager";
 import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
 import ErrorBoundary from "../../components/ui/ErrorBoundary";
@@ -388,61 +400,6 @@ export default function ARScreen() {
         }, [startTracking, stopTracking, fetchQuests])
     );
 
-    const DeviceNotSupportedModal = () => (
-        showUnsupportedModal ? (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: 24 }]}>
-                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 6, width: '100%', maxWidth: 360, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 10 }}>
-                    {/* Header Ribbon */}
-                    <View style={{ backgroundColor: theme.colors.primary, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <AlertTriangle size={20} color="#FFD700" />
-                        <Text style={{ fontFamily: fonts.heading.bold, color: '#FFFFFF', fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase' }}>
-                            Spatial AR Not Supported
-                        </Text>
-                    </View>
-
-                    {/* Content */}
-                    <View style={{ padding: 20 }}>
-                        <Text style={{ fontFamily: fonts.body.bold, color: theme.colors.textPrimary, fontSize: 14, marginBottom: 8 }}>
-                            Google ARCore Not Detected
-                        </Text>
-                        <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 20 }}>
-                            Your device does not support native Spatial AR tracking. You can still navigate using the Campus 2D Map and scan building QR codes to complete quests.
-                        </Text>
-
-                        {/* Action Buttons */}
-                        <View style={{ gap: 10 }}>
-                            <TouchableOpacity 
-                                style={{ backgroundColor: theme.colors.primary, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
-                                onPress={() => {
-                                    setShowUnsupportedModal(false);
-                                    router.push("/(tabs)/buildings");
-                                }}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={{ fontFamily: fonts.heading.bold, color: '#FFFFFF', fontSize: 12, letterSpacing: 1 }}>
-                                    GO TO CAMPUS MAP
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={{ backgroundColor: 'transparent', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border }}
-                                onPress={() => {
-                                    setShowUnsupportedModal(false);
-                                    toggleQrScanner(true);
-                                }}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 11, letterSpacing: 0.5 }}>
-                                    USE QR SCANNER INSTEAD
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </View>
-        ) : null
-    );
-
     useEffect(() => {
         fetchQuests();
     }, [fetchQuests]);
@@ -528,34 +485,6 @@ export default function ARScreen() {
         }
     }, [activeTargetId]);
 
-    const getBearing = (lat1, lon1, lat2, lon2) => {
-        const toRad = (val) => (val * Math.PI) / 180;
-        const toDeg = (val) => (val * 180) / Math.PI;
-
-        const dLon = toRad(lon2 - lon1);
-        const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-        const x =
-            Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-            Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
-
-        return (toDeg(Math.atan2(y, x)) + 360) % 360;
-    };
-
-    const getDistance = (lat1, lon1, lat2, lon2) => {
-        const R = 6371e3;
-        const p1 = (lat1 * Math.PI) / 180;
-        const p2 = (lat2 * Math.PI) / 180;
-        const dp = ((lat2 - lat1) * Math.PI) / 180;
-        const dl = ((lon2 - lon1) * Math.PI) / 180;
-
-        const a =
-            Math.sin(dp / 2) * Math.sin(dp / 2) +
-            Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return R * c;
-    };
-
     let arrowAngle = 0;
     let distanceToTarget = null;
     let turnDirection = null; // 'left' | 'right' | 'around' | 'ahead'
@@ -576,7 +505,7 @@ export default function ARScreen() {
     const navUserLng = effectiveUserCoords?.longitude ?? curLng;
 
     if (navTargetFull && navUserLat && navUserLng) {
-        distanceToTarget = getDistance(
+        distanceToTarget = getHaversineDistance(
             navUserLat,
             navUserLng,
             navTargetFull.latitude,
@@ -1346,150 +1275,19 @@ export default function ARScreen() {
 
                 {/* ── Enhanced Animated Turn Indicators (Option 5 — Pulsing Glow Arrows) ── */}
                 {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
-                    <>
-                        {turnDirection === 'around' && (
-                            <Animated.View
-                                style={[styles.turnIndicatorAround, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
-                                pointerEvents="none"
-                            >
-                                <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                                <Text style={styles.turnIndicatorText}>TURN AROUND</Text>
-                            </Animated.View>
-                        )}
-                        {turnDirection === 'left' && (
-                            <Animated.View
-                                style={[styles.turnIndicatorLeft, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
-                                pointerEvents="none"
-                            >
-                                <Animated.View style={{ opacity: ribbonPulseAnim }}>
-                                    <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
-                                </Animated.View>
-                                <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
-                                <Text style={styles.turnIndicatorText}>TURN LEFT</Text>
-                            </Animated.View>
-                        )}
-                        {turnDirection === 'right' && (
-                            <Animated.View
-                                style={[styles.turnIndicatorRight, { borderColor: ribbonPulseAnim.interpolate({ inputRange: [0.2, 1], outputRange: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.85)'] }) }]}
-                                pointerEvents="none"
-                            >
-                                <Text style={styles.turnIndicatorText}>TURN RIGHT</Text>
-                                <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
-                                <Animated.View style={{ opacity: ribbonPulseAnim }}>
-                                    <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
-                                </Animated.View>
-                            </Animated.View>
-                        )}
-                    </>
+                    <ARTurnIndicator
+                        turnDirection={turnDirection}
+                        pulseAnim={ribbonPulseAnim}
+                    />
                 )}
 
                 {/* 4. Persistent Compass Navigation Overlay */}
                 {/* Positioned in top-right corner below the white header background */}
                 {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && heading !== null && heading !== undefined && (arrowAngle !== null) && (
-                    <View
-                        pointerEvents="none"
-                        style={{
-                            position: 'absolute',
-                            top: 175,
-                            right: 16,
-                            alignItems: 'center',
-                            zIndex: 40,
-                        }}
-                    >
-                        {/* Outer compass dial */}
-                        <View style={{
-                            width: 58,
-                            height: 58,
-                            borderRadius: 29,
-                            backgroundColor: 'rgba(15, 23, 42, 0.80)',
-                            borderWidth: 2,
-                            borderColor: 'rgba(255, 255, 255, 0.40)',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 3 },
-                            shadowOpacity: 0.35,
-                            shadowRadius: 5,
-                            elevation: 8,
-                        }}>
-                            {/* Forward / Device heading tick mark (top of dial) */}
-                            <View style={{
-                                position: 'absolute',
-                                top: 2.5,
-                                width: 4,
-                                height: 4,
-                                borderRadius: 2,
-                                backgroundColor: '#EBBC26',
-                            }} />
-
-                            {/* Rotating Target Needle (rotates around center pivot to target bearing) */}
-                            <View style={{
-                                width: 44,
-                                height: 44,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                transform: [{ rotate: `${Math.round(arrowAngle)}deg` }],
-                            }}>
-                                {/* Forward Pointer (Crimson Arrow pointing toward target) */}
-                                <View style={{
-                                    width: 0,
-                                    height: 0,
-                                    borderLeftWidth: 6,
-                                    borderRightWidth: 6,
-                                    borderBottomWidth: 15,
-                                    borderLeftColor: 'transparent',
-                                    borderRightColor: 'transparent',
-                                    borderBottomColor: '#B21830',
-                                    marginBottom: 1,
-                                }} />
-                                {/* Opposite Tail (Muted White/Silver pointing away) */}
-                                <View style={{
-                                    width: 0,
-                                    height: 0,
-                                    borderLeftWidth: 4,
-                                    borderRightWidth: 4,
-                                    borderTopWidth: 10,
-                                    borderLeftColor: 'transparent',
-                                    borderRightColor: 'transparent',
-                                    borderTopColor: 'rgba(255, 255, 255, 0.45)',
-                                    marginTop: 1,
-                                }} />
-                                {/* Center Pivot Pin */}
-                                <View style={{
-                                    position: 'absolute',
-                                    width: 7,
-                                    height: 7,
-                                    borderRadius: 3.5,
-                                    backgroundColor: '#EBBC26',
-                                    borderWidth: 1.5,
-                                    borderColor: '#FFFFFF',
-                                }} />
-                            </View>
-                        </View>
-
-                        {/* Distance Badge below compass */}
-                        {distanceToTarget !== null && (
-                            <View style={{
-                                marginTop: 4,
-                                backgroundColor: 'rgba(15, 23, 42, 0.85)',
-                                borderRadius: 6,
-                                borderWidth: 1,
-                                borderColor: 'rgba(255, 255, 255, 0.25)',
-                                paddingHorizontal: 7,
-                                paddingVertical: 2,
-                            }}>
-                                <Text style={{
-                                    color: '#FFFFFF',
-                                    fontSize: 10,
-                                    fontWeight: '800',
-                                    letterSpacing: 0.5,
-                                    textAlign: 'center',
-                                }}>
-                                    {`${Math.round(distanceToTarget)}m`}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
+                    <ARCompassOverlay
+                        arrowAngle={arrowAngle}
+                        distanceToTarget={distanceToTarget}
+                    />
                 )}
 
                 {/* 3. Reticle Overlays */}
@@ -1527,1244 +1325,83 @@ export default function ARScreen() {
             />
 
             {/* --- DEVICE NOT SUPPORTED MODAL --- */}
-            <DeviceNotSupportedModal />
+            <ARUnsupportedModal
+                visible={showUnsupportedModal}
+                onGoToMap={() => {
+                    setShowUnsupportedModal(false);
+                    router.push("/(tabs)/buildings");
+                }}
+                onUseQr={() => {
+                    setShowUnsupportedModal(false);
+                    toggleQrScanner(true);
+                }}
+            />
 
             {/* --- REWARD-STYLE CENTER ARRIVAL MODAL (Native Window Centered) --- */}
-            <Modal
-                transparent={true}
+            <ARArrivalModal
                 visible={Boolean(showArrivalModal && !isScanningQr && !capturing && !triviaModalVisible)}
-                animationType="none"
-                statusBarTranslucent={true}
-                onRequestClose={handleDismissArrivalModal}
-            >
-                <View style={styles.arrivalModalOverlay}>
-                    {/* Backdrop touch to dismiss */}
-                    <TouchableOpacity
-                        style={StyleSheet.absoluteFillObject}
-                        activeOpacity={1}
-                        onPress={handleDismissArrivalModal}
-                    />
-
-                    <Animated.View
-                        style={[
-                            styles.arrivalRewardCard,
-                            {
-                                opacity: arrivalModalAnim,
-                                transform: [
-                                    {
-                                        scale: arrivalModalAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.85, 1],
-                                        }),
-                                    },
-                                ],
-                            },
-                        ]}
-                    >
-                        <TouchableOpacity
-                            activeOpacity={1}
-                            style={styles.arrivalRewardCardInner}
-                            onPress={handleDismissArrivalModal}
-                        >
-                            {/* Glowing Trophy Badge */}
-                            <View style={styles.arrivalRewardTrophyWrap}>
-                                <Ionicons name="trophy" size={32} color="#FFD700" />
-                            </View>
-
-                            {/* Banner Tag */}
-                            <View style={styles.arrivalRewardBanner}>
-                                <Ionicons name="trophy" size={12} color="#FFD700" style={{ marginRight: 5 }} />
-                                <Text style={styles.arrivalRewardTagline}>DESTINATION REACHED</Text>
-                                <Ionicons name="trophy" size={12} color="#FFD700" style={{ marginLeft: 5 }} />
-                            </View>
-
-                            <Text style={styles.arrivalRewardTitle}>YOU HAVE ARRIVED</Text>
-
-                            {/* Building Plaque / Certificate Box */}
-                            <View style={styles.arrivalRewardBldgPlaque}>
-                                <Ionicons name="location-sharp" size={18} color="#FFD700" style={{ marginRight: 6 }} />
-                                <Text style={styles.arrivalRewardBldgName} numberOfLines={2}>
-                                    {effectiveBuildingName || (navTargetFull || nearbyBuildingFull)?.name || 'Destination'}
-                                </Text>
-                            </View>
-
-                            {/* Gamified Reward / Discovery Pill */}
-                            {user?.role === 'student' && matchingQuest ? (
-                                <View style={styles.arrivalRewardExpPill}>
-                                    <Ionicons name="gift" size={16} color="#FFD700" style={{ marginRight: 6 }} />
-                                    <Text style={styles.arrivalRewardExpText}>
-                                        MISSION AVAILABLE: +{matchingQuest.reward_points || 50} EXP
-                                    </Text>
-                                </View>
-                            ) : (
-                                <View style={styles.arrivalRewardBadgePill}>
-                                    <Ionicons name="ribbon" size={15} color="#00E5FF" style={{ marginRight: 6 }} />
-                                    <Text style={styles.arrivalRewardBadgeText}>
-                                        CAMPUS LANDMARK UNLOCKED
-                                    </Text>
-                                </View>
-                            )}
-
-                            {/* Model Loading Status Indicator */}
-                            <View style={styles.arrivalRewardLoaderBox}>
-                                <ActivityIndicator size="small" color="#FFD700" style={{ marginRight: 8 }} />
-                                <Text style={styles.arrivalRewardLoaderText}>
-                                    Wait for 3D model to load...
-                                </Text>
-                            </View>
-
-                            {/* Dismiss Hint */}
-                            <Text style={styles.arrivalRewardDismissHint}>Tap anywhere to continue</Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-                </View>
-            </Modal>
+                onDismiss={handleDismissArrivalModal}
+                anim={arrivalModalAnim}
+                buildingName={effectiveBuildingName || (navTargetFull || nearbyBuildingFull)?.name || 'Destination'}
+                missionExp={user?.role === 'student' && matchingQuest ? (matchingQuest.reward_points || 50) : null}
+            />
 
             {/* --- QUEST CLAIM ERROR & RETRY MODAL (TC_AR_05 Step 3 Compliance) --- */}
-            <Modal
-                transparent={true}
+            <ARClaimErrorModal
                 visible={claimErrorModalVisible}
-                animationType="fade"
-                statusBarTranslucent={true}
-                onRequestClose={() => setClaimErrorModalVisible(false)}
-            >
-                <View style={styles.claimErrorOverlay}>
-                    <TouchableOpacity
-                        style={StyleSheet.absoluteFillObject}
-                        activeOpacity={1}
-                        onPress={() => setClaimErrorModalVisible(false)}
-                    />
-                    <View style={styles.claimErrorCard}>
-                        {/* Warning/Alert Icon Badge */}
-                        <View style={styles.claimErrorIconWrap}>
-                            <AlertTriangle size={30} color="#F1C40F" />
-                        </View>
-
-                        <Text style={styles.claimErrorTagline}>QUEST CLAIM INTERRUPTED</Text>
-                        <Text style={styles.claimErrorTitle}>Connection Issue</Text>
-
-                        <Text style={styles.claimErrorMessage}>
-                            {claimErrorMessage || "The server took too long to respond. Tap Retry to resend your claim without losing progress."}
-                        </Text>
-
-                        {/* Active Quest Context Pill */}
-                        {(claimTargetQuest || matchingQuest) && (
-                            <View style={styles.claimErrorQuestPill}>
-                                <Ionicons name="gift-outline" size={16} color="#FFD700" style={{ marginRight: 6 }} />
-                                <Text style={styles.claimErrorQuestText} numberOfLines={1}>
-                                    {(claimTargetQuest || matchingQuest).title || "Campus Quest"} (+{(claimTargetQuest || matchingQuest).reward_points || 50} EXP)
-                                </Text>
-                            </View>
-                        )}
-
-                        {/* Action Buttons Row */}
-                        <View style={styles.claimErrorButtonRow}>
-                            <TouchableOpacity
-                                style={styles.claimErrorDismissBtn}
-                                onPress={() => setClaimErrorModalVisible(false)}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={styles.claimErrorDismissText}>DISMISS</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.claimErrorRetryBtn}
-                                onPress={() => {
-                                    setClaimErrorModalVisible(false);
-                                    handleClaimQuest(claimTargetQuest || matchingQuest);
-                                }}
-                                disabled={isClaiming}
-                                activeOpacity={0.8}
-                            >
-                                {isClaiming ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                ) : (
-                                    <>
-                                        <RefreshCw size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
-                                        <Text style={styles.claimErrorRetryText}>RETRY CLAIM</Text>
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-
+                onDismiss={() => setClaimErrorModalVisible(false)}
+                onRetry={() => {
+                    setClaimErrorModalVisible(false);
+                    handleClaimQuest(claimTargetQuest || matchingQuest);
+                }}
+                isRetrying={isClaiming}
+                message={claimErrorMessage || "The server took too long to respond. Tap Retry to resend your claim without losing progress."}
+                questTitle={(claimTargetQuest || matchingQuest)?.title || ((claimTargetQuest || matchingQuest) ? "Campus Quest" : null)}
+                questExp={(claimTargetQuest || matchingQuest)?.reward_points || 50}
+            />
 
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}
             {triviaModalVisible && (
-                <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]} pointerEvents="box-none">
-                        {/* Dark backdrop */}
-                        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
-
-                        <Animated.View
-                            style={[
-                                styles.triviaModal,
-                                { transform: [{ translateY: slideAnim }] },
-                            ]}
-                        >
-                            <View style={styles.triviaModalHeader}>
-                            <View
-                                style={{
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                }}
-                            >
-                                <Ionicons
-                                    name="book"
-                                    color={theme.colors.primary}
-                                    size={22}
-                                    style={{ marginRight: 8 }}
-                                />
-                                <Text style={styles.triviaTitle}>
-                                    {user?.role === "student" && claimedQuest
-                                        ? "MISSION COMPLETED!"
-                                        : "Building Information"}
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={closeTriviaModal}
-                                style={styles.closeTriviaBtn}
-                            >
-                                <X color={theme.colors.primary} size={20} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.triviaContentBorder}>
-                            <Text style={styles.triviaBuildingName}>
-                                {(navTargetFull || nearbyBuildingFull)?.name || "Unknown Building"}
-                            </Text>
-                            <Text style={styles.triviaText}>
-                                {fetchedTrivia ||
-                                    claimedQuest?.hint ||
-                                    (navTargetFull || nearbyBuildingFull)?.description ||
-                                    "No information available for this location."}
-                            </Text>
-                        </View>
-
-                        {user?.role === "student" && claimedQuest && (
-                            <View style={styles.rewardBadge}>
-                                <Ionicons
-                                    name="flash"
-                                    color={theme.colors.primary}
-                                    size={20}
-                                />
-                                <Text style={styles.rewardText}>
-                                    +{claimedQuest.reward_points} EXP
-                                </Text>
-                            </View>
-                        )}
-                    </Animated.View>
-                </View>
+                <ARTriviaModal
+                    onClose={closeTriviaModal}
+                    slideAnim={slideAnim}
+                    title={user?.role === "student" && claimedQuest ? "MISSION COMPLETED!" : "Building Information"}
+                    buildingName={(navTargetFull || nearbyBuildingFull)?.name || "Unknown Building"}
+                    body={fetchedTrivia || claimedQuest?.hint || (navTargetFull || nearbyBuildingFull)?.description || "No information available for this location."}
+                    rewardPoints={user?.role === "student" && claimedQuest ? claimedQuest.reward_points : null}
+                />
             )}
-
             {/* --- Bottom Camera Controls --- */}
             {!capturing && (
-                <View style={styles.bottomControls}>
-                    <TouchableOpacity 
-                        style={[styles.qrBigButton, isScanningQr && styles.qrBigButtonActive]} 
-                        onPress={() => toggleQrScanner(!isScanningQr)}
-                    >
-                        <QrCode size={20} color={isScanningQr ? "#fff" : theme.colors.primary} />
-                        <Text style={[styles.qrBigButtonText, isScanningQr && { color: "#fff" }]}>
-                            {isScanningQr ? "SCANNING QR..." : "SCAN QR CODE"}
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.captureButton}
-                        onPress={handleCaptureArSnapshot}
-                        disabled={capturing}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.captureButtonInner}>
-                            {capturing ? (
-                                <ActivityIndicator size="small" color={theme.colors.primary} />
-                            ) : (
-                                <CameraIcon size={28} color={theme.colors.primary} />
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                </View>
+                <ARBottomControls
+                    isScanningQr={isScanningQr}
+                    capturing={capturing}
+                    onToggleQr={toggleQrScanner}
+                    onCapture={handleCaptureArSnapshot}
+                />
             )}
 
             {/* --- BADGE EARNED TOAST --- */}
             {user?.role === "student" && newlyEarnedBadges.length > 0 && (
-                <Animated.View
-                    style={[
-                        styles.badgeToast,
-                        {
-                            opacity: badgeAnim,
-                            transform: [
-                                {
-                                    translateY: badgeAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [-80, 0],
-                                    }),
-                                },
-                            ],
-                        },
-                    ]}
-                >
-                    <Text style={styles.badgeToastEmoji}>
-                        {newlyEarnedBadges[0].icon}
-                    </Text>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.badgeToastLabel}>
-                            BADGE UNLOCKED
-                        </Text>
-                        <Text style={styles.badgeToastName}>
-                            {newlyEarnedBadges[0].name}
-                        </Text>
-                    </View>
-                </Animated.View>
+                <ARRewardToast
+                    variant="badge"
+                    anim={badgeAnim}
+                    emoji={newlyEarnedBadges[0].icon}
+                    label="BADGE UNLOCKED"
+                    name={newlyEarnedBadges[0].name}
+                />
             )}
 
             {/* --- RANK UP TOAST --- */}
             {user?.role === "student" && rankUpInfo && (
-                <Animated.View
-                    style={[
-                        styles.rankUpToast,
-                        {
-                            opacity: rankAnim,
-                            transform: [
-                                {
-                                    translateY: rankAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [-80, 0],
-                                    }),
-                                },
-                            ],
-                        },
-                    ]}
-                >
-                    <Text style={styles.rankUpToastEmoji}>
-                        {rankUpInfo.icon}
-                    </Text>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.rankUpToastLabel}>RANK UP!</Text>
-                        <Text style={styles.rankUpToastName}>
-                            Lv.{rankUpInfo.level} {rankUpInfo.title}
-                        </Text>
-                    </View>
-                </Animated.View>
+                <ARRewardToast
+                    variant="rank"
+                    anim={rankAnim}
+                    emoji={rankUpInfo.icon}
+                    label="RANK UP!"
+                    name={`Lv.${rankUpInfo.level} ${rankUpInfo.title}`}
+                />
             )}
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#000",
-    },
-    captureContainer: {
-        flex: 1, // Must be flex 1 to expand the background
-        backgroundColor: "#000",
-    },
-    camera: {
-        flex: 1, // Crucial: Gives camera/image height to fill the screen naturally
-        width: "100%",
-        height: "100%",
-    },
-    messageText: {
-        color: "#fff",
-        fontSize: 16,
-        textAlign: "center",
-        marginTop: 100,
-    },
-    permissionContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        padding: theme.spacing.xl,
-    },
-    permissionTitle: {
-        fontSize: theme.typography.xl,
-        fontWeight: "600",
-        color: "#fff",
-        marginTop: theme.spacing.lg,
-        marginBottom: theme.spacing.sm,
-    },
-    permissionText: {
-        fontSize: theme.typography.md,
-        color: theme.colors.textMuted,
-        textAlign: "center",
-        marginBottom: theme.spacing.xl,
-    },
-    permissionButton: {
-        backgroundColor: theme.colors.primary,
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.xl,
-        borderRadius: theme.radius.md,
-    },
-    permissionButtonText: {
-        color: "#fff",
-        fontSize: theme.typography.md,
-        fontWeight: "600",
-    },
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    qrButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 6,
-        backgroundColor: "rgba(255,255,255,0.9)",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.9)",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    missionsPill: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "rgba(20, 20, 20, 0.75)",
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.2)",
-    },
-    missionsPillText: {
-        fontFamily: fonts.heading.bold,
-        color: "#fff",
-        fontSize: 11,
-        letterSpacing: 1,
-    },
-    
-    
-    
-    
-    
-    
-    
-    
-    claimQuestBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme.colors.primary,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 6,
-        marginTop: 12,
-    },
-    claimQuestBtnText: {
-        fontFamily: fonts.heading.bold,
-        color: "#FFFFFF",
-        fontSize: 12,
-        letterSpacing: 1,
-        marginLeft: 6,
-    },
-    
-    qrBigButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 30,
-        marginBottom: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    qrBigButtonActive: {
-        backgroundColor: theme.colors.success,
-    },
-    qrBigButtonText: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
-        fontSize: 14,
-        letterSpacing: 0.5,
-        marginLeft: 8,
-    },
-    navigationHud: {
-        position: 'absolute',
-        top: '40%',
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 50,
-        pointerEvents: 'none',
-    },
-    navTargetText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontFamily: fonts.heading.bold,
-        letterSpacing: 1,
-        textShadowColor: 'rgba(0,0,0,0.8)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 3,
-        marginBottom: 20,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 20,
-        overflow: 'hidden',
-    },
-    navPathContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 160,
-    },
-    navDistanceText: {
-        color: theme.colors.success,
-        fontSize: 18,
-        fontFamily: fonts.heading.bold,
-        marginTop: 20,
-        textShadowColor: 'rgba(0,0,0,0.9)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 4,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 12,
-        overflow: 'hidden',
-    },
-    bottomControls: {
-        position: "absolute",
-        bottom: 40,
-        left: 0,
-        right: 0,
-        alignItems: "center",
-        zIndex: 20,
-    },
-    scanningReticle: {
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        width: 240,
-        height: 240,
-        marginLeft: -120,
-        marginTop: -120,
-        borderWidth: 2,
-        borderColor: "rgba(16, 185, 129, 0.6)",
-        borderRadius: 6,
-        backgroundColor: "rgba(16, 185, 129, 0.1)",
-        zIndex: 5,
-        justifyContent: "center",
-        alignItems: "center",
-        overflow: "hidden",
-    },
-    scannerLine: {
-        position: "absolute",
-        width: "100%",
-        height: 2,
-        backgroundColor: theme.colors.success,
-        shadowColor: theme.colors.success,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 8,
-    },
-    scanningText: {
-        color: theme.colors.success,
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        letterSpacing: 2,
-        marginTop: 80,
-    },
-    
-    topLeftControls: {
-        position: "absolute",
-        top: 50,
-        left: 20,
-        zIndex: 20,
-        flexDirection: "column",
-        gap: 12,
-        alignItems: "flex-start",
-    },
-    topOvalContainer: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 15,
-        alignItems: "center",
-        paddingTop: 50,
-        paddingBottom: 30,
-        overflow: "hidden",
-    },
-    topOvalShape: {
-        position: "absolute",
-        top: -400,
-        left: "-50%",
-        width: "200%",
-        height: 600,
-        borderRadius: 300,
-        backgroundColor: "#FFFFFF",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    topOvalContent: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        width: "90%",
-        paddingRight: 20,
-        paddingLeft: 70, // Leaves space for the left controls
-    },
-    targetCardLeft: {
-        width: 80,
-        height: 80,
-        justifyContent: "center",
-        alignItems: "center",
-        marginRight: 12,
-        overflow: "hidden",
-        borderRadius: 6,
-        backgroundColor: theme.colors.surface,
-    },
-    modelMiniature: {
-        width: "100%",
-        height: "100%",
-    },
-    targetCardRight: {
-        flex: 1,
-    },
-    targetLabel: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.textSecondary,
-        fontSize: 10,
-        letterSpacing: 1.5,
-        marginBottom: 2,
-    },
-    buildingLabel: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
-        fontSize: 16,
-        letterSpacing: 0.5,
-        textTransform: "uppercase",
-    },
-    buildingStatus: {
-        fontFamily: fonts.body.bold,
-        color: theme.colors.textSecondary,
-        fontSize: 12,
-        marginTop: 2,
-        letterSpacing: 0.5,
-    },
-    exitButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: theme.colors.surface,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    captureButton: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        backgroundColor: "rgba(255, 255, 255, 0.9)",
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 4,
-        borderColor: theme.colors.arHighlight,
-    },
-    captureButtonInner: {
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    intelFeed: {
-        marginTop: 12,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.border,
-    },
-    intelHeader: {
-        color: theme.colors.textMuted,
-        fontSize: 9,
-        fontWeight: "bold",
-        letterSpacing: 1,
-        marginBottom: 4,
-    },
-    intelText: {
-        color: theme.colors.textSecondary,
-        fontSize: 12,
-        lineHeight: 18,
-        fontFamily: "monospace",
-    },
-    
-    
-    
-    reticleContainer: {
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        width: 200,
-        height: 200,
-        marginLeft: -100,
-        marginTop: -100,
-        zIndex: 5,
-    },
-    reticleTopLeft: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: 30,
-        height: 30,
-        borderTopWidth: 3,
-        borderLeftWidth: 3,
-        borderColor: "#B21830",
-    },
-    reticleTopRight: {
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: 30,
-        height: 30,
-        borderTopWidth: 3,
-        borderRightWidth: 3,
-        borderColor: "#B21830",
-    },
-    reticleBottomLeft: {
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        width: 30,
-        height: 30,
-        borderBottomWidth: 3,
-        borderLeftWidth: 3,
-        borderColor: "#B21830",
-    },
-    reticleBottomRight: {
-        position: "absolute",
-        bottom: 0,
-        right: 0,
-        width: 30,
-        height: 30,
-        borderBottomWidth: 3,
-        borderRightWidth: 3,
-        borderColor: "#B21830",
-    },
-    reticleCenterPoint: {
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        width: 6,
-        height: 6,
-        marginLeft: -3,
-        marginTop: -3,
-        backgroundColor: "#B21830",
-        borderRadius: 3,
-    },
-    triviaModal: {
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: "#FFFFFF",
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        padding: 24,
-        paddingBottom: 40,
-        zIndex: 100,
-        borderTopWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    triviaModalHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 16,
-    },
-    triviaTitle: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
-        fontSize: 18,
-        letterSpacing: 2,
-    },
-    closeTriviaBtn: {
-        backgroundColor: theme.colors.surfaceSoft,
-        padding: 6,
-        borderRadius: 20,
-    },
-    triviaContentBorder: {
-        borderLeftWidth: 2,
-        borderLeftColor: theme.colors.primary,
-        paddingLeft: 16,
-        marginBottom: 20,
-    },
-    triviaBuildingName: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
-        fontSize: 14,
-        marginBottom: 8,
-        letterSpacing: 2,
-    },
-    triviaText: {
-        fontFamily: fonts.body.regular,
-        color: theme.colors.textSecondary,
-        fontSize: 14,
-        lineHeight: 22,
-    },
-    rewardBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "rgba(178, 24, 48, 0.1)",
-        alignSelf: "center",
-        width: "100%",
-        justifyContent: "center",
-        paddingVertical: 14,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.3)",
-    },
-    rewardText: {
-        fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
-        fontSize: 16,
-        marginLeft: 8,
-        letterSpacing: 1,
-    },
-    badgeToast: {
-        position: "absolute",
-        top: 110,
-        left: 20,
-        right: 20,
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "rgba(20, 20, 20, 0.95)",
-        borderRadius: 6,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: "#FFD700",
-        gap: 12,
-        zIndex: 200,
-        shadowColor: "#FFD700",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-    },
-    badgeToastEmoji: {
-        fontSize: 32,
-    },
-    badgeToastLabel: {
-        color: "#FFD700",
-        fontSize: 10,
-        fontWeight: "900",
-        letterSpacing: 2,
-        marginBottom: 2,
-    },
-    badgeToastName: {
-        color: "#fff",
-        fontSize: 15,
-        fontWeight: "bold",
-        letterSpacing: 0.5,
-    },
-    rankUpToast: {
-        position: "absolute",
-        top: 60,
-        left: 16,
-        right: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "rgba(30, 20, 60, 0.96)",
-        borderRadius: 6,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: "#B25DFF",
-        gap: 12,
-        zIndex: 1000,
-        shadowColor: "#B25DFF",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
-        elevation: 20,
-    },
-    rankUpToastEmoji: {
-        fontSize: 36,
-    },
-    rankUpToastLabel: {
-        fontFamily: fonts.heading.bold,
-        color: "#B25DFF",
-        fontSize: 12,
-        fontWeight: "900",
-        letterSpacing: 3,
-        marginBottom: 2,
-    },
-    rankUpToastName: {
-        fontFamily: fonts.body.bold,
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "bold",
-        letterSpacing: 1,
-    },
-    turnIndicatorLeft: {
-        position: 'absolute',
-        left: 12,
-        top: '46%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 2,
-        backgroundColor: 'rgba(178, 24, 48, 0.92)',
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        borderRadius: 28,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.3)',
-        shadowColor: '#B21830',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 12,
-        elevation: 10,
-        zIndex: 40,
-    },
-    turnIndicatorRight: {
-        position: 'absolute',
-        right: 12,
-        top: '46%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 2,
-        backgroundColor: 'rgba(178, 24, 48, 0.92)',
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        borderRadius: 28,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.3)',
-        shadowColor: '#B21830',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 12,
-        elevation: 10,
-        zIndex: 40,
-    },
-    turnIndicatorAround: {
-        position: 'absolute',
-        top: '46%',
-        alignSelf: 'center',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: 'rgba(178, 24, 48, 0.94)',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 28,
-        borderWidth: 2,
-        borderColor: 'rgba(255, 255, 255, 0.4)',
-        shadowColor: '#B21830',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.7,
-        shadowRadius: 14,
-        elevation: 10,
-        zIndex: 40,
-    },
-    turnIndicatorText: {
-        fontFamily: fonts.heading.bold,
-        color: '#FFFFFF',
-        fontSize: 13,
-        letterSpacing: 1.5,
-    },
-    arrivalModalOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.72)",
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 20,
-    },
-    arrivalRewardCard: {
-        width: "88%",
-        maxWidth: 340,
-        backgroundColor: "rgba(24, 6, 12, 0.98)",
-        borderRadius: 24,
-        borderWidth: 2,
-        borderColor: "#E8B923",
-        shadowColor: "#FFD700",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.75,
-        shadowRadius: 22,
-        elevation: 20,
-        overflow: "hidden",
-    },
-    arrivalRewardCardInner: {
-        paddingVertical: 24,
-        paddingHorizontal: 20,
-        alignItems: "center",
-    },
-    arrivalRewardTrophyWrap: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: "rgba(232, 185, 35, 0.18)",
-        borderWidth: 2,
-        borderColor: "#FFD700",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 12,
-        shadowColor: "#FFD700",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.9,
-        shadowRadius: 14,
-        elevation: 8,
-    },
-    arrivalRewardBanner: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "rgba(232, 185, 35, 0.15)",
-        borderWidth: 1,
-        borderColor: "rgba(232, 185, 35, 0.4)",
-        borderRadius: 12,
-        paddingVertical: 4,
-        paddingHorizontal: 12,
-        marginBottom: 8,
-    },
-    arrivalRewardTagline: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 10,
-        color: "#FFD700",
-        letterSpacing: 1.5,
-        textTransform: "uppercase",
-    },
-    arrivalRewardTitle: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 22,
-        color: "#FFFFFF",
-        letterSpacing: 2,
-        textAlign: "center",
-        marginBottom: 14,
-    },
-    arrivalRewardBldgPlaque: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(178, 24, 48, 0.35)",
-        borderWidth: 1,
-        borderColor: "#B21830",
-        borderRadius: 12,
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        marginBottom: 12,
-        width: "100%",
-    },
-    arrivalRewardBldgName: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 15,
-        color: "#FFFFFF",
-        textAlign: "center",
-        flexShrink: 1,
-    },
-    arrivalRewardExpPill: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(255, 215, 0, 0.15)",
-        borderWidth: 1,
-        borderColor: "#FFD700",
-        borderRadius: 20,
-        paddingVertical: 6,
-        paddingHorizontal: 14,
-        marginBottom: 14,
-    },
-    arrivalRewardExpText: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        color: "#FFD700",
-        letterSpacing: 0.5,
-    },
-    arrivalRewardBadgePill: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(0, 229, 255, 0.12)",
-        borderWidth: 1,
-        borderColor: "rgba(0, 229, 255, 0.35)",
-        borderRadius: 20,
-        paddingVertical: 6,
-        paddingHorizontal: 14,
-        marginBottom: 14,
-    },
-    arrivalRewardBadgeText: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 11,
-        color: "#00E5FF",
-        letterSpacing: 0.8,
-    },
-    arrivalRewardLoaderBox: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.35)",
-        borderRadius: 8,
-        paddingVertical: 6,
-        paddingHorizontal: 14,
-        marginBottom: 12,
-    },
-    arrivalRewardLoaderText: {
-        fontSize: 12,
-        color: "#E8B923",
-        fontWeight: "600",
-    },
-    arrivalRewardDismissHint: {
-        fontSize: 11,
-        color: "#8AA3AA",
-        letterSpacing: 0.5,
-    },
-
-
-    gpsBanner: {
-        position: 'absolute',
-        top: 90,
-        left: 16,
-        right: 16,
-        zIndex: 50,
-        alignItems: 'center',
-    },
-    modelLoadingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    modelLoadingTrack: {
-        height: 4,
-        width: '100%',
-        backgroundColor: 'rgba(232, 185, 35, 0.25)',
-        borderRadius: 2,
-        overflow: 'hidden',
-        marginTop: 4,
-    },
-    modelLoadingBar: {
-        height: '100%',
-        width: 80,
-        backgroundColor: '#E8B923',
-        borderRadius: 2,
-    },
-    claimErrorOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.78)",
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 20,
-        zIndex: 200,
-    },
-    claimErrorCard: {
-        width: "90%",
-        maxWidth: 360,
-        backgroundColor: "rgba(7, 42, 48, 0.98)",
-        borderRadius: 22,
-        borderWidth: 1.5,
-        borderColor: "rgba(232, 185, 35, 0.65)",
-        paddingVertical: 24,
-        paddingHorizontal: 20,
-        alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.55,
-        shadowRadius: 18,
-        elevation: 20,
-    },
-    claimErrorIconWrap: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: "rgba(241, 196, 15, 0.15)",
-        borderWidth: 1.5,
-        borderColor: "#F1C40F",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 12,
-    },
-    claimErrorTagline: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 11,
-        color: "#F1C40F",
-        letterSpacing: 1.5,
-        textTransform: "uppercase",
-        marginBottom: 4,
-    },
-    claimErrorTitle: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 20,
-        color: "#FFFFFF",
-        letterSpacing: 1,
-        textAlign: "center",
-        marginBottom: 8,
-    },
-    claimErrorMessage: {
-        fontFamily: fonts.body.regular,
-        fontSize: 13,
-        color: "#C9D6DA",
-        textAlign: "center",
-        lineHeight: 19,
-        marginBottom: 14,
-    },
-    claimErrorQuestPill: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(18, 59, 68, 0.85)",
-        borderWidth: 1,
-        borderColor: "#2C5A63",
-        borderRadius: 10,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        marginBottom: 18,
-        width: "100%",
-    },
-    claimErrorQuestText: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        color: "#FFD700",
-        letterSpacing: 0.5,
-        flexShrink: 1,
-    },
-    claimErrorButtonRow: {
-        flexDirection: "row",
-        gap: 10,
-        width: "100%",
-    },
-    claimErrorDismissBtn: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 10,
-        backgroundColor: "rgba(255, 255, 255, 0.08)",
-        borderWidth: 1,
-        borderColor: "#2C5A63",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    claimErrorDismissText: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        color: "#8AA3AA",
-        letterSpacing: 1,
-    },
-    claimErrorRetryBtn: {
-        flex: 1.4,
-        paddingVertical: 12,
-        borderRadius: 10,
-        backgroundColor: "#B21830",
-        borderWidth: 1,
-        borderColor: "#FFD700",
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        shadowColor: "#B21830",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.4,
-        shadowRadius: 6,
-        elevation: 4,
-    },
-    claimErrorRetryText: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        color: "#FFFFFF",
-        letterSpacing: 1,
-    },
-});
