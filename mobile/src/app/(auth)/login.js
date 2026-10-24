@@ -24,7 +24,7 @@ export default function LoginScreen() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const { login, isLoading } = useAuth();
+    const { login, loginAsGuest, isLoading } = useAuth();
     const [error, setError] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
     const [isDeactivated, setIsDeactivated] = useState(false);
@@ -290,10 +290,16 @@ export default function LoginScreen() {
                                 onPress={async () => {
                                     try {
                                         setError("");
-                                        await login("visitor", "WMSU-Visitor2026!");
+                                        await loginAsGuest();
                                         router.replace("/(tabs)");
                                     } catch (err) {
-                                        setError("Guest channel offline.");
+                                        const detail =
+                                            err?.data?.error?.message ||
+                                            err?.data?.detail;
+                                        setError(
+                                            detail ||
+                                                "Could not start a guest session. Please check your connection."
+                                        );
                                     }
                                 }}
                                 disabled={isLoading}

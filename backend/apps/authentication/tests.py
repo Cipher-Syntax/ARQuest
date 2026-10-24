@@ -210,7 +210,7 @@ class CurrentUserTestCase(TestCase):
 
     def test_update_current_user_avatar(self):
         from apps.authentication.models import User
-        user = User.objects.create(username="api_avatar", email="api_avatar@test.com")
+        user = User.objects.create(username="api_avatar", email="api_avatar@test.com", role='student')
         self.client.force_authenticate(user=user)
         response = self.client.patch('/api/auth/me/', {'avatar_id': 'mascot_1'}, format='json')
         self.assertEqual(response.status_code, 200)
@@ -459,3 +459,123 @@ class DeactivationAndReactivationTestCase(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.is_active)
 
+
+class GuestAccessTestCase(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+
+    def _guest_login(self):
+        return self.client.post('/api/auth/guest/', {}, format='json')
+
+    def test_guest_endpoint_creates_one_shared_visitor_account(self):
+        first = self._guest_login()
+        self.assertEqual(first.status_code, 200)
+        self.assertTrue(first.data['success'])
+        self.assertTrue(first.data['data']['access'])
+        self.assertTrue(first.data['data']['refresh'])
+
+        second = self._guest_login()
+        self.assertEqual(second.status_code, 200)
+
+        guests = User.objects.filter(username='guest')
+        self.assertEqual(guests.count(), 1)
+        guest = guests.first()
+        self.assertEqual(guest.role, User.Role.VISITOR)
+        self.assertTrue(guest.is_active)
+        self.assertTrue(guest.email_verified)
+        # No password is ever issued for the shared guest account.
+        self.assertFalse(guest.has_usable_password())
+
+    def test_guest_token_authenticates_as_visitor(self):
+        res = self._guest_login()
+        access = res.data['data']['access']
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        me = self.client.get('/api/auth/me/')
+
+        self.assertEqual(me.status_code, 200)
+        self.assertEqual(me.data['data']['user']['username'], 'guest')
+        self.assertEqual(me.data['data']['user']['role'], 'visitor')
+
+    def test_guest_account_self_heals_role_and_deactivation(self):
+        self._guest_login()
+        guest = User.objects.get(username='guest')
+        guest.role = User.Role.PROFESSIONAL
+        guest.is_active = False
+        guest.email_verified = False
+        guest.save()
+
+        res = self._guest_login()
+        self.assertEqual(res.status_code, 200)
+
+        guest.refresh_from_db()
+        self.assertEqual(guest.role, User.Role.VISITOR)
+        self.assertTrue(guest.is_active)
+        self.assertTrue(guest.email_verified)
+
+    def test_guest_account_cannot_log_in_with_a_password(self):
+        self._guest_login()
+
+        res = self.client.post('/api/auth/login/', {
+            'username': 'guest',
+            'password': 'anything',
+        })
+
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.data['error']['code'], 'invalid_credentials')
+
+    def test_guest_cannot_update_profile(self):
+        self._guest_login()
+        guest = User.objects.get(username='guest')
+        self.client.force_authenticate(user=guest)
+
+        res = self.client.patch('/api/auth/me/', {
+            'username': 'renamed',
+            'email': 'hijacked@example.com',
+        }, format='json')
+
+        self.assertEqual(res.status_code, 403)
+        guest.refresh_from_db()
+        self.assertEqual(guest.username, 'guest')
+        self.assertEqual(guest.email, 'guest@arquest.local')
+
+    def test_guest_cannot_change_password(self):
+        self._guest_login()
+        guest = User.objects.get(username='guest')
+        self.client.force_authenticate(user=guest)
+
+        res = self.client.post('/api/auth/change-password/', {
+            'old_password': 'anything',
+            'new_password': 'NewPassword123!@#',
+            'new_password_confirm': 'NewPassword123!@#',
+        })
+
+        self.assertEqual(res.status_code, 403)
+
+    def test_guest_cannot_deactivate_shared_account(self):
+        self._guest_login()
+        guest = User.objects.get(username='guest')
+        self.client.force_authenticate(user=guest)
+
+        res = self.client.post('/api/auth/deactivate/', {'password': 'anything'})
+
+        self.assertEqual(res.status_code, 403)
+        guest.refresh_from_db()
+        self.assertTrue(guest.is_active)
+
+    def test_is_active_cannot_be_set_through_profile_update(self):
+        user = User.objects.create_user(
+            username='active_user',
+            password='Password123!',
+            email='active@test.com',
+            role='student',
+            email_verified=True,
+        )
+        self.client.force_authenticate(user=user)
+
+        res = self.client.patch('/api/auth/me/', {'is_active': False}, format='json')
+
+        self.assertEqual(res.status_code, 200)
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)

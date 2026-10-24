@@ -100,6 +100,20 @@ export const AuthProvider = ({ children }) => {
         }
     }, [checkToken]);
 
+    const loginAsGuest = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await api.post("/api/auth/guest/", {});
+            const payload = response.data.data || response.data;
+            const { access, refresh } = payload;
+            await authService.setTokens(access, refresh);
+            const result = await checkToken();
+            return { ...result, reactivated: false };
+        } finally {
+            setIsLoading(false);
+        }
+    }, [checkToken]);
+
     const register = useCallback(async (formData) => {
         setIsLoading(true);
         try {
@@ -237,6 +251,7 @@ export const AuthProvider = ({ children }) => {
 
     const actionsValue = useMemo(() => ({
         login,
+        loginAsGuest,
         logout,
         register,
         verifyOTP,
@@ -246,7 +261,7 @@ export const AuthProvider = ({ children }) => {
         checkToken,
         showStreakModal,
         hideStreakModal,
-    }), [login, logout, register, verifyOTP, resendOTP, forgotPassword, resetPassword, checkToken, showStreakModal, hideStreakModal]);
+    }), [login, loginAsGuest, logout, register, verifyOTP, resendOTP, forgotPassword, resetPassword, checkToken, showStreakModal, hideStreakModal]);
 
     return (
         <AuthStateContext.Provider value={stateValue}>

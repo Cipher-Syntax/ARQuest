@@ -33,6 +33,12 @@ class LoginRateThrottle(AnonRateThrottle):
     scope = 'auth_login'
     rate = '10/minute'
 
+# Username of the single shared guest account. Created and repaired by
+# `guest_login`, never reachable through the password login endpoint because
+# it holds an unusable password.
+GUEST_USERNAME = 'guest'
+GUEST_EMAIL = 'guest@arquest.local'
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -250,6 +256,63 @@ def login(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
+def guest_login(request):
+    """Issue a visitor session for the shared guest account.
+
+    Guests never receive a password, so the credentials cannot be extracted
+    from the mobile bundle and cannot drift out of sync with the database.
+    """
+    if SystemSetting.get_settings().maintenance_mode:
+        return error_response(
+            ErrorCodes.MAINTENANCE,
+            'System is under maintenance.',
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    user, created = User.objects.get_or_create(
+        username=GUEST_USERNAME,
+        defaults={
+            'email': GUEST_EMAIL,
+            'role': User.Role.VISITOR,
+            'email_verified': True,
+        },
+    )
+
+    if not created:
+        # Self-heal the shared account so a drifted role, a deactivation, or a
+        # stolen password cannot lock every guest out of the app.
+        updates = []
+        if user.role != User.Role.VISITOR:
+            user.role = User.Role.VISITOR
+            updates.append('role')
+        if not user.is_active:
+            user.is_active = True
+            updates.append('is_active')
+        if not user.email_verified:
+            user.email_verified = True
+            updates.append('email_verified')
+        if updates:
+            user.save(update_fields=updates)
+
+    # Guest access is only ever granted through this endpoint.
+    if user.has_usable_password():
+        user.set_unusable_password()
+        user.save(update_fields=['password'])
+
+    refresh = RefreshToken.for_user(user)
+
+    return success_response({
+        'access': str(refresh.access_token),
+        'refresh': str(refresh),
+        'user': UserSerializer(user).data,
+        'streak_bonus_exp': 0,
+        'reactivated': False,
+    })
+
+
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
     refresh_token = request.data.get('refresh')
@@ -303,6 +366,15 @@ def token_refresh(request):
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def current_user(request):
     if request.method == 'PATCH':
+        # The guest account is shared by every walk-in user, so it must not be
+        # editable: one guest could rename it or deactivate it for everyone.
+        if request.user.is_visitor_role:
+            return error_response(
+                ErrorCodes.PERMISSION_DENIED,
+                'Guest accounts cannot be modified.',
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
         data = request.data.copy()
         
         # Handle password explicitly if provided
@@ -494,6 +566,14 @@ def register_push_token(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_password(request):
+    # Shared guest account: rotating its password would lock out every guest.
+    if request.user.is_visitor_role:
+        return error_response(
+            ErrorCodes.PERMISSION_DENIED,
+            'Guest accounts cannot change their password.',
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
     serializer = ChangePasswordSerializer(data=request.data)
     if not serializer.is_valid():
         return error_response(
@@ -522,6 +602,14 @@ def change_password(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def deactivate_account(request):
+    # Shared guest account: one guest must not be able to disable guest mode.
+    if request.user.is_visitor_role:
+        return error_response(
+            ErrorCodes.PERMISSION_DENIED,
+            'Guest accounts cannot be deactivated.',
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
     serializer = DeactivateAccountSerializer(data=request.data)
     if not serializer.is_valid():
         return error_response(

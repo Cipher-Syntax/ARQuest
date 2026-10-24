@@ -19,7 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'role', 'email_verified', 'exploration_points',
-            'streak_count', 'last_login_date', 'date_joined'
+            'streak_count', 'last_login_date', 'date_joined', 'is_active'
         ]
 
     def get_rank_info(self, obj):

@@ -523,12 +523,16 @@ export default function ProfileScreen() {
                             />
                         )}
 
-                        <SettingsRow
-                            icon={UserIcon}
-                            title="Account Settings"
-                            subtitle="Update your profile and avatar"
-                            onPress={() => router.push("/account-settings")}
-                        />
+                        {/* The guest account is shared and read-only, so there is
+                            nothing per-user to edit here. */}
+                        {user?.role !== "visitor" && (
+                            <SettingsRow
+                                icon={UserIcon}
+                                title="Account Settings"
+                                subtitle="Update your profile and avatar"
+                                onPress={() => router.push("/account-settings")}
+                            />
+                        )}
 
                         <SettingsRow
                             icon={Settings}
