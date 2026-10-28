@@ -125,42 +125,123 @@
                 border-radius: 6px;
                 width: 100%;
             }
+            /* ── NPC nameplate (game-style) ─────────────────────────────── */
             .floating-label {
                 position: absolute;
-                background: rgba(0, 229, 255, 0.9);
-                color: #000;
-                font-weight: bold;
-                padding: 6px 14px;
-                border-radius: 14px;
-                font-family: system-ui, sans-serif;
-                font-size: 14px;
+                background: linear-gradient(
+                    180deg,
+                    rgba(17, 24, 39, 0.94),
+                    rgba(8, 12, 20, 0.96)
+                );
+                color: #ffffff;
+                font-weight: 700;
+                padding: 5px 11px 6px;
+                border-radius: 8px;
+                font-family: system-ui, -apple-system, sans-serif;
+                font-size: 12.5px;
+                letter-spacing: 0.2px;
+                line-height: 1.2;
                 pointer-events: none;
                 transform: translate(-50%, -100%);
                 opacity: 0;
                 white-space: nowrap;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
                 transition: opacity 0.2s;
                 text-align: center;
+                border: 1px solid rgba(250, 204, 21, 0.45);
+                border-left: 3px solid #facc15;
                 z-index: 150;
+                will-change: opacity, transform;
+            }
+            .floating-label .npc-dot {
+                display: inline-block;
+                width: 5px;
+                height: 5px;
+                margin-right: 5px;
+                border-radius: 50%;
+                background: #facc15;
+                box-shadow: 0 0 5px rgba(250, 204, 21, 0.9);
+                vertical-align: middle;
             }
             .floating-label::after {
                 content: '';
                 position: absolute;
-                bottom: -6px;
+                bottom: -5px;
                 left: 50%;
                 transform: translateX(-50%);
-                border-width: 6px 6px 0;
+                border-width: 5px 5px 0;
                 border-style: solid;
-                border-color: rgba(0, 229, 255, 0.9) transparent transparent transparent;
+                border-color: rgba(8, 12, 20, 0.96) transparent transparent transparent;
                 display: block;
                 width: 0;
             }
             .floating-label.restricted {
-                background: rgba(220, 53, 69, 0.9);
-                color: #fff;
+                border-color: rgba(239, 68, 68, 0.5);
+                border-left-color: #ef4444;
+            }
+            .floating-label.restricted .npc-dot {
+                background: #ef4444;
+                box-shadow: 0 0 5px rgba(239, 68, 68, 0.95);
             }
             .floating-label.restricted::after {
-                border-color: rgba(220, 53, 69, 0.9) transparent transparent transparent;
+                border-color: rgba(8, 12, 20, 0.96) transparent transparent transparent;
+            }
+
+            /* ── NPC speech bubble (description, only when you are close) ── */
+            .npc-bubble {
+                position: absolute;
+                left: 0;
+                top: 0;
+                max-width: 230px;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                text-align: left;
+                background: linear-gradient(180deg, #fffdf5, #fdf6e3);
+                color: #1f2937;
+                font-family: system-ui, -apple-system, sans-serif;
+                font-size: 12px;
+                font-weight: 500;
+                line-height: 1.35;
+                padding: 8px 12px 9px;
+                border-radius: 11px;
+                border: 1px solid rgba(31, 41, 55, 0.14);
+                box-shadow:
+                    0 8px 22px rgba(0, 0, 0, 0.38),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+                pointer-events: none;
+                z-index: 151;
+                /* Sits above the nameplate and pops in from its tail. */
+                transform: translate(-50%, -100%) translateY(-40px) scale(0.82);
+                transform-origin: 50% 100%;
+                opacity: 0;
+                transition:
+                    opacity 0.16s ease-out,
+                    transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.45);
+                will-change: opacity, transform;
+            }
+            .npc-bubble.show {
+                opacity: 1;
+                transform: translate(-50%, -100%) translateY(-40px) scale(1);
+            }
+            /* Tail pointing down at the NPC */
+            .npc-bubble::after {
+                content: '';
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -6px;
+                border-width: 6px;
+                border-style: solid;
+                border-color: #fdf6e3 transparent transparent transparent;
+                filter: drop-shadow(0 1px 0 rgba(31, 41, 55, 0.14));
+            }
+            .npc-bubble.restricted {
+                background: linear-gradient(180deg, #fff5f5, #fee2e2);
+                border-color: rgba(185, 28, 28, 0.25);
+                color: #450a0a;
+            }
+            .npc-bubble.restricted::after {
+                border-color: #fee2e2 transparent transparent transparent;
             }
             .floating-label.portal-label {
                 background: rgba(7, 42, 48, 0.92);
@@ -330,6 +411,330 @@
             let lastCamBroadcastTime = 0;
             const tapRaycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
+
+            // ── Chibi NPC kit ──────────────────────────────────────────────
+            // Every hotspot reuses the same materials and geometries, so a
+            // room full of characters only pays for them once.
+            const NPC_COLORS = {
+                skin: 0xf2c9a3,
+                hair: 0x241a14,
+                shirt: 0x8a1538, // WMSU Crimson
+                trim: 0x5f0c24,
+                pants: 0x232b3a,
+                shoe: 0x11161f,
+                badge: 0xfacc15,
+                danger: 0xef4444,
+            };
+
+            // Chibi proportions: ~2.3 heads tall, oversized head, stubby
+            // limbs, big eyes. Total height ≈ 1.5m.
+            const NPC_HEAD_R = 0.32;
+            const NPC_HEAD_Y = 1.06;
+            const NPC_GEM_Y = 1.6;
+            const NPC_LABEL_HEIGHT = 1.82;
+            // Arms rest angled out from the round body, otherwise the sleeves
+            // disappear inside the belly.
+            const NPC_ARM_REST = 0.34;
+
+            const escapeHtml = (value) =>
+                String(value).replace(
+                    /[&<>"']/g,
+                    (c) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                            "'": "&#39;",
+                        })[c],
+                );
+
+            let npcShadowTexture = null;
+            function getNpcShadowTexture() {
+                if (npcShadowTexture) return npcShadowTexture;
+                const size = 128;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+                const grad = ctx.createRadialGradient(
+                    size / 2,
+                    size / 2,
+                    4,
+                    size / 2,
+                    size / 2,
+                    size / 2,
+                );
+                grad.addColorStop(0, "rgba(0, 0, 0, 0.55)");
+                grad.addColorStop(0.55, "rgba(0, 0, 0, 0.26)");
+                grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, size, size);
+                npcShadowTexture = new THREE.CanvasTexture(canvas);
+                return npcShadowTexture;
+            }
+
+            let npcKit = null;
+            function getNpcKit() {
+                if (npcKit) return npcKit;
+
+                const std = (color, extra = {}) =>
+                    new THREE.MeshStandardMaterial({
+                        color,
+                        roughness: 0.85,
+                        metalness: 0,
+                        ...extra,
+                    });
+
+                const mat = {
+                    skin: std(NPC_COLORS.skin, { roughness: 0.85 }),
+                    hair: std(NPC_COLORS.hair, { roughness: 0.92 }),
+                    shirt: std(NPC_COLORS.shirt, {
+                        roughness: 0.72,
+                        metalness: 0.03,
+                    }),
+                    trim: std(NPC_COLORS.trim, { roughness: 0.78 }),
+                    pants: std(NPC_COLORS.pants, { roughness: 0.92 }),
+                    shoe: std(NPC_COLORS.shoe, { roughness: 0.6 }),
+                    eye: std(0x1b121a, { roughness: 0.28, metalness: 0.05 }),
+                    glint: std(0xffffff, { roughness: 0.15 }),
+                    blush: std(0xff9aa8, {
+                        roughness: 1,
+                        transparent: true,
+                        opacity: 0.85,
+                    }),
+                    mouth: std(0x3a1d22, { roughness: 0.6 }),
+                    badge: std(NPC_COLORS.badge, {
+                        emissive: NPC_COLORS.badge,
+                        emissiveIntensity: 0.4,
+                        roughness: 0.35,
+                        metalness: 0.25,
+                    }),
+                };
+
+                // Segment counts are kept low — this runs on phones.
+                const geom = {
+                    belly: new THREE.SphereGeometry(0.25, 20, 14),
+                    collar: new THREE.CylinderGeometry(0.13, 0.15, 0.05, 14),
+                    crest: new THREE.CylinderGeometry(0.032, 0.032, 0.012, 10),
+                    leg: new THREE.CylinderGeometry(0.078, 0.072, 0.26, 10),
+                    shoe: new THREE.BoxGeometry(0.16, 0.09, 0.26),
+                    toe: new THREE.SphereGeometry(0.08, 10, 7),
+                    upperArm: new THREE.CylinderGeometry(0.065, 0.06, 0.13, 8),
+                    foreArm: new THREE.CylinderGeometry(0.06, 0.055, 0.12, 8),
+                    hand: new THREE.SphereGeometry(0.078, 10, 8),
+                    skull: new THREE.SphereGeometry(NPC_HEAD_R, 22, 16),
+                    hair: new THREE.SphereGeometry(
+                        NPC_HEAD_R + 0.008,
+                        20,
+                        14,
+                        0,
+                        Math.PI * 2,
+                        0,
+                        Math.PI * 0.42,
+                    ),
+                    tuft: new THREE.ConeGeometry(0.032, 0.15, 6),
+                    iris: new THREE.SphereGeometry(0.07, 14, 12),
+                    glint: new THREE.SphereGeometry(0.024, 8, 6),
+                    blush: new THREE.SphereGeometry(0.048, 10, 8),
+                    brow: new THREE.BoxGeometry(0.055, 0.017, 0.014),
+                };
+
+                npcKit = { mat, geom };
+                return npcKit;
+            }
+
+            function buildNPCAvatar(isRestricted) {
+                const { mat, geom } = getNpcKit();
+                const body = new THREE.Group();
+
+                // ── Rounded little body ──
+                const torso = new THREE.Group();
+
+                const belly = new THREE.Mesh(geom.belly, mat.shirt);
+                belly.position.y = 0.585;
+                belly.scale.set(1, 1.0, 0.9);
+                torso.add(belly);
+
+                const collar = new THREE.Mesh(geom.collar, mat.trim);
+                collar.position.y = 0.79;
+                torso.add(collar);
+
+                const crest = new THREE.Mesh(geom.crest, mat.badge);
+                crest.rotation.x = Math.PI / 2;
+                crest.position.set(0.085, 0.64, 0.218);
+                torso.add(crest);
+                body.add(torso);
+
+                // ── Stubby legs + chunky shoes ──
+                [-1, 1].forEach((side) => {
+                    const x = side * 0.1;
+
+                    const leg = new THREE.Mesh(geom.leg, mat.pants);
+                    leg.position.set(x, 0.23, 0);
+                    body.add(leg);
+
+                    const shoe = new THREE.Mesh(geom.shoe, mat.shoe);
+                    shoe.position.set(x, 0.045, 0.03);
+                    body.add(shoe);
+
+                    const toe = new THREE.Mesh(geom.toe, mat.shoe);
+                    toe.position.set(x, 0.055, 0.14);
+                    toe.scale.set(1, 0.75, 0.7);
+                    body.add(toe);
+                });
+
+                // ── Short arms with mitten hands ──
+                const makeArm = (side) => {
+                    const shoulder = new THREE.Group();
+                    shoulder.position.set(side * 0.225, 0.7, 0);
+                    shoulder.rotation.order = "ZXY";
+                    shoulder.rotation.z = side * NPC_ARM_REST;
+
+                    const upper = new THREE.Mesh(geom.upperArm, mat.shirt);
+                    upper.position.y = -0.065;
+                    shoulder.add(upper);
+
+                    const elbow = new THREE.Group();
+                    elbow.position.y = -0.13;
+
+                    const fore = new THREE.Mesh(geom.foreArm, mat.shirt);
+                    fore.position.y = -0.06;
+                    elbow.add(fore);
+
+                    const hand = new THREE.Mesh(geom.hand, mat.skin);
+                    hand.position.y = -0.155;
+                    hand.scale.set(1, 0.95, 0.95);
+                    elbow.add(hand);
+
+                    shoulder.add(elbow);
+                    body.add(shoulder);
+                    return { shoulder, elbow };
+                };
+
+                const leftArm = makeArm(1);
+                const rightArm = makeArm(-1);
+
+                // ── Oversized head ──
+                const head = new THREE.Group();
+                head.position.y = NPC_HEAD_Y;
+
+                const skull = new THREE.Mesh(geom.skull, mat.skin);
+                head.add(skull);
+
+                // Hair: deep at the back, lifted at the front (fringe).
+                const hair = new THREE.Mesh(geom.hair, mat.hair);
+                hair.rotation.x = -0.35;
+                head.add(hair);
+
+                // Cowlick tuft
+                const tuft = new THREE.Mesh(geom.tuft, mat.hair);
+                tuft.position.set(0.035, NPC_HEAD_R + 0.03, 0.02);
+                tuft.rotation.z = -0.55;
+                tuft.rotation.x = -0.18;
+                head.add(tuft);
+
+                // Face parts are placed *on* the skull surface and yawed along
+                // its normal, so the flat discs hug the curvature instead of
+                // floating off it or sinking inside.
+                const placeOnHead = (obj, yaw, y) => {
+                    const ring = Math.sqrt(
+                        Math.max(0.0001, NPC_HEAD_R * NPC_HEAD_R - y * y),
+                    );
+                    obj.position.set(
+                        Math.sin(yaw) * ring,
+                        y,
+                        Math.cos(yaw) * ring,
+                    );
+                    obj.rotation.y = yaw;
+                    return obj;
+                };
+
+                // Big chibi eyes: dark oval + white glint
+                const eyes = [];
+                [-1, 1].forEach((side) => {
+                    const eye = new THREE.Group();
+                    placeOnHead(eye, side * 0.38, 0.02);
+
+                    const iris = new THREE.Mesh(geom.iris, mat.eye);
+                    iris.scale.set(1, 1.2, 0.45);
+                    eye.add(iris);
+
+                    const glint = new THREE.Mesh(geom.glint, mat.glint);
+                    // Same corner of both eyes = a single light source.
+                    glint.position.set(-0.02, 0.04, 0.019);
+                    eye.add(glint);
+
+                    head.add(eye);
+                    eyes.push(eye);
+                });
+
+                // Blush
+                [-1, 1].forEach((side) => {
+                    const blush = new THREE.Mesh(geom.blush, mat.blush);
+                    placeOnHead(blush, side * 0.76, -0.09);
+                    blush.scale.set(1, 0.62, 0.3);
+                    head.add(blush);
+                });
+
+                // Brows
+                [-1, 1].forEach((side) => {
+                    const brow = new THREE.Mesh(geom.brow, mat.hair);
+                    placeOnHead(brow, side * 0.33, 0.135);
+                    // Angled inwards for the "restricted" glare.
+                    brow.rotation.z = side * (isRestricted ? 0.42 : 0.08);
+                    head.add(brow);
+                });
+
+                // Tiny mouth, projected onto the skull curve.
+                const mouthPoints = [];
+                const mouthHalfWidth = 0.038;
+                const mouthAmp = 0.017;
+                const mouthCenterY = -0.098;
+                for (let i = 0; i <= 10; i++) {
+                    const tt = i / 10;
+                    const mx = (tt - 0.5) * 2 * mouthHalfWidth;
+                    const my =
+                        mouthCenterY +
+                        (isRestricted ? -1 : 1) *
+                            mouthAmp *
+                            Math.pow(2 * tt - 1, 2);
+                    const mz =
+                        Math.sqrt(
+                            Math.max(
+                                0.0001,
+                                NPC_HEAD_R * NPC_HEAD_R - mx * mx - my * my,
+                            ),
+                        ) + 0.004;
+                    mouthPoints.push(new THREE.Vector3(mx, my, mz));
+                }
+                const mouth = new THREE.Mesh(
+                    new THREE.TubeGeometry(
+                        new THREE.CatmullRomCurve3(mouthPoints),
+                        12,
+                        0.012,
+                        5,
+                        false,
+                    ),
+                    mat.mouth,
+                );
+                head.add(mouth);
+
+                body.add(head);
+
+                return {
+                    body,
+                    parts: {
+                        body,
+                        torso,
+                        head,
+                        eyes,
+                        leftArm,
+                        rightArm,
+                        headBaseY: NPC_HEAD_Y,
+                    },
+                };
+            }
 
             // Teleportation state
             let teleportTarget = null;
@@ -811,137 +1216,210 @@
 
                         // ── Create Interactive Hotspots (NPC) ──────────────────────
                         const createHotspot = (x, y, z, title, desc, color, category) => {
+                            const isRestricted = category === "restricted";
+                            const accent = isRestricted
+                                ? NPC_COLORS.danger
+                                : NPC_COLORS.badge;
+
+                            // Outer group owns placement + facing. The avatar
+                            // lives in its own group so idle sway never tilts
+                            // the shadow or the ring.
                             const npcGroup = new THREE.Group();
                             npcGroup.position.set(x, y, z);
 
-                            const skinMat = new THREE.MeshBasicMaterial({ color: 0xffe0bd, depthTest: false });
-                            const clothesMat = new THREE.MeshBasicMaterial({ color: 0x8a1538, depthTest: false }); // WMSU Crimson
-                            const pantsMat = new THREE.MeshBasicMaterial({ color: 0x333333, depthTest: false });
+                            const avatar = buildNPCAvatar(isRestricted);
+                            npcGroup.add(avatar.body);
 
-                            // Torso
-                            const torsoGeom = new THREE.BoxGeometry(0.4, 0.6, 0.2);
-                            const torso = new THREE.Mesh(torsoGeom, clothesMat);
-                            torso.position.y = 1.0;
-                            torso.renderOrder = 999;
-                            npcGroup.add(torso);
+                            // Soft contact shadow so the NPC feels planted.
+                            const shadow = new THREE.Mesh(
+                                new THREE.CircleGeometry(0.34, 20),
+                                new THREE.MeshBasicMaterial({
+                                    map: getNpcShadowTexture(),
+                                    transparent: true,
+                                    depthWrite: false,
+                                    opacity: 0.8,
+                                }),
+                            );
+                            shadow.rotation.x = -Math.PI / 2;
+                            shadow.position.y = 0.012;
+                            shadow.renderOrder = 1;
+                            npcGroup.add(shadow);
 
-                            // Head
-                            const headGroup = new THREE.Group();
-                            headGroup.position.y = 1.45;
+                            // Pulsing ring — the "this is a character" tell.
+                            const ring = new THREE.Mesh(
+                                new THREE.RingGeometry(0.3, 0.37, 40),
+                                new THREE.MeshBasicMaterial({
+                                    color: accent,
+                                    transparent: true,
+                                    opacity: 0.55,
+                                    side: THREE.DoubleSide,
+                                    depthWrite: false,
+                                }),
+                            );
+                            ring.rotation.x = -Math.PI / 2;
+                            ring.position.y = 0.02;
+                            ring.renderOrder = 2;
+                            npcGroup.add(ring);
 
-                            const headGeom = new THREE.SphereGeometry(0.18, 16, 16);
-                            const head = new THREE.Mesh(headGeom, skinMat);
-                            head.renderOrder = 999;
-                            headGroup.add(head);
+                            // Floating quest gem above the head.
+                            const gem = new THREE.Mesh(
+                                new THREE.OctahedronGeometry(0.06, 0),
+                                new THREE.MeshStandardMaterial({
+                                    color: accent,
+                                    emissive: accent,
+                                    emissiveIntensity: 0.9,
+                                    roughness: 0.25,
+                                    metalness: 0.15,
+                                }),
+                            );
+                            gem.position.y = NPC_GEM_Y;
+                            npcGroup.add(gem);
 
-                            // Eyes
-                            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthTest: false });
-                            const eyeGeom = new THREE.SphereGeometry(0.02, 8, 8);
-                            const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
-                            leftEye.position.set(-0.06, 0.03, 0.16);
-                            leftEye.renderOrder = 999;
-                            const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
-                            rightEye.position.set(0.06, 0.03, 0.16);
-                            rightEye.renderOrder = 999;
-                            headGroup.add(leftEye);
-                            headGroup.add(rightEye);
+                            // Invisible hitbox for tap raycasting (sized for
+                            // fingers, a little wider than the chibi itself).
+                            const hitBox = new THREE.Mesh(
+                                new THREE.CylinderGeometry(0.5, 0.5, 1.7, 10),
+                                new THREE.MeshBasicMaterial({ visible: false }),
+                            );
+                            hitBox.position.y = 0.85;
+                            npcGroup.add(hitBox);
 
-                            // Smile / Frown
-                            const isRestricted = (category === "restricted");
-                            const smileCurve = new THREE.EllipseCurve(0, -0.05, 0.08, 0.05, 0, Math.PI, false, 0);
-                            const smilePoints = smileCurve.getPoints(10);
-                            const smileGeom = new THREE.BufferGeometry().setFromPoints(smilePoints);
-                            const smileLine = new THREE.Line(smileGeom, new THREE.LineBasicMaterial({ color: 0x000000, depthTest: false }));
-                            
-                            if (isRestricted) {
-                                // Frown
-                                smileLine.rotation.x = 0;
-                                smileLine.position.set(0, -0.05, 0.17); // Adjust position for frown
-                                
-                                // Eyebrows
-                                const eyebrowGeom = new THREE.BoxGeometry(0.06, 0.01, 0.01);
-                                const leftEyebrow = new THREE.Mesh(eyebrowGeom, eyeMat);
-                                leftEyebrow.position.set(-0.06, 0.07, 0.17);
-                                leftEyebrow.rotation.z = -0.3; // Angle inwards
-                                leftEyebrow.renderOrder = 999;
-                                headGroup.add(leftEyebrow);
-                                
-                                const rightEyebrow = new THREE.Mesh(eyebrowGeom, eyeMat);
-                                rightEyebrow.position.set(0.06, 0.07, 0.17);
-                                rightEyebrow.rotation.z = 0.3; // Angle inwards
-                                rightEyebrow.renderOrder = 999;
-                                headGroup.add(rightEyebrow);
-                            } else {
-                                // Smile
-                                smileLine.rotation.x = Math.PI;
-                                smileLine.position.z = 0.17;
-                            }
-                            
-                            smileLine.renderOrder = 999;
-                            headGroup.add(smileLine);
-
-                            npcGroup.add(headGroup);
-
-                            // Arms
-                            const armGeom = new THREE.BoxGeometry(0.12, 0.55, 0.12);
-                            
-                            const leftArmGroup = new THREE.Group();
-                            leftArmGroup.position.set(0.28, 1.15, 0); // NPC's left arm (our right)
-                            const leftArm = new THREE.Mesh(armGeom, clothesMat);
-                            leftArm.position.set(0, -0.15, 0);
-                            leftArm.renderOrder = 999;
-                            leftArmGroup.add(leftArm);
-                            
-                            const rightArmGroup = new THREE.Group();
-                            rightArmGroup.position.set(-0.28, 1.15, 0); // NPC's right arm (our left)
-                            const rightArm = new THREE.Mesh(armGeom, clothesMat);
-                            rightArm.position.set(0, -0.15, 0);
-                            rightArm.renderOrder = 999;
-                            rightArmGroup.add(rightArm);
-                            
-                            if (isRestricted) {
-                                // Cross arms forming X in front of chest
-                                leftArmGroup.rotation.order = 'ZXY';
-                                rightArmGroup.rotation.order = 'ZXY';
-                                
-                                leftArmGroup.rotation.z = -1.8; // Swing inwards and slightly up (under chin)
-                                leftArmGroup.rotation.x = -0.5; // Swing forward to clear chest
-                                
-                                rightArmGroup.rotation.z = 1.8; // Swing inwards and slightly up
-                                rightArmGroup.rotation.x = -0.6; // Swing more forward to overlap cleanly
-                            }
-                            
-                            npcGroup.add(leftArmGroup);
-                            npcGroup.add(rightArmGroup);
-
-                            // Legs
-                            const legGeom = new THREE.BoxGeometry(0.15, 0.7, 0.15);
-                            const leftLeg = new THREE.Mesh(legGeom, pantsMat);
-                            leftLeg.position.set(-0.1, 0.35, 0);
-                            leftLeg.renderOrder = 999;
-                            npcGroup.add(leftLeg);
-
-                            const rightLeg = new THREE.Mesh(legGeom, pantsMat);
-                            rightLeg.position.set(0.1, 0.35, 0);
-                            rightLeg.renderOrder = 999;
-                            npcGroup.add(rightLeg);
-
-                            // Invisible Hitbox
-                            const hitBoxGeom = new THREE.CylinderGeometry(0.5, 0.5, 1.8, 8);
-                            const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
-                            const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
-                            hitBox.position.y = 0.9;
-                            
-                            // Create HTML Label
+                            // Nameplate — the name is always visible.
+                            const labelContainer =
+                                document.getElementById("floating-labels");
                             const labelDiv = document.createElement("div");
                             labelDiv.className = "floating-label";
-                            if (isRestricted) {
-                                labelDiv.classList.add("restricted");
-                            }
-                            labelDiv.innerHTML = title;
-                            document.getElementById("floating-labels").appendChild(labelDiv);
+                            if (isRestricted) labelDiv.classList.add("restricted");
+                            labelDiv.innerHTML =
+                                '<span class="npc-dot"></span>' +
+                                escapeHtml(title || "NPC");
+                            labelDiv._lastHtml = title || "NPC";
+                            labelContainer.appendChild(labelDiv);
 
-                            hitBox.userData = { title, desc, category, isRestricted, parentGroup: npcGroup, rightArm: rightArmGroup, labelDiv: labelDiv };
+                            // Speech bubble — only the description, and only
+                            // while the player is close. The name stays put.
+                            const bubbleDiv = document.createElement("div");
+                            bubbleDiv.className = "npc-bubble";
+                            if (isRestricted)
+                                bubbleDiv.classList.add("restricted");
+                            labelContainer.appendChild(bubbleDiv);
+
+                            const parts = avatar.parts;
+                            const blinkState = {
+                                nextBlink:
+                                    performance.now() * 0.001 +
+                                    1.5 +
+                                    Math.random() * 3,
+                                blinkUntil: 0,
+                            };
+
+                            hitBox.userData = {
+                                title,
+                                desc,
+                                category,
+                                isRestricted,
+                                parentGroup: npcGroup,
+                                rightArm: parts.rightArm.shoulder, // kept for compatibility
+                                labelDiv: labelDiv,
+                                bubbleDiv: bubbleDiv,
+                                labelHeight: NPC_LABEL_HEIGHT,
+                                // Bubble hysteresis state (open 4.5m / close 5m).
+                                bubbleState: { open: false },
+
+                                // Called once per frame by the render loop.
+                                update: (t, near) => {
+                                    const breathe = Math.sin(t * 1.7);
+
+                                    // Breathing (scales the torso group, so the
+                                    // chest rises and settles like a real idle).
+                                    parts.torso.scale.set(
+                                        1 + breathe * 0.01,
+                                        1 + breathe * 0.016,
+                                        1 + breathe * 0.01,
+                                    );
+                                    parts.torso.position.y = breathe * 0.006;
+
+                                    // Blink
+                                    if (t > blinkState.nextBlink) {
+                                        blinkState.blinkUntil = t + 0.1;
+                                        blinkState.nextBlink =
+                                            t + 2.4 + Math.random() * 3.6;
+                                    }
+                                    const eyeOpen =
+                                        t < blinkState.blinkUntil ? 0.08 : 1;
+                                    parts.eyes.forEach((eye) => {
+                                        eye.scale.y +=
+                                            (eyeOpen - eye.scale.y) * 0.5;
+                                    });
+
+                                    const r = parts.rightArm;
+                                    const l = parts.leftArm;
+
+                                    if (isRestricted) {
+                                        // Arms folded high across the chest.
+                                        // The round belly is deep, so the
+                                        // forearms swing forward as well as
+                                        // inward; different elbow bends keep
+                                        // the mittens side by side.
+                                        l.shoulder.rotation.z = -1.57;
+                                        l.shoulder.rotation.x = -0.9;
+                                        l.elbow.rotation.x = -0.3;
+
+                                        r.shoulder.rotation.z = 1.6;
+                                        r.shoulder.rotation.x = -0.9;
+                                        r.elbow.rotation.x = -0.55;
+
+                                        parts.head.rotation.y =
+                                            Math.sin(t * (near ? 2.2 : 0.6)) *
+                                            0.2;
+                                    } else if (near) {
+                                        // Friendly wave when you walk up.
+                                        const wave = Math.sin(t * 6.2);
+                                        r.shoulder.rotation.z =
+                                            -2.02 + wave * 0.3;
+                                        r.shoulder.rotation.x = -0.12;
+                                        r.elbow.rotation.x =
+                                            -0.5 + wave * 0.15;
+
+                                        l.shoulder.rotation.z = NPC_ARM_REST;
+                                        l.shoulder.rotation.x = 0;
+                                        l.elbow.rotation.x = -0.1;
+
+                                        parts.head.rotation.y *= 0.85;
+                                    } else {
+                                        // Idle: arms at rest, head drifts.
+                                        l.shoulder.rotation.z = NPC_ARM_REST;
+                                        l.shoulder.rotation.x = 0;
+                                        l.elbow.rotation.x = -0.08;
+
+                                        r.shoulder.rotation.z = -NPC_ARM_REST;
+                                        r.shoulder.rotation.x = 0;
+                                        r.elbow.rotation.x = -0.08;
+
+                                        parts.head.rotation.y =
+                                            Math.sin(t * 0.5) * 0.32;
+                                    }
+
+                                    // Whole-body sway + head bob
+                                    parts.body.rotation.z =
+                                        Math.sin(t * 0.85) * 0.014;
+                                    parts.head.rotation.z =
+                                        Math.sin(t * 0.85 + 0.6) * 0.02;
+                                    parts.head.position.y =
+                                        parts.headBaseY + breathe * 0.008;
+
+                                    // Gem bobs and spins, ring breathes.
+                                    gem.rotation.y = t * 1.8;
+                                    gem.position.y =
+                                        NPC_GEM_Y + Math.sin(t * 1.9) * 0.03;
+
+                                    const pulse = 1 + Math.sin(t * 2.1) * 0.05;
+                                    ring.scale.set(pulse, pulse, 1);
+                                    ring.material.opacity = near ? 0.8 : 0.5;
+
+                                    shadow.material.opacity = near ? 0.95 : 0.8;
+                                },
+                            };
 
                             npcGroup.add(hitBox);
                             scene.add(npcGroup);
@@ -1175,51 +1653,88 @@
             function animate() {
                 animFrameId = requestAnimationFrame(animate);
 
-                // Auto-detect nearby NPCs and update labels
-                let minDist = 3.5;
+                // Animate NPC hotspots: nameplate always, description bubble
+                // only while the player is close.
                 const time = performance.now() * 0.003;
+                const npcTime = performance.now() * 0.001;
 
                 hotspots.forEach((h) => {
                     if (h.userData.isPortal) return;
                     const npcGroup = h.userData.parentGroup;
-                    const rightArm = h.userData.rightArm;
                     const labelDiv = h.userData.labelDiv;
-                    
+                    const bubbleDiv = h.userData.bubbleDiv;
+                    if (!npcGroup || !labelDiv) return;
+
                     npcGroup.getWorldPosition(tempVector);
                     const dist = tempVector.distanceTo(camera.position);
-                    
-                    // Face camera
-                    const targetPos = camera.position.clone();
-                    targetPos.y = npcGroup.position.y;
-                    npcGroup.lookAt(targetPos);
-                    
-                    // Wave and expand bubble if close
-                    if (dist < minDist) {
-                        if (!h.userData.isRestricted) {
-                            rightArm.rotation.z = -2.0 + Math.sin(time * 1.5) * 0.5;
-                            rightArm.rotation.x = Math.sin(time) * 0.2;
-                        }
-                        labelDiv.innerHTML = h.userData.title + (h.userData.desc ? "<br><span style='font-size:12px;font-weight:normal;'>" + h.userData.desc + "</span>" : "");
-                    } else {
-                        if (!h.userData.isRestricted) {
-                            rightArm.rotation.z = 0;
-                            rightArm.rotation.x = 0;
-                        }
-                        labelDiv.innerHTML = h.userData.title;
-                    }
 
-                    // Update label position
-                    tempVector.y += 1.8; // Above head
+                    // Hysteresis (open at 4.5m, close only past 5.0m) keeps the
+                    // bubble from flickering while you drift along the edge.
+                    const bubbleState = (h.userData.bubbleState ??= {
+                        open: false,
+                    });
+                    bubbleState.open = bubbleState.open
+                        ? dist < 5.0
+                        : dist < 4.5;
+                    const near = bubbleState.open;
+
+                    // Turn to face the player, faster once close enough to talk.
+                    const targetYaw = Math.atan2(
+                        camera.position.x - npcGroup.position.x,
+                        camera.position.z - npcGroup.position.z,
+                    );
+                    const yawDelta = Math.atan2(
+                        Math.sin(targetYaw - npcGroup.rotation.y),
+                        Math.cos(targetYaw - npcGroup.rotation.y),
+                    );
+                    npcGroup.rotation.y += yawDelta * (near ? 0.16 : 0.05);
+
+                    h.userData.update?.(npcTime, near);
+
+                    // Nameplate sits above the head.
+                    tempVector.y += h.userData.labelHeight ?? 1.82;
                     tempVector.project(camera);
-                    
+
                     if (tempVector.z > 1) {
                         labelDiv.style.opacity = "0";
+                        if (bubbleDiv) {
+                            bubbleDiv.style.opacity = "0";
+                            bubbleDiv.classList.remove("show");
+                        }
+                        return;
+                    }
+
+                    const x = (tempVector.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (tempVector.y * -0.5 + 0.5) * window.innerHeight;
+                    labelDiv.style.left = `${x}px`;
+                    labelDiv.style.top = `${y}px`;
+                    labelDiv.style.opacity = "1";
+
+                    const name = h.userData.title || "NPC";
+                    if (labelDiv._lastHtml !== name) {
+                        labelDiv.innerHTML =
+                            '<span class="npc-dot"></span>' +
+                            escapeHtml(name);
+                        labelDiv._lastHtml = name;
+                    }
+
+                    // Speech bubble: description only, and it pops out of the
+                    // head when you walk up, then tucks away when you leave.
+                    if (!bubbleDiv) return;
+
+                    const desc = String(h.userData.desc || "").trim();
+                    bubbleDiv.style.opacity = "";
+
+                    if (near && desc) {
+                        bubbleDiv.style.left = `${x}px`;
+                        bubbleDiv.style.top = `${y}px`;
+                        if (bubbleDiv._lastHtml !== desc) {
+                            bubbleDiv.innerHTML = escapeHtml(desc);
+                            bubbleDiv._lastHtml = desc;
+                        }
+                        bubbleDiv.classList.add("show");
                     } else {
-                        labelDiv.style.opacity = "1";
-                        const x = (tempVector.x *  0.5 + 0.5) * window.innerWidth;
-                        const y = (tempVector.y * -0.5 + 0.5) * window.innerHeight;
-                        labelDiv.style.left = `${x}px`;
-                        labelDiv.style.top = `${y}px`;
+                        bubbleDiv.classList.remove("show");
                     }
                 });
 
@@ -1521,6 +2036,24 @@
                             }
                         }
                     });
+                }
+                if (hotspots && hotspots.length > 0) {
+                    hotspots.forEach((h) => {
+                        if (h.userData.labelDiv && h.userData.labelDiv.parentNode) {
+                            h.userData.labelDiv.parentNode.removeChild(
+                                h.userData.labelDiv,
+                            );
+                        }
+                        if (h.userData.bubbleDiv && h.userData.bubbleDiv.parentNode) {
+                            h.userData.bubbleDiv.parentNode.removeChild(
+                                h.userData.bubbleDiv,
+                            );
+                        }
+                        if (scene && h.userData.parentGroup) {
+                            scene.remove(h.userData.parentGroup);
+                        }
+                    });
+                    hotspots = [];
                 }
                 if (portalBadges && portalBadges.length > 0) {
                     portalBadges.forEach((p) => {
