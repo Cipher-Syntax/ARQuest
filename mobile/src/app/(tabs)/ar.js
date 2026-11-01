@@ -1513,76 +1513,16 @@ export default function ARScreen() {
             {/* --- QR UNLOCK ERROR MODAL --- */}
             <ARQRErrorModal
                 visible={qrErrorModalVisible}
-                onDismiss={() => setQrErrorModalVisible(false)}
-                onRetry={async () => {
-                    if (!scannedData || !location) return;
-                    setQrErrorRetrying(true);
-                    try {
-                        const result = await unlockViaQr(
-                            scannedData,
-                            location.latitude,
-                            location.longitude
-                        );
-                        const isNewUnlock = result?.newly_unlocked !== false;
-                        if (nearbyBuildingFull &&
-                            String(nearbyBuildingFull.id) === String(result?.building)) {
-                            setNearbyBuildingFull({
-                                ...nearbyBuildingFull,
-                                is_unlocked: true,
-                            });
-                        }
-                        if (isNewUnlock) {
-                            if (user?.role === "student") {
-                                SoundManager.play("building_unlock");
-                            }
-                            Alert("Unlocked!", `Successfully unlocked via QR code!`);
-                            const earned = result?.newly_earned_badges || [];
-                            if (user?.role === "student" && earned.length > 0) {
-                                setTimeout(() => {
-                                    SoundManager.play("badge_earned");
-                                }, 1200);
-                                setNewlyEarnedBadges(earned);
-                                badgeAnim.setValue(0);
-                                Animated.sequence([
-                                    Animated.spring(badgeAnim, {
-                                        toValue: 1,
-                                        tension: 60,
-                                        friction: 8,
-                                        useNativeDriver: true,
-                                    }),
-                                ]).start(() => {
-                                    setTimeout(() => {
-                                        Animated.timing(badgeAnim, {
-                                            toValue: 0,
-                                            duration: 300,
-                                            useNativeDriver: true,
-                                        }).start(() => setNewlyEarnedBadges([]));
-                                    }, 3500);
-                                });
-                            }
-                        } else {
-                            Alert("Already Unlocked", (result?.building_name || "This building") + " is already in your collection.");
-                        }
-                        setQrErrorModalVisible(false);
-                        setScannedData(null);
-                    } catch (error) {
-                        console.error("QR unlock retry error:", error);
-                        const errorMsg =
-                            error.data?.error?.message ||
-                            error.data?.detail ||
-                            "Failed to connect to server.";
-                        let distance = null, threshold = null;
-                        const distMatch = errorMsg.match(/You are currently (\d+) meters? away/);
-                        const threshMatch = errorMsg.match(/within (\d+) meters? of the building/);
-                        if (distMatch) distance = parseInt(distMatch[1], 10);
-                        if (threshMatch) threshold = parseInt(threshMatch[1], 10);
-                        setQrErrorMessage(errorMsg);
-                        setQrErrorDistance(distance);
-                        setQrErrorThreshold(threshold);
-                        setQrErrorRetrying(false);
-                    }
+                onDismiss={() => {
+                    setQrErrorModalVisible(false);
+                    setScannedData(null);
                 }}
-                isRetrying={qrErrorRetrying}
+                onRetry={() => {
+                    setQrErrorModalVisible(false);
+                    setScannedData(null);
+                    toggleQrScanner(true);
+                }}
+                isRetrying={false}
                 message={qrErrorMessage}
                 distance={qrErrorDistance}
                 threshold={qrErrorThreshold}
