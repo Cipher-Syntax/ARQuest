@@ -43,6 +43,7 @@ import {
 import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
 import ARPostcardModal from "../../components/ar/ARPostcardModal";
+import ARQRErrorModal from "../../components/ar/ARQRErrorModal";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
 import { styles } from "../../components/ar/arStyles";
@@ -74,6 +75,14 @@ export default function ARScreen() {
     const [claimErrorModalVisible, setClaimErrorModalVisible] = useState(false);
     const [claimErrorMessage, setClaimErrorMessage] = useState("");
     const [claimTargetQuest, setClaimTargetQuest] = useState(null);
+
+    // QR unlock error modal state
+    const [qrErrorModalVisible, setQrErrorModalVisible] = useState(false);
+    const [qrErrorMessage, setQrErrorMessage] = useState("");
+    const [qrErrorDistance, setQrErrorDistance] = useState(null);
+    const [qrErrorThreshold, setQrErrorThreshold] = useState(null);
+    const [qrErrorBuildingName, setQrErrorBuildingName] = useState("");
+    const [qrErrorRetrying, setQrErrorRetrying] = useState(false);
 
     const navigation = useNavigation();
     const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
@@ -1048,7 +1057,24 @@ export default function ARScreen() {
             const errorMsg =
                 error.response?.data?.error?.message ||
                 "Failed to connect to server.";
-            Alert("Error", errorMsg);
+
+            // Parse distance/threshold from backend message if present
+            // Format: "You must be within X meters... You are currently Y meters away."
+            let distance = null, threshold = null;
+            const distMatch = errorMsg.match(/You are currently (\d+) meters? away/);
+            const threshMatch = errorMsg.match(/within (\d+) meters? of the building/);
+            if (distMatch) distance = parseInt(distMatch[1], 10);
+            if (threshMatch) threshold = parseInt(threshMatch[1], 10);
+
+            // Get building name from nearby building if available
+            const buildingName = nearbyBuildingFull?.name || "";
+
+            setQrErrorMessage(errorMsg);
+            setQrErrorDistance(distance);
+            setQrErrorThreshold(threshold);
+            setQrErrorBuildingName(buildingName);
+            setQrErrorRetrying(false);
+            setQrErrorModalVisible(true);
             setScannedData(null); // allow rescan
         }
     };
@@ -1478,6 +1504,81 @@ export default function ARScreen() {
                 message={claimErrorMessage || "The server took too long to respond. Tap Retry to resend your claim without losing progress."}
                 questTitle={(claimTargetQuest || matchingQuest)?.title || ((claimTargetQuest || matchingQuest) ? "Campus Quest" : null)}
                 questExp={(claimTargetQuest || matchingQuest)?.reward_points || 50}
+            />
+
+            {/* --- QR UNLOCK ERROR MODAL --- */}
+            <ARQRErrorModal
+                visible={qrErrorModalVisible}
+                onDismiss={() => setQrErrorModalVisible(false)}
+                onRetry={async () => {
+                    if (!scannedData || !location) return;
+                    setQrErrorRetrying(true);
+                    try {
+                        const result = await unlockViaQr(
+                            scannedData,
+                            location.latitude,
+                            location.longitude
+                        );
+                        if (user?.role === "student") {
+                            SoundManager.play("building_unlock");
+                        }
+                        Alert("Unlocked!", `Successfully unlocked via QR code!`);
+                        if (
+                            nearbyBuildingFull &&
+                            String(nearbyBuildingFull.id) === String(result?.building)
+                        ) {
+                            setNearbyBuildingFull({
+                                ...nearbyBuildingFull,
+                                is_unlocked: true,
+                            });
+                        }
+                        const earned = result?.newly_earned_badges || [];
+                        if (user?.role === "student" && earned.length > 0) {
+                            setTimeout(() => {
+                                SoundManager.play("badge_earned");
+                            }, 1200);
+                            setNewlyEarnedBadges(earned);
+                            badgeAnim.setValue(0);
+                            Animated.sequence([
+                                Animated.spring(badgeAnim, {
+                                    toValue: 1,
+                                    tension: 60,
+                                    friction: 8,
+                                    useNativeDriver: true,
+                                }),
+                            ]).start(() => {
+                                setTimeout(() => {
+                                    Animated.timing(badgeAnim, {
+                                        toValue: 0,
+                                        duration: 300,
+                                        useNativeDriver: true,
+                                    }).start(() => setNewlyEarnedBadges([]));
+                                }, 3500);
+                            });
+                        }
+                        setQrErrorModalVisible(false);
+                        setScannedData(null);
+                    } catch (error) {
+                        console.error("QR unlock retry error:", error);
+                        const errorMsg =
+                            error.response?.data?.error?.message ||
+                            "Failed to connect to server.";
+                        let distance = null, threshold = null;
+                        const distMatch = errorMsg.match(/You are currently (\d+) meters? away/);
+                        const threshMatch = errorMsg.match(/within (\d+) meters? of the building/);
+                        if (distMatch) distance = parseInt(distMatch[1], 10);
+                        if (threshMatch) threshold = parseInt(threshMatch[1], 10);
+                        setQrErrorMessage(errorMsg);
+                        setQrErrorDistance(distance);
+                        setQrErrorThreshold(threshold);
+                        setQrErrorRetrying(false);
+                    }
+                }}
+                isRetrying={qrErrorRetrying}
+                message={qrErrorMessage}
+                distance={qrErrorDistance}
+                threshold={qrErrorThreshold}
+                buildingName={qrErrorBuildingName}
             />
 
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}

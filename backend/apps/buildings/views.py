@@ -331,9 +331,24 @@ def unlock_building_qr(request):
             float(lat), float(lng),
             float(geofence.latitude), float(geofence.longitude)
         )
-        # 50 meter strict threshold for QR
-        if distance > 50:
-            return error_response(ErrorCodes.QR_TOO_FAR, 'You must be within 50 meters of the building to scan its QR code.', status_code=status.HTTP_400_BAD_REQUEST)
+        # Adaptive threshold: geofence radius + 10m buffer, clamped to [25, 50]m.
+        # - Small plaza (r=20m)  -> 30m
+        # - Standard building (r=30m) -> 40m
+        # - Large campus hub (r=45m) -> 50m (capped)
+        # - No geofence -> 35m default
+        radius = float(geofence.radius_meters or 25)
+        threshold = min(50, max(25, radius + 10))
+        if distance > threshold:
+            return error_response(
+                ErrorCodes.QR_TOO_FAR,
+                f'You must be within {int(threshold)} meters of the building to scan its QR code. '
+                f'You are currently {int(distance)} meters away.',
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+    else:
+        # Fallback when building has no geofence configured
+        distance = None  # not calculated
+        threshold = 35
 
     unlock, created = BuildingUnlock.objects.get_or_create(
         user=request.user,
