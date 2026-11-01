@@ -371,6 +371,7 @@ def unlock_building_qr(request):
     serializer = BuildingUnlockSerializer(unlock)
     data = serializer.data
     data['newly_earned_badges'] = newly_earned_badges
+    data['newly_unlocked'] = created  # True = first unlock, False = already had access
     return success_response(data)
 
 

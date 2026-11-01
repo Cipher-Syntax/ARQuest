@@ -1014,48 +1014,52 @@ export default function ARScreen() {
                 location.longitude
             );
 
-            if (user?.role === "student") {
-                SoundManager.play("building_unlock");
-            }
-            Alert("Unlocked!", `Successfully unlocked via QR code!`);
-            if (
-                nearbyBuildingFull &&
-                String(nearbyBuildingFull.id) === String(result?.building)
-            ) {
+            const isNewUnlock = result?.newly_unlocked !== false;
+            if (nearbyBuildingFull &&
+                String(nearbyBuildingFull.id) === String(result?.building)) {
                 setNearbyBuildingFull({
                     ...nearbyBuildingFull,
                     is_unlocked: true,
                 });
             }
-            // Show badge toast if earned (students only)
-            const earned = result?.newly_earned_badges || [];
-            if (user?.role === "student" && earned.length > 0) {
-                setTimeout(() => {
-                    SoundManager.play("badge_earned");
-                }, 1200);
-                setNewlyEarnedBadges(earned);
-                badgeAnim.setValue(0);
-                Animated.sequence([
-                    Animated.spring(badgeAnim, {
-                        toValue: 1,
-                        tension: 60,
-                        friction: 8,
-                        useNativeDriver: true,
-                    }),
-                ]).start(() => {
+            if (isNewUnlock) {
+                if (user?.role === "student") {
+                    SoundManager.play("building_unlock");
+                }
+                Alert("Unlocked!", `Successfully unlocked via QR code!`);
+                // Show badge toast if earned (students only)
+                const earned = result?.newly_earned_badges || [];
+                if (user?.role === "student" && earned.length > 0) {
                     setTimeout(() => {
-                        Animated.timing(badgeAnim, {
-                            toValue: 0,
-                            duration: 300,
+                        SoundManager.play("badge_earned");
+                    }, 1200);
+                    setNewlyEarnedBadges(earned);
+                    badgeAnim.setValue(0);
+                    Animated.sequence([
+                        Animated.spring(badgeAnim, {
+                            toValue: 1,
+                            tension: 60,
+                            friction: 8,
                             useNativeDriver: true,
-                        }).start(() => setNewlyEarnedBadges([]));
-                    }, 3500);
-                });
+                        }),
+                    ]).start(() => {
+                        setTimeout(() => {
+                            Animated.timing(badgeAnim, {
+                                toValue: 0,
+                                duration: 300,
+                                useNativeDriver: true,
+                            }).start(() => setNewlyEarnedBadges([]));
+                        }, 3500);
+                    });
+                }
+            } else {
+                Alert("Already Unlocked", (result?.building_name || "This building") + " is already in your collection.");
             }
         } catch (error) {
             console.error("QR unlock error:", error);
             const errorMsg =
-                error.response?.data?.error?.message ||
+                error.data?.error?.message ||
+                error.data?.detail ||
                 "Failed to connect to server.";
 
             // Parse distance/threshold from backend message if present
@@ -1519,49 +1523,53 @@ export default function ARScreen() {
                             location.latitude,
                             location.longitude
                         );
-                        if (user?.role === "student") {
-                            SoundManager.play("building_unlock");
-                        }
-                        Alert("Unlocked!", `Successfully unlocked via QR code!`);
-                        if (
-                            nearbyBuildingFull &&
-                            String(nearbyBuildingFull.id) === String(result?.building)
-                        ) {
+                        const isNewUnlock = result?.newly_unlocked !== false;
+                        if (nearbyBuildingFull &&
+                            String(nearbyBuildingFull.id) === String(result?.building)) {
                             setNearbyBuildingFull({
                                 ...nearbyBuildingFull,
                                 is_unlocked: true,
                             });
                         }
-                        const earned = result?.newly_earned_badges || [];
-                        if (user?.role === "student" && earned.length > 0) {
-                            setTimeout(() => {
-                                SoundManager.play("badge_earned");
-                            }, 1200);
-                            setNewlyEarnedBadges(earned);
-                            badgeAnim.setValue(0);
-                            Animated.sequence([
-                                Animated.spring(badgeAnim, {
-                                    toValue: 1,
-                                    tension: 60,
-                                    friction: 8,
-                                    useNativeDriver: true,
-                                }),
-                            ]).start(() => {
+                        if (isNewUnlock) {
+                            if (user?.role === "student") {
+                                SoundManager.play("building_unlock");
+                            }
+                            Alert("Unlocked!", `Successfully unlocked via QR code!`);
+                            const earned = result?.newly_earned_badges || [];
+                            if (user?.role === "student" && earned.length > 0) {
                                 setTimeout(() => {
-                                    Animated.timing(badgeAnim, {
-                                        toValue: 0,
-                                        duration: 300,
+                                    SoundManager.play("badge_earned");
+                                }, 1200);
+                                setNewlyEarnedBadges(earned);
+                                badgeAnim.setValue(0);
+                                Animated.sequence([
+                                    Animated.spring(badgeAnim, {
+                                        toValue: 1,
+                                        tension: 60,
+                                        friction: 8,
                                         useNativeDriver: true,
-                                    }).start(() => setNewlyEarnedBadges([]));
-                                }, 3500);
-                            });
+                                    }),
+                                ]).start(() => {
+                                    setTimeout(() => {
+                                        Animated.timing(badgeAnim, {
+                                            toValue: 0,
+                                            duration: 300,
+                                            useNativeDriver: true,
+                                        }).start(() => setNewlyEarnedBadges([]));
+                                    }, 3500);
+                                });
+                            }
+                        } else {
+                            Alert("Already Unlocked", (result?.building_name || "This building") + " is already in your collection.");
                         }
                         setQrErrorModalVisible(false);
                         setScannedData(null);
                     } catch (error) {
                         console.error("QR unlock retry error:", error);
                         const errorMsg =
-                            error.response?.data?.error?.message ||
+                            error.data?.error?.message ||
+                            error.data?.detail ||
                             "Failed to connect to server.";
                         let distance = null, threshold = null;
                         const distMatch = errorMsg.match(/You are currently (\d+) meters? away/);
