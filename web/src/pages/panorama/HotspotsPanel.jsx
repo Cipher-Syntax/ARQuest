@@ -7,6 +7,7 @@ import {
     ChevronDown,
     ChevronUp,
     ArrowUpRight,
+    Crosshair,
 } from "lucide-react";
 
 import { theme } from "../../theme";
@@ -26,6 +27,8 @@ const HotspotsPanel = ({
     onDeleteHotspot,
     errors,
     setErrors,
+    onPlaceOnPanorama,
+    placeMode = false,
 }) => {
     const isEditing = Boolean(editingHotspot);
     const [showHotspotGuide, setShowHotspotGuide] = useState(false);
@@ -518,6 +521,56 @@ const HotspotsPanel = ({
                                     </div>
                                 )}
                             </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "10px",
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        onPlaceOnPanorama?.(
+                                            isEditing
+                                                ? editingHotspot?.label
+                                                : newHotspot?.label,
+                                        )
+                                    }
+                                    disabled={!selectedScene}
+                                    style={{
+                                        flex: 1,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "6px",
+                                        padding: "8px 10px",
+                                        background: placeMode
+                                            ? "rgba(16, 185, 129, 0.14)"
+                                            : "rgba(138,21,56,0.06)",
+                                        color: placeMode
+                                            ? "#047857"
+                                            : theme.colors.primary,
+                                        border: placeMode
+                                            ? "1px solid rgba(16, 185, 129, 0.5)"
+                                            : "1px solid rgba(138,21,56,0.22)",
+                                        borderRadius: "5px",
+                                        cursor: selectedScene
+                                            ? "pointer"
+                                            : "not-allowed",
+                                        fontSize: "11.5px",
+                                        fontWeight: "700",
+                                        letterSpacing: "0.2px",
+                                    }}
+                                >
+                                    <Crosshair size={13} />
+                                    {placeMode
+                                        ? "Click the 360° photo to place…"
+                                        : "Place on panorama (click-to-set)"}
+                                </button>
+                            </div>
+
                             <div
                                 style={{
                                     display: "grid",

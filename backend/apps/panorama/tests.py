@@ -205,3 +205,44 @@ class PanoramaAPITestCase(TestCase):
         self.scene2.refresh_from_db()
         self.assertFalse(self.scene1.is_start_scene)
         self.assertTrue(self.scene2.is_start_scene)
+
+
+class PanoramaRatioValidationTests(TestCase):
+    def _create_image(self, width, height):
+        from io import BytesIO
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        buffer = BytesIO()
+        img = Image.new('RGB', (width, height), color=(180, 24, 48))
+        img.save(buffer, format='JPEG')
+        buffer.seek(0)
+        return SimpleUploadedFile(
+            name=f'test_{width}x{height}.jpg',
+            content=buffer.getvalue(),
+            content_type='image/jpeg'
+        )
+
+    def test_phone_panorama_3_76_ratio_accepted(self):
+        """Phone panoramas like 4404x1170 (3.76:1) must pass validation."""
+        from apps.panorama.serializers import PanoramaSceneWriteSerializer
+        image = self._create_image(4404, 1170)
+        serializer = PanoramaSceneWriteSerializer(data={'title': 'Phone Pano', 'image': image})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data['width'], 4404)
+        self.assertEqual(serializer.validated_data['height'], 1170)
+
+    def test_standard_2_to_1_equirectangular_accepted(self):
+        """Standard 2:1 equirectangular photos must pass validation."""
+        from apps.panorama.serializers import PanoramaSceneWriteSerializer
+        image = self._create_image(2000, 1000)
+        serializer = PanoramaSceneWriteSerializer(data={'title': '2:1 Pano', 'image': image})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_portrait_and_square_images_rejected(self):
+        """Vertical/portrait photos (e.g. 1000x1500) must be rejected."""
+        from apps.panorama.serializers import PanoramaSceneWriteSerializer
+        image = self._create_image(1000, 1500)
+        serializer = PanoramaSceneWriteSerializer(data={'title': 'Portrait Photo', 'image': image})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('image', serializer.errors)

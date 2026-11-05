@@ -8,7 +8,7 @@ export const panoramaService = {
         return response.data.data;
     },
 
-    createScene: async (buildingId, formData) => {
+    createScene: async (buildingId, formData, config = {}) => {
         const response = await api.post(
             `/api/panorama/buildings/${buildingId}/scenes/`,
             formData,
@@ -16,6 +16,7 @@ export const panoramaService = {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
+                ...config,
             },
         );
         return response.data.data;

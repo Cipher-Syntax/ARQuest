@@ -118,7 +118,7 @@ const WalkthroughGuidelines = ({ expanded, onToggle }) => {
                             </h3>
                         </div>
                         <p style={{ fontSize: "11px", color: "#4b5563", lineHeight: "1.5", margin: 0 }}>
-                            Upload 360° equirectangular images. Every building must have <strong>exactly 1 Start Scene</strong> serving as the main entrance. The first uploaded scene is automatically designated as the entrance.
+                            Upload 360° equirectangular or wide phone panoramas. Every building must have <strong>exactly 1 Start Scene</strong> serving as the main entrance. The first uploaded scene is automatically designated as the entrance.
                         </p>
                     </div>
 

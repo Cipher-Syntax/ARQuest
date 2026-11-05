@@ -17,6 +17,10 @@ class PanoramaScene(models.Model):
     anchor_y = models.FloatField(null=True, blank=True, default=1.6, help_text='3D Model eye-level Y coordinate')
     anchor_z = models.FloatField(null=True, blank=True, help_text='3D Model local Z coordinate')
     anchor_radius = models.FloatField(default=5.0, help_text='Proximity catchment radius in meters')
+    # Image metadata captured on upload so the admin can spot oversized panoramas
+    width = models.PositiveIntegerField(null=True, blank=True, help_text='Pixel width of the stored panorama')
+    height = models.PositiveIntegerField(null=True, blank=True, help_text='Pixel height of the stored panorama')
+    file_size = models.PositiveBigIntegerField(null=True, blank=True, help_text='Stored panorama size in bytes')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

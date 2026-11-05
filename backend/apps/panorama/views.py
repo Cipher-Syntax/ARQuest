@@ -87,7 +87,32 @@ def building_scenes_admin(request, building_id):
         
     # POST: Create a new scene
     elif request.method == 'POST':
-        serializer = PanoramaSceneWriteSerializer(data=request.data)
+        from django.db.models import Max
+
+        payload = request.data.copy()
+
+        # Append new scenes to the end instead of trusting a client-side
+        # counter (which drifts as soon as a scene is deleted).
+        try:
+            submitted_order = int(payload.get('sort_order') or 0)
+        except (TypeError, ValueError):
+            submitted_order = 0
+        if submitted_order <= 0:
+            max_order = (
+                PanoramaScene.objects.filter(building=building)
+                .aggregate(Max('sort_order'))['sort_order__max']
+                or 0
+            )
+            payload['sort_order'] = max_order + 1
+
+        # A building always needs exactly one entrance; if none exists yet the
+        # first uploaded scene becomes it automatically.
+        if not PanoramaScene.objects.filter(
+            building=building, is_start_scene=True
+        ).exists():
+            payload['is_start_scene'] = 'true'
+
+        serializer = PanoramaSceneWriteSerializer(data=payload)
         if serializer.is_valid():
             serializer.save(building=building)
             return success_response(serializer.data, status_code=status.HTTP_201_CREATED)

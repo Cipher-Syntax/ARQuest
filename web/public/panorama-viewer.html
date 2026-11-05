@@ -32,6 +32,48 @@
             #canvas.pointer-cursor {
                 cursor: pointer;
             }
+            #canvas.place-mode {
+                cursor: crosshair !important;
+            }
+
+            /* Hotspot placement banner (admin authoring) */
+            #place-banner {
+                position: absolute;
+                top: 18px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: none;
+                align-items: center;
+                gap: 10px;
+                padding: 9px 18px;
+                border-radius: 999px;
+                background: rgba(15, 17, 23, 0.9);
+                border: 1px solid rgba(255, 255, 255, 0.28);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(10px);
+                color: #ffffff;
+                font-size: 12.5px;
+                font-weight: 600;
+                letter-spacing: 0.2px;
+                z-index: 40;
+                pointer-events: none;
+                white-space: nowrap;
+            }
+            #place-banner.visible {
+                display: flex;
+            }
+            #place-banner .place-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #34d399;
+                box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.25);
+                flex-shrink: 0;
+            }
+            #place-banner .place-hint {
+                color: rgba(255, 255, 255, 0.62);
+                font-weight: 500;
+            }
 
             /* Loading Overlay */
             #loading {
@@ -471,6 +513,13 @@
         <canvas id="canvas"></canvas>
         <div id="floating-labels"></div>
 
+        <!-- Admin hotspot placement banner -->
+        <div id="place-banner">
+            <span class="place-dot"></span>
+            <span>Click the doorway to place the hotspot</span>
+            <span class="place-hint">Esc to cancel</span>
+        </div>
+
         <script type="importmap">
             {
                 "imports": {
@@ -503,6 +552,12 @@
             let chevronTexture = null;
             let isTransitioning = false;
             let filmstripOpen = false;
+
+            // --- Admin hotspot placement mode ---
+            let placeMode = false;
+            let placeMarkerGroup = null;
+            let placeMarkerRing = null;
+            let placeMarkerLabel = null;
 
             // Generate authentic Google Street View Ground Chevron Texture
             function createGoogleStreetViewChevronTexture() {
@@ -648,6 +703,117 @@
                 if (labels) labels.innerHTML = "";
             }
 
+            // --- Admin hotspot placement helpers ---
+            function clearPlaceMarker() {
+                if (placeMarkerGroup) {
+                    scene.remove(placeMarkerGroup);
+                    placeMarkerGroup.traverse((child) => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) child.material.dispose();
+                    });
+                    placeMarkerGroup = null;
+                }
+                placeMarkerRing = null;
+                if (placeMarkerLabel) {
+                    placeMarkerLabel.remove();
+                    placeMarkerLabel = null;
+                }
+            }
+
+            function showPlaceMarker(yaw, pitch) {
+                clearPlaceMarker();
+                if (!scene || !camera) return;
+
+                const phi = THREE.MathUtils.degToRad(90 - pitch);
+                const theta = THREE.MathUtils.degToRad(yaw - 90);
+                const distance = 280;
+                const x = distance * Math.sin(phi) * Math.cos(theta);
+                const y = distance * Math.cos(phi);
+                const z = distance * Math.sin(phi) * Math.sin(theta);
+
+                const group = new THREE.Group();
+                group.position.set(x, y, z);
+                group.lookAt(0, y, 0);
+
+                const discGeom = new THREE.PlaneGeometry(70, 70);
+                const discMat = new THREE.MeshBasicMaterial({
+                    map: chevronTexture,
+                    transparent: true,
+                    side: THREE.DoubleSide,
+                    depthWrite: false,
+                    color: 0x7dffb2,
+                });
+                const disc = new THREE.Mesh(discGeom, discMat);
+                disc.rotation.x = -Math.PI / 2.3;
+                group.add(disc);
+
+                const ringGeom = new THREE.RingGeometry(38, 42, 40);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: 0x34d399,
+                    transparent: true,
+                    opacity: 0.9,
+                    side: THREE.DoubleSide,
+                    depthWrite: false,
+                });
+                const ring = new THREE.Mesh(ringGeom, ringMat);
+                ring.rotation.x = -Math.PI / 2.3;
+                group.add(ring);
+                placeMarkerRing = ring;
+
+                scene.add(group);
+                placeMarkerGroup = group;
+
+                const labels = document.getElementById("floating-labels");
+                if (labels) {
+                    const label = document.createElement("div");
+                    label.className = "floating-label";
+                    label.id = "place-marker-label";
+                    label.style.opacity = "1";
+                    label.innerHTML =
+                        '<span class="arrow-icon">◉</span> <span>New hotspot</span>';
+                    labels.appendChild(label);
+                    placeMarkerLabel = label;
+                }
+            }
+
+            // Convert a camera ray direction into the yaw/pitch convention used
+            // by panorama hotspots (yaw 0 = straight ahead, pitch 0 = horizon).
+            function directionToYawPitch(dir) {
+                const v = dir.clone().normalize();
+                const pitch = THREE.MathUtils.radToDeg(Math.asin(
+                    Math.max(-1, Math.min(1, v.y)),
+                ));
+                let yaw = THREE.MathUtils.radToDeg(Math.atan2(v.z, v.x)) + 90;
+                yaw = ((yaw % 360) + 360) % 360;
+                return {
+                    yaw: Number(yaw.toFixed(2)),
+                    pitch: Number(pitch.toFixed(2)),
+                };
+            }
+
+            function setPlaceMode(enabled, targetLabel) {
+                placeMode = Boolean(enabled);
+                const banner = document.getElementById("place-banner");
+                const canvasEl = document.getElementById("canvas");
+                if (banner) {
+                    banner.classList.toggle("visible", placeMode);
+                    if (placeMode && targetLabel) {
+                        banner.innerHTML =
+                            '<span class="place-dot"></span>' +
+                            '<span>Click the doorway for "' +
+                            String(targetLabel).replace(/[<>&]/g, "") +
+                            '"</span>' +
+                            '<span class="place-hint">Esc to cancel</span>';
+                    }
+                }
+                if (canvasEl) {
+                    canvasEl.classList.toggle("place-mode", placeMode);
+                }
+                if (!placeMode) {
+                    clearPlaceMarker();
+                }
+            }
+
             function renderHotspotChips() {
                 const container = document.getElementById("hotspots-dock");
                 if (!container) return;
@@ -762,6 +928,7 @@
 
                 currentImageUrl = imageUrl;
                 cleanupHotspots();
+                if (placeMode) clearPlaceMarker();
 
                 if (!scene) {
                     scene = new THREE.Scene();
@@ -942,7 +1109,7 @@
                     }
 
                     // Hover Raycasting for Ground Chevron Glow & Pointer
-                    if (!isDragging && clickableHitboxes.length > 0) {
+                    if (!placeMode && !isDragging && clickableHitboxes.length > 0) {
                         const raycaster = new THREE.Raycaster();
                         const mouse = new THREE.Vector2(
                             (e.clientX / window.innerWidth) * 2 - 1,
@@ -1044,6 +1211,18 @@
                         -(e.clientY / window.innerHeight) * 2 + 1,
                     );
                     raycaster.setFromCamera(mouse, camera);
+
+                    // Admin authoring: clicking the photo records the exact
+                    // look direction instead of navigating somewhere.
+                    if (placeMode) {
+                        const { yaw, pitch } = directionToYawPitch(
+                            raycaster.ray.direction,
+                        );
+                        showPlaceMarker(yaw, pitch);
+                        notifyParent({ type: "HOTSPOT_PICKED", yaw, pitch });
+                        return;
+                    }
+
                     const intersects = raycaster.intersectObjects(clickableHitboxes);
                     if (intersects.length > 0) {
                         const hotspot = intersects[0].object.userData.hotspot;
@@ -1053,6 +1232,7 @@
 
                 // Double Click anywhere on ground to step towards that doorway
                 canvas.addEventListener("dblclick", (e) => {
+                    if (placeMode) return;
                     if (isTransitioning || clickableHitboxes.length === 0) return;
 
                     const raycaster = new THREE.Raycaster();
@@ -1335,6 +1515,43 @@
                     }
                 });
 
+                // Pulse the pending hotspot marker while placing
+                if (placeMarkerGroup) {
+                    const markerPulse =
+                        1.0 + Math.abs(Math.sin(time * 3.0)) * 0.22;
+                    if (placeMarkerRing) {
+                        placeMarkerRing.scale.set(
+                            markerPulse,
+                            markerPulse,
+                            markerPulse,
+                        );
+                        placeMarkerRing.material.opacity =
+                            0.95 - (markerPulse - 1.0) * 1.6;
+                    }
+                    if (placeMarkerLabel) {
+                        const markerPos = placeMarkerGroup.position.clone();
+                        markerPos.y += 24.0;
+                        markerPos.project(camera);
+                        if (
+                            markerPos.z > 1 ||
+                            markerPos.x < -1.1 ||
+                            markerPos.x > 1.1 ||
+                            markerPos.y < -1.1 ||
+                            markerPos.y > 1.1
+                        ) {
+                            placeMarkerLabel.style.display = "none";
+                        } else {
+                            placeMarkerLabel.style.display = "flex";
+                            placeMarkerLabel.style.left =
+                                (markerPos.x * 0.5 + 0.5) * window.innerWidth +
+                                "px";
+                            placeMarkerLabel.style.top =
+                                (markerPos.y * -0.5 + 0.5) * window.innerHeight +
+                                "px";
+                        }
+                    }
+                }
+
                 // Animate click ripples
                 const now = performance.now();
                 for (let i = rippleMeshes.length - 1; i >= 0; i--) {
@@ -1367,9 +1584,23 @@
                     const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
                     if (data && data.type === "init") {
                         init(data.imageUrl, data.hotspots, data.title, data.buildingName, data.allScenes);
+                    } else if (data && data.type === "SET_PLACE_MODE") {
+                        setPlaceMode(data.enabled !== false, data.targetLabel);
+                        if (data.enabled === false) {
+                            notifyParent({ type: "PLACE_MODE_CLOSED" });
+                        }
+                    } else if (data && data.type === "CLEAR_MARKER") {
+                        clearPlaceMarker();
                     }
                 } catch (e) {
                     console.error("Message parse error:", e);
+                }
+            });
+
+            window.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && placeMode) {
+                    setPlaceMode(false);
+                    notifyParent({ type: "PLACE_MODE_CLOSED" });
                 }
             });
         </script>

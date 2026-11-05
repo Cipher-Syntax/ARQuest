@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { Upload, X } from "lucide-react";
 import { theme } from "../../theme";
 
@@ -8,12 +8,16 @@ const DragDropFileUpload = ({
     value,
     placeholder = "Drag & drop file here or click to browse",
     previewNode,
+    multiple = false,
+    disabled = false,
+    compact = false,
 }) => {
     const [isDragging, setIsDragging] = useState(false);
+    const inputId = `file-input-${useId().replace(/:/g, "")}`;
 
     const handleDragOver = (e) => {
         e.preventDefault();
-        setIsDragging(true);
+        if (!disabled) setIsDragging(true);
     };
 
     const handleDragLeave = (e) => {
@@ -21,20 +25,23 @@ const DragDropFileUpload = ({
         setIsDragging(false);
     };
 
+    const emit = (fileList) => {
+        const files = Array.from(fileList || []);
+        if (files.length === 0) return;
+        onChange(multiple ? files : files[0]);
+    };
+
     const handleDrop = (e) => {
         e.preventDefault();
         setIsDragging(false);
-        const file = e.dataTransfer.files[0];
-        if (file) {
-            onChange(file);
-        }
+        if (disabled) return;
+        emit(e.dataTransfer.files);
     };
 
     const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            onChange(file);
-        }
+        emit(e.target.files);
+        // Allow re-selecting the same file(s)
+        e.target.value = "";
     };
 
     const handleRemove = (e) => {
@@ -42,20 +49,23 @@ const DragDropFileUpload = ({
         onChange(null);
     };
 
+    const singleValue = !multiple ? value : null;
+
     return (
         <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() =>
-                document.getElementById("file-input-" + accept).click()
-            }
+            onClick={() => {
+                if (!disabled) document.getElementById(inputId)?.click();
+            }}
             style={{
                 border: `2px dashed ${isDragging ? theme.colors.primary : theme.colors.border}`,
                 borderRadius: theme.radius.md,
-                padding: theme.spacing.lg,
+                padding: compact ? theme.spacing.md : theme.spacing.lg,
                 textAlign: "center",
-                cursor: "pointer",
+                cursor: disabled ? "not-allowed" : "pointer",
+                opacity: disabled ? 0.6 : 1,
                 backgroundColor: isDragging
                     ? "rgba(138, 21, 56, 0.05)"
                     : "#fafafa",
@@ -64,9 +74,11 @@ const DragDropFileUpload = ({
             }}
         >
             <input
-                id={"file-input-" + accept}
+                id={inputId}
                 type="file"
                 accept={accept}
+                multiple={multiple}
+                disabled={disabled}
                 onChange={handleFileChange}
                 style={{ display: "none" }}
             />
@@ -82,7 +94,7 @@ const DragDropFileUpload = ({
                 </div>
             )}
 
-            {value ? (
+            {singleValue ? (
                 <div
                     style={{
                         display: "flex",
@@ -98,7 +110,7 @@ const DragDropFileUpload = ({
                             fontWeight: "500",
                         }}
                     >
-                        {value.name}
+                        {singleValue.name}
                     </span>
                     <button
                         onClick={handleRemove}
@@ -118,13 +130,13 @@ const DragDropFileUpload = ({
             ) : (
                 <>
                     <Upload
-                        size={32}
+                        size={compact ? 24 : 32}
                         color={theme.colors.text.secondary}
                         style={{ margin: "0 auto 8px" }}
                     />
                     <div
                         style={{
-                            fontSize: "14px",
+                            fontSize: compact ? "13px" : "14px",
                             color: theme.colors.text.secondary,
                         }}
                     >
