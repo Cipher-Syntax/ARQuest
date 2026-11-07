@@ -18,6 +18,7 @@ import {
     RotateCcw,
 } from "lucide-react-native";
 import { useAuth } from "../../hooks/useAuth";
+import { AnimatedBottomBar, ModalSafeArea, useBottomInset } from "../ui/SafeAreaSheet";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -88,6 +89,9 @@ const TOUR_STEPS = [
 // ─────────────────────────────────────────────────────────────────────────────
 export default function JustineGuideModal() {
     const { user } = useAuth();
+    // The tour overlay is rooted at the tab layout, so it must account for
+    // the system nav bar when positioning pointers above the tab bar.
+    const bottomInset = useBottomInset(0);
     const [isVisible, setIsVisible] = useState(false);
     const [mode, setMode] = useState("tour");
     const [currentStep, setCurrentStep] = useState(0);
@@ -254,7 +258,7 @@ export default function JustineGuideModal() {
             </Animated.View>
 
             {/* Classic RPG dialog bar — Crimson & White */}
-            <Animated.View style={[S.vnBar, { transform: [{ translateY: barSlideY }] }]}>
+            <AnimatedBottomBar base={30} style={[S.vnBar, { transform: [{ translateY: barSlideY }] }]}>
                 <CloseBtn />
 
                 {/* Name tag */}
@@ -289,7 +293,7 @@ export default function JustineGuideModal() {
                         </View>
                     )}
                 </View>
-            </Animated.View>
+            </AnimatedBottomBar>
         </>
     );
 };
@@ -354,14 +358,14 @@ export default function JustineGuideModal() {
             </Animated.View>
 
             {/* Bottom bar — white & crimson */}
-            <Animated.View style={[S.floatingBar, { transform: [{ translateY: barSlideY }] }]}>
+            <AnimatedBottomBar base={28} style={[S.floatingBar, { transform: [{ translateY: barSlideY }] }]}>
                 <CloseBtn />
                 <Dots />
                 <TouchableOpacity style={S.crimsonBtn} onPress={handleNext} activeOpacity={0.85}>
                     <Text style={S.crimsonBtnText}>{step.button}</Text>
                     <ChevronRight size={15} color="#FFFFFF" />
                 </TouchableOpacity>
-            </Animated.View>
+            </AnimatedBottomBar>
         </>
     );
 
@@ -375,7 +379,7 @@ export default function JustineGuideModal() {
         // Ring: precisely centred on the tab icon
         const ringW = isAR ? 66 : 52;
         const ringR = ringW / 2;
-        const ringBottom = TAB_ICON_CENTER_FROM_BOTTOM - ringR; // bottom edge of ring
+        const ringBottom = TAB_ICON_CENTER_FROM_BOTTOM + bottomInset - ringR; // bottom edge of ring
         const ringLeft   = cx - ringR;                          // left edge of ring
 
         // Arrow tip lands just above the top of the ring
@@ -424,6 +428,7 @@ export default function JustineGuideModal() {
                     pointerEvents="none"
                     style={[
                         S.tabCharWrap,
+                        { bottom: 228 + bottomInset },
                         {
                             transform: [
                                 { translateY: charSlideY },
@@ -443,6 +448,7 @@ export default function JustineGuideModal() {
                 <Animated.View
                     style={[
                         S.tabGuidelineCard,
+                        { bottom: 110 + bottomInset },
                         { transform: [{ translateY: barSlideY }] },
                     ]}
                 >
@@ -486,13 +492,15 @@ export default function JustineGuideModal() {
 
     // ─────────────────────────────────────────────────────────────────────────
     return (
-        <Modal transparent visible={isVisible} animationType="none" statusBarTranslucent onRequestClose={handleDismiss}>
-            <Animated.View style={[S.overlay, { opacity: overlayOpacity }]}>
-                {mode === "hint"  && renderVNBar()}
-                {mode === "tour"  && step.layout === "vn_bar"     && renderVNBar()}
-                {mode === "tour"  && step.layout === "spotlight"   && renderSpotlight()}
-                {mode === "tour"  && step.layout === "tab_pointer" && renderTabPointer()}
-            </Animated.View>
+        <Modal transparent visible={isVisible} animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={handleDismiss}>
+            <ModalSafeArea>
+                <Animated.View style={[S.overlay, { opacity: overlayOpacity }]}>
+                    {mode === "hint"  && renderVNBar()}
+                    {mode === "tour"  && step.layout === "vn_bar"     && renderVNBar()}
+                    {mode === "tour"  && step.layout === "spotlight"   && renderSpotlight()}
+                    {mode === "tour"  && step.layout === "tab_pointer" && renderTabPointer()}
+                </Animated.View>
+            </ModalSafeArea>
         </Modal>
     );
 }

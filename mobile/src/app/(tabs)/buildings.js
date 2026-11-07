@@ -28,6 +28,10 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import { ShieldAlert, X, Lock } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
+import {
+    BottomSheetSurface,
+    ModalSafeArea,
+} from "../../components/ui/SafeAreaSheet";
 import QuickMissionsModal from "../../components/features/QuickMissionsModal";
 import NavigationTurnHUD from "../../components/features/NavigationTurnHUD";
 import SoundManager from "../../utils/SoundManager";
@@ -994,17 +998,20 @@ export default function BuildingsScreen() {
                 animationType="slide"
                 transparent={true}
                 visible={modalVisible}
+                statusBarTranslucent
+                navigationBarTranslucent
                 onRequestClose={() => setModalVisible(false)}
             >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setModalVisible(false)}
-                >
+                <ModalSafeArea>
                     <TouchableOpacity
+                        style={styles.modalOverlay}
                         activeOpacity={1}
-                        style={styles.tacticalModalContainer}
+                        onPress={() => setModalVisible(false)}
                     >
+                        <BottomSheetSurface
+                            base={40}
+                            style={styles.tacticalModalContainer}
+                        >
                         {selectedBuilding && (
                             <>
                                 <View style={styles.tacticalModalHeader}>
@@ -1287,8 +1294,9 @@ export default function BuildingsScreen() {
                                 )}
                             </>
                         )}
+                        </BottomSheetSurface>
                     </TouchableOpacity>
-                </TouchableOpacity>
+                </ModalSafeArea>
             </Modal>
 
             {/* Control Mode Picker Modal */}

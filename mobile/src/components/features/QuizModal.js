@@ -14,6 +14,7 @@ import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
 import { api } from "../../services";
 import SoundManager from "../../utils/SoundManager";
+import { BottomSheetSurface, ModalSafeArea } from "../ui/SafeAreaSheet";
 
 export default function QuizModal({ visible, building, onClose }) {
     const [questions, setQuestions] = useState([]);
@@ -153,15 +154,21 @@ export default function QuizModal({ visible, building, onClose }) {
             animationType="slide"
             transparent={true}
             visible={visible}
+            statusBarTranslucent
+            navigationBarTranslucent
             onRequestClose={onClose}
         >
-            <TouchableOpacity
-                style={styles.modalOverlay}
-                activeOpacity={1}
-                onPress={onClose}
-            >
-                <TouchableOpacity activeOpacity={1} style={styles.bottomSheet}>
-                    <View style={styles.sheetHandle} />
+            <ModalSafeArea>
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={onClose}
+                >
+                    <BottomSheetSurface
+                        base={theme.spacing.xl * 2}
+                        style={styles.bottomSheet}
+                    >
+                        <View style={styles.sheetHandle} />
 
                     <View style={styles.header}>
                         <Ionicons
@@ -394,8 +401,9 @@ export default function QuizModal({ visible, building, onClose }) {
                             )}
                         </View>
                     )}
+                    </BottomSheetSurface>
                 </TouchableOpacity>
-            </TouchableOpacity>
+            </ModalSafeArea>
         </Modal>
     );
 }

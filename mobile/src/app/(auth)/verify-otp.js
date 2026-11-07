@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../hooks/useAuth";
+import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import theme from "../../theme/tokens";
 import { CheckCircle, AlertCircle } from "lucide-react-native";
 import ARButton from "../../components/ar/ARButton";
@@ -21,6 +22,7 @@ import { fonts } from "../../constants/typography";
 export default function VerifyOTP() {
     const router = useRouter();
     const params = useLocalSearchParams();
+    const bottomInset = useBottomInset(40);
     const { verifyOTP, resendOTP, isLoading } = useAuth();
 
     const email = params?.email || "";
@@ -131,7 +133,12 @@ export default function VerifyOTP() {
 
                 <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
                     
-                    <View style={styles.innerContentWrapper}>
+                    <View
+                        style={[
+                            styles.innerContentWrapper,
+                            { paddingBottom: bottomInset },
+                        ]}
+                    >
                         <View style={styles.headerContainer}>
                             <Text style={styles.welcomeText}>Verification</Text>
                             <Text style={styles.subtitleText}>

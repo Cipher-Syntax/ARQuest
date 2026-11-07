@@ -13,12 +13,14 @@ import {
 import { useRouter } from "expo-router";
 import { ArrowLeft, Mail, KeyRound } from "lucide-react-native";
 import { useAuth } from "../../hooks/useAuth";
+import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import theme from "../../theme/tokens";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
+    const bottomInset = useBottomInset(40);
     const { forgotPassword, isLoading } = useAuth();
 
     const [email, setEmail] = useState("");
@@ -92,7 +94,12 @@ export default function ForgotPasswordScreen() {
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <View style={styles.innerContentWrapper}>
+                    <View
+                        style={[
+                            styles.innerContentWrapper,
+                            { paddingBottom: bottomInset },
+                        ]}
+                    >
                         {/* Top Back Navigation */}
                         <View style={styles.topBar}>
                             <TouchableOpacity

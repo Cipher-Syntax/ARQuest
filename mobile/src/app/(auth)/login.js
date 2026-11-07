@@ -12,6 +12,7 @@ import {
     ScrollView
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
+import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
 import { Link, useRouter } from "expo-router";
@@ -21,6 +22,7 @@ import { fonts } from "../../constants/typography";
 import { validateString } from "../../utils/validation";
 
 export default function LoginScreen() {
+    const bottomInset = useBottomInset(40);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -160,7 +162,12 @@ export default function LoginScreen() {
 
                 <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
                     
-                    <View style={styles.innerContentWrapper}>
+                    <View
+                        style={[
+                            styles.innerContentWrapper,
+                            { paddingBottom: bottomInset },
+                        ]}
+                    >
                         <View style={styles.headerContainer}>
                             <View style={styles.logoBox}>
                                 <Image 

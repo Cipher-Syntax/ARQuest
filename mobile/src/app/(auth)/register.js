@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import theme from "../../theme/tokens";
+import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { Eye, EyeOff, Check, X } from "lucide-react-native";
 import { useAuth } from "../../hooks/useAuth";
 import ARButton from "../../components/ar/ARButton";
@@ -20,6 +21,7 @@ import { fonts } from "../../constants/typography";
 
 export default function RegisterScreen() {
     const router = useRouter();
+    const bottomInset = useBottomInset(40);
     const { register, isLoading } = useAuth();
 
     const [formData, setFormData] = useState({
@@ -126,7 +128,12 @@ export default function RegisterScreen() {
 
                 <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
                     
-                    <View style={styles.innerContentWrapper}>
+                    <View
+                        style={[
+                            styles.innerContentWrapper,
+                            { paddingBottom: bottomInset },
+                        ]}
+                    >
                         <View style={styles.headerContainer}>
                             <Text style={styles.welcomeText}>Create Account</Text>
                             <Text style={styles.subtitleText}>

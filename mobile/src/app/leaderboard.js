@@ -14,6 +14,7 @@ import {
     Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useBottomInset } from "../components/ui/SafeAreaSheet";
 import {
     Trophy,
     ArrowLeft,
@@ -90,6 +91,9 @@ const getRankDetails = (exp = 0, rankInfo = null) => {
 
 export default function LeaderboardScreen() {
     const { user } = useAuth();
+    // Android 3-button navigation floats the sticky bar over the system bar,
+    // so the bar and the list need the bottom inset as padding.
+    const bottomInset = useBottomInset(0);
     const [leaderboard, setLeaderboard] = useState([]);
     const [recentActivity, setRecentActivity] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -723,7 +727,10 @@ export default function LeaderboardScreen() {
                     renderItem={renderItem}
                     ListHeaderComponent={renderHeader}
                     ListFooterComponent={renderFooter}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[
+                        styles.listContent,
+                        { paddingBottom: 80 + bottomInset },
+                    ]}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl
@@ -748,7 +755,12 @@ export default function LeaderboardScreen() {
 
             {/* Sticky "My Position" Floating Bottom Bar */}
             {myRankItem && (
-                <View style={styles.myRankStickyBar}>
+                <View
+                    style={[
+                        styles.myRankStickyBar,
+                        { paddingBottom: Math.max(bottomInset, 10) },
+                    ]}
+                >
                     <View style={styles.myRankStickyLeft}>
                         <View style={styles.myRankStickyBadge}>
                             <Text style={styles.myRankStickyBadgeText}>

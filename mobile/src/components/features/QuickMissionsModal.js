@@ -23,6 +23,12 @@ import {
 } from "lucide-react-native";
 import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
+import {
+    AnimatedBottomBar,
+    BottomSheetView,
+    ModalSafeArea,
+    useBottomInset,
+} from "../ui/SafeAreaSheet";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const MISSIONS_CARD_HEIGHT = Math.min(SCREEN_HEIGHT * 0.58, 480);
@@ -50,6 +56,7 @@ export default function QuickMissionsModal({
     allBuildings = [],
 }) {
     // viewState: "intro" (big 2D character + explanation first) -> "missions" (locked or unlocked list)
+    const bottomInset = useBottomInset(0);
     const [viewState, setViewState] = useState("intro");
     const [missionsTab, setMissionsTab] = useState("available"); // "available" or "completed"
 
@@ -159,9 +166,11 @@ export default function QuickMissionsModal({
             visible={visible}
             animationType="none"
             statusBarTranslucent
+            navigationBarTranslucent
             onRequestClose={handleDismiss}
         >
-            <Animated.View style={[S.overlay, { opacity: fadeAnim }]}>
+            <ModalSafeArea>
+                <Animated.View style={[S.overlay, { opacity: fadeAnim }]}>
                 {/* Backdrop dismiss */}
                 <TouchableOpacity
                     style={StyleSheet.absoluteFillObject}
@@ -180,6 +189,7 @@ export default function QuickMissionsModal({
                             pointerEvents="none"
                             style={[
                                 S.vnCharWrap,
+                                { bottom: 240 + bottomInset },
                                 {
                                     transform: [
                                         { translateY: charSlideY },
@@ -196,7 +206,8 @@ export default function QuickMissionsModal({
                         </Animated.View>
 
                         {/* Visual Novel Story Dialog Bar */}
-                        <Animated.View
+                        <AnimatedBottomBar
+                            base={36}
                             style={[
                                 S.vnBar,
                                 { transform: [{ translateY: barSlideY }] },
@@ -264,7 +275,7 @@ export default function QuickMissionsModal({
                                     <ChevronRight size={16} color="#FFFFFF" strokeWidth={2.5} />
                                 </TouchableOpacity>
                             </View>
-                        </Animated.View>
+                        </AnimatedBottomBar>
                     </>
                 )}
 
@@ -291,7 +302,7 @@ export default function QuickMissionsModal({
                             />
                         </Animated.View>
 
-                        <View style={S.missionsCard}>
+                        <BottomSheetView base={24} style={S.missionsCard}>
                             {/* Card Header Row */}
                             <View style={S.cardHeaderRow}>
                                 <TouchableOpacity
@@ -603,10 +614,11 @@ export default function QuickMissionsModal({
                                     )}
                                 </View>
                             )}
-                        </View>
+                        </BottomSheetView>
                     </>
                 )}
-            </Animated.View>
+                </Animated.View>
+            </ModalSafeArea>
         </Modal>
     );
 }

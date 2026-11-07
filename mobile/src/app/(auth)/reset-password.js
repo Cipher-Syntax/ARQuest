@@ -13,6 +13,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Eye, EyeOff, Check, X, ShieldCheck, RefreshCw } from "lucide-react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
+import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme/tokens";
 import ARButton from "../../components/ar/ARButton";
@@ -21,6 +22,7 @@ import { fonts } from "../../constants/typography";
 export default function ResetPasswordScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
+    const bottomInset = useBottomInset(40);
     const { resetPassword, forgotPassword, isLoading } = useAuth();
 
     const [email, setEmail] = useState(params?.email || "");
@@ -229,7 +231,12 @@ export default function ResetPasswordScreen() {
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <View style={styles.innerContentWrapper}>
+                    <View
+                        style={[
+                            styles.innerContentWrapper,
+                            { paddingBottom: bottomInset },
+                        ]}
+                    >
                         {/* Top Back Navigation */}
                         <View style={styles.topBar}>
                             <TouchableOpacity
