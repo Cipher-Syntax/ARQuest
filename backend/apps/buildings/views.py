@@ -10,7 +10,7 @@ from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
 from apps.geofencing.serializers import LocationValidationSerializer
 from apps.geofencing.utils import calculate_distance
-from apps.api.models import Notification
+from apps.api.models import Notification, SystemSetting
 from cloudinary.exceptions import BadRequest
 from .models import Building, Geofence, BuildingUnlock, BuildingAsset, Department
 from .serializers import (
@@ -238,6 +238,9 @@ def unlock_building(request):
     if request.user.is_visitor_role:
         return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot unlock buildings', status_code=status.HTTP_403_FORBIDDEN)
 
+    if not SystemSetting.get_settings().enable_gps:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'GPS unlocking is disabled by the administrator.', status_code=status.HTTP_403_FORBIDDEN)
+
     serializer = LocationValidationSerializer(data=request.data)
     if not serializer.is_valid():
         return error_response(ErrorCodes.INVALID_INPUT, 'Invalid location data', status_code=400, details=serializer.errors)
@@ -307,6 +310,9 @@ def unlock_building(request):
 @permission_classes([IsAuthenticated])
 def unlock_building_qr(request):
     demo_mode = BuildingUnlock.is_demo_mode_active()
+
+    if not SystemSetting.get_settings().enable_qr:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'QR scanning is disabled by the administrator.', status_code=status.HTTP_403_FORBIDDEN)
 
     # Demo Mode is an exhibit workflow, so guests may scan too. Normal mode
     # keeps the existing visitor restriction.
@@ -481,6 +487,9 @@ def asset_metadata(request, id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def building_quiz(request, id):
+    if not SystemSetting.get_settings().enable_trivia:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Trivia and quizzes are disabled by the administrator.', status_code=status.HTTP_403_FORBIDDEN)
+
     try:
         building = Building.objects.get(id=id, is_active=True, status__in=['VISIBLE', 'MAINTENANCE'])
     except Building.DoesNotExist:
@@ -500,6 +509,9 @@ def building_quiz(request, id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_quiz_answer(request):
+    if not SystemSetting.get_settings().enable_trivia:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Trivia and quizzes are disabled by the administrator.', status_code=status.HTTP_403_FORBIDDEN)
+
     question_id = request.data.get('question_id')
     selected_option = request.data.get('selected_option')
     

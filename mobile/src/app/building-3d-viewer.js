@@ -15,6 +15,7 @@ import { theme } from "../theme/tokens";
 import { assetService } from "../services";
 import { api } from "../services";
 import { viewer3dHtmlString } from "../../assets/viewer3d";
+import { usePublicSettings } from "../context/PublicSettingsContext";
 
 export default function Building3DViewerScreen() {
     const {
@@ -25,6 +26,7 @@ export default function Building3DViewerScreen() {
         modelVersion,
     } = useLocalSearchParams();
     const router = useRouter();
+    const { enable_trivia } = usePublicSettings();
     const [loading, setLoading] = useState(true);
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState(null);
@@ -54,20 +56,24 @@ export default function Building3DViewerScreen() {
         const fetchTriviaAndDetails = async () => {
             if (!buildingId) return;
             try {
-                // Fetch trivia
-                const resTrivia = await api.get(
-                    `/api/buildings/trivias/?building_id=${buildingId}`,
-                );
-                if (
-                    resTrivia.data &&
-                    resTrivia.data.success &&
-                    resTrivia.data.data &&
-                    resTrivia.data.data.length > 0
-                ) {
-                    const trivias = resTrivia.data.data;
-                    const randomTrivia =
-                        trivias[Math.floor(Math.random() * trivias.length)];
-                    setFetchedTrivia(randomTrivia.fact);
+                // Fetch trivia (only while the Trivia System is enabled)
+                if (enable_trivia) {
+                    const resTrivia = await api.get(
+                        `/api/buildings/trivias/?building_id=${buildingId}`,
+                    );
+                    if (
+                        resTrivia.data &&
+                        resTrivia.data.success &&
+                        resTrivia.data.data &&
+                        resTrivia.data.data.length > 0
+                    ) {
+                        const trivias = resTrivia.data.data;
+                        const randomTrivia =
+                            trivias[Math.floor(Math.random() * trivias.length)];
+                        setFetchedTrivia(randomTrivia.fact);
+                    }
+                } else {
+                    setFetchedTrivia(null);
                 }
 
                 // Fetch full building details to get the description (bypassing Expo Router URL length limits)
@@ -103,7 +109,7 @@ export default function Building3DViewerScreen() {
             }
         };
         fetchTriviaAndDetails();
-    }, [buildingId, modelUrl]);
+    }, [buildingId, modelUrl, enable_trivia]);
 
     useEffect(() => {
         let cancelled = false;

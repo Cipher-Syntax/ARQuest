@@ -40,11 +40,13 @@ import { AVATARS } from "../../constants/Avatars";
 import { fonts } from "../../constants/typography";
 import FeedbackModal from "../../components/ui/FeedbackModal";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
+import { usePublicSettings } from "../../context/PublicSettingsContext";
 
 export default function ProfileScreen() {
     const isFocused = useIsFocused();
     const { user, logout, checkToken, showStreakModal } = useAuth();
     const { stopTracking } = useLocationTracking();
+    const { enable_leaderboard } = usePublicSettings();
     const [myStats, setMyStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [badgeCount, setBadgeCount] = useState(null);
@@ -483,7 +485,7 @@ export default function ProfileScreen() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>ACCOUNT & PREFERENCES</Text>
                     <View style={styles.settingsCard}>
-                        {user?.role === "student" && (
+                        {user?.role === "student" && enable_leaderboard && (
                             <SettingsRow
                                 icon={Trophy}
                                 title="View Rankings"

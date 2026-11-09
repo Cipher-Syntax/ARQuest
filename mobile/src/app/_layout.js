@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { AuthProvider, useAuthState, useAuthActions } from "../context/AuthContext";
 import { LocationProvider } from "../context/LocationContext";
-import { DemoModeProvider } from "../context/DemoModeContext";
+import { PublicSettingsProvider } from "../context/PublicSettingsContext";
 import OfflineBanner from "../components/ui/OfflineBanner";
 import DemoModeBanner from "../components/ui/DemoModeBanner";
 import CustomAlert, { alertRef } from "../components/ui/CustomAlert";
@@ -87,11 +87,11 @@ export default function RootLayout() {
 
     return (
         <AuthProvider>
-            <DemoModeProvider>
+            <PublicSettingsProvider>
                 <LocationProvider>
                     <RootLayoutContent />
                 </LocationProvider>
-            </DemoModeProvider>
+            </PublicSettingsProvider>
         </AuthProvider>
     );
 }

@@ -21,6 +21,7 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../theme/tokens";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
+import { usePublicSettings } from "../../context/PublicSettingsContext";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { api, authService, geofencingService } from "../../services";
@@ -79,6 +80,7 @@ export default function BuildingsScreen() {
     const { location, startTracking, stopTracking } = useLocationTracking();
     const { canAccessBuildingFeatures, canView3D, canViewPanorama, role } =
         useRoleAccess();
+    const { enable_trivia } = usePublicSettings();
     const router = useRouter();
     const { targetBuildingId } = useLocalSearchParams();
 
@@ -1243,7 +1245,7 @@ export default function BuildingsScreen() {
                                             </TouchableOpacity>
                                         )}
 
-                                        {role === "student" && (
+                                        {role === "student" && enable_trivia && (
                                             <TouchableOpacity
                                                 style={[
                                                     styles.tacticalActionBtn,

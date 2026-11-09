@@ -41,10 +41,12 @@ import { router } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { geofencingService } from "../../services";
+import { usePublicSettings } from "../../context/PublicSettingsContext";
 
 export default function HomeScreen() {
     const isFocused = useIsFocused();
     const { user, showStreakModal } = useAuth();
+    const { enable_leaderboard } = usePublicSettings();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -1071,22 +1073,24 @@ export default function HomeScreen() {
                                         </Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={styles.actionCard}
-                                        onPress={() =>
-                                            router.push("/leaderboard")
-                                        }
-                                    >
-                                        <View style={styles.actionIconWrap}>
-                                            <BarChart2
-                                                color={theme.colors.primary}
-                                                size={24}
-                                            />
-                                        </View>
-                                        <Text style={styles.actionText}>
-                                            Leader
-                                        </Text>
-                                    </TouchableOpacity>
+                                    {enable_leaderboard && (
+                                        <TouchableOpacity
+                                            style={styles.actionCard}
+                                            onPress={() =>
+                                                router.push("/leaderboard")
+                                            }
+                                        >
+                                            <View style={styles.actionIconWrap}>
+                                                <BarChart2
+                                                    color={theme.colors.primary}
+                                                    size={24}
+                                                />
+                                            </View>
+                                            <Text style={styles.actionText}>
+                                                Leader
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
 
                                     <TouchableOpacity
                                         style={styles.actionCard}

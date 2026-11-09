@@ -1543,3 +1543,110 @@ class DemoModeQrUnlockTests(APITestCase):
         allowed = self._scan_qr(self.visitor)
         self.assertEqual(allowed.status_code, 200)
         self.assertTrue(allowed.data['data']['demo_mode'])
+
+
+class FeatureToggleTests(APITestCase):
+    """Admin App Features toggles must actually gate their surfaces."""
+
+    def setUp(self):
+        from apps.api.models import SystemSetting
+
+        self.settings = SystemSetting.get_settings()
+        self.settings.enable_gps = True
+        self.settings.enable_qr = True
+        self.settings.enable_trivia = True
+        self.settings.enable_leaderboard = True
+        self.settings.save()
+
+        self.client = APIClient()
+        self.student = User.objects.create_user(
+            username='toggle_student',
+            email='toggle_student@test.com',
+            password='testpass123',
+            role='student',
+        )
+        self.other_student = User.objects.create_user(
+            username='toggle_other',
+            email='toggle_other@test.com',
+            password='testpass123',
+            role='student',
+        )
+        self.building = Building.objects.create(
+            name='Toggle Hall',
+            slug='toggle-hall',
+            latitude=14.5995,
+            longitude=120.9842,
+            is_active=True,
+            status='VISIBLE',
+        )
+        Geofence.objects.create(
+            building=self.building,
+            latitude=14.5995,
+            longitude=120.9842,
+            radius_meters=50,
+            is_active=True,
+        )
+        self.client.force_authenticate(user=self.student)
+
+    def test_qr_disabled_blocks_scanning(self):
+        self.settings.enable_qr = False
+        self.settings.save()
+
+        response = self.client.post('/api/buildings/unlock/qr/', {
+            'qr_code_secret': str(self.building.qr_code_secret),
+            'lat': 14.5995,
+            'lng': 120.9842,
+        })
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            BuildingUnlock.objects.filter(
+                user=self.student, building=self.building
+            ).exists()
+        )
+
+    def test_gps_disabled_blocks_geofence_unlock_and_validation(self):
+        self.settings.enable_gps = False
+        self.settings.save()
+
+        unlock = self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10,
+        })
+        self.assertEqual(unlock.status_code, 403)
+
+        validation = self.client.post('/api/geofencing/validate/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10,
+        })
+        self.assertEqual(validation.status_code, 200)
+        self.assertEqual(validation.data['data']['status'], 'disabled')
+        self.assertIsNone(validation.data['data']['building'])
+
+    def test_trivia_disabled_blocks_quiz_and_facts(self):
+        from apps.quizzes.models import TriviaFact
+
+        TriviaFact.objects.create(building=self.building, fact='A fact')
+        self.settings.enable_trivia = False
+        self.settings.save()
+
+        quiz = self.client.get(f'/api/buildings/{self.building.id}/quiz/')
+        self.assertEqual(quiz.status_code, 403)
+
+        facts = self.client.get(
+            f'/api/buildings/trivias/?building_id={self.building.id}'
+        )
+        self.assertEqual(facts.status_code, 403)
+
+    def test_leaderboard_disabled_returns_only_self(self):
+        self.settings.enable_leaderboard = False
+        self.settings.save()
+
+        response = self.client.get('/api/gamification/leaderboard/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['leaderboard_enabled'])
+        self.assertEqual(len(response.data['data']), 1)
+        self.assertEqual(response.data['data'][0]['username'], 'toggle_student')

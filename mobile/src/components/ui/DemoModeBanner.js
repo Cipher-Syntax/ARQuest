@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDemoMode } from "../../context/DemoModeContext";
+import { usePublicSettings } from "../../context/PublicSettingsContext";
 
 /**
  * Exhibit banner shown while Demo Mode is enabled by an admin.
@@ -11,7 +11,7 @@ import { useDemoMode } from "../../context/DemoModeContext";
  * device happens to be offline while demoing.
  */
 export default function DemoModeBanner() {
-    const { demoMode } = useDemoMode();
+    const { demoMode } = usePublicSettings();
     const [isConnected, setIsConnected] = useState(true);
     const [animation] = useState(new Animated.Value(0));
     const insets = useSafeAreaInsets();

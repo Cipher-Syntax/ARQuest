@@ -63,17 +63,43 @@ class LeaderboardView(views.APIView):
 
 	def get(self, request):
 		from django.db.models import Count, Q
-		users = User.objects.filter(is_active=True, role='student').annotate(
+		from apps.api.models import SystemSetting
+
+		leaderboard_enabled = SystemSetting.get_settings().enable_leaderboard
+
+		personal_rank = None
+		users = User.objects.filter(is_active=True, role='student')
+		if not leaderboard_enabled:
+			# Keep personal stats working on Home/Profile, but never expose the
+			# full ranking while the administrator has the leaderboard disabled.
+			# The rank is still the user's true position so Home does not show
+			# a misleading #1.
+			personal_rank = (
+				User.objects.filter(
+					is_active=True,
+					role='student',
+					exploration_points__gt=request.user.exploration_points,
+				).count()
+				+ 1
+			)
+			users = users.filter(id=request.user.id)
+
+		users = users.annotate(
 			quests_completed_count=Count('quest_progress', filter=Q(quest_progress__is_completed=True))
-		).order_by('-exploration_points')[:50]
+		).order_by('-exploration_points')
+		if leaderboard_enabled:
+			users = users[:50]
+
 		data = []
 		for index, user in enumerate(users):
-			serializer = LeaderboardSerializer(user, context={'rank': index + 1, 'request': request})
+			rank = personal_rank if personal_rank is not None else index + 1
+			serializer = LeaderboardSerializer(user, context={'rank': rank, 'request': request})
 			data.append(serializer.data)
 
 		return Response({
 			'success': True,
-			'data': data
+			'data': data,
+			'leaderboard_enabled': leaderboard_enabled,
 		})
 
 

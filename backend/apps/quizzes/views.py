@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
+from apps.api.models import SystemSetting
 from apps.authentication.permissions import IsStudentRole
 from apps.buildings.models import Building
 from .models import QuizQuestion, UserQuizProgress, QuizAttemptLog
@@ -17,6 +18,9 @@ class BuildingQuizView(APIView):
     permission_classes = [IsAuthenticated, IsStudentRole]
     
     def get(self, request, id):
+        if not SystemSetting.get_settings().enable_trivia:
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Trivia and quizzes are disabled by the administrator.', status_code=status.HTTP_403_FORBIDDEN)
+
         try:
             building = Building.objects.get(id=id, is_active=True)
         except Building.DoesNotExist:
@@ -67,6 +71,9 @@ class AnswerQuizView(APIView):
     permission_classes = [IsAuthenticated, IsStudentRole]
     
     def post(self, request):
+        if not SystemSetting.get_settings().enable_trivia:
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Trivia and quizzes are disabled by the administrator.', status_code=status.HTTP_403_FORBIDDEN)
+
         question_id = request.data.get('question_id')
         selected_option = request.data.get('selected_option')
         
@@ -196,6 +203,14 @@ from rest_framework.decorators import api_view, permission_classes
 @permission_classes([IsAuthenticated])
 def trivia_list_create(request):
     if request.method == 'GET':
+        # Admins can still manage trivia while the feature is switched off for
+        # students; everyone else is blocked by the administrator's toggle.
+        if (
+            not request.user.is_admin_role
+            and not SystemSetting.get_settings().enable_trivia
+        ):
+            return error_response(ErrorCodes.PERMISSION_DENIED, 'Trivia is disabled by the administrator.', status_code=status.HTTP_403_FORBIDDEN)
+
         building_id = request.query_params.get('building_id')
         if building_id:
             from .models import TriviaFact

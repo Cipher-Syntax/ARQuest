@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
+from apps.api.models import SystemSetting
 from apps.buildings.models import Building, Geofence
 from .serializers import LocationValidationSerializer
 from .utils import calculate_distance
@@ -12,6 +13,16 @@ class ValidateLocationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if not SystemSetting.get_settings().enable_gps:
+            # Location detection is switched off by the administrator. Return a
+            # neutral result so clients keep working without unlocking anything.
+            return success_response({
+                'status': 'disabled',
+                'distance_meters': None,
+                'building': None,
+                'disabled': True,
+            })
+
         serializer = LocationValidationSerializer(data=request.data)
         if not serializer.is_valid():
             return error_response(ErrorCodes.INVALID_INPUT, 'Invalid location data', status_code=400, details=serializer.errors)

@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { unlockService } from "../services";
-import { useDemoMode } from "./DemoModeContext";
+import { usePublicSettings } from "./PublicSettingsContext";
 
 const UnlockedBuildingsStateContext = createContext(null);
 const UnlockedBuildingsActionsContext = createContext(null);
 
 export const UnlockedBuildingsProvider = ({ children }) => {
-    const { demoMode } = useDemoMode();
+    const { demoMode } = usePublicSettings();
     const [unlockedBuildings, setUnlockedBuildings] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);

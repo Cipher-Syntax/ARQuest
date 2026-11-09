@@ -610,8 +610,8 @@ export default function Settings() {
                                         GPS Geofencing
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">
-                                        Enable location-based building
-                                        detection.
+                                        Enable location validation and automatic
+                                        geofence unlocks.
                                     </p>
                                 </div>
                                 <Toggle
@@ -631,8 +631,8 @@ export default function Settings() {
                                         QR Verification
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">
-                                        Allow QR code scanning for building
-                                        check-in.
+                                        Allow QR code scanning to check in and
+                                        unlock buildings.
                                     </p>
                                 </div>
                                 <Toggle
@@ -652,8 +652,8 @@ export default function Settings() {
                                         AR Selfie Mode
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">
-                                        Let students take AR-enhanced selfies on
-                                        campus.
+                                        Show the AR snapshot/selfie capture
+                                        button.
                                     </p>
                                 </div>
                                 <Toggle
@@ -694,8 +694,7 @@ export default function Settings() {
                                         Trivia System
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">
-                                        Display trivia facts to students on
-                                        building entry.
+                                        Show trivia facts and building quizzes.
                                     </p>
                                 </div>
                                 <Toggle
@@ -722,7 +721,9 @@ export default function Settings() {
                                         Leaderboard System
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">
-                                        Enable student rankings and XP scoring.
+                                        Show student rankings. XP, levels, and
+                                        personal stats keep working when this is
+                                        off.
                                     </p>
                                 </div>
                                 <Toggle

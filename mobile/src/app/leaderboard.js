@@ -98,6 +98,7 @@ export default function LeaderboardScreen() {
     const [recentActivity, setRecentActivity] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [leaderboardEnabled, setLeaderboardEnabled] = useState(true);
 
     // Search & Filter state (matching web)
     const [searchTerm, setSearchTerm] = useState("");
@@ -114,6 +115,9 @@ export default function LeaderboardScreen() {
             if (leaderboardRes.data?.success) {
                 const list = leaderboardRes.data.data || [];
                 setLeaderboard(Array.isArray(list) ? list : []);
+                setLeaderboardEnabled(
+                    leaderboardRes.data.leaderboard_enabled !== false,
+                );
             }
             if (recentRes.data?.success) {
                 const recent = recentRes.data.data || [];
@@ -716,7 +720,16 @@ export default function LeaderboardScreen() {
                 </View>
             </View>
 
-            {loading ? (
+            {leaderboardEnabled === false ? (
+                <View style={styles.emptyContainer}>
+                    <Trophy size={48} color={theme.colors.textMuted} />
+                    <Text style={styles.emptyTitle}>Leaderboard Disabled</Text>
+                    <Text style={styles.emptySubtitle}>
+                        The administrator has turned off student rankings.
+                        Your XP and rank are still tracked.
+                    </Text>
+                </View>
+            ) : loading ? (
                 <View style={styles.centered}>
                     <ActivityIndicator size="large" color={theme.colors.primary} />
                 </View>

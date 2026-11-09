@@ -45,7 +45,7 @@ import ARQuestScene from "../../components/ar/ARQuestScene";
 import ARPostcardModal from "../../components/ar/ARPostcardModal";
 import ARQRErrorModal from "../../components/ar/ARQRErrorModal";
 import ARUnlockedModal from "../../components/ar/ARUnlockedModal";
-import { useDemoMode } from "../../context/DemoModeContext";
+import { usePublicSettings } from "../../context/PublicSettingsContext";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
 import { styles } from "../../components/ar/arStyles";
@@ -213,6 +213,13 @@ export default function ARScreen() {
             : effectiveModelUrl;
 
     const toggleQrScanner = useCallback((enable) => {
+        if (enable && !enable_qr) {
+            Alert(
+                "QR Scanning Disabled",
+                "QR code scanning is turned off by the administrator.",
+            );
+            return;
+        }
         setIsCameraTransitioning(true);
         setIsScanningQr(enable);
         if (enable) {
@@ -225,7 +232,14 @@ export default function ARScreen() {
         setTimeout(() => {
             setIsCameraTransitioning(false);
         }, 250);
-    }, []);
+    }, [enable_qr]);
+
+    // The admin can switch QR off while this screen is open.
+    useEffect(() => {
+        if (!enable_qr && isScanningQr) {
+            toggleQrScanner(false);
+        }
+    }, [enable_qr, isScanningQr, toggleQrScanner]);
 
     useEffect(() => {
         checkARSupport()
@@ -329,7 +343,14 @@ export default function ARScreen() {
 
     const flashAnim = useRef(new Animated.Value(0)).current;
     const { canUseAR } = useRoleAccess();
-    const { demoMode, refresh: refreshDemoMode } = useDemoMode();
+    const {
+        demoMode,
+        enable_gps,
+        enable_qr,
+        enable_ar_selfie,
+        enable_trivia,
+        refresh: refreshPublicSettings,
+    } = usePublicSettings();
 
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings, attemptUnlock, unlockViaQr } = useUnlockedBuildings();
@@ -694,6 +715,9 @@ export default function ARScreen() {
         const insideBuilding =
             geofenceStatus?.status === "inside" ? geofenceStatus.building : null;
 
+        // GPS geofencing is switched off by the administrator.
+        if (!enable_gps) return;
+
         if (!insideBuilding) {
             lastGeofenceUnlockBldgIdRef.current = null;
             return;
@@ -740,6 +764,7 @@ export default function ARScreen() {
         location,
         unlockedBuildings,
         attemptUnlock,
+        enable_gps,
     ]);
 
     const handleDismissArrivalModal = () => {
@@ -865,25 +890,29 @@ export default function ARScreen() {
                     checkToken(); // refresh user data anyway to update EXP
                 }
 
-                // Fetch Trivia Fact
-                try {
-                    const activeBldg = navTargetFull || nearbyBuildingFull;
-                    const triviaRes = await api.get(
-                        `/api/buildings/trivias/?building_id=${activeBldg?.id}`,
-                    );
-                    if (
-                        triviaRes.data.success &&
-                        triviaRes.data.data.length > 0
-                    ) {
-                        const trivias = triviaRes.data.data;
-                        const randomTrivia =
-                            trivias[Math.floor(Math.random() * trivias.length)];
-                        setFetchedTrivia(randomTrivia.fact);
-                    } else {
+                // Fetch Trivia Fact (only when the Trivia System is enabled)
+                if (enable_trivia) {
+                    try {
+                        const activeBldg = navTargetFull || nearbyBuildingFull;
+                        const triviaRes = await api.get(
+                            `/api/buildings/trivias/?building_id=${activeBldg?.id}`,
+                        );
+                        if (
+                            triviaRes.data.success &&
+                            triviaRes.data.data.length > 0
+                        ) {
+                            const trivias = triviaRes.data.data;
+                            const randomTrivia =
+                                trivias[Math.floor(Math.random() * trivias.length)];
+                            setFetchedTrivia(randomTrivia.fact);
+                        } else {
+                            setFetchedTrivia(null);
+                        }
+                    } catch (e) {
+                        console.error("Error fetching trivia", e);
                         setFetchedTrivia(null);
                     }
-                } catch (e) {
-                    console.error("Error fetching trivia", e);
+                } else {
                     setFetchedTrivia(null);
                 }
 
@@ -927,20 +956,25 @@ export default function ARScreen() {
         setClaimedQuest(null); // Ensure clean trivia view without previous quest completion badge
         const activeBldg = navTargetFull || nearbyBuildingFull;
         if (!activeBldg) return;
-        try {
-            const triviaRes = await api.get(
-                `/api/buildings/trivias/?building_id=${activeBldg.id}`,
-            );
-            if (triviaRes.data.success && triviaRes.data.data.length > 0) {
-                const trivias = triviaRes.data.data;
-                const randomTrivia =
-                    trivias[Math.floor(Math.random() * trivias.length)];
-                setFetchedTrivia(randomTrivia.fact);
-            } else {
+
+        if (enable_trivia) {
+            try {
+                const triviaRes = await api.get(
+                    `/api/buildings/trivias/?building_id=${activeBldg.id}`,
+                );
+                if (triviaRes.data.success && triviaRes.data.data.length > 0) {
+                    const trivias = triviaRes.data.data;
+                    const randomTrivia =
+                        trivias[Math.floor(Math.random() * trivias.length)];
+                    setFetchedTrivia(randomTrivia.fact);
+                } else {
+                    setFetchedTrivia(null);
+                }
+            } catch (e) {
+                console.error("Error fetching trivia", e);
                 setFetchedTrivia(null);
             }
-        } catch (e) {
-            console.error("Error fetching trivia", e);
+        } else {
             setFetchedTrivia(null);
         }
 
@@ -1031,7 +1065,7 @@ export default function ARScreen() {
                 typeof result?.demo_mode === "boolean" &&
                 result.demo_mode !== demoMode
             ) {
-                refreshDemoMode();
+                refreshPublicSettings();
             }
             if (nearbyBuildingFull &&
                 String(nearbyBuildingFull.id) === String(result?.building)) {
@@ -1110,6 +1144,13 @@ export default function ARScreen() {
     };
 
     const handleCaptureArSnapshot = async () => {
+        if (!enable_ar_selfie) {
+            Alert(
+                "AR Selfie Disabled",
+                "AR selfie capture is turned off by the administrator.",
+            );
+            return;
+        }
         if (capturing) return;
         setCapturing(true);
 
@@ -1430,7 +1471,7 @@ export default function ARScreen() {
                                                         </>
                                                     )}
                                                 </TouchableOpacity>
-                                            ) : activeBldg ? (
+                                            ) : activeBldg && enable_trivia ? (
                                                 <TouchableOpacity 
                                                     style={styles.claimQuestBtn} 
                                                     onPress={handleViewTriviaOnly}
@@ -1585,6 +1626,8 @@ export default function ARScreen() {
                     capturing={capturing}
                     onToggleQr={toggleQrScanner}
                     onCapture={handleCaptureArSnapshot}
+                    showQr={enable_qr}
+                    showCapture={enable_ar_selfie}
                 />
             )}
 
