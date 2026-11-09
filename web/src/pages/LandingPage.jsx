@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Trophy, Eye, ChevronRight, Smartphone, Camera, Navigation, Layers, Monitor, Target, ShieldCheck, Cuboid, Crosshair, ChevronDown } from 'lucide-react';
-import Map, { Marker } from 'react-map-gl/mapbox';
+import { MapPin, Trophy, Eye, ChevronRight, Smartphone, Camera, Navigation, Layers, Monitor, Target, ShieldCheck, Cuboid, Crosshair, ChevronDown, Building2 } from 'lucide-react';
+import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@google/model-viewer';
 import { useAuth } from '../hooks/useAuth';
+import { buildingService } from '../services/buildingService';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
@@ -102,6 +103,8 @@ const FAQItem = ({ question, answer }) => {
 const LandingPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const [buildings, setBuildings] = useState([]);
+    const [buildingsLoading, setBuildingsLoading] = useState(true);
 
     // Auto-redirect to dashboard if token is active
     useEffect(() => {
@@ -109,6 +112,28 @@ const LandingPage = () => {
             navigate('/dashboard', { replace: true });
         }
     }, [user, navigate]);
+
+    // Fetch buildings for the Digital Twin map
+    useEffect(() => {
+        const fetchBuildings = async () => {
+            try {
+                const data = await buildingService.getBuildings();
+                // Filter to active, visible buildings with coordinates
+                const filtered = data.filter(b => 
+                    b.is_active && 
+                    b.status === 'VISIBLE' && 
+                    b.latitude && 
+                    b.longitude
+                );
+                setBuildings(filtered);
+            } catch (err) {
+                console.warn('Failed to load buildings for landing page map:', err);
+            } finally {
+                setBuildingsLoading(false);
+            }
+        };
+        fetchBuildings();
+    }, []);
 
     return (
         <div className="min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden selection:bg-[#8A1538] selection:text-white">
@@ -144,7 +169,7 @@ const LandingPage = () => {
                     
                     <FadeUp delay={200}>
                         <p className="text-xl text-gray-600 max-w-lg leading-relaxed font-medium">
-                            Step into the digital layer of the university. ARQuest merges Mapbox GPS, 3D visualization, and competitive trivia into one seamless exploration app.
+                            Step into the university's digital layer. ARQuest combines Mapbox GPS, 3D visualization, and trivia into one exploration app.
                         </p>
                     </FadeUp>
                     
@@ -245,9 +270,8 @@ const LandingPage = () => {
                         </FadeUp>
                         <FadeUp delay={200}>
                             <p className="text-lg text-gray-600 font-medium leading-relaxed max-w-lg">
-                                We are bridging the gap between physical heritage and digital innovation. 
-                                ARQuest transforms the historic architecture and sprawling grounds of WMSU 
-                                into a highly interactive, accessible, and connected spatial experience.
+                                ARQuest connects physical heritage with digital innovation. 
+                                It turns WMSU's historic architecture and grounds into an interactive spatial experience.
                             </p>
                         </FadeUp>
                     </div>
@@ -282,7 +306,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto px-8">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">How It Works</h2>
-                        <p className="text-gray-500 mt-4 max-w-2xl mx-auto font-medium">Your physical campus, perfectly synced with your digital dashboard.</p>
+                        <p className="text-gray-500 mt-4 max-w-2xl mx-auto font-medium">Your physical campus, synced with your digital dashboard.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
@@ -336,7 +360,7 @@ const LandingPage = () => {
                         </FadeUp>
                         <FadeUp delay={100}>
                             <p className="text-lg text-gray-600 font-medium leading-relaxed max-w-lg">
-                                Don't just read about the campus—experience it. ARQuest renders lightweight, high-fidelity 3D models directly in your browser or phone. Rotate, zoom, and inspect architecture before you even step foot inside.
+                                Don't just read about the campus — experience it. ARQuest renders lightweight, high-fidelity 3D models in your browser or phone. Rotate, zoom, and inspect architecture before you step inside.
                             </p>
                         </FadeUp>
                         <FadeUp delay={200}>
@@ -363,13 +387,13 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Big Map Section */}
+            {/* Big Map Section - Digital Twin */}
             <section id="map" className="py-32 bg-gray-50 border-y border-gray-200/50 relative overflow-hidden">
                 <div className="max-w-7xl mx-auto px-8 relative z-10 text-center mb-16">
                     <FadeUp>
                         <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 mb-6">The Digital Twin.</h2>
                         <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium leading-relaxed">
-                            Navigate a stunning 3D replica of the WMSU campus. Experience real-time pathfinding, building highlights, and live geofence tracking powered by Mapbox.
+                            Navigate a live 3D replica of the WMSU campus. Each marker is a real building from the system — tap to see its name.
                         </p>
                     </FadeUp>
                 </div>
@@ -388,28 +412,68 @@ const LandingPage = () => {
                                 }}
                                 style={{ width: '100%', height: '100%' }}
                                 mapStyle="mapbox://styles/mapbox/light-v11"
-                                interactive={false}
+                                interactive={true}
                                 reuseMaps
                             >
-                                {/* Marker showing a sample unlocked building */}
-                                <Marker longitude={WMSU_CENTER.lng} latitude={WMSU_CENTER.lat}>
-                                    <div className="relative flex flex-col items-center">
-                                        <div className="w-16 h-16 bg-[#8A1538]/20 rounded-full absolute -top-4 animate-ping"></div>
-                                        <div className="bg-[#8A1538] text-white px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap shadow-xl flex items-center gap-1 z-10 border border-white">
-                                            <MapPin size={14} /> WMSU Campus
+                                {buildingsLoading ? (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                                        <div className="text-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#8A1538] border-t-transparent mx-auto mb-3"></div>
+                                            <p className="text-gray-600 font-medium">Loading campus buildings...</p>
                                         </div>
-                                        <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#8A1538]"></div>
                                     </div>
-                                </Marker>
+                                ) : buildings.length > 0 ? (
+                                    buildings.map((building) => (
+                                        <Marker
+                                            key={building.id}
+                                            longitude={parseFloat(building.longitude)}
+                                            latitude={parseFloat(building.latitude)}
+                                        >
+                                            <div className="relative flex flex-col items-center group">
+                                                {/* Pulsing ring */}
+                                                <div className="w-14 h-14 bg-[#8A1538]/20 rounded-full absolute -top-3 animate-ping group-hover:scale-125 transition-transform duration-300"></div>
+                                                {/* Building marker */}
+                                                <div className="bg-[#8A1538] text-white px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap shadow-xl flex items-center gap-1 z-10 border-2 border-white transition-all duration-200 group-hover:scale-110">
+                                                    <Building2 size={12} />
+                                                    {building.name}
+                                                </div>
+                                                {/* Marker triangle */}
+                                                <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#8A1538]"></div>
+                                                {/* Popup on hover */}
+                                                <Popup
+                                                    latitude={parseFloat(building.latitude)}
+                                                    longitude={parseFloat(building.longitude)}
+                                                    closeButton={false}
+                                                    closeOnClick={false}
+                                                    anchor="top"
+                                                    offset={25}
+                                                    className="pointer-events-none"
+                                                >
+                                                    <div className="bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-200 text-sm font-medium text-gray-800 whitespace-nowrap">
+                                                        {building.name}
+                                                        {building.primary_department && (
+                                                            <span className="text-[#8A1538] ml-2 text-xs">{building.primary_department.name}</span>
+                                                        )}
+                                                    </div>
+                                                </Popup>
+                                            </div>
+                                        </Marker>
+                                    ))
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                                        <p className="text-gray-500 text-center px-8">No buildings configured yet.</p>
+                                    </div>
+                                )}
                             </Map>
                             
                             {/* Map UI Overlay */}
                             <div className="absolute bottom-6 right-6 flex flex-col gap-2">
-                                <div className="w-10 h-10 bg-white border border-gray-200 shadow-sm rounded-md flex items-center justify-center font-bold text-gray-600 hover:bg-gray-50 cursor-pointer">+</div>
-                                <div className="w-10 h-10 bg-white border border-gray-200 shadow-sm rounded-md flex items-center justify-center font-bold text-gray-600 hover:bg-gray-50 cursor-pointer">-</div>
+                                <div className="w-10 h-10 bg-white border border-gray-200 shadow-sm rounded-md flex items-center justify-center font-bold text-gray-600 hover:bg-gray-50 cursor-pointer" title="Zoom in">+</div>
+                                <div className="w-10 h-10 bg-white border border-gray-200 shadow-sm rounded-md flex items-center justify-center font-bold text-gray-600 hover:bg-gray-50 cursor-pointer" title="Zoom out">-</div>
                             </div>
                             <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-sm border border-gray-200 px-4 py-2 rounded-md shadow-sm font-bold text-sm text-gray-800">
-                                GPS Tracking: <span className="text-green-600">Active</span>
+                                <Building2 size={14} className="inline-block mr-1 -mt-0.5 text-[#8A1538]" />
+                                {buildings.length} buildings loaded
                             </div>
                         </div>
                     </div>
@@ -437,7 +501,7 @@ const LandingPage = () => {
                                 </div>
                                 <h3 className="text-3xl font-extrabold text-gray-900">The Mobile App</h3>
                                 <p className="text-gray-600 text-lg leading-relaxed font-medium mt-4">
-                                    Turn your smartphone into a magic lens. Designed for on-the-ground engagement, exploration, and augmented reality.
+                                    Turn your smartphone into a campus lens. Designed for on-the-ground engagement, exploration, and augmented reality.
                                 </p>
                             </FadeUp>
                             
@@ -477,7 +541,7 @@ const LandingPage = () => {
                                 </div>
                                 <h3 className="text-3xl font-extrabold text-gray-900">The Web Dashboard</h3>
                                 <p className="text-gray-600 text-lg leading-relaxed font-medium mt-4">
-                                    A powerful command center for managing the digital campus from anywhere. No physical presence required.
+                                    A command center for managing the digital campus from anywhere. No physical presence required.
                                 </p>
                             </FadeUp>
 
@@ -494,7 +558,7 @@ const LandingPage = () => {
                                         <div className="mt-1 bg-gray-100 p-3 rounded-md text-gray-700"><Eye size={24} /></div>
                                         <div>
                                             <h4 className="font-bold text-gray-900 text-xl mb-1">360° Virtual Tours</h4>
-                                            <p className="text-gray-600 leading-relaxed">Accreditors can navigate seamless indoor A-Frame panoramic tours without stepping foot on campus.</p>
+                                            <p className="text-gray-600 leading-relaxed">Accreditors can navigate indoor A-Frame panoramic tours without stepping foot on campus.</p>
                                         </div>
                                     </li>
                                     <li className="flex gap-5 items-start">
@@ -527,7 +591,7 @@ const LandingPage = () => {
                                 </div>
                                 <h3 className="text-3xl font-extrabold text-gray-900 mb-4 leading-tight">Walk inside.<br/>Unlock the building.</h3>
                                 <p className="text-gray-600 text-lg max-w-md font-medium leading-relaxed">
-                                    No manual check-ins. ARQuest uses a highly calibrated Mapbox GPS system. Cross the boundary of a campus building, and your app instantly unlocks exclusive 3D models and trivia facts.
+                                    No manual check-ins. ARQuest uses a calibrated Mapbox GPS system. Cross the boundary of a campus building, and your app unlocks exclusive 3D models and trivia facts.
                                 </p>
                             </FadeUp>
                         </div>
