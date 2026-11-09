@@ -44,6 +44,8 @@ import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
 import ARPostcardModal from "../../components/ar/ARPostcardModal";
 import ARQRErrorModal from "../../components/ar/ARQRErrorModal";
+import ARUnlockedModal from "../../components/ar/ARUnlockedModal";
+import { useDemoMode } from "../../context/DemoModeContext";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
 import { styles } from "../../components/ar/arStyles";
@@ -83,6 +85,12 @@ export default function ARScreen() {
     const [qrErrorThreshold, setQrErrorThreshold] = useState(null);
     const [qrErrorBuildingName, setQrErrorBuildingName] = useState("");
     const [qrErrorRetrying, setQrErrorRetrying] = useState(false);
+
+    // QR unlock success modal state
+    const [unlockedModalVisible, setUnlockedModalVisible] = useState(false);
+    const [unlockedModalBuilding, setUnlockedModalBuilding] = useState("");
+    const [unlockedModalIsDemo, setUnlockedModalIsDemo] = useState(false);
+    const [unlockedModalAlready, setUnlockedModalAlready] = useState(false);
 
     const navigation = useNavigation();
     const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
@@ -321,6 +329,7 @@ export default function ARScreen() {
 
     const flashAnim = useRef(new Animated.Value(0)).current;
     const { canUseAR } = useRoleAccess();
+    const { demoMode, refresh: refreshDemoMode } = useDemoMode();
 
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings, attemptUnlock, unlockViaQr } = useUnlockedBuildings();
@@ -999,7 +1008,7 @@ export default function ARScreen() {
         setScannedData(data);
         setIsScanningQr(false); // Stop scanning immediately after successful read
 
-        if (!location) {
+        if (!location && !demoMode) {
             setScannedData(null);
             Alert("Permission Required", "Please enable GPS location permissions to verify this QR code.");
             return;
@@ -1010,11 +1019,20 @@ export default function ARScreen() {
             // refreshes immediately and the Maps tab reflects the unlock.
             const result = await unlockViaQr(
                 data,
-                location.latitude,
-                location.longitude
+                location?.latitude ?? null,
+                location?.longitude ?? null
             );
 
             const isNewUnlock = result?.newly_unlocked !== false;
+            const isDemoUnlock = result?.demo_mode ?? demoMode;
+            // Keep the banner/context in sync if the admin flipped Demo Mode
+            // while this app was already in the foreground.
+            if (
+                typeof result?.demo_mode === "boolean" &&
+                result.demo_mode !== demoMode
+            ) {
+                refreshDemoMode();
+            }
             if (nearbyBuildingFull &&
                 String(nearbyBuildingFull.id) === String(result?.building)) {
                 setNearbyBuildingFull({
@@ -1023,10 +1041,9 @@ export default function ARScreen() {
                 });
             }
             if (isNewUnlock) {
-                if (user?.role === "student") {
+                if (user?.role === "student" && !isDemoUnlock) {
                     SoundManager.play("building_unlock");
                 }
-                Alert("Unlocked!", `Successfully unlocked via QR code!`);
                 // Show badge toast if earned (students only)
                 const earned = result?.newly_earned_badges || [];
                 if (user?.role === "student" && earned.length > 0) {
@@ -1052,9 +1069,16 @@ export default function ARScreen() {
                         }, 3500);
                     });
                 }
-            } else {
-                Alert("Already Unlocked", (result?.building_name || "This building") + " is already in your collection.");
             }
+
+            // Custom modal instead of a native alert; demo unlocks are labelled
+            // so exhibitors know the unlock is temporary.
+            setUnlockedModalBuilding(
+                result?.building_name || nearbyBuildingFull?.name || "Building",
+            );
+            setUnlockedModalIsDemo(!!isDemoUnlock);
+            setUnlockedModalAlready(!isNewUnlock);
+            setUnlockedModalVisible(true);
         } catch (error) {
             console.error("QR unlock error:", error);
             const errorMsg =
@@ -1165,7 +1189,7 @@ export default function ARScreen() {
         setIsPostcardModalVisible(true);
     };
 
-    if (!canUseAR) {
+    if (!canUseAR && !demoMode) {
         return (
             <View style={styles.container}>
                 <View style={styles.permissionContainer}>
@@ -1527,6 +1551,18 @@ export default function ARScreen() {
                 distance={qrErrorDistance}
                 threshold={qrErrorThreshold}
                 buildingName={qrErrorBuildingName}
+            />
+
+            {/* --- QR UNLOCK SUCCESS MODAL --- */}
+            <ARUnlockedModal
+                visible={unlockedModalVisible}
+                onDismiss={() => {
+                    setUnlockedModalVisible(false);
+                    setScannedData(null);
+                }}
+                buildingName={unlockedModalBuilding}
+                isDemo={unlockedModalIsDemo}
+                alreadyUnlocked={unlockedModalAlready}
             />
 
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}

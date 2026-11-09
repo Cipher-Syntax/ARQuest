@@ -172,11 +172,15 @@ class BuildingUnlock(models.Model):
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='unlocks')
     unlocked_at = models.DateTimeField(auto_now_add=True)
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='geofence')
+    is_demo = models.BooleanField(
+        default=False,
+        help_text='Demo Mode unlock; only counts while Demo Mode is enabled.',
+    )
     last_validated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         ordering = ['-unlocked_at']
-        unique_together = [['user', 'building']]
+        unique_together = [['user', 'building', 'is_demo']]
         indexes = [
             models.Index(fields=['user', 'building']),
         ]
@@ -187,6 +191,25 @@ class BuildingUnlock(models.Model):
     def clean(self):
         if self.building and not self.building.is_active:
             raise ValidationError({'building': 'Cannot unlock inactive building'})
+
+    @staticmethod
+    def is_demo_mode_active():
+        """Read the global Demo Mode flag from SystemSetting."""
+        from apps.api.models import SystemSetting
+        return SystemSetting.get_settings().demo_mode
+
+    @classmethod
+    def effective_for(cls, user):
+        """Return unlock rows that currently grant access.
+
+        Real unlocks always count. Demo unlocks only count while Demo Mode is
+        on, so switching Demo Mode off reverts exhibit unlocks without deleting
+        the rows (and switching it back on restores them).
+        """
+        queryset = cls.objects.filter(user=user)
+        if not cls.is_demo_mode_active():
+            queryset = queryset.filter(is_demo=False)
+        return queryset
 
 
 class BuildingAsset(models.Model):

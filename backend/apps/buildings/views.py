@@ -88,7 +88,7 @@ def _annotate_unlock_state(queryset, user):
         return queryset
     return queryset.annotate(
         user_has_unlock=Exists(
-            BuildingUnlock.objects.filter(user=user, building=OuterRef('pk'))
+            BuildingUnlock.effective_for(user).filter(building=OuterRef('pk'))
         )
     )
 
@@ -266,7 +266,7 @@ def unlock_building(request):
                 return error_response(ErrorCodes.MAINTENANCE, 'This building is currently under maintenance and cannot be unlocked.', status_code=status.HTTP_400_BAD_REQUEST)
 
             # Server-side Time-Distance Speed Validation
-            last_unlock = BuildingUnlock.objects.filter(user=request.user).exclude(building=building).order_by('-last_validated_at').first()
+            last_unlock = BuildingUnlock.objects.filter(user=request.user, is_demo=False).exclude(building=building).order_by('-last_validated_at').first()
             if last_unlock:
                 last_geofence = last_unlock.building.geofences.filter(is_active=True).first()
                 if last_geofence:
@@ -283,6 +283,7 @@ def unlock_building(request):
             unlock, created = BuildingUnlock.objects.get_or_create(
                 user=request.user,
                 building=building,
+                is_demo=False,
                 defaults={'source': 'geofence'}
             )
             if not created:
@@ -305,7 +306,11 @@ def unlock_building(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def unlock_building_qr(request):
-    if request.user.is_visitor_role:
+    demo_mode = BuildingUnlock.is_demo_mode_active()
+
+    # Demo Mode is an exhibit workflow, so guests may scan too. Normal mode
+    # keeps the existing visitor restriction.
+    if request.user.is_visitor_role and not demo_mode:
         return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot unlock buildings', status_code=status.HTTP_403_FORBIDDEN)
 
     qr_secret = request.data.get('qr_code_secret')
@@ -319,40 +324,41 @@ def unlock_building_qr(request):
     except Building.DoesNotExist:
         return error_response(ErrorCodes.INVALID_QR, 'Invalid or inactive QR code', status_code=status.HTTP_404_NOT_FOUND)
 
-    lat = request.data.get('lat')
-    lng = request.data.get('lng')
+    if not demo_mode:
+        # Normal mode: the QR code only unlocks when the scanner is near the
+        # building. Demo Mode skips this whole block so the QR alone unlocks
+        # from anywhere, without affecting real progress.
+        lat = request.data.get('lat')
+        lng = request.data.get('lng')
 
-    if not lat or not lng:
-        return error_response(ErrorCodes.LOCATION_REQUIRED, 'GPS location is required to verify the QR code.', status_code=status.HTTP_400_BAD_REQUEST)
+        if not lat or not lng:
+            return error_response(ErrorCodes.LOCATION_REQUIRED, 'GPS location is required to verify the QR code.', status_code=status.HTTP_400_BAD_REQUEST)
 
-    geofence = building.geofences.filter(is_active=True).first()
-    if geofence:
-        distance = calculate_distance(
-            float(lat), float(lng),
-            float(geofence.latitude), float(geofence.longitude)
-        )
-        # Adaptive threshold: geofence radius + 10m buffer, clamped to [25, 50]m.
-        # - Small plaza (r=20m)  -> 30m
-        # - Standard building (r=30m) -> 40m
-        # - Large campus hub (r=45m) -> 50m (capped)
-        # - No geofence -> 35m default
-        radius = float(geofence.radius_meters or 25)
-        threshold = min(50, max(25, radius + 10))
-        if distance > threshold:
-            return error_response(
-                ErrorCodes.QR_TOO_FAR,
-                f'You must be within {int(threshold)} meters of the building to scan its QR code. '
-                f'You are currently {int(distance)} meters away.',
-                status_code=status.HTTP_400_BAD_REQUEST
+        geofence = building.geofences.filter(is_active=True).first()
+        if geofence:
+            distance = calculate_distance(
+                float(lat), float(lng),
+                float(geofence.latitude), float(geofence.longitude)
             )
-    else:
-        # Fallback when building has no geofence configured
-        distance = None  # not calculated
-        threshold = 35
+            # Adaptive threshold: geofence radius + 10m buffer, clamped to [25, 50]m.
+            # - Small plaza (r=20m)  -> 30m
+            # - Standard building (r=30m) -> 40m
+            # - Large campus hub (r=45m) -> 50m (capped)
+            # - No geofence -> 35m default
+            radius = float(geofence.radius_meters or 25)
+            threshold = min(50, max(25, radius + 10))
+            if distance > threshold:
+                return error_response(
+                    ErrorCodes.QR_TOO_FAR,
+                    f'You must be within {int(threshold)} meters of the building to scan its QR code. '
+                    f'You are currently {int(distance)} meters away.',
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
 
     unlock, created = BuildingUnlock.objects.get_or_create(
         user=request.user,
         building=building,
+        is_demo=demo_mode,
         defaults={'source': 'qr'}
     )
     if not created:
@@ -364,7 +370,7 @@ def unlock_building_qr(request):
             unlock.save(update_fields=['last_validated_at'])
 
     newly_earned_badges = []
-    if created:
+    if created and request.user.is_student_role and not demo_mode:
         from apps.gamification.views import check_and_award_badges
         newly_earned_badges = check_and_award_badges(request.user)
 
@@ -372,6 +378,7 @@ def unlock_building_qr(request):
     data = serializer.data
     data['newly_earned_badges'] = newly_earned_badges
     data['newly_unlocked'] = created  # True = first unlock, False = already had access
+    data['demo_mode'] = demo_mode
     return success_response(data)
 
 
@@ -382,7 +389,7 @@ def unlocked_buildings(request):
     
     if user.is_professional_role:
         buildings = Building.objects.filter(status__in=['VISIBLE', 'MAINTENANCE'])
-        unlocks_map = {u.building_id: u for u in BuildingUnlock.objects.filter(user=user)}
+        unlocks_map = {u.building_id: u for u in BuildingUnlock.effective_for(user)}
         
         buildings_data = []
         for b in buildings:
@@ -402,7 +409,7 @@ def unlocked_buildings(request):
         
         return success_response(buildings_data)
     
-    unlocks = BuildingUnlock.objects.filter(user=user).select_related('building').filter(building__status__in=['VISIBLE', 'MAINTENANCE'])
+    unlocks = BuildingUnlock.effective_for(user).select_related('building').filter(building__status__in=['VISIBLE', 'MAINTENANCE'])
     buildings_data = []
     for unlock in unlocks:
         serializer = UnlockedBuildingSerializer(unlock.building, context={'request': request})
@@ -431,7 +438,7 @@ def building_assets(request, id):
         return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot access heavy assets', status_code=status.HTTP_403_FORBIDDEN)
 
     if request.user.is_student_role:
-        is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
+        is_unlocked = BuildingUnlock.effective_for(request.user).filter(building=building).exists()
         if not is_unlocked:
             return error_response(ErrorCodes.PERMISSION_DENIED, 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
             
@@ -456,7 +463,7 @@ def asset_metadata(request, id):
         return error_response(ErrorCodes.PERMISSION_DENIED, 'Visitors cannot access heavy assets', status_code=status.HTTP_403_FORBIDDEN)
 
     if request.user.is_student_role:
-        is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
+        is_unlocked = BuildingUnlock.effective_for(request.user).filter(building=building).exists()
         if not is_unlocked:
             return error_response(ErrorCodes.PERMISSION_DENIED, 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
 

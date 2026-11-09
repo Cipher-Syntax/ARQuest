@@ -1429,3 +1429,117 @@ class BuildingAssetEndpointTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
+
+
+class DemoModeQrUnlockTests(APITestCase):
+    """Exhibit Demo Mode: QR unlocks skip the location check and stay isolated."""
+
+    def setUp(self):
+        from apps.api.models import SystemSetting
+
+        self.settings = SystemSetting.get_settings()
+        self.settings.demo_mode = False
+        self.settings.save()
+
+        self.client = APIClient()
+        self.student = User.objects.create_user(
+            username='demo_student',
+            email='demo_student@test.com',
+            password='testpass123',
+            role='student',
+        )
+        self.visitor = User.objects.create_user(
+            username='demo_visitor',
+            email='demo_visitor@test.com',
+            password='testpass123',
+            role='visitor',
+        )
+        self.building = Building.objects.create(
+            name='Demo Hall',
+            slug='demo-hall',
+            latitude=14.5995,
+            longitude=120.9842,
+            is_active=True,
+            status='VISIBLE',
+        )
+        Geofence.objects.create(
+            building=self.building,
+            latitude=14.5995,
+            longitude=120.9842,
+            radius_meters=50,
+            is_active=True,
+        )
+
+    def _scan_qr(self, user):
+        self.client.force_authenticate(user=user)
+        return self.client.post('/api/buildings/unlock/qr/', {
+            'qr_code_secret': str(self.building.qr_code_secret),
+            # Far away from the building on purpose.
+            'lat': 14.6100,
+            'lng': 121.0000,
+        })
+
+    def test_demo_mode_skips_distance_check(self):
+        self.settings.demo_mode = True
+        self.settings.save()
+
+        response = self._scan_qr(self.student)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['data']['demo_mode'])
+        self.assertTrue(
+            BuildingUnlock.objects.filter(
+                user=self.student, building=self.building, is_demo=True
+            ).exists()
+        )
+
+    def test_demo_unlocks_revert_when_off_but_rows_remain(self):
+        self.settings.demo_mode = True
+        self.settings.save()
+        self._scan_qr(self.student)
+
+        unlocked = self.client.get('/api/buildings/unlocked/')
+        self.assertEqual(len(unlocked.data['data']), 1)
+
+        self.settings.demo_mode = False
+        self.settings.save()
+
+        unlocked = self.client.get('/api/buildings/unlocked/')
+        self.assertEqual(len(unlocked.data['data']), 0)
+        self.assertTrue(
+            BuildingUnlock.objects.filter(
+                user=self.student, building=self.building, is_demo=True
+            ).exists()
+        )
+
+    def test_real_unlock_survives_demo_toggle(self):
+        BuildingUnlock.objects.create(
+            user=self.student,
+            building=self.building,
+            source='geofence',
+            is_demo=False,
+        )
+        self.settings.demo_mode = True
+        self.settings.save()
+        self._scan_qr(self.student)  # Creates a demo row beside the real row.
+
+        self.settings.demo_mode = False
+        self.settings.save()
+
+        unlocked = self.client.get('/api/buildings/unlocked/')
+        self.assertEqual(len(unlocked.data['data']), 1)
+        self.assertEqual(
+            BuildingUnlock.objects.filter(user=self.student, building=self.building).count(),
+            2,
+        )
+
+    def test_visitor_can_scan_only_in_demo_mode(self):
+        blocked = self._scan_qr(self.visitor)
+        self.assertEqual(blocked.status_code, 403)
+
+        self.settings.demo_mode = True
+        self.settings.save()
+
+        allowed = self._scan_qr(self.visitor)
+        self.assertEqual(allowed.status_code, 200)
+        self.assertTrue(allowed.data['data']['demo_mode'])

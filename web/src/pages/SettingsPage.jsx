@@ -24,6 +24,7 @@ export default function Settings() {
     const [settings, setSettings] = useState({
         app_name: "ARQuest",
         maintenance_mode: false,
+        demo_mode: false,
         contact_email: "support@arquest.edu",
         enable_gps: true,
         enable_qr: true,
@@ -525,6 +526,29 @@ export default function Settings() {
                                         handleChange(
                                             "maintenance_mode",
                                             !settings.maintenance_mode,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className="h-px bg-brand-border" />
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-bold text-amber-600">
+                                        Demo Mode
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Exhibit mode. QR codes unlock buildings
+                                        without the location check, and those
+                                        unlocks revert when Demo Mode is turned
+                                        off. Real progress is unaffected.
+                                    </p>
+                                </div>
+                                <Toggle
+                                    checked={settings.demo_mode}
+                                    onChange={() =>
+                                        handleChange(
+                                            "demo_mode",
+                                            !settings.demo_mode,
                                         )
                                     }
                                 />

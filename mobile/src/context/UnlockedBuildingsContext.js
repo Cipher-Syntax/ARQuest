@@ -1,13 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { unlockService } from "../services";
+import { useDemoMode } from "./DemoModeContext";
 
 const UnlockedBuildingsStateContext = createContext(null);
 const UnlockedBuildingsActionsContext = createContext(null);
 
 export const UnlockedBuildingsProvider = ({ children }) => {
+    const { demoMode } = useDemoMode();
     const [unlockedBuildings, setUnlockedBuildings] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const isFirstDemoEffect = useRef(true);
 
     // silent = true refreshes in the background without flipping isLoading,
     // so focus-driven refreshes do not flash a loading state over existing data.
@@ -51,6 +54,16 @@ export const UnlockedBuildingsProvider = ({ children }) => {
     useEffect(() => {
         fetchUnlocked();
     }, [fetchUnlocked]);
+
+    // Turning Demo Mode off hides demo unlocks server-side, so refresh the
+    // list when the flag flips to make those buildings lock again immediately.
+    useEffect(() => {
+        if (isFirstDemoEffect.current) {
+            isFirstDemoEffect.current = false;
+            return;
+        }
+        fetchUnlocked(true);
+    }, [demoMode, fetchUnlocked]);
 
     const stateValue = useMemo(() => ({
         unlockedBuildings,

@@ -244,6 +244,7 @@ def public_settings(request):
     data = {
         "app_name": settings.app_name,
         "maintenance_mode": settings.maintenance_mode,
+        "demo_mode": settings.demo_mode,
         "enable_gps": settings.enable_gps,
         "enable_qr": settings.enable_qr,
         "enable_ar_selfie": settings.enable_ar_selfie,

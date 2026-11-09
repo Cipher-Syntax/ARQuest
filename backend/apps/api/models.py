@@ -7,6 +7,13 @@ class SystemSetting(models.Model):
     contact_email = models.EmailField(default='support@arquest.edu')
     
     # App Features
+    demo_mode = models.BooleanField(
+        default=False,
+        help_text=(
+            'Exhibit/demo mode. QR unlocks ignore the building proximity check '
+            'and are stored as demo unlocks that revert when this is turned off.'
+        ),
+    )
     enable_gps = models.BooleanField(default=True)
     enable_qr = models.BooleanField(default=True)
     enable_ar_selfie = models.BooleanField(default=True)

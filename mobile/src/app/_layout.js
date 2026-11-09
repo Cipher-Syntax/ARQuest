@@ -1,7 +1,9 @@
 import { Stack } from "expo-router";
 import { AuthProvider, useAuthState, useAuthActions } from "../context/AuthContext";
 import { LocationProvider } from "../context/LocationContext";
+import { DemoModeProvider } from "../context/DemoModeContext";
 import OfflineBanner from "../components/ui/OfflineBanner";
+import DemoModeBanner from "../components/ui/DemoModeBanner";
 import CustomAlert, { alertRef } from "../components/ui/CustomAlert";
 import DailyStreakModal from "../components/features/DailyStreakModal";
 import { StatusBar } from "expo-status-bar";
@@ -29,6 +31,7 @@ function RootLayoutContent() {
         <>
             <StatusBar style="dark" />
             <OfflineBanner />
+            <DemoModeBanner />
             <UpdateBanner
                 visible={shouldShowUpdateBanner}
                 isUpdating={isUpdateDownloading}
@@ -84,9 +87,11 @@ export default function RootLayout() {
 
     return (
         <AuthProvider>
-            <LocationProvider>
-                <RootLayoutContent />
-            </LocationProvider>
+            <DemoModeProvider>
+                <LocationProvider>
+                    <RootLayoutContent />
+                </LocationProvider>
+            </DemoModeProvider>
         </AuthProvider>
     );
 }

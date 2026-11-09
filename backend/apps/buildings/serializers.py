@@ -107,7 +107,7 @@ class BuildingSerializer(serializers.ModelSerializer):
         annotated = getattr(obj, 'user_has_unlock', None)
         if annotated is not None:
             return bool(annotated)
-        return BuildingUnlock.objects.filter(user=user, building=obj).exists()
+        return BuildingUnlock.effective_for(user).filter(building=obj).exists()
 
     def get_image_url(self, obj):
         if obj.image:
@@ -197,7 +197,7 @@ class BuildingUnlockSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BuildingUnlock
-        fields = ['id', 'building', 'building_name', 'building_slug', 'source', 'unlocked_at', 'last_validated_at']
+        fields = ['id', 'building', 'building_name', 'building_slug', 'source', 'is_demo', 'unlocked_at', 'last_validated_at']
         read_only_fields = ['unlocked_at', 'last_validated_at']
 
 

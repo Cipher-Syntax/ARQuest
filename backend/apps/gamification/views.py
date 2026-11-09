@@ -24,7 +24,8 @@ def check_and_award_badges(user):
 	active_badges = Badge.objects.filter(is_active=True)
 	already_earned_ids = set(UserBadge.objects.filter(user=user).values_list('badge_id', flat=True))
 
-	unlock_count = BuildingUnlock.objects.filter(user=user).count()
+	# Badges are permanent achievements, so demo unlocks never count toward them.
+	unlock_count = BuildingUnlock.objects.filter(user=user, is_demo=False).count()
 	quest_count = UserQuestProgress.objects.filter(user=user, is_completed=True).count()
 	total_buildings = Building.objects.filter(is_active=True, status__in=['VISIBLE', 'MAINTENANCE']).count()
 

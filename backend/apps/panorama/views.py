@@ -24,7 +24,7 @@ def building_panorama_walkthrough(request, id):
         
     if request.user.is_student_role:
         from apps.buildings.models import BuildingUnlock
-        is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=building).exists()
+        is_unlocked = BuildingUnlock.effective_for(request.user).filter(building=building).exists()
         if not is_unlocked:
             return error_response(ErrorCodes.PERMISSION_DENIED, 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
     
@@ -64,7 +64,7 @@ def panorama_scene_detail(request, id):
         
     if request.user.is_student_role:
         from apps.buildings.models import BuildingUnlock
-        is_unlocked = BuildingUnlock.objects.filter(user=request.user, building=scene.building).exists()
+        is_unlocked = BuildingUnlock.effective_for(request.user).filter(building=scene.building).exists()
         if not is_unlocked:
             return error_response(ErrorCodes.PERMISSION_DENIED, 'You must unlock this building first', status_code=status.HTTP_403_FORBIDDEN)
     
