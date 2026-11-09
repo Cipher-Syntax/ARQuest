@@ -1,13 +1,13 @@
 import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Sparkles, Unlock } from "lucide-react-native";
+import { Box, CircleCheck, Map, MapPin } from "lucide-react-native";
 import { theme } from "../../theme/tokens";
 
 /**
  * Success modal shown after a QR code unlocks a building.
  *
- * Demo Mode unlocks are labelled so exhibitors (and visitors) know the unlock
- * does not require being near the building and will revert when demo ends.
+ * Demo Mode unlocks look and behave exactly like a real unlock; only the
+ * tagline tells the exhibitor that the location check was skipped.
  */
 export default function ARUnlockedModal({
     visible,
@@ -18,9 +18,8 @@ export default function ARUnlockedModal({
 }) {
     if (!visible) return null;
 
-    const accent = isDemo ? "#B45309" : theme.colors.primary;
     const tagline = alreadyUnlocked
-        ? "ACCESS ALREADY ACTIVE"
+        ? "ALREADY UNLOCKED"
         : isDemo
           ? "DEMO UNLOCK"
           : "QR UNLOCKED";
@@ -40,50 +39,50 @@ export default function ARUnlockedModal({
                     onPress={onDismiss}
                 />
                 <View style={styles.card}>
-                    <View
-                        style={[
-                            styles.iconWrap,
-                            { backgroundColor: accent + "15" },
-                        ]}
-                    >
-                        {isDemo ? (
-                            <Sparkles size={32} color={accent} />
-                        ) : (
-                            <Unlock size={32} color={accent} />
-                        )}
+                    <View style={styles.iconWrap}>
+                        <CircleCheck size={34} color={theme.colors.primary} />
                     </View>
 
-                    <Text style={[styles.tagline, { color: accent }]}>
-                        {tagline}
-                    </Text>
+                    <Text style={styles.tagline}>{tagline}</Text>
                     <Text style={styles.title}>
                         {buildingName || "Building Unlocked"}
                     </Text>
 
                     <Text style={styles.message}>
                         {alreadyUnlocked
-                            ? "This building is already available in your collection."
-                            : isDemo
-                              ? "Demo Mode skipped the location check, so this unlock works from anywhere. It is kept separate from real progress and reverts when Demo Mode is turned off."
-                              : "You are within range of this building. Its AR content and quests are now available."}
+                            ? "This building is already in your collection."
+                            : "This building is now unlocked. Its AR content and quests are available."}
                     </Text>
 
-                    {isDemo && !alreadyUnlocked && (
-                        <View style={styles.noteBox}>
-                            <Text style={styles.noteText}>
-                                DEMO UNLOCK — NOT SAVED TO REAL PROGRESS
+                    <View style={styles.guideBox}>
+                        <Text style={styles.guideTitle}>WHERE TO FIND IT</Text>
+                        <View style={styles.guideRow}>
+                            <Map size={15} color={theme.colors.primary} />
+                            <Text style={styles.guideText}>
+                                Open the{" "}
+                                <Text style={styles.guideStrong}>Maps</Text> tab
                             </Text>
                         </View>
-                    )}
+                        <View style={styles.guideRow}>
+                            <MapPin size={15} color={theme.colors.primary} />
+                            <Text style={styles.guideText}>
+                                Tap this building on the map
+                            </Text>
+                        </View>
+                        <View style={styles.guideRow}>
+                            <Box size={15} color={theme.colors.primary} />
+                            <Text style={styles.guideText}>
+                                View 3D Model, Virtual Tour, or Take Quiz
+                            </Text>
+                        </View>
+                    </View>
 
                     <TouchableOpacity
-                        style={[styles.actionBtn, { backgroundColor: accent }]}
+                        style={styles.actionBtn}
                         onPress={onDismiss}
                         activeOpacity={0.85}
                     >
-                        <Text style={styles.actionText}>
-                            {alreadyUnlocked ? "GOT IT" : "START EXPLORING"}
-                        </Text>
+                        <Text style={styles.actionText}>START EXPLORING</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -116,6 +115,7 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
+        backgroundColor: theme.colors.primary + "15",
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 16,
@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
     tagline: {
         fontSize: 11,
         fontWeight: "700",
+        color: theme.colors.primary,
         letterSpacing: 1.5,
         textTransform: "uppercase",
         marginBottom: 4,
@@ -139,25 +140,41 @@ const styles = StyleSheet.create({
         color: theme.colors.textSecondary,
         textAlign: "center",
         lineHeight: 20,
-        marginBottom: 20,
+        marginBottom: 16,
         width: "100%",
     },
-    noteBox: {
+    guideBox: {
         width: "100%",
-        backgroundColor: "#B45309" + "12",
+        backgroundColor: theme.colors.bgSecondary,
         borderRadius: theme.radius.md,
-        padding: 12,
+        padding: 14,
         marginBottom: 20,
+        gap: 8,
     },
-    noteText: {
-        fontSize: 11,
+    guideTitle: {
+        fontSize: 10,
         fontWeight: "700",
-        color: "#B45309",
-        textAlign: "center",
-        letterSpacing: 0.5,
+        color: theme.colors.textMuted,
+        letterSpacing: 1,
+        marginBottom: 2,
+    },
+    guideRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    guideText: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.textSecondary,
+    },
+    guideStrong: {
+        fontWeight: "700",
+        color: theme.colors.textPrimary,
     },
     actionBtn: {
         width: "100%",
+        backgroundColor: theme.colors.primary,
         paddingVertical: 14,
         borderRadius: theme.radius.md,
         alignItems: "center",

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
-import { Sparkles } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDemoMode } from "../../context/DemoModeContext";
 
@@ -50,7 +49,6 @@ export default function DemoModeBanner() {
             ]}
         >
             <View style={styles.content}>
-                <Sparkles size={16} color="#FFFFFF" />
                 <Text style={styles.text}>DEMO MODE</Text>
             </View>
         </Animated.View>

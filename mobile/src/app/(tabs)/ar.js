@@ -1041,7 +1041,9 @@ export default function ARScreen() {
                 });
             }
             if (isNewUnlock) {
-                if (user?.role === "student" && !isDemoUnlock) {
+                // Same unlock feedback as a real unlock; demo visitors hear it
+                // too so the exhibit feels identical.
+                if (user?.role === "student" || isDemoUnlock) {
                     SoundManager.play("building_unlock");
                 }
                 // Show badge toast if earned (students only)
