@@ -61,7 +61,9 @@ def department_detail(request, id):
         return success_response(serializer.data)
 
     elif request.method == 'PATCH':
-        if not request.user.is_admin_role:
+        if not getattr(request.user, 'is_authenticated', False):
+            return error_response(ErrorCodes.UNAUTHORIZED, 'Authentication credentials were not provided.', status_code=status.HTTP_401_UNAUTHORIZED)
+        if not getattr(request.user, 'is_admin_role', False):
             return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
 
         serializer = DepartmentWriteSerializer(department, data=request.data, partial=True)
@@ -71,7 +73,9 @@ def department_detail(request, id):
         return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid department data', status_code=status.HTTP_400_BAD_REQUEST, details=serializer.errors)
 
     elif request.method == 'DELETE':
-        if not request.user.is_admin_role:
+        if not getattr(request.user, 'is_authenticated', False):
+            return error_response(ErrorCodes.UNAUTHORIZED, 'Authentication credentials were not provided.', status_code=status.HTTP_401_UNAUTHORIZED)
+        if not getattr(request.user, 'is_admin_role', False):
             return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
 
         department.delete()
@@ -94,7 +98,7 @@ def _annotate_unlock_state(queryset, user):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def building_list_create(request):
     if request.method == 'GET':
         if getattr(request.user, 'is_admin_role', False):
@@ -106,7 +110,9 @@ def building_list_create(request):
         return success_response(serializer.data)
     
     elif request.method == 'POST':
-        if not request.user.is_admin_role:
+        if not getattr(request.user, 'is_authenticated', False):
+            return error_response(ErrorCodes.UNAUTHORIZED, 'Authentication credentials were not provided.', status_code=status.HTTP_401_UNAUTHORIZED)
+        if not getattr(request.user, 'is_admin_role', False):
             return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
         
         serializer = BuildingWriteSerializer(data=request.data)
@@ -133,7 +139,7 @@ def building_list_create(request):
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def building_detail(request, id):
     queryset = Building.objects.all()
     if request.method == 'GET':

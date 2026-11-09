@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, Trophy, Eye, ChevronRight, Smartphone, Camera, Navigation, Layers, Monitor, Target, ShieldCheck, Cuboid, Crosshair, ChevronDown, Building2 } from 'lucide-react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
+import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@google/model-viewer';
 import { useAuth } from '../hooks/useAuth';
@@ -9,6 +10,17 @@ import { buildingService } from '../services/buildingService';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
+
+// Prevent Mapbox telemetry requests that trigger ad-blocker ERR_BLOCKED_BY_CLIENT
+try {
+    if (mapboxgl && mapboxgl.config) {
+        Object.defineProperty(mapboxgl.config, 'EVENTS_URL', {
+            value: null,
+            writable: true,
+            configurable: true,
+        });
+    }
+} catch {}
 
 const FadeUp = ({ children, delay = 0 }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -117,7 +129,7 @@ const LandingPage = () => {
     useEffect(() => {
         const fetchBuildings = async () => {
             try {
-                const data = await buildingService.getBuildings();
+                const data = await buildingService.getPublicBuildings();
                 // Filter to active, visible buildings with coordinates
                 const filtered = data.filter(b => 
                     b.is_active && 
@@ -360,12 +372,12 @@ const LandingPage = () => {
                         </FadeUp>
                         <FadeUp delay={100}>
                             <p className="text-lg text-gray-600 font-medium leading-relaxed max-w-lg">
-                                Don't just read about the campus — experience it. ARQuest renders lightweight, high-fidelity 3D models in your browser or phone. Rotate, zoom, and inspect architecture before you step inside.
+                                Don't just read about the campus, experience it. ARQuest renders lightweight, high-fidelity 3D models in your browser or phone. Rotate, zoom, and inspect architecture before you step inside.
                             </p>
                         </FadeUp>
                         <FadeUp delay={200}>
                             <div className="flex items-center gap-2 text-sm font-bold text-[#8A1538] bg-[#8A1538]/10 w-max px-4 py-2 rounded-full">
-                                <Monitor size={16} /> Fully Interactive — Try spinning it!
+                                <Monitor size={16} /> Fully Interactive. Try spinning it!
                             </div>
                         </FadeUp>
                     </div>
@@ -393,7 +405,7 @@ const LandingPage = () => {
                     <FadeUp>
                         <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 mb-6">The Digital Twin.</h2>
                         <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium leading-relaxed">
-                            Navigate a live 3D replica of the WMSU campus. Each marker is a real building from the system — tap to see its name.
+                            Navigate a live 3D replica of the WMSU campus. Each marker is a real building from the system. Tap to see its name.
                         </p>
                     </FadeUp>
                 </div>

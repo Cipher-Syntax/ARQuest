@@ -173,6 +173,13 @@ class BuildingAPITest(APITestCase):
         self.assertTrue(response.data['success'])
         self.assertEqual(len(response.data['data']), 1)
         self.assertEqual(response.data['data'][0]['name'], 'CCS Building')
+
+    def test_list_buildings_unauthenticated(self):
+        response = self.client.get('/api/buildings/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(len(response.data['data']), 1)
+        self.assertEqual(response.data['data'][0]['name'], 'CCS Building')
     
     def test_create_building_admin(self):
         self.client.force_authenticate(user=self.admin)

@@ -1,4 +1,5 @@
-import api from "./api";
+import api, { API_BASE_URL } from "./api";
+import axios from "axios";
 
 export const buildingService = {
     getBuildings: async () => {
