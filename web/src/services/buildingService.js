@@ -7,6 +7,11 @@ export const buildingService = {
         return response.data.data;
     },
 
+    getPublicBuildings: async () => {
+        const response = await axios.get(`${API_BASE_URL}/api/buildings/`);
+        return response.data.data;
+    },
+
     getBuilding: async (id) => {
         const response = await api.get(`/api/buildings/${id}/`);
         return response.data.data;
