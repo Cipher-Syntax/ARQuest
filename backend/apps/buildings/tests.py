@@ -180,6 +180,41 @@ class BuildingAPITest(APITestCase):
         self.assertTrue(response.data['success'])
         self.assertEqual(len(response.data['data']), 1)
         self.assertEqual(response.data['data'][0]['name'], 'CCS Building')
+
+    def test_public_buildings_unauthenticated(self):
+        Geofence.objects.create(
+            building=self.building,
+            latitude=14.599512,
+            longitude=120.984222,
+            radius_meters=25,
+            is_active=True,
+        )
+        response = self.client.get('/api/buildings/public/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(len(response.data['data']), 1)
+
+        payload = response.data['data'][0]
+        self.assertEqual(payload['name'], 'CCS Building')
+        self.assertIn('model_url', payload)
+        self.assertIn('has_model', payload)
+        self.assertEqual(len(payload['geofences']), 1)
+        self.assertNotIn('qr_code_secret', payload)
+        self.assertNotIn('unlocks', payload)
+
+    def test_public_buildings_excludes_hidden_and_inactive(self):
+        Building.objects.create(
+            name='Maintenance Hall',
+            slug='maintenance-hall',
+            latitude=14.599512,
+            longitude=120.984222,
+            is_active=True,
+            status='MAINTENANCE',
+        )
+        response = self.client.get('/api/buildings/public/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        names = [b['name'] for b in response.data['data']]
+        self.assertEqual(names, ['CCS Building'])
     
     def test_create_building_admin(self):
         self.client.force_authenticate(user=self.admin)

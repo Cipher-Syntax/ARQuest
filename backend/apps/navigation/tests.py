@@ -268,3 +268,37 @@ class NavigationApiTestCase(TestCase):
         )
         self.assertEqual(res.status_code, 404)
         self.assertFalse(res.data['success'])
+
+    def test_get_perimeter_unauthenticated(self):
+        """The landing page draws the campus boundary while logged out."""
+        res = self.client.get('/api/navigation/perimeter/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data['success'])
+        self.assertGreaterEqual(len(res.data['data']['coordinates']), 3)
+
+    def test_post_perimeter_student_forbidden(self):
+        self.client.force_authenticate(user=self.student_user)
+        res = self.client.post(
+            '/api/navigation/perimeter/',
+            {'coordinates': [[122.0570, 6.9092], [122.0570, 6.9162], [122.0655, 6.9162]]},
+            format='json'
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_post_perimeter_admin_success(self):
+        self.client.force_authenticate(user=self.admin_user)
+        coordinates = [
+            [122.0570, 6.9092],
+            [122.0570, 6.9162],
+            [122.0655, 6.9162],
+            [122.0655, 6.9092],
+            [122.0570, 6.9092],
+        ]
+        res = self.client.post(
+            '/api/navigation/perimeter/',
+            {'name': 'WMSU', 'coordinates': coordinates},
+            format='json'
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data['success'])
+        self.assertEqual(res.data['data']['coordinates'], coordinates)

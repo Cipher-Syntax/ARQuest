@@ -8,7 +8,7 @@ export const buildingService = {
     },
 
     getPublicBuildings: async () => {
-        const response = await axios.get(`${API_BASE_URL}/api/buildings/`);
+        const response = await axios.get(`${API_BASE_URL}/api/buildings/public/`);
         return response.data.data;
     },
 

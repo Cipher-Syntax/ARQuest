@@ -97,6 +97,68 @@ def _annotate_unlock_state(queryset, user):
     )
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_buildings_list(request):
+    """
+    Public showcase payload for the landing page Digital Twin map.
+
+    Returns only display-safe fields for active, visible buildings, plus the
+    3D model URL so the landing page can preview a building when its marker is
+    tapped. QR secrets and user-specific unlock state are never included.
+    """
+    buildings = (
+        Building.objects.select_related('primary_department')
+        .prefetch_related('geofences')
+        .filter(status='VISIBLE', is_active=True)
+        .order_by('name')
+    )
+
+    data = []
+    for building in buildings:
+        model_url = None
+        if building.model_file:
+            model_url = request.build_absolute_uri(building.model_file.url)
+
+        geofences = [
+            {
+                'id': str(g.id),
+                'latitude': float(g.latitude),
+                'longitude': float(g.longitude),
+                'radius_meters': float(g.radius_meters),
+                'is_active': g.is_active,
+            }
+            for g in building.geofences.all()
+            if g.is_active
+        ]
+
+        data.append({
+            'id': str(building.id),
+            'name': building.name,
+            'slug': building.slug,
+            'description': building.description,
+            'latitude': float(building.latitude) if building.latitude is not None else None,
+            'longitude': float(building.longitude) if building.longitude is not None else None,
+            'status': building.status,
+            'is_active': building.is_active,
+            'model_url': model_url,
+            'has_model': bool(building.model_file),
+            'primary_department': (
+                {
+                    'id': str(building.primary_department.id),
+                    'name': building.primary_department.name,
+                    'code': building.primary_department.code,
+                    'color_hex': building.primary_department.color_hex,
+                }
+                if building.primary_department
+                else None
+            ),
+            'geofences': geofences,
+        })
+
+    return success_response(data)
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny])
 def building_list_create(request):

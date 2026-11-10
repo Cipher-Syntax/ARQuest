@@ -1,4 +1,5 @@
-import api from "./api";
+import axios from "axios";
+import api, { API_BASE_URL } from "./api";
 
 export const navigationService = {
     // Nodes
@@ -58,6 +59,14 @@ export const navigationService = {
     // Campus Perimeter
     getPerimeter: async () => {
         const response = await api.get("/api/navigation/perimeter/");
+        return response.data.data;
+    },
+
+    // Public perimeter (no auth header) for the landing page map.
+    getPublicPerimeter: async () => {
+        const response = await axios.get(
+            `${API_BASE_URL}/api/navigation/perimeter/`,
+        );
         return response.data.data;
     },
 

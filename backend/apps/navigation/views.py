@@ -2,7 +2,7 @@ import logging
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from apps.authentication.permissions import IsAdminRole
 from apps.buildings.models import Building
@@ -270,10 +270,14 @@ DEFAULT_WMSU_PERIMETER = [
 
 
 @api_view(['GET', 'POST', 'PUT'])
+@permission_classes([AllowAny])
 def perimeter(request):
     """
-    GET /api/navigation/perimeter/  — retrieve active campus perimeter polygon (public/authenticated)
-    POST / PUT /api/navigation/perimeter/ — update/save campus perimeter polygon (admin only)
+    GET /api/navigation/perimeter/  - retrieve active campus perimeter polygon (public)
+    POST / PUT /api/navigation/perimeter/ - update/save campus perimeter polygon (admin only)
+
+    GET stays public so public maps (landing page) can draw the campus boundary
+    without an account. Mutating requests are checked manually below.
     """
     if request.method == 'GET':
         obj = CampusPerimeter.objects.filter(is_active=True).first()

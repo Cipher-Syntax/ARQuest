@@ -1,15 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Trophy, Eye, ChevronRight, Smartphone, Camera, Navigation, Layers, Monitor, Target, ShieldCheck, Cuboid, Crosshair, ChevronDown, Building2 } from 'lucide-react';
-import Map, { Marker, Popup } from 'react-map-gl/mapbox';
+import { MapPin, Trophy, Eye, ChevronRight, Smartphone, Camera, Navigation, Layers, Monitor, Target, ShieldCheck, Cuboid, Crosshair, ChevronDown, Building2, X } from 'lucide-react';
+import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl/mapbox';
+import circle from '@turf/circle';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@google/model-viewer';
 import { useAuth } from '../hooks/useAuth';
 import { buildingService } from '../services/buildingService';
+import { navigationService } from '../services/navigationService';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const WMSU_CENTER = { lat: 6.9122, lng: 122.0605 };
+
+const DEFAULT_CAMPUS_PERIMETER = [
+    [122.0570, 6.9092],
+    [122.0570, 6.9162],
+    [122.0655, 6.9162],
+    [122.0655, 6.9092],
+    [122.0570, 6.9092],
+];
 
 // Prevent Mapbox telemetry requests that trigger ad-blocker ERR_BLOCKED_BY_CLIENT
 try {
@@ -117,6 +127,15 @@ const LandingPage = () => {
     const { user } = useAuth();
     const [buildings, setBuildings] = useState([]);
     const [buildingsLoading, setBuildingsLoading] = useState(true);
+    const [selectedBuilding, setSelectedBuilding] = useState(null);
+    const mapRef = useRef(null);
+    const [perimeter, setPerimeter] = useState({
+        coordinates: DEFAULT_CAMPUS_PERIMETER,
+        fill_color: '#111827',
+        fill_opacity: 0.65,
+        stroke_color: '#B21830',
+        stroke_width: 2.5,
+    });
 
     // Auto-redirect to dashboard if token is active
     useEffect(() => {
@@ -125,27 +144,94 @@ const LandingPage = () => {
         }
     }, [user, navigate]);
 
-    // Fetch buildings for the Digital Twin map
+    // Fetch buildings and campus perimeter for the Digital Twin map
     useEffect(() => {
-        const fetchBuildings = async () => {
+        const fetchData = async () => {
             try {
-                const data = await buildingService.getPublicBuildings();
+                const [data, perimeterRes] = await Promise.all([
+                    buildingService.getPublicBuildings(),
+                    navigationService.getPublicPerimeter().catch(() => null),
+                ]);
                 // Filter to active, visible buildings with coordinates
-                const filtered = data.filter(b => 
-                    b.is_active && 
-                    b.status === 'VISIBLE' && 
-                    b.latitude && 
+                const filtered = data.filter(b =>
+                    b.is_active &&
+                    b.status === 'VISIBLE' &&
+                    b.latitude &&
                     b.longitude
                 );
                 setBuildings(filtered);
+                if (
+                    perimeterRes &&
+                    Array.isArray(perimeterRes.coordinates) &&
+                    perimeterRes.coordinates.length >= 3
+                ) {
+                    setPerimeter((prev) => ({ ...prev, ...perimeterRes }));
+                }
             } catch (err) {
                 console.warn('Failed to load buildings for landing page map:', err);
             } finally {
                 setBuildingsLoading(false);
             }
         };
-        fetchBuildings();
+        fetchData();
     }, []);
+
+    // Geofence circles (same green styling as the Campus Map page)
+    const circlesGeojson = useMemo(() => {
+        const features = [];
+        buildings.forEach((b) => {
+            const geofences = Array.isArray(b.geofences) ? b.geofences : [];
+            geofences.forEach((geo) => {
+                const lat = parseFloat(geo.latitude);
+                const lng = parseFloat(geo.longitude);
+                const radius = parseFloat(geo.radius_meters) || 20;
+                if (!lat || !lng) return;
+                try {
+                    const poly = circle([lng, lat], radius, {
+                        steps: 64,
+                        units: 'meters',
+                    });
+                    poly.properties = {
+                        id: geo.id,
+                        name: b.name,
+                        active: geo.is_active !== false,
+                    };
+                    features.push(poly);
+                } catch {
+                    // ignore invalid circle geometry
+                }
+            });
+        });
+        return { type: 'FeatureCollection', features };
+    }, [buildings]);
+
+    // Inverted campus mask (dark outside) + crimson dashed boundary
+    const perimeterMaskGeojson = useMemo(() => ({
+        type: 'FeatureCollection',
+        features: [{
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'Polygon',
+                coordinates: [
+                    [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]],
+                    perimeter.coordinates,
+                ],
+            },
+        }],
+    }), [perimeter.coordinates]);
+
+    const perimeterStrokeGeojson = useMemo(() => ({
+        type: 'FeatureCollection',
+        features: [{
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'LineString',
+                coordinates: perimeter.coordinates,
+            },
+        }],
+    }), [perimeter.coordinates]);
 
     return (
         <div className="min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden selection:bg-[#8A1538] selection:text-white">
@@ -223,7 +309,7 @@ const LandingPage = () => {
             {/* Infinite Marquee Ecosystem Banner */}
             <section className="border-y border-gray-100 bg-gray-50 overflow-hidden py-8">
                 <div className="flex w-[200%] animate-marquee">
-                    {/* Double the list to create the seamless infinite effect */}
+                    {/* Duplicate the list so the marquee loops without a gap */}
                     {[1, 2].map((set) => (
                         <div key={set} className="flex-1 flex justify-around items-center px-6">
                             <span className="text-gray-500 font-bold tracking-widest uppercase text-sm whitespace-nowrap">College of Computing Studies</span>
@@ -405,7 +491,7 @@ const LandingPage = () => {
                     <FadeUp>
                         <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 mb-6">The Digital Twin.</h2>
                         <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium leading-relaxed">
-                            Navigate a live 3D replica of the WMSU campus. Each marker is a real building from the system. Tap to see its name.
+                            Navigate a live 3D replica of the WMSU campus. Each marker is a real building from the system. Tap any marker to inspect its 3D model.
                         </p>
                     </FadeUp>
                 </div>
@@ -414,19 +500,75 @@ const LandingPage = () => {
                     <div className="w-full">
                         <div className="h-[60vh] md:h-[80vh] w-full bg-[#E5E7EB] border-y border-gray-300 relative group">
                             <Map
+                                ref={mapRef}
                                 mapboxAccessToken={MAPBOX_TOKEN}
                                 initialViewState={{
                                     longitude: WMSU_CENTER.lng,
                                     latitude: WMSU_CENTER.lat,
-                                    zoom: 16,
-                                    pitch: 60,
-                                    bearing: -20
+                                    zoom: 17,
+                                    pitch: 35,
+                                    bearing: 0,
                                 }}
                                 style={{ width: '100%', height: '100%' }}
-                                mapStyle="mapbox://styles/mapbox/light-v11"
+                                mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
                                 interactive={true}
                                 reuseMaps
                             >
+                                <NavigationControl position="top-right" />
+
+                                {/* Campus boundary: dark mask outside + crimson dashed outline */}
+                                <Source id="campus-perimeter-mask" type="geojson" data={perimeterMaskGeojson}>
+                                    <Layer
+                                        id="campus-mask-fill"
+                                        type="fill"
+                                        paint={{
+                                            'fill-color': perimeter.fill_color,
+                                            'fill-opacity': perimeter.fill_opacity,
+                                        }}
+                                    />
+                                </Source>
+                                <Source id="campus-perimeter-stroke" type="geojson" data={perimeterStrokeGeojson}>
+                                    <Layer
+                                        id="campus-boundary-line"
+                                        type="line"
+                                        paint={{
+                                            'line-color': perimeter.stroke_color,
+                                            'line-width': perimeter.stroke_width,
+                                            'line-dasharray': [3, 2],
+                                        }}
+                                    />
+                                </Source>
+
+                                {/* Geofence circles: green when active, gray when inactive */}
+                                <Source id="landing-geofences" type="geojson" data={circlesGeojson}>
+                                    <Layer
+                                        id="landing-geofences-fill"
+                                        type="fill"
+                                        paint={{
+                                            'fill-color': [
+                                                'case',
+                                                ['==', ['get', 'active'], true],
+                                                '#10b981',
+                                                '#6b7280',
+                                            ],
+                                            'fill-opacity': 0.22,
+                                        }}
+                                    />
+                                    <Layer
+                                        id="landing-geofences-line"
+                                        type="line"
+                                        paint={{
+                                            'line-color': [
+                                                'case',
+                                                ['==', ['get', 'active'], true],
+                                                '#10b981',
+                                                '#6b7280',
+                                            ],
+                                            'line-width': 2,
+                                        }}
+                                    />
+                                </Source>
+
                                 {buildingsLoading ? (
                                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                                         <div className="text-center">
@@ -435,57 +577,134 @@ const LandingPage = () => {
                                         </div>
                                     </div>
                                 ) : buildings.length > 0 ? (
-                                    buildings.map((building) => (
-                                        <Marker
-                                            key={building.id}
-                                            longitude={parseFloat(building.longitude)}
-                                            latitude={parseFloat(building.latitude)}
-                                        >
-                                            <div className="relative flex flex-col items-center group">
-                                                {/* Pulsing ring */}
-                                                <div className="w-14 h-14 bg-[#8A1538]/20 rounded-full absolute -top-3 animate-ping group-hover:scale-125 transition-transform duration-300"></div>
-                                                {/* Building marker */}
-                                                <div className="bg-[#8A1538] text-white px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap shadow-xl flex items-center gap-1 z-10 border-2 border-white transition-all duration-200 group-hover:scale-110">
-                                                    <Building2 size={12} />
-                                                    {building.name}
-                                                </div>
-                                                {/* Marker triangle */}
-                                                <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#8A1538]"></div>
-                                                {/* Popup on hover */}
-                                                <Popup
-                                                    latitude={parseFloat(building.latitude)}
-                                                    longitude={parseFloat(building.longitude)}
-                                                    closeButton={false}
-                                                    closeOnClick={false}
-                                                    anchor="top"
-                                                    offset={25}
-                                                    className="pointer-events-none"
+                                    buildings.map((building) => {
+                                        const lat = parseFloat(building.latitude);
+                                        const lng = parseFloat(building.longitude);
+                                        if (isNaN(lat) || isNaN(lng)) return null;
+                                        const isSelected = selectedBuilding?.id === building.id;
+
+                                        return (
+                                            <Marker
+                                                key={building.id}
+                                                longitude={lng}
+                                                latitude={lat}
+                                                anchor="bottom"
+                                            >
+                                                <div
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedBuilding(building);
+                                                        mapRef.current?.flyTo({
+                                                            center: [lng, lat],
+                                                            zoom: 18,
+                                                            duration: 800,
+                                                        });
+                                                    }}
+                                                    className="flex flex-col items-center cursor-pointer select-none group"
                                                 >
-                                                    <div className="bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-200 text-sm font-medium text-gray-800 whitespace-nowrap">
-                                                        {building.name}
-                                                        {building.primary_department && (
-                                                            <span className="text-[#8A1538] ml-2 text-xs">{building.primary_department.name}</span>
-                                                        )}
+                                                    <div
+                                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-md border text-slate-900 font-bold text-[10.5px] shadow-md tracking-tight mb-1 transition-all ${
+                                                            isSelected
+                                                                ? 'border-[#8A1538] ring-2 ring-[#8A1538]/30 shadow-lg scale-105'
+                                                                : 'border-slate-200 group-hover:border-slate-400'
+                                                        }`}
+                                                    >
+                                                        <span
+                                                            className="w-2 h-2 rounded-full shrink-0"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    building.primary_department?.color_hex ||
+                                                                    '#B21830',
+                                                            }}
+                                                        />
+                                                        <span className="truncate max-w-[130px]">
+                                                            {building.name}
+                                                        </span>
                                                     </div>
-                                                </Popup>
-                                            </div>
-                                        </Marker>
-                                    ))
+                                                    <div className="relative flex items-center justify-center">
+                                                        <div
+                                                            className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${
+                                                                isSelected
+                                                                    ? 'bg-[#8A1538] scale-125'
+                                                                    : 'bg-slate-700'
+                                                            }`}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </Marker>
+                                        );
+                                    })
                                 ) : (
                                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                                         <p className="text-gray-500 text-center px-8">No buildings configured yet.</p>
                                     </div>
                                 )}
+
                             </Map>
+
+                            {/* Selected building 3D preview panel */}
+                            {selectedBuilding && (
+                                <div className="absolute top-24 right-6 z-20 w-72 max-w-[calc(100%-3rem)] max-h-[calc(100%-7.5rem)] overflow-y-auto bg-white rounded-md shadow-xl border border-gray-200">
+                                    <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-gray-100">
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-gray-900 leading-tight truncate">
+                                                {selectedBuilding.name}
+                                            </p>
+                                            {selectedBuilding.primary_department && (
+                                                <p className="text-[#8A1538] text-[11px] font-semibold mt-0.5 truncate">
+                                                    {selectedBuilding.primary_department.name}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedBuilding(null)}
+                                            className="shrink-0 w-6 h-6 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center"
+                                            aria-label="Close preview"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+
+                                    <div className="h-52 bg-gray-900 relative">
+                                        {selectedBuilding.model_url ? (
+                                            <model-viewer
+                                                src={selectedBuilding.model_url}
+                                                alt={`3D model of ${selectedBuilding.name}`}
+                                                auto-rotate="true"
+                                                camera-controls="true"
+                                                shadow-intensity="1"
+                                                exposure="1"
+                                                style={{ width: '100%', height: '100%', backgroundColor: '#111827' }}
+                                            />
+                                        ) : (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 px-4 text-center">
+                                                <Cuboid size={28} className="mb-2 opacity-60" />
+                                                <p className="text-xs font-semibold">No 3D model available</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {selectedBuilding.description && (
+                                        <p className="px-4 py-3 text-xs text-gray-500 leading-snug max-h-20 overflow-y-auto">
+                                            {selectedBuilding.description}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                             
                             {/* Map UI Overlay */}
-                            <div className="absolute bottom-6 right-6 flex flex-col gap-2">
-                                <div className="w-10 h-10 bg-white border border-gray-200 shadow-sm rounded-md flex items-center justify-center font-bold text-gray-600 hover:bg-gray-50 cursor-pointer" title="Zoom in">+</div>
-                                <div className="w-10 h-10 bg-white border border-gray-200 shadow-sm rounded-md flex items-center justify-center font-bold text-gray-600 hover:bg-gray-50 cursor-pointer" title="Zoom out">-</div>
-                            </div>
                             <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-sm border border-gray-200 px-4 py-2 rounded-md shadow-sm font-bold text-sm text-gray-800">
                                 <Building2 size={14} className="inline-block mr-1 -mt-0.5 text-[#8A1538]" />
                                 {buildings.length} buildings loaded
+                            </div>
+                            <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm border border-gray-200 px-3 py-2 rounded-md shadow-sm text-[11px] font-semibold text-gray-700 flex items-center gap-3">
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" /> Active geofence
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-[#6b7280]" /> Inactive
+                                </span>
                             </div>
                         </div>
                     </div>
