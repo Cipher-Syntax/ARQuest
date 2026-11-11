@@ -25,7 +25,7 @@ import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService, assetService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
-import ARCompassOverlay from "../../components/ar/ARCompassOverlay";
+import ARCenterCompass from "../../components/ar/ARCenterCompass";
 import ARTurnIndicator from "../../components/ar/ARTurnIndicator";
 import ARUnsupportedModal from "../../components/ar/ARUnsupportedModal";
 import ARArrivalModal from "../../components/ar/ARArrivalModal";
@@ -586,7 +586,6 @@ export default function ARScreen() {
         }
     }, [activeTargetId]);
 
-    let arrowAngle = 0;
     let distanceToTarget = null;
     let turnDirection = null; // 'left' | 'right' | 'around' | 'ahead'
     const curLat = location?.latitude ?? location?.coords?.latitude;
@@ -775,32 +774,47 @@ export default function ARScreen() {
         arrivalModalAnim.setValue(0);
     };
 
+    // Center compass arrow: a relative bearing that is rendered for as long as
+    // a target is active. It is intentionally NOT gated by the arrival latch or
+    // a heading sample, so GPS drift or a dropped sensor update can never make
+    // the arrow blink off. The heading source already filters jitter (>=2 deg,
+    // 120 ms), so the angle can be derived during render without smoothing.
+    // Turn prompts (left/right/around) stay separate and keep their old rules.
+    let arrowAngle = null;
+
+    if (navTargetFull && navUserLat != null && navUserLng != null && heading != null) {
+        const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
+        const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
+
+        if (targetLat != null && targetLng != null) {
+            const bearing = getBearing(navUserLat, navUserLng, targetLat, targetLng);
+            arrowAngle = (bearing - heading + 360) % 360;
+        }
+    }
+
+    // Turn prompts are independent of the arrow, so TURN LEFT / TURN RIGHT /
+    // TURN AROUND still appear when the target is outside the camera view.
     if (navTargetFull && navUserLat && navUserLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
         const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
 
-        const bearing = getBearing(
-            navUserLat,
-            navUserLng,
-            targetLat,
-            targetLng
-        );
-        arrowAngle = (bearing - heading + 360) % 360;
-        let diff = (bearing - heading + 360) % 360;
-        if (diff > 180) diff -= 360;
+        if (targetLat !== null && targetLat !== undefined && targetLng !== null && targetLng !== undefined) {
+            const bearing = getBearing(navUserLat, navUserLng, targetLat, targetLng);
+            let diff = (bearing - heading + 360) % 360;
+            if (diff > 180) diff -= 360;
 
-        // Camera FOV is ~75° (±37.5°). The 3D arrow is visible within ±45°.
-        // Only show turn indicators when the target is genuinely off-screen (|diff| > 45°).
-        // Display "TURN AROUND" when the target is behind the user (|diff| > 135°),
-        // preventing rapid left/right oscillation from compass micro-jitter.
-        if (Math.abs(diff) > 135) {
-            turnDirection = 'around';
-        } else if (diff < -45) {
-            turnDirection = 'left';
-        } else if (diff > 45) {
-            turnDirection = 'right';
-        } else {
-            turnDirection = 'ahead'; // Visible inside camera view!
+            // Camera FOV is ~75° (±37.5°). The 3D arrow is visible within ±45°.
+            // Only show turn indicators when the target is genuinely off-screen.
+            // Display "TURN AROUND" when the target is behind the user.
+            if (Math.abs(diff) > 135) {
+                turnDirection = "around";
+            } else if (diff < -45) {
+                turnDirection = "left";
+            } else if (diff > 45) {
+                turnDirection = "right";
+            } else {
+                turnDirection = "ahead";
+            }
         }
     }
 
@@ -1498,10 +1512,11 @@ export default function ARScreen() {
                     />
                 )}
 
-                {/* 4. Persistent Compass Navigation Overlay */}
-                {/* Positioned in top-right corner below the white header background */}
-                {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && heading !== null && heading !== undefined && (arrowAngle !== null) && (
-                    <ARCompassOverlay
+                {/* 4. Persistent Center Compass Arrow */}
+                {/* Always mounted while a target is active: no arrival latch, */}
+                {/* heading gap, or GPS drift can make it blink off. */}
+                {navTargetFull && !isScanningQr && !capturing && !triviaModalVisible && (
+                    <ARCenterCompass
                         arrowAngle={arrowAngle}
                         distanceToTarget={distanceToTarget}
                     />
