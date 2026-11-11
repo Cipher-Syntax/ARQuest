@@ -25,7 +25,6 @@ import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService, assetService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
-import ARCenterCompass from "../../components/ar/ARCenterCompass";
 import ARTurnIndicator from "../../components/ar/ARTurnIndicator";
 import ARUnsupportedModal from "../../components/ar/ARUnsupportedModal";
 import ARArrivalModal from "../../components/ar/ARArrivalModal";
@@ -774,26 +773,9 @@ export default function ARScreen() {
         arrivalModalAnim.setValue(0);
     };
 
-    // Center compass arrow: a relative bearing that is rendered for as long as
-    // a target is active. It is intentionally NOT gated by the arrival latch or
-    // a heading sample, so GPS drift or a dropped sensor update can never make
-    // the arrow blink off. The heading source already filters jitter (>=2 deg,
-    // 120 ms), so the angle can be derived during render without smoothing.
-    // Turn prompts (left/right/around) stay separate and keep their old rules.
-    let arrowAngle = null;
-
-    if (navTargetFull && navUserLat != null && navUserLng != null && heading != null) {
-        const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
-        const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
-
-        if (targetLat != null && targetLng != null) {
-            const bearing = getBearing(navUserLat, navUserLng, targetLat, targetLng);
-            arrowAngle = (bearing - heading + 360) % 360;
-        }
-    }
-
-    // Turn prompts are independent of the arrow, so TURN LEFT / TURN RIGHT /
-    // TURN AROUND still appear when the target is outside the camera view.
+    // Turn prompts: TURN LEFT / TURN RIGHT / TURN AROUND are driven by the same
+    // relative bearing and keep their original thresholds. They stay independent
+    // of the in-world ground compass and hidden once the user has arrived.
     if (navTargetFull && navUserLat && navUserLng && heading !== undefined && heading !== null && !isArrived) {
         const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
         const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
@@ -1509,16 +1491,6 @@ export default function ARScreen() {
                     <ARTurnIndicator
                         turnDirection={turnDirection}
                         pulseAnim={ribbonPulseAnim}
-                    />
-                )}
-
-                {/* 4. Persistent Center Compass Arrow */}
-                {/* Always mounted while a target is active: no arrival latch, */}
-                {/* heading gap, or GPS drift can make it blink off. */}
-                {navTargetFull && !isScanningQr && !capturing && !triviaModalVisible && (
-                    <ARCenterCompass
-                        arrowAngle={arrowAngle}
-                        distanceToTarget={distanceToTarget}
                     />
                 )}
 

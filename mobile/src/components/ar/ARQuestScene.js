@@ -310,17 +310,18 @@ export default function ARQuestScene(props) {
                     }}
                 >
                     {/*
-                     * PEDESTRIAN DASHED WALKING ARROW
+                     * GROUND COMPASS MARK
                      *
-                     * Compact human-scale broken arrow with dashed walking path
-                     * and aerodynamic chevron head (Google Maps walking style).
-                     * WMSU Crimson core with Gold outline and ambient ground shadow.
+                     * Fixed crimson ring with a solid navigation arrow, taken
+                     * from the reference mark. The node above rotates it to the
+                     * target bearing, so the arrow always points the way to walk
+                     * while the ring reads as a dial on the pavement.
                      */}
                     <ViroImage
-                        source={require('../../../assets/images/nav-walking-dashed-arrow.png')}
+                        source={require('../../../assets/images/nav-compass-arrow.png')}
                         rotation={[-90, 0, 0]}
-                        width={0.45}
-                        height={0.90}
+                        width={0.85}
+                        height={0.85}
                         position={[0, 0, 0]}
                         format="RGBA8"
                     />
