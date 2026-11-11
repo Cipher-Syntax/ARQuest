@@ -1,64 +1,61 @@
 import React from "react";
-import { Animated, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Animated, Text, View } from "react-native";
 
+import ARCompassBadge from "./ARCompassBadge";
 import { styles } from "./arStyles";
 
 /**
- * Pulsing directional prompts shown at walking-turn moments.
- * Renders nothing when there is no active turn.
+ * Directional prompts shown at walking-turn moments, drawn as compass badges.
+ *
+ * Left and right sit against the screen edges and the around badge is centered,
+ * all using the same ring + arrow mark as the ground compass, rotated to the
+ * direction the user has to walk. Renders nothing when there is no active turn.
  */
+
+const TURN_CONFIG = {
+    left: {
+        rotation: -90,
+        label: "TURN LEFT",
+        container: styles.turnArrowLeft,
+    },
+    right: {
+        rotation: 90,
+        label: "TURN RIGHT",
+        container: styles.turnArrowRight,
+    },
+    around: {
+        rotation: 180,
+        label: "TURN AROUND",
+        container: styles.turnArrowAround,
+    },
+};
+
 export default function ARTurnIndicator({ turnDirection, pulseAnim }) {
-    if (
-        turnDirection !== "around" &&
-        turnDirection !== "left" &&
-        turnDirection !== "right"
-    ) {
+    const config = TURN_CONFIG[turnDirection];
+
+    if (!config) {
         return null;
     }
 
-    const pulseBorderColor = pulseAnim.interpolate({
+    // Badge gently swells with the same pulse the rest of the HUD uses, and a
+    // thin halo breathes with it so the prompt still reads as alive.
+    const scale = pulseAnim.interpolate({
         inputRange: [0.2, 1],
-        outputRange: ["rgba(255,255,255,0.2)", "rgba(255,255,255,0.85)"],
+        outputRange: [0.94, 1.06],
+    });
+    const haloOpacity = pulseAnim.interpolate({
+        inputRange: [0.2, 1],
+        outputRange: [0.2, 0.8],
     });
 
-    if (turnDirection === "around") {
-        return (
-            <Animated.View
-                style={[styles.turnIndicatorAround, { borderColor: pulseBorderColor }]}
-                pointerEvents="none"
-            >
-                <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.turnIndicatorText}>TURN AROUND</Text>
-            </Animated.View>
-        );
-    }
-
-    if (turnDirection === "left") {
-        return (
-            <Animated.View
-                style={[styles.turnIndicatorLeft, { borderColor: pulseBorderColor }]}
-                pointerEvents="none"
-            >
-                <Animated.View style={{ opacity: pulseAnim }}>
-                    <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
-                </Animated.View>
-                <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
-                <Text style={styles.turnIndicatorText}>TURN LEFT</Text>
-            </Animated.View>
-        );
-    }
-
     return (
-        <Animated.View
-            style={[styles.turnIndicatorRight, { borderColor: pulseBorderColor }]}
-            pointerEvents="none"
-        >
-            <Text style={styles.turnIndicatorText}>TURN RIGHT</Text>
-            <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
-            <Animated.View style={{ opacity: pulseAnim }}>
-                <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+        <View pointerEvents="none" style={config.container}>
+            <Animated.View style={[styles.turnArrowDisc, { transform: [{ scale }] }]}>
+                <Animated.View style={[styles.turnArrowHalo, { opacity: haloOpacity }]} />
+                <ARCompassBadge rotation={config.rotation} size={62} />
             </Animated.View>
-        </Animated.View>
+
+            <Text style={styles.turnArrowLabel}>{config.label}</Text>
+        </View>
     );
 }
