@@ -129,3 +129,89 @@ button,
     cursor: pointer;
 }
 
+/* --- Reports and Analytics print layout --- */
+
+.print-only {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    html,
+    body {
+        height: auto !important;
+        background: #ffffff !important;
+    }
+
+    .app-shell {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .app-shell > aside,
+    .app-shell > div > header {
+        display: none !important;
+    }
+
+    .app-main {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .app-main > div {
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    /* Only the generated report is printed, not the page controls. */
+    .reports-page > *:not(.report-print-area) {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    .print-hidden {
+        display: none !important;
+    }
+
+    .report-print-area {
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    .report-print-scroll {
+        max-height: none !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+    }
+
+    .report-print-table {
+        font-size: 9px !important;
+    }
+
+    .report-print-table thead {
+        display: table-header-group;
+    }
+
+    .report-print-table tr {
+        break-inside: avoid;
+    }
+
+    .report-chart {
+        break-inside: avoid;
+    }
+
+    .report-print-table th,
+    .report-print-table td {
+        padding: 3px 5px !important;
+    }
+}
+

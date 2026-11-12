@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, X, Trash2 } from "lucide-react";
+import { Search, Plus, X, Trash2, Eye } from "lucide-react";
 import { Card, Badge, Button, Pagination, ConfirmDeleteModal } from "../components/ui";
 import { userService } from "../services/userService";
 import { getAvatarUri, getProfileImageUrl } from "../utils/avatarUtils";
@@ -149,7 +149,7 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                First Name
+                                First Name <span className="text-gray-400 font-normal lowercase">(optional)</span>
                             </label>
                             <input
                                 type="text"
@@ -162,7 +162,7 @@ function CreateProfessionalModal({ isOpen, onClose, onSuccess }) {
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Last Name
+                                Last Name <span className="text-gray-400 font-normal lowercase">(optional)</span>
                             </label>
                             <input
                                 type="text"
@@ -411,13 +411,22 @@ export default function ProfessionalsPage({ hideHeader }) {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button
-                                                onClick={() => handleDeleteClick(user.id)}
-                                                className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-md hover:bg-red-50"
-                                                title="Delete Account"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => {}}
+                                                    className="p-2 text-gray-400 hover:text-brand transition-colors rounded-md hover:bg-brand-light/50"
+                                                    title="View Account"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(user.id)}
+                                                    className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-md hover:bg-red-50"
+                                                    title="Delete Account"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

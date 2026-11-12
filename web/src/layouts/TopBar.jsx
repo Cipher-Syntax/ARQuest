@@ -18,6 +18,7 @@ import {
     Box,
     Trash2,
     X,
+    FileBarChart,
 } from "lucide-react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import NotificationDropdown from "../components/layout/NotificationDropdown";
@@ -34,6 +35,7 @@ const APP_PAGES = [
     { title: "User Management", path: "/users", icon: Users, category: "Pages", keywords: "accounts students admins roles permissions" },
     { title: "Content CMS", path: "/cms", icon: FileText, category: "Pages", keywords: "content trivia facts quests articles" },
     { title: "User Feedback", path: "/feedback", icon: MessageSquare, category: "Pages", keywords: "reports issues bugs suggestions" },
+    { title: "Reports and Analytics", path: "/reports", icon: FileBarChart, category: "Pages", keywords: "reports analytics export csv print institutional statistics" },
     { title: "Audit History", path: "/history", icon: History, category: "Pages", keywords: "logs activity audits changes tracking" },
     { title: "3D Model Compressor", path: "/compressor", icon: Box, category: "Tools", keywords: "glb gltf 3d optimize draco compression" },
     { title: "Recycle Bin", path: "/recycle-bin", icon: Trash2, category: "Tools", keywords: "deleted archives trash restore" },

@@ -840,15 +840,13 @@ export default function LeaderboardPage({ hideHeader }) {
                     </table>
                 </div>
 
-                {totalPages > 1 && (
-                    <div className="p-4 border-t border-brand-border">
+                <div className="p-4 border-t border-brand-border">
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={setCurrentPage}
                         />
                     </div>
-                )}
             </Card>
 
             {/* Student Profile Detail Modal */}

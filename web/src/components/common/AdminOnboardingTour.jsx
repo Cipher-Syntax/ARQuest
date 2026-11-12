@@ -33,7 +33,7 @@ const TOUR_STEPS = [
         badge: "SYSTEM OVERVIEW",
         badgeColor: "bg-red-50 text-brand border-brand/30",
         icon: Compass,
-        title: "Welcome to ARQuest Admin",
+        title: "Welcome to ARQuest",
         subtitle: "Campus Navigation & Digital Twin Operating System",
         justineMood: "WAVING 👋",
         justineSpeech:
@@ -677,11 +677,10 @@ export default function AdminOnboardingTour() {
                                     type="button"
                                     onClick={() => setCurrentStep(i)}
                                     title={`Go to step ${i + 1}`}
-                                    className={`rounded-sm transition-all duration-200 ${
-                                        i === currentStep
+                                    className={`rounded-sm transition-all duration-200 ${i === currentStep
                                             ? "w-5 h-1.5 bg-brand"
                                             : "w-1.5 h-1.5 bg-gray-300 hover:bg-gray-400"
-                                    }`}
+                                        }`}
                                 />
                             ))}
                         </div>

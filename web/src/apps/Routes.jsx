@@ -16,6 +16,7 @@ import HistoryPage from "../pages/HistoryPage";
 import ModelCompressorPage from "../pages/ModelCompressorPage";
 import CampusMapPage from "../pages/CampusMapPage";
 import UserManagementPage from "../pages/UserManagementPage";
+import ReportsPage from "../pages/ReportsPage";
 import NotFound from "../pages/NotFound";
 
 const AppRoutes = () => {
@@ -45,6 +46,7 @@ const AppRoutes = () => {
                 <Route path="cms" element={<CmsPage />} />
                 <Route path="users" element={<UserManagementPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="reports" element={<ReportsPage />} />
                 <Route path="recycle-bin" element={<RecycleBinPage />} />
                 <Route path="feedback" element={<FeedbackPage />} />
                 <Route path="history" element={<HistoryPage />} />

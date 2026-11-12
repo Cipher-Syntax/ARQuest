@@ -36,7 +36,7 @@ export default function AppLayout() {
     }, [loadSettings]);
 
     return (
-        <div className="flex h-screen overflow-hidden bg-gray-50">
+        <div className="app-shell flex h-screen overflow-hidden bg-gray-50">
             <Sidebar />
             <div className="flex-1 flex flex-col min-w-0">
                 {settings.maintenance_mode && settings.demo_mode ? (
@@ -62,7 +62,7 @@ export default function AppLayout() {
                     </div>
                 ) : null}
                 <TopBar user={user} />
-                <main className="flex-1 overflow-y-auto">
+                <main className="app-main flex-1 overflow-y-auto">
                     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
                         <Outlet />
                     </div>

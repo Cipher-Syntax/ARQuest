@@ -162,7 +162,6 @@ class Geofence(models.Model):
 class BuildingUnlock(models.Model):
     SOURCE_CHOICES = [
         ('geofence', 'Geofence'),
-        ('admin', 'Admin'),
         ('role_access', 'Role Access'),
         ('qr', 'QR Scan'),
     ]

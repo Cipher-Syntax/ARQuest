@@ -17,6 +17,7 @@ import {
     ChevronDown,
     ChevronUp,
     Box,
+    FileBarChart,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -49,6 +50,11 @@ const NAV_GROUPS = [
     {
         label: "System & Admin",
         items: [
+            {
+                to: "/reports",
+                icon: FileBarChart,
+                label: "Reports and Analytics",
+            },
             { to: "/feedback", icon: HelpCircle, label: "Feedback & Issues" },
             { to: "/history", icon: Activity, label: "History & Logs" },
             { to: "/recycle-bin", icon: Trash2, label: "Recycle Bin" },

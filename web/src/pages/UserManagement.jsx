@@ -25,7 +25,7 @@ export default function UserManagement({ hideHeader }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [roleFilter, setRoleFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
+    const itemsPerPage = 10;
 
     // Create Account Modal State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -487,15 +487,13 @@ export default function UserManagement({ hideHeader }) {
                             </table>
                         </div>
 
-                        {totalPages > 1 && (
-                            <div className="p-4 border-t border-brand-border">
+                        <div className="p-4 border-t border-brand-border">
                                 <Pagination
                                     currentPage={currentPage}
                                     totalPages={totalPages}
                                     onPageChange={setCurrentPage}
                                 />
                             </div>
-                        )}
                     </>
                 )}
             </Card>
@@ -599,7 +597,7 @@ export default function UserManagement({ hideHeader }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                First Name
+                                First Name <span className="text-gray-400 font-normal lowercase">(optional)</span>
                             </label>
                             <input
                                 type="text"
@@ -613,7 +611,7 @@ export default function UserManagement({ hideHeader }) {
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                Last Name
+                                Last Name <span className="text-gray-400 font-normal lowercase">(optional)</span>
                             </label>
                             <input
                                 type="text"
@@ -697,7 +695,6 @@ export default function UserManagement({ hideHeader }) {
                             >
                                 <option value="student">Student (Campus Explorer)</option>
                                 <option value="professional">Visitor (Campus Partner / VIP)</option>
-                                <option value="visitor">Guest (Public Visitor)</option>
                                 <option value="admin">Administrator (Full Dashboard Access)</option>
                             </select>
                             <ChevronDown
