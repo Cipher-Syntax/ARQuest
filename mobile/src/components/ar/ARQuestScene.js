@@ -52,6 +52,178 @@ function calculateTargetRelative(userLat, userLng, targetLat, targetLng, userHea
     return { angle, distance, bearing };
 }
 
+/**
+ * Horizontal forward vector (XZ plane) from Viro's camera quaternion [x, y, z, w].
+ * Rotating (0, 0, -1) by the quaternion and projecting onto the ground gives the
+ * direction the user is actually looking, which is where the arrived model should
+ * sit so it follows the camera instead of a fixed compass bearing.
+ */
+function getHorizontalForward(rotation) {
+    if (!rotation || rotation.length < 4) return { x: 0, z: -1 };
+    const [qx, qy, qz, qw] = rotation;
+    const fx = -2 * (qw * qy + qx * qz);
+    const fz = 2 * (qx * qx + qy * qy) - 1;
+    const len = Math.hypot(fx, fz);
+    if (len < 0.0001) return { x: 0, z: -1 };
+    return { x: fx / len, z: fz / len };
+}
+
+// ==== Arrived beacon =========================================================
+// Stable, module-level props. Viro reloads a Viro3DObject whenever its `source`
+// object identity changes, and the arrived anchor is repositioned several times
+// per second while the user walks. Reusing the same constants and the same
+// memoized element keeps the GLB mounted instead of unload/reload, which is what
+// made the model blink out and come back on every step.
+const ORIGIN = [0, 0, 0];
+const ARRIVED_MODEL_SCALE = [0.038, 0.038, 0.038];
+const ARRIVED_MODEL_ANIMATION = { name: 'rotateModel', run: true, loop: true };
+const MODEL_NAME_SCALE = [0.42, 0.42, 0.42];
+const MODEL_STATUS_SCALE = [0.28, 0.28, 0.28];
+const MODEL_NOTE_SCALE = [0.22, 0.22, 0.22];
+const MODEL_ERROR_SCALE = [0.20, 0.20, 0.20];
+const OUTER_RING_POINTS = [
+    [0, 0, 0.6],
+    [0.42, 0, 0.42],
+    [0.6, 0, 0],
+    [0.42, 0, -0.42],
+    [0, 0, -0.6],
+    [-0.42, 0, -0.42],
+    [-0.6, 0, 0],
+    [-0.42, 0, 0.42],
+    [0, 0, 0.6],
+];
+const INNER_RING_POINTS = [
+    [0, 0, 0.4],
+    [0.28, 0, 0.28],
+    [0.4, 0, 0],
+    [0.28, 0, -0.28],
+    [0, 0, -0.4],
+    [-0.28, 0, -0.28],
+    [-0.4, 0, 0],
+    [-0.28, 0, 0.28],
+    [0, 0, 0.4],
+];
+
+/**
+ * Arrived pedestal, name, status and GLB. Memoized so the camera-following
+ * re-renders of the parent node only move it, never rebuild it.
+ */
+const ArrivedBeacon = React.memo(function ArrivedBeacon({
+    buildingName,
+    modelUri,
+    isLoading,
+    isUnavailable,
+    onModelLoadStart,
+    onModelLoadEnd,
+    onModelError,
+}) {
+    const modelSource = useMemo(() => ({ uri: modelUri }), [modelUri]);
+
+    return (
+        <>
+            <ViroText
+                text={buildingName || 'Destination'}
+                width={5}
+                height={1}
+                scale={MODEL_NAME_SCALE}
+                position={[0, 1.30, 0]}
+                style={{
+                    fontFamily: 'Arial',
+                    fontSize: 26,
+                    fontWeight: 'bold',
+                    color: '#B21830',
+                    textAlign: 'center',
+                    textAlignVertical: 'center',
+                }}
+                materials={['glowArrow']}
+            />
+
+            <ViroText
+                text="📍 YOU HAVE ARRIVED"
+                width={5}
+                height={0.8}
+                scale={MODEL_STATUS_SCALE}
+                position={[0, 1.05, 0]}
+                style={{
+                    fontFamily: 'Arial',
+                    fontSize: 22,
+                    fontWeight: 'bold',
+                    color: '#E8B923',
+                    textAlign: 'center',
+                    textAlignVertical: 'center',
+                }}
+                materials={['glowArrowGold']}
+            />
+
+            <ViroPolyline
+                position={ORIGIN}
+                points={OUTER_RING_POINTS}
+                thickness={0.03}
+                materials={['glowArrow']}
+            />
+
+            <ViroPolyline
+                position={ORIGIN}
+                points={INNER_RING_POINTS}
+                thickness={0.025}
+                materials={['glowArrowGold']}
+            />
+
+            {modelUri && !isUnavailable && (
+                <ViroNode position={ORIGIN} animation={ARRIVED_MODEL_ANIMATION}>
+                    <Viro3DObject
+                        source={modelSource}
+                        position={ORIGIN}
+                        scale={ARRIVED_MODEL_SCALE}
+                        type="GLB"
+                        onLoadStart={onModelLoadStart}
+                        onLoadEnd={onModelLoadEnd}
+                        onError={onModelError}
+                    />
+                </ViroNode>
+            )}
+
+            {modelUri && isLoading && !isUnavailable && (
+                <ViroText
+                    text="Loading 3D Model..."
+                    width={4}
+                    height={0.5}
+                    scale={MODEL_NOTE_SCALE}
+                    position={[0, 0.35, 0]}
+                    style={{
+                        fontFamily: 'Arial',
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        color: '#E8B923',
+                        textAlign: 'center',
+                        textAlignVertical: 'center',
+                    }}
+                    materials={['goldTextMaterial']}
+                />
+            )}
+
+            {isUnavailable && (
+                <ViroText
+                    text="3D Model Unavailable"
+                    width={4}
+                    height={0.5}
+                    scale={MODEL_ERROR_SCALE}
+                    position={[0, 0.35, 0]}
+                    style={{
+                        fontFamily: 'Arial',
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: '#B21830',
+                        textAlign: 'center',
+                        textAlignVertical: 'center',
+                    }}
+                    materials={['textMaterial']}
+                />
+            )}
+        </>
+    );
+});
+
 export default function ARQuestScene(props) {
     const { sceneNavigator } = props;
     const {
@@ -120,6 +292,9 @@ export default function ARQuestScene(props) {
     const lastAngleRef = useRef(0);
     const lastAnchorPosRef = useRef([0, 0, 0]);
     const lastRecomputeTimeRef = useRef(0);
+    // Last horizontal camera-forward vector, used to detect turning so the
+    // arrived model can stay in front of the user's view.
+    const lastForwardRef = useRef([0, -1]);
     // Ref so onCameraTransformUpdate (a memoized callback) can read hasArrived without stale closure
     const hasArrivedRef = useRef(false);
 
@@ -164,11 +339,11 @@ export default function ARQuestScene(props) {
     useEffect(() => {
         if (hasArrived) {
             const [cx, cy, cz] = cameraPositionRef.current;
-            const rad = (lastAngleRef.current * Math.PI) / 180;
+            const [fx, fz] = lastForwardRef.current;
             setArrivedModelPosition([
-                cx + 2.6 * Math.sin(rad),
+                cx + 2.6 * fx,
                 cy - 0.60,
-                cz - 2.6 * Math.cos(rad),
+                cz + 2.6 * fz,
             ]);
         }
     }, [hasArrived]);
@@ -225,19 +400,30 @@ export default function ARQuestScene(props) {
         const [lx, ly, lz] = lastAnchorPosRef.current;
         const distSq = (pos[0] - lx) ** 2 + (pos[1] - ly) ** 2 + (pos[2] - lz) ** 2;
 
-        // Recompute if user physically walked >= 24cm or 800ms elapsed
-        if (distSq >= 0.06 || timeDelta >= 800) {
+        // Camera yaw, so the arrived model can follow the view direction.
+        const forward = getHorizontalForward(camTransform?.cameraTransform?.rotation);
+        const [lfx, lfz] = lastForwardRef.current;
+        const viewDot = forward.x * lfx + forward.z * lfz;
+        const turned = viewDot < 0.985; // ~10 degrees of yaw change
+
+        // Recompute if the user physically walked >= 24cm, turned >= 10deg,
+        // or 800ms elapsed (whichever comes first).
+        if (distSq >= 0.06 || turned || timeDelta >= 800) {
             lastRecomputeTimeRef.current = now;
             lastAnchorPosRef.current = [pos[0], pos[1], pos[2]];
-            recomputeNavPositions(lastAngleRef.current, pos);
-            // When arrived: keep the 3D model floating in front of the camera as the user walks
+            lastForwardRef.current = [forward.x, forward.z];
+
             if (hasArrivedRef.current) {
-                const rad = (lastAngleRef.current * Math.PI) / 180;
+                // Keep the arrived model directly in front of the camera, so
+                // turning around does not hide it. The model stays planted in
+                // world space and only re-anchors when the view really changes.
                 setArrivedModelPosition([
-                    pos[0] + 2.6 * Math.sin(rad),
+                    pos[0] + 2.6 * forward.x,
                     pos[1] - 0.60,
-                    pos[2] - 2.6 * Math.cos(rad),
+                    pos[2] + 2.6 * forward.z,
                 ]);
+            } else {
+                recomputeNavPositions(lastAngleRef.current, pos);
             }
         }
     }, [recomputeNavPositions]);
@@ -276,6 +462,36 @@ export default function ARQuestScene(props) {
             }
         }
     }, [userLat, userLng, userHeading, targetLat, targetLng, effectiveLat, effectiveLng, isArrived, recomputeNavPositions]);
+
+    // Stable handlers for the memoized arrived beacon. Recreating these on every
+    // camera frame would change the props identity, defeat React.memo and make
+    // the GLB reload (blink) again.
+    const handleModelLoadStart = useCallback(() => {
+        console.log('[ARQuestScene] Loading 3D model:', sceneModelUri);
+    }, [sceneModelUri]);
+
+    const handleModelLoadEnd = useCallback(() => {
+        console.log('[ARQuestScene] 3D Model loaded successfully');
+        setModelLoaded(true);
+    }, []);
+
+    const handleModelErrorEvent = useCallback((e) => {
+        console.warn(
+            '[ARQuestScene] AR Model native load failed:',
+            e?.nativeEvent?.error || 'Failed to load model'
+        );
+        // A cached file:// path may be unsupported by the native renderer;
+        // retry once with the network URL, otherwise fall back to the text.
+        if (modelFallbackUrl && sceneModelUri !== modelFallbackUrl) {
+            setSourceOverride({
+                forUrl: effectiveModelUrl,
+                uri: modelFallbackUrl,
+            });
+            setModelLoaded(false);
+            return;
+        }
+        setModelError(true);
+    }, [modelFallbackUrl, sceneModelUri, effectiveModelUrl]);
 
     return (
         <ViroARScene onCameraTransformUpdate={onCameraTransformUpdate}>
@@ -380,161 +596,17 @@ export default function ARQuestScene(props) {
             */}
             {hasArrived && (
                 <ViroNode position={arrivedModelPosition}>
-                    {/* Header: Building Name (Hovering clearly above the building) */}
-                    <ViroText
-                        text={effectiveBuildingName || 'Destination'}
-                        width={5}
-                        height={1}
-                        scale={[0.42, 0.42, 0.42]}
-                        position={[0, 1.30, 0]}
-                        style={{
-                            fontFamily: 'Arial',
-                            fontSize: 26,
-                            fontWeight: 'bold',
-                            color: '#B21830',
-                            textAlign: 'center',
-                            textAlignVertical: 'center',
-                        }}
-                        materials={['glowArrow']}
+                    <ArrivedBeacon
+                        buildingName={effectiveBuildingName}
+                        modelUri={sceneModelUri}
+                        isLoading={
+                            Boolean(sceneModelUri) && !modelLoaded && !modelError
+                        }
+                        isUnavailable={modelError}
+                        onModelLoadStart={handleModelLoadStart}
+                        onModelLoadEnd={handleModelLoadEnd}
+                        onModelError={handleModelErrorEvent}
                     />
-
-                    {/* Subtitle: Arrived Status Badge */}
-                    <ViroText
-                        text="📍 YOU HAVE ARRIVED"
-                        width={5}
-                        height={0.8}
-                        scale={[0.28, 0.28, 0.28]}
-                        position={[0, 1.05, 0]}
-                        style={{
-                            fontFamily: 'Arial',
-                            fontSize: 22,
-                            fontWeight: 'bold',
-                            color: '#E8B923',
-                            textAlign: 'center',
-                            textAlignVertical: 'center',
-                        }}
-                        materials={['glowArrowGold']}
-                    />
-
-                    {/* Concentric Ground Rings Pedestal (Anchor base on the ground) */}
-                    {/* Outer Ground Ring (Crimson) */}
-                    <ViroPolyline
-                        position={[0, 0, 0]}
-                        points={[
-                            [0, 0, 0.6],
-                            [0.42, 0, 0.42],
-                            [0.6, 0, 0],
-                            [0.42, 0, -0.42],
-                            [0, 0, -0.6],
-                            [-0.42, 0, -0.42],
-                            [-0.6, 0, 0],
-                            [-0.42, 0, 0.42],
-                            [0, 0, 0.6],
-                        ]}
-                        thickness={0.03}
-                        materials={['glowArrow']}
-                    />
-
-                    {/* Inner Ground Ring (Gold) */}
-                    <ViroPolyline
-                        position={[0, 0, 0]}
-                        points={[
-                            [0, 0, 0.4],
-                            [0.28, 0, 0.28],
-                            [0.4, 0, 0],
-                            [0.28, 0, -0.28],
-                            [0, 0, -0.4],
-                            [-0.28, 0, -0.28],
-                            [-0.4, 0, 0],
-                            [-0.28, 0, 0.28],
-                            [0, 0, 0.4],
-                        ]}
-                        thickness={0.025}
-                        materials={['glowArrowGold']}
-                    />
-
-                    {/* 3D Building Model (Smooth 360° turntable rotation on top of concentric ground rings) */}
-                    {sceneModelUri && !modelError && (
-                        <ViroNode
-                            position={[0, 0, 0]}
-                            animation={{
-                                name: 'rotateModel',
-                                run: modelLoaded,
-                                loop: true,
-                            }}
-                        >
-                            <Viro3DObject
-                                source={{ uri: sceneModelUri }}
-                                position={[0, 0, 0]}
-                                scale={[0.038, 0.038, 0.038]}
-                                type="GLB"
-                                onLoadStart={() => {
-                                    console.log('[ARQuestScene] Loading 3D model:', sceneModelUri);
-                                }}
-                                onLoadEnd={() => {
-                                    console.log('[ARQuestScene] 3D Model loaded successfully');
-                                    setModelLoaded(true);
-                                }}
-                                onError={(e) => {
-                                    console.warn('[ARQuestScene] AR Model native load failed:', e?.nativeEvent?.error || 'Failed to load model');
-                                    // A cached file:// path may be unsupported by the native
-                                    // renderer; retry once with the network URL.
-                                    if (
-                                        modelFallbackUrl &&
-                                        sceneModelUri !== modelFallbackUrl
-                                    ) {
-                                        setSourceOverride({
-                                            forUrl: effectiveModelUrl,
-                                            uri: modelFallbackUrl,
-                                        });
-                                        setModelLoaded(false);
-                                        return;
-                                    }
-                                    setModelError(true);
-                                }}
-                            />
-                        </ViroNode>
-                    )}
-
-                    {/* While 3D model is loading, show clean gold status text floating above the ground rings */}
-                    {sceneModelUri && !modelLoaded && !modelError && (
-                        <ViroText
-                            text="Loading 3D Model..."
-                            width={4}
-                            height={0.5}
-                            scale={[0.22, 0.22, 0.22]}
-                            position={[0, 0.35, 0]}
-                            style={{
-                                fontFamily: 'Arial',
-                                fontSize: 18,
-                                fontWeight: 'bold',
-                                color: '#E8B923',
-                                textAlign: 'center',
-                                textAlignVertical: 'center',
-                            }}
-                            materials={['goldTextMaterial']}
-                        />
-                    )}
-
-                    {/* Fallback text if 3D model fails to decode */}
-                    {modelError && (
-                        <ViroText
-                            text="3D Model Unavailable"
-                            width={4}
-                            height={0.5}
-                            scale={[0.20, 0.20, 0.20]}
-                            position={[0, 0.35, 0]}
-                            style={{
-                                fontFamily: 'Arial',
-                                fontSize: 16,
-                                fontWeight: 'bold',
-                                color: '#B21830',
-                                textAlign: 'center',
-                                textAlignVertical: 'center',
-                            }}
-                            materials={['textMaterial']}
-                        />
-                    )}
                 </ViroNode>
             )}
         </ViroARScene>

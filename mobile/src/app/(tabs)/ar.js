@@ -358,6 +358,15 @@ export default function ARScreen() {
     const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
     const { unlockedBuildings, attemptUnlock, unlockViaQr } = useUnlockedBuildings();
 
+    // Sorted ID fingerprint of everything the user has unlocked. Used as a
+    // dependency so building details (and therefore `model_url`) are refetched
+    // after an unlock. The serializer hides `model_url` until the student owns
+    // the building, so the first fetch can return null.
+    const unlockedIdsKey = useMemo(
+        () => (unlockedBuildings || []).map((b) => String(b.id)).sort().join(","),
+        [unlockedBuildings]
+    );
+
     useEffect(() => {
         if (!isCameraActive || !navTargetFull?.id) {
             setRouteCoordinates([]);
@@ -537,7 +546,9 @@ export default function ARScreen() {
         } else {
             setNearbyBuildingFull(null);
         }
-    }, [nearbyBuilding?.id]);
+        // `unlockedIdsKey` is included so geofence-unlocked buildings refetch
+        // their details and receive `model_url` for the arrived view.
+    }, [nearbyBuilding?.id, unlockedIdsKey]);
 
     const fetchFullBuildingDetails = async (buildingId) => {
         try {
@@ -575,19 +586,29 @@ export default function ARScreen() {
         return false;
     });
 
+    // The target is refetched whenever the unlock list changes. A student who
+    // unlocks a building by walking into it gets `model_url: null` on the first
+    // fetch (the serializer only exposes the file to unlocked students), so
+    // without this the arrived view showed the pedestal but never the model.
     useEffect(() => {
-        if (activeTargetId) {
-            api.get(`/api/buildings/${activeTargetId}/`)
-                .then((res) => {
-                    if (res.data.success) {
-                        setNavTargetFull(res.data.data);
-                    }
-                })
-                .catch((err) => console.error("Error fetching nav target", err));
-        } else {
+        if (!activeTargetId) {
             setNavTargetFull(null);
+            return undefined;
         }
-    }, [activeTargetId]);
+
+        let cancelled = false;
+        api.get(`/api/buildings/${activeTargetId}/`)
+            .then((res) => {
+                if (!cancelled && res.data.success) {
+                    setNavTargetFull(res.data.data);
+                }
+            })
+            .catch((err) => console.error("Error fetching nav target", err));
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeTargetId, unlockedIdsKey]);
 
     let distanceToTarget = null;
     let turnDirection = null; // 'left' | 'right' | 'around' | 'ahead'
