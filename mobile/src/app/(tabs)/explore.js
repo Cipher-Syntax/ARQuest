@@ -303,11 +303,20 @@ export default function ExploreScreen() {
                         );
                         setLastUnlockAttempt(buildingId);
 
+                        // Only celebrate a genuinely new unlock. Re-validating a
+                        // building the student already owns must stay silent, or
+                        // every visit (and tab change) replays the unlock sound.
+                        const isNewUnlock = unlockResult?.newly_unlocked !== false;
+
                         if (role === "student") {
-                            SoundManager.play("building_unlock");
+                            if (isNewUnlock) {
+                                SoundManager.play("building_unlock");
+                            }
                             if (checkToken) await checkToken(); // Refresh global EXP immediately!
 
-                            const badges = unlockResult?.newly_earned_badges || [];
+                            const badges = isNewUnlock
+                                ? (unlockResult?.newly_earned_badges || [])
+                                : [];
                             if (badges.length > 0) {
                                 setTimeout(() => {
                                     SoundManager.play("badge_earned");

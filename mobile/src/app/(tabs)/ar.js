@@ -52,6 +52,12 @@ import SoundManager from "../../utils/SoundManager";
 import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
 import ErrorBoundary from "../../components/ui/ErrorBoundary";
 
+// Buildings whose arrival was already announced in this app session. Keeping
+// this outside the component means switching tabs while standing inside a
+// geofence cannot replay the arrival sound and modal. Entries are dropped only
+// once the user is provably away again (outside the geofence or > 45 m off).
+const announcedArrivalBldgIds = new Set();
+
 export default function ARScreen() {
     const isFocused = useIsFocused();
     const { user, checkToken } = useAuth();
@@ -106,7 +112,6 @@ export default function ARScreen() {
     // Reset arrival latch and stable references whenever navigation target changes
     useEffect(() => {
         setIsArrivedLatched(false);
-        lastAnnouncedArrivalBldgIdRef.current = null;
         stableModelUrlRef.current = null;
         stableBuildingNameRef.current = null;
     }, [activeTargetId]);
@@ -275,7 +280,6 @@ export default function ARScreen() {
     const [showArrivalModal, setShowArrivalModal] = useState(false);
     const arrivalModalAnim = useRef(new Animated.Value(0)).current;
     const arrivalTimerRef = useRef(null);
-    const lastAnnouncedArrivalBldgIdRef = useRef(null);
 
     const fetchQuests = useCallback(async () => {
         if (user?.role !== "student") return;
@@ -640,18 +644,36 @@ export default function ARScreen() {
 
     const isArrived = Boolean(isArrivedLatched || rawArrived);
 
-    // Center Arrival Modal: Triggers for ~3.5 seconds ONCE when arriving at destination
+    // Center Arrival Modal: Triggers for ~3.5 seconds ONCE per building visit.
+    //
+    // The announcement is remembered in a session-level set instead of a ref that
+    // is wiped whenever the screen blurs. Leaving the AR tab sets `isArrived`
+    // false (focus cleanup clears the nav target and the arrival latch), which
+    // used to reset the old per-instance guard, so coming back while still
+    // standing inside the geofence replayed the unlock sound and the modal on
+    // every tab switch. Entries are now dropped only when the user is provably
+    // away again, and nothing announces from a blurred tab.
     useEffect(() => {
         const currentBldgId = isTargetMode
             ? navTargetFull?.id
             : (nearbyBuildingFull?.id || nearbyBuilding?.id);
 
+        const isProvablyAway =
+            geofenceStatus?.status === "outside" ||
+            (distanceToTarget !== null && distanceToTarget > 45);
+
+        if (isProvablyAway) {
+            announcedArrivalBldgIds.clear();
+        }
+
+        if (!isFocused) return;
+
         if (isArrived && currentBldgId) {
-            // Only announce arrival ONCE per building session — do not re-trigger while standing inside
-            if (lastAnnouncedArrivalBldgIdRef.current === currentBldgId) {
+            const arrivalKey = String(currentBldgId);
+            if (announcedArrivalBldgIds.has(arrivalKey)) {
                 return;
             }
-            lastAnnouncedArrivalBldgIdRef.current = currentBldgId;
+            announcedArrivalBldgIds.add(arrivalKey);
 
             try {
                 SoundManager.play("building_unlock");
@@ -675,8 +697,6 @@ export default function ARScreen() {
                 arrivalModalAnim.setValue(0);
             }, 3500);
         } else if (!isArrived) {
-            // Reset announced building reference when user departs the building geofence
-            lastAnnouncedArrivalBldgIdRef.current = null;
             if (arrivalTimerRef.current) {
                 clearTimeout(arrivalTimerRef.current);
             }
@@ -689,7 +709,17 @@ export default function ARScreen() {
                 clearTimeout(arrivalTimerRef.current);
             }
         };
-    }, [isArrived, navTargetFull?.id, nearbyBuildingFull?.id, nearbyBuilding?.id, isTargetMode]);
+    }, [
+        isArrived,
+        isFocused,
+        navTargetFull?.id,
+        nearbyBuildingFull?.id,
+        nearbyBuilding?.id,
+        isTargetMode,
+        geofenceStatus?.status,
+        distanceToTarget,
+        arrivalModalAnim,
+    ]);
 
     // Cleanup arrival modal immediately when switching away from the AR tab
     useFocusEffect(
