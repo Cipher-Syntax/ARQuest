@@ -17,6 +17,31 @@ export const userService = {
         const response = await api.post("/api/auth/users/", data, config);
         return response.data;
     },
+    deleteUser: async (id) => {
+        const response = await api.delete(`/api/auth/users/${id}/`);
+        return response.data;
+    },
+    exportUsersCSV: async () => {
+        const response = await api.get("/api/auth/users/export/", {
+            responseType: "blob",
+        });
+
+        const disposition = response.headers?.["content-disposition"];
+        const match = /filename="?([^";]+)"?/i.exec(disposition || "");
+        const today = new Date().toISOString().slice(0, 10);
+        const filename = match?.[1] || `arquest-users-${today}.csv`;
+
+        const url = URL.createObjectURL(response.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        return filename;
+    },
     createProfessional: async (data) => {
         const response = await api.post("/api/auth/users/professional/", data);
         return response.data;

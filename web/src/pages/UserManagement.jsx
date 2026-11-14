@@ -9,13 +9,14 @@ import {
     Plus,
     Camera,
     Trash2,
+    Download,
     Eye,
     EyeOff,
     CheckCircle2,
     AlertCircle,
     X,
 } from "lucide-react";
-import { Card, Badge, Pagination, Button, Modal } from "../components/ui";
+import { Card, Badge, Pagination, Button, Modal, ConfirmDeleteModal } from "../components/ui";
 import { userService } from "../services/userService";
 import { getAvatarUri, getProfileImageUrl } from "../utils/avatarUtils";
 
@@ -44,6 +45,9 @@ export default function UserManagement({ hideHeader }) {
     const [formErrors, setFormErrors] = useState({});
     const [generalError, setGeneralError] = useState("");
     const [notification, setNotification] = useState(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
@@ -59,6 +63,63 @@ export default function UserManagement({ hideHeader }) {
             console.error("Failed to load users", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const getDisplayName = (user) =>
+        user.first_name || user.last_name
+            ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+            : user.username;
+
+    const showNotification = (type, message) => {
+        setNotification({ type, message });
+        setTimeout(() => setNotification(null), 5000);
+    };
+
+    const handleExportCsv = async () => {
+        setIsExporting(true);
+        try {
+            await userService.exportUsersCSV();
+        } catch (error) {
+            console.error("Failed to export users", error);
+            showNotification(
+                "error",
+                "Failed to export users. Please try again."
+            );
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleDeleteClick = (user) => {
+        setUserToDelete(user);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleCloseDeleteModal = () => {
+        setIsDeleteModalOpen(false);
+        setUserToDelete(null);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!userToDelete) return;
+        try {
+            await userService.deleteUser(userToDelete.id);
+            const label = getDisplayName(userToDelete);
+            handleCloseDeleteModal();
+            showNotification(
+                "success",
+                `Account for ${label} was moved to the Recycle Bin.`
+            );
+            await fetchUsers();
+        } catch (error) {
+            console.error("Delete user failed", error);
+            showNotification(
+                "error",
+                error.response?.data?.error?.message ||
+                    error.response?.data?.error ||
+                    "Failed to move account to the Recycle Bin."
+            );
         }
     };
 
@@ -247,18 +308,30 @@ export default function UserManagement({ hideHeader }) {
                             Directory of all campus accounts: Students, Visitors, Guests, and Administrators.
                         </p>
                     </div>
-                    <Button
-                        variant="primary"
-                        onClick={() => {
-                            setFormErrors({});
-                            setGeneralError("");
-                            setIsCreateModalOpen(true);
-                        }}
-                        className="flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-sm"
-                    >
-                        <Plus size={16} />
-                        <span>Add Account</span>
-                    </Button>
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                        <Button
+                            variant="secondary"
+                            onClick={handleExportCsv}
+                            loading={isExporting}
+                            title="Export all users to CSV"
+                            className="flex items-center gap-1.5 shadow-sm"
+                        >
+                            <Download size={16} />
+                            <span>Export CSV</span>
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={() => {
+                                setFormErrors({});
+                                setGeneralError("");
+                                setIsCreateModalOpen(true);
+                            }}
+                            className="flex items-center gap-1.5 shadow-sm"
+                        >
+                            <Plus size={16} />
+                            <span>Add Account</span>
+                        </Button>
+                    </div>
                 </div>
             )}
 
@@ -332,18 +405,30 @@ export default function UserManagement({ hideHeader }) {
                         </div>
 
                         {hideHeader && (
-                            <Button
-                                variant="primary"
-                                onClick={() => {
-                                    setFormErrors({});
-                                    setGeneralError("");
-                                    setIsCreateModalOpen(true);
-                                }}
-                                className="flex items-center gap-1.5 shrink-0 whitespace-nowrap"
-                            >
-                                <Plus size={16} />
-                                <span>Add Account</span>
-                            </Button>
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleExportCsv}
+                                    loading={isExporting}
+                                    title="Export all users to CSV"
+                                    className="flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                                >
+                                    <Download size={16} />
+                                    <span>Export CSV</span>
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    onClick={() => {
+                                        setFormErrors({});
+                                        setGeneralError("");
+                                        setIsCreateModalOpen(true);
+                                    }}
+                                    className="flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                                >
+                                    <Plus size={16} />
+                                    <span>Add Account</span>
+                                </Button>
+                            </>
                         )}
                     </div>
                 </div>
@@ -374,6 +459,9 @@ export default function UserManagement({ hideHeader }) {
                                         </th>
                                         <th className="px-6 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">
                                             Status
+                                        </th>
+                                        <th className="px-6 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">
+                                            Actions
                                         </th>
                                     </tr>
                                 </thead>
@@ -464,13 +552,36 @@ export default function UserManagement({ hideHeader }) {
                                                         </span>
                                                     </div>
                                                 </td>
+
+                                                <td className="px-6 py-3.5 text-right whitespace-nowrap">
+                                                    {user.role === "admin" ? (
+                                                        <span className="text-[11px] text-gray-400 font-medium">
+                                                            Protected
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteClick(user)}
+                                                            disabled={!user.is_active}
+                                                            title={
+                                                                user.is_active
+                                                                    ? "Move this account to the Recycle Bin"
+                                                                    : "Already in the Recycle Bin"
+                                                            }
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-red-600 border border-red-100 rounded-md hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                            {user.is_active ? "Delete" : "In Bin"}
+                                                        </button>
+                                                    )}
+                                                </td>
                                             </tr>
                                         );
                                     })}
 
                                     {filteredUsers.length === 0 && (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-12 text-center">
+                                            <td colSpan="6" className="px-6 py-12 text-center">
                                                 <div className="flex flex-col items-center justify-center text-gray-400">
                                                     <User size={36} className="mb-2 opacity-30 text-gray-400" />
                                                     <p className="text-gray-700 font-bold text-sm">
@@ -745,6 +856,18 @@ export default function UserManagement({ hideHeader }) {
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmDeleteModal
+                isOpen={isDeleteModalOpen}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleConfirmDelete}
+                title="Move Account to Recycle Bin"
+                message={
+                    userToDelete
+                        ? `Move ${getDisplayName(userToDelete)} (@${userToDelete.username}) to the Recycle Bin? The account will be deactivated immediately and can be restored from the Recycle Bin within 30 days.`
+                        : ""
+                }
+            />
         </div>
     );
 }

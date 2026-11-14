@@ -579,3 +579,117 @@ class GuestAccessTestCase(TestCase):
         self.assertEqual(res.status_code, 200)
         user.refresh_from_db()
         self.assertTrue(user.is_active)
+
+
+class UserExportAndDeleteTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='export_admin',
+            email='export_admin@test.com',
+            password='Password123!',
+            role='admin',
+            email_verified=True,
+        )
+        self.student = User.objects.create_user(
+            username='export_student',
+            email='export_student@test.com',
+            password='Password123!',
+            role='student',
+            email_verified=True,
+        )
+        self.inactive = User.objects.create_user(
+            username='binned_user',
+            email='binned@test.com',
+            password='Password123!',
+            role='visitor',
+            email_verified=True,
+        )
+        self.inactive.is_active = False
+        self.inactive.save(update_fields=['is_active'])
+        self.client = APIClient()
+
+    def test_admin_can_export_all_users_as_csv(self):
+        import csv
+        import io
+
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get('/api/auth/users/export/')
+
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('text/csv', res['Content-Type'])
+        self.assertIn('arquest-users-', res['Content-Disposition'])
+
+        rows = list(csv.reader(io.StringIO(res.content.decode('utf-8-sig'))))
+        self.assertEqual(rows[0][1], 'Username')
+        self.assertEqual(rows[0][5], 'Role')
+
+        usernames = [row[1] for row in rows[1:]]
+        self.assertIn('export_student', usernames)
+        self.assertIn('binned_user', usernames)
+        self.assertIn('export_admin', usernames)
+
+        binned_row = next(row for row in rows[1:] if row[1] == 'binned_user')
+        self.assertEqual(binned_row[6], 'In Recycle Bin')
+
+    def test_non_admin_cannot_export_users(self):
+        self.client.force_authenticate(user=self.student)
+        res = self.client.get('/api/auth/users/export/')
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_delete_moves_user_to_recycle_bin(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.delete(f'/api/auth/users/{self.student.id}/')
+
+        self.assertEqual(res.status_code, 200)
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.is_active)
+
+        archived = self.client.get('/api/auth/users/archived/')
+        self.assertEqual(archived.status_code, 200)
+        archived_ids = [u['id'] for u in archived.data['data']]
+        self.assertIn(self.student.id, archived_ids)
+
+    def test_admin_account_cannot_be_deleted(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.delete(f'/api/auth/users/{self.admin.id}/')
+
+        self.assertEqual(res.status_code, 400)
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.is_active)
+
+    def test_other_admin_cannot_be_deleted(self):
+        other_admin = User.objects.create_user(
+            username='other_admin',
+            email='other_admin@test.com',
+            password='Password123!',
+            role='admin',
+            email_verified=True,
+        )
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.delete(f'/api/auth/users/{other_admin.id}/')
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        other_admin.refresh_from_db()
+        self.assertTrue(other_admin.is_active)
+
+    def test_deleting_already_binned_user_is_rejected(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.delete(f'/api/auth/users/{self.inactive.id}/')
+
+        self.assertEqual(res.status_code, 400)
+        self.inactive.refresh_from_db()
+        self.assertFalse(self.inactive.is_active)
+
+    def test_non_admin_cannot_delete_users(self):
+        self.client.force_authenticate(user=self.student)
+        other = User.objects.create_user(
+            username='target_user',
+            password='Password123!',
+            role='visitor',
+            email_verified=True,
+        )
+        res = self.client.delete(f'/api/auth/users/{other.id}/')
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        other.refresh_from_db()
+        self.assertTrue(other.is_active)

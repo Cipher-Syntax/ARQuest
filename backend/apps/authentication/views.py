@@ -1,9 +1,13 @@
 import logging
+import csv
+import io
 from rest_framework.decorators import api_view, permission_classes, throttle_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework import status
 from rest_framework.response import Response
+from django.http import HttpResponse
+from django.utils import timezone
 from apps.api.models import SystemSetting, Notification
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -444,6 +448,98 @@ def user_list(request):
 
     users = User.objects.all().order_by('-date_joined')
     return success_response(UserSerializer(users, many=True, context={'request': request}).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_export_csv(request):
+    """Export every campus account and its details as a UTF-8 CSV.
+
+    Admin-only. Includes all roles and both active and recycle-bin accounts so
+    the file is a complete directory snapshot rather than the current page.
+    Password hashes and secrets are never included.
+    """
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+    users = User.objects.all().order_by('-date_joined')
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow([
+        'ID', 'Username', 'Email', 'First Name', 'Last Name', 'Role',
+        'Status', 'Email Verified', 'Exploration Points', 'Streak Count',
+        'Avatar ID', 'Profile Image URL', 'Last Login', 'Date Joined',
+    ])
+
+    def _fmt(dt):
+        return timezone.localtime(dt).strftime('%Y-%m-%d %H:%M:%S') if dt else ''
+
+    for user in users:
+        profile_image_url = (
+            request.build_absolute_uri(user.profile_image.url)
+            if user.profile_image else ''
+        )
+        writer.writerow([
+            user.id,
+            user.username,
+            user.email,
+            user.first_name,
+            user.last_name,
+            user.get_role_display(),
+            'Active' if user.is_active else 'In Recycle Bin',
+            'Yes' if user.email_verified else 'No',
+            user.exploration_points,
+            user.streak_count,
+            user.avatar_id or '',
+            profile_image_url,
+            _fmt(user.last_login),
+            _fmt(user.date_joined),
+        ])
+
+    filename = f"arquest-users-{timezone.now().date().isoformat()}.csv"
+    response = HttpResponse(
+        '\ufeff' + buffer.getvalue(),
+        content_type='text/csv; charset=utf-8',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_user(request, pk):
+    """Soft-delete an account by deactivating it (the Recycle Bin model).
+
+    Mirrors the existing archive workflow: ``is_active=False`` hides the
+    account from login and lists it under ``users/archived/`` where it can be
+    restored within the retention window. Administrator accounts are protected.
+    """
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return error_response(ErrorCodes.NOT_FOUND, 'Account not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    if user.pk == request.user.pk:
+        return error_response(ErrorCodes.INVALID_INPUT, 'You cannot move your own account to the Recycle Bin.', status_code=status.HTTP_400_BAD_REQUEST)
+
+    if user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Administrator accounts cannot be moved to the Recycle Bin.', status_code=status.HTTP_403_FORBIDDEN)
+
+    if not user.is_active:
+        return error_response(ErrorCodes.INVALID_INPUT, 'This account is already in the Recycle Bin.', status_code=status.HTTP_400_BAD_REQUEST)
+
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+    Notification.objects.create(
+        title="Account Moved to Recycle Bin",
+        message=f"{user.get_role_display()} account for {user.email or user.username} was moved to the Recycle Bin by {request.user.username}.",
+        type="USER",
+    )
+    return success_response({'message': 'Account moved to Recycle Bin.'})
 
 
 @api_view(['POST'])

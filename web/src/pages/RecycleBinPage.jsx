@@ -159,7 +159,7 @@ export default function RecycleBinPage() {
             case "visitor":
                 return (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <Users size={11} /> Visitor
+                        <Users size={11} /> Account
                     </span>
                 );
             case "quest":
@@ -204,7 +204,7 @@ export default function RecycleBinPage() {
                         30-Day Automated Retention Window
                     </h3>
                     <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                        Entities placed in the Recycle Bin (Buildings, Visitor Accounts, Quests, and Trivias) remain recoverable for up to 30 days. After 30 days, automated campus cron cleanup will permanently erase them from database storage.
+                        Entities placed in the Recycle Bin (Buildings, User Accounts, Quests, and Trivias) remain recoverable for up to 30 days. After 30 days, automated campus cron cleanup will permanently erase them from database storage.
                     </p>
                 </div>
             </div>
@@ -253,7 +253,7 @@ export default function RecycleBinPage() {
                         >
                             <option value="all">All Categories ({data.all?.length ?? 0})</option>
                             <option value="buildings">Buildings ({data.buildings?.length ?? 0})</option>
-                            <option value="visitors">Visitors ({data.visitors?.length ?? 0})</option>
+                            <option value="visitors">User Accounts ({data.visitors?.length ?? 0})</option>
                             <option value="quests">Quests ({data.quests?.length ?? 0})</option>
                             <option value="trivias">Trivias ({data.trivias?.length ?? 0})</option>
                         </select>

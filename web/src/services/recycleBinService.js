@@ -24,14 +24,23 @@ export const recycleBinService = {
         );
 
         const visitors = (visitorsRes.status === "fulfilled" && Array.isArray(visitorsRes.value) ? visitorsRes.value : []).map(
-            (u) => ({
-                id: u.id,
-                itemType: "visitor",
-                title: u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : u.username,
-                subtitle: u.email ? `Visitor Account • ${u.email}` : "Visitor Account",
-                deleted_at: u.deleted_at || u.date_joined,
-                raw: u,
-            })
+            (u) => {
+                const roleLabel =
+                    {
+                        admin: "Admin",
+                        student: "Student",
+                        professional: "Visitor",
+                        visitor: "Guest",
+                    }[u.role] || "User";
+                return {
+                    id: u.id,
+                    itemType: "visitor",
+                    title: u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : u.username,
+                    subtitle: u.email ? `${roleLabel} Account • ${u.email}` : `${roleLabel} Account`,
+                    deleted_at: u.deleted_at || u.date_joined,
+                    raw: u,
+                };
+            }
         );
 
         const quests = (questsRes.status === "fulfilled" && Array.isArray(questsRes.value) ? questsRes.value : []).map(
