@@ -30,8 +30,10 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import theme from "../theme/tokens";
 import { fonts } from "../constants/typography";
+import { useBrandTheme } from "../hooks/useBrandTheme";
 
 export default function AboutScreen() {
+    const { theme: brandTheme, logoSource, appName, primaryColor } = useBrandTheme();
     const handleEmail = () => {
         Linking.openURL("mailto:support@arquest.com?subject=ARQuest Support Inquiry");
     };
@@ -47,7 +49,7 @@ export default function AboutScreen() {
                 >
                     <ArrowLeft size={22} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>About ARQuest</Text>
+                <Text style={styles.headerTitle}>About {appName}</Text>
                 <View style={{ width: 36 }} />
             </View>
 
@@ -57,15 +59,15 @@ export default function AboutScreen() {
             >
                 {/* Official App Branding Hero Card */}
                 <LinearGradient
-                    colors={["#9b1b30", "#6b101f"]}
+                    colors={[primaryColor, brandTheme.colors.primaryDark]}
                     style={styles.heroCard}
                 >
                     <Image
-                        source={require("../../assets/images/logo.png")}
+                        source={logoSource}
                         style={styles.logoImage}
                         resizeMode="contain"
                     />
-                    <Text style={styles.heroTitle}>ARQuest</Text>
+                    <Text style={styles.heroTitle}>{appName}</Text>
                     <Text style={styles.heroTagline}>
                         Campus Navigation & Accreditation System
                     </Text>

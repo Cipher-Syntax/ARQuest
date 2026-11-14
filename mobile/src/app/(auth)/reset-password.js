@@ -9,12 +9,14 @@ import {
     Platform,
     ImageBackground,
     ScrollView,
+    Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Eye, EyeOff, Check, X, ShieldCheck, RefreshCw } from "lucide-react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { useAuth } from "../../hooks/useAuth";
+import { useBrandTheme } from "../../hooks/useBrandTheme";
 import theme from "../../theme/tokens";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
@@ -24,6 +26,7 @@ export default function ResetPasswordScreen() {
     const params = useLocalSearchParams();
     const bottomInset = useBottomInset(40);
     const { resetPassword, forgotPassword, isLoading } = useAuth();
+    const { theme, logoSource, appName, primaryColor } = useBrandTheme();
 
     const [email, setEmail] = useState(params?.email || "");
     const [otp, setOtp] = useState("");
@@ -250,10 +253,13 @@ export default function ResetPasswordScreen() {
                         </View>
 
                         <View style={styles.headerContainer}>
-                            <View style={styles.iconCircle}>
-                                <ShieldCheck color="#FFFFFF" size={28} />
+                            <View style={styles.logoBox}>
+                                <Image 
+                                    source={logoSource} 
+                                    style={{ width: 100, height: 100, resizeMode: 'contain' }} 
+                                />
                             </View>
-                            <Text style={styles.welcomeText}>Reset Password</Text>
+                            <Text style={styles.welcomeText}>{appName}</Text>
                             <Text style={styles.subtitleText}>
                                 {email
                                     ? `Enter the 6-digit code sent to ${email} and enter your new password.`
@@ -277,6 +283,7 @@ export default function ResetPasswordScreen() {
                                         <Text
                                             style={[
                                                 styles.resendLinkText,
+                                                { color: primaryColor },
                                                 (resendCooldown > 0 || isResending) &&
                                                     styles.resendDisabledText,
                                             ]}
@@ -437,7 +444,7 @@ export default function ResetPasswordScreen() {
                             >
                                 <Text style={styles.linkText}>
                                     Cancel & Return to{" "}
-                                    <Text style={styles.linkTextBold}>Log In</Text>
+                                    <Text style={[styles.linkTextBold, { color: primaryColor }]}>Log In</Text>
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -504,6 +511,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 16,
+    },
+    logoBox: {
+        marginBottom: 10,
+        alignSelf: "center",
     },
     welcomeText: {
         fontFamily: fonts.heading.bold,

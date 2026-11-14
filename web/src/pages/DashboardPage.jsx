@@ -15,6 +15,7 @@ import {
     AlertCircle,
     ArrowRight,
     Layers,
+    Calendar,
 } from "lucide-react";
 import { Card } from "../components/ui";
 import { dashboardService } from "../services/dashboardService";
@@ -29,6 +30,31 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
+const UNLOCK_TIMEFRAMES = [
+    { id: "daily", label: "Daily" },
+    { id: "weekly", label: "Weekly" },
+    { id: "monthly", label: "Monthly" },
+    { id: "yearly", label: "Yearly" },
+    { id: "custom", label: "Custom" },
+];
+
+const DATE_INPUT_CLASS =
+    "text-xs px-2 py-1.5 border border-gray-200 rounded-md text-gray-700 bg-white focus:outline-none focus:border-brand";
+
+function toIsoDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function defaultCustomRange(days = 30) {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - (days - 1));
+    return { from: toIsoDate(start), to: toIsoDate(end) };
+}
+
 export default function Dashboard() {
     const [timeframe, setTimeframe] = useState("weekly");
     const [chartType, setChartType] = useState("area");
@@ -36,6 +62,11 @@ export default function Dashboard() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [lastUpdated, setLastUpdated] = useState(new Date());
+
+    const [customRange, setCustomRange] = useState(() => defaultCustomRange());
+    const [customUnlocks, setCustomUnlocks] = useState(null);
+    const [customLoading, setCustomLoading] = useState(false);
+    const [customError, setCustomError] = useState(null);
 
     const [stats, setStats] = useState({
         total_buildings: 0,
@@ -157,10 +188,65 @@ export default function Dashboard() {
         fetchSideData();
     }, []);
 
+    const fetchCustomUnlocks = async (
+        from = customRange.from,
+        to = customRange.to,
+    ) => {
+        if (!from || !to) {
+            setCustomError("Select both a start and end date.");
+            return;
+        }
+        if (from > to) {
+            setCustomError("The start date must be on or before the end date.");
+            return;
+        }
+
+        setCustomLoading(true);
+        setCustomError(null);
+        try {
+            const data = await dashboardService.getGpsUnlocks({
+                start_date: from,
+                end_date: to,
+            });
+            setCustomUnlocks(data || null);
+        } catch (err) {
+            console.error("Failed to load custom GPS unlock range", err);
+            setCustomUnlocks(null);
+            setCustomError(
+                err?.response?.data?.error?.message ||
+                    err?.message ||
+                    "Failed to load the selected date range",
+            );
+        } finally {
+            setCustomLoading(false);
+        }
+    };
+
+    const handleTimeframeChange = (next) => {
+        setTimeframe(next);
+        if (next === "custom" && !customUnlocks && !customLoading) {
+            fetchCustomUnlocks();
+        }
+    };
+
     const handleRefresh = () => {
         fetchStats();
         fetchSideData();
+        if (timeframe === "custom") {
+            fetchCustomUnlocks();
+        }
     };
+
+    const unlockSeries =
+        timeframe === "custom"
+            ? customUnlocks?.series || []
+            : stats.gps_unlocks?.[timeframe] || [];
+    const unlockPeriodTotal = unlockSeries.reduce(
+        (acc, curr) => acc + (curr.value || 0),
+        0,
+    );
+    const isUnlockSeriesLoading = timeframe === "custom" && customLoading;
+    const todayIso = toIsoDate(new Date());
 
     // ── KPI cards (Tier 1 & Tier 2) ────────────────────────────────────────────
     const TIER1_STATS = [
@@ -425,9 +511,9 @@ export default function Dashboard() {
                                 <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
                                     <Navigation size={18} className="text-brand" />
                                     GPS Unlocks
-                                    {stats.gps_unlocks?.[timeframe]?.length > 0 && (
+                                    {unlockSeries.length > 0 && (
                                         <span className="ml-2 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full">
-                                            ↑ {stats.gps_unlocks[timeframe].reduce((acc, curr) => acc + curr.value, 0)} this period
+                                            ↑ {unlockPeriodTotal} this period
                                         </span>
                                     )}
                                 </h3>
@@ -438,18 +524,18 @@ export default function Dashboard() {
 
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-3">
-                                    {["daily", "weekly", "monthly", "yearly"].map((t) => (
+                                    {UNLOCK_TIMEFRAMES.map(({ id, label }) => (
                                         <button
-                                            key={t}
-                                            onClick={() => setTimeframe(t)}
-                                            className={`text-xs font-bold capitalize transition-colors relative pb-1 ${
-                                                timeframe === t
+                                            key={id}
+                                            onClick={() => handleTimeframeChange(id)}
+                                            className={`text-xs font-bold transition-colors relative pb-1 ${
+                                                timeframe === id
                                                     ? "text-brand"
                                                     : "text-gray-400 hover:text-gray-700"
                                             }`}
                                         >
-                                            {t}
-                                            {timeframe === t && (
+                                            {label}
+                                            {timeframe === id && (
                                                 <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand rounded-t-sm" />
                                             )}
                                         </button>
@@ -483,12 +569,83 @@ export default function Dashboard() {
                             </div>
                         </div>
 
+                        {timeframe === "custom" && (
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5 rounded-md border border-gray-100 bg-gray-50/70 px-3 py-2">
+                                <Calendar size={14} className="text-gray-400 shrink-0" />
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="date"
+                                        aria-label="Custom range start date"
+                                        value={customRange.from}
+                                        max={customRange.to || todayIso}
+                                        onChange={(e) =>
+                                            setCustomRange((prev) => ({
+                                                ...prev,
+                                                from: e.target.value,
+                                            }))
+                                        }
+                                        className={DATE_INPUT_CLASS}
+                                    />
+                                    <span className="text-xs text-gray-400">to</span>
+                                    <input
+                                        type="date"
+                                        aria-label="Custom range end date"
+                                        value={customRange.to}
+                                        min={customRange.from}
+                                        max={todayIso}
+                                        onChange={(e) =>
+                                            setCustomRange((prev) => ({
+                                                ...prev,
+                                                to: e.target.value,
+                                            }))
+                                        }
+                                        className={DATE_INPUT_CLASS}
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={() =>
+                                        fetchCustomUnlocks(
+                                            customRange.from,
+                                            customRange.to,
+                                        )
+                                    }
+                                    disabled={
+                                        customLoading ||
+                                        !customRange.from ||
+                                        !customRange.to ||
+                                        customRange.from > customRange.to
+                                    }
+                                    className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-brand text-white transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    {customLoading ? "Loading..." : "Apply"}
+                                </button>
+
+                                {customUnlocks?.granularity && !customError && (
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                                        Grouped {customUnlocks.granularity}
+                                    </span>
+                                )}
+
+                                {customError && (
+                                    <span className="text-[10px] font-semibold text-red-600">
+                                        {customError}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
                         <div className="h-[280px]">
-                            {stats.gps_unlocks?.[timeframe]?.length > 0 ? (
+                            {isUnlockSeriesLoading ? (
+                                <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                    <RefreshCw size={24} className="mb-2 opacity-30 animate-spin" />
+                                    <p className="text-xs">Loading selected range...</p>
+                                </div>
+                            ) : unlockSeries.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     {chartType === "bar" ? (
                                         <BarChart
-                                            data={stats.gps_unlocks?.[timeframe] || []}
+                                            data={unlockSeries}
                                             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                                         >
                                             <XAxis
@@ -511,7 +668,7 @@ export default function Dashboard() {
                                         </BarChart>
                                     ) : (
                                         <AreaChart
-                                            data={stats.gps_unlocks?.[timeframe] || []}
+                                            data={unlockSeries}
                                             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                                         >
                                             <defs>

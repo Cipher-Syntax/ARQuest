@@ -9,12 +9,14 @@ import {
     Platform,
     ImageBackground,
     ScrollView,
+    Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Mail, KeyRound } from "lucide-react-native";
 import { useAuth } from "../../hooks/useAuth";
-import { useBottomInset } from "../../components/ui/SafeAreaSheet";
+import { useBrandTheme } from "../../hooks/useBrandTheme";
 import theme from "../../theme/tokens";
+import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 
@@ -22,6 +24,7 @@ export default function ForgotPasswordScreen() {
     const router = useRouter();
     const bottomInset = useBottomInset(40);
     const { forgotPassword, isLoading } = useAuth();
+    const { logoSource, appName, primaryColor } = useBrandTheme();
 
     const [email, setEmail] = useState("");
     const [error, setError] = useState("");
@@ -113,10 +116,13 @@ export default function ForgotPasswordScreen() {
                         </View>
 
                         <View style={styles.headerContainer}>
-                            <View style={styles.iconCircle}>
-                                <KeyRound color="#FFFFFF" size={28} />
+                            <View style={styles.logoBox}>
+                                <Image 
+                                    source={logoSource} 
+                                    style={{ width: 100, height: 100, resizeMode: 'contain' }} 
+                                />
                             </View>
-                            <Text style={styles.welcomeText}>Forgot Password</Text>
+                            <Text style={styles.welcomeText}>{appName}</Text>
                             <Text style={styles.subtitleText}>
                                 Enter your registered email or username and we'll send you a 6-digit verification code to reset your password.
                             </Text>
@@ -170,7 +176,7 @@ export default function ForgotPasswordScreen() {
                             >
                                 <Text style={styles.linkText}>
                                     Remember your password?{" "}
-                                    <Text style={styles.linkTextBold}>Log In</Text>
+                                    <Text style={[styles.linkTextBold, { color: primaryColor }]}>Log In</Text>
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -237,6 +243,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 16,
+    },
+    logoBox: {
+        marginBottom: 10,
+        alignSelf: "center",
     },
     welcomeText: {
         fontFamily: fonts.heading.bold,

@@ -5,6 +5,19 @@ class SystemSetting(models.Model):
     app_name = models.CharField(max_length=100, default='ARQuest')
     maintenance_mode = models.BooleanField(default=False)
     contact_email = models.EmailField(default='support@arquest.edu')
+
+    # Branding
+    brand_color = models.CharField(
+        max_length=7,
+        default='#8A1538',
+        help_text='Primary brand color as a hex value, e.g. #8A1538.',
+    )
+    logo = models.ImageField(
+        upload_to='branding/',
+        null=True,
+        blank=True,
+        help_text='Application logo. Falls back to the bundled mark when empty.',
+    )
     
     # App Features
     demo_mode = models.BooleanField(

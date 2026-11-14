@@ -12,6 +12,7 @@ import {
     Image,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
+import { useBrandTheme } from "../../hooks/useBrandTheme";
 import theme from "../../theme/tokens";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { Eye, EyeOff, Check, X } from "lucide-react-native";
@@ -23,6 +24,7 @@ export default function RegisterScreen() {
     const router = useRouter();
     const bottomInset = useBottomInset(40);
     const { register, isLoading } = useAuth();
+    const { theme, logoSource, appName, primaryColor } = useBrandTheme();
 
     const [formData, setFormData] = useState({
         username: "",
@@ -135,9 +137,15 @@ export default function RegisterScreen() {
                         ]}
                     >
                         <View style={styles.headerContainer}>
-                            <Text style={styles.welcomeText}>Create Account</Text>
+                            <View style={styles.logoBox}>
+                                <Image 
+                                    source={logoSource} 
+                                    style={{ width: 100, height: 100, resizeMode: 'contain' }} 
+                                />
+                            </View>
+                            <Text style={styles.welcomeText}>{appName}</Text>
                             <Text style={styles.subtitleText}>
-                                Register a new account
+                                Create your account
                             </Text>
                         </View>
 
@@ -294,7 +302,7 @@ export default function RegisterScreen() {
                                 <Text style={styles.switchText}>Already have an account? </Text>
                                 <Link href="/(auth)/login" asChild>
                                     <TouchableOpacity>
-                                        <Text style={styles.switchLink}>Log In</Text>
+                                        <Text style={[styles.switchLink, { color: primaryColor }]}>Log In</Text>
                                     </TouchableOpacity>
                                 </Link>
                             </View>
@@ -334,6 +342,10 @@ const styles = StyleSheet.create({
         marginBottom: 25,
         paddingHorizontal: 10,
         marginTop: 40,
+    },
+    logoBox: {
+        marginBottom: 10,
+        alignSelf: 'center',
     },
     welcomeText: {
         fontFamily: fonts.heading.bold,

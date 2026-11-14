@@ -1,8 +1,9 @@
-import { Save, User, Lock, Eye, EyeOff, HelpCircle, PlayCircle, RotateCcw, Camera, Upload, Trash2 } from "lucide-react";
+import { Save, User, Lock, Eye, EyeOff, HelpCircle, PlayCircle, RotateCcw, Camera, Upload, Trash2, Palette, Image as ImageIcon } from "lucide-react";
 import { Card, Toggle, Button } from "../components/ui";
 import { useState, useEffect, useRef } from "react";
 import { settingsService } from "../services/settingsService";
 import { useAuth } from "../hooks/useAuth";
+import { useBranding } from "../context/BrandingContext";
 import { triggerAdminTour } from "../components/common/AdminOnboardingTour";
 import {
     validateForm,
@@ -11,9 +12,34 @@ import {
     validateEmail,
 } from "../utils/validation";
 import { getProfileImageUrl } from "../utils/avatarUtils";
+import {
+    brandPalette,
+    isDarkColor,
+    normalizeHexColor,
+} from "../utils/brandColor";
+
+const DEFAULT_BRAND_PRESETS = [
+    { label: "Maroon", value: "#8A1538" },
+    { label: "Crimson", value: "#B21830" },
+    { label: "Forest", value: "#166534" },
+    { label: "Navy", value: "#1E3A8A" },
+    { label: "Teal", value: "#0F766E" },
+    { label: "Violet", value: "#6D28D9" },
+    { label: "Amber", value: "#B45309" },
+    { label: "Slate", value: "#111827" },
+];
+
+const LOGO_TYPES = [
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/svg+xml",
+];
+const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 
 export default function Settings() {
     const { user, updateUser } = useAuth();
+    const { logoUrl, brandColor, refreshBranding } = useBranding();
     const [isSaving, setIsSaving] = useState(false);
     const [isProfileSaving, setIsProfileSaving] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +49,7 @@ export default function Settings() {
     const [errors, setErrors] = useState({});
     const [settings, setSettings] = useState({
         app_name: "ARQuest",
+        brand_color: "#8A1538",
         maintenance_mode: false,
         demo_mode: false,
         contact_email: "support@arquest.edu",
@@ -46,6 +73,13 @@ export default function Settings() {
     const [profileImagePreview, setProfileImagePreview] = useState(null);
     const [removeProfileImage, setRemoveProfileImage] = useState(false);
     const [imageError, setImageError] = useState("");
+
+    // Branding State
+    const logoInputRef = useRef(null);
+    const [logoFile, setLogoFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(null);
+    const [logoError, setLogoError] = useState("");
+    const [logoBusy, setLogoBusy] = useState(false);
 
     const tourStorageKey = user?.id
         ? `@arquest_web_tutorial_completed_${user.id}`
@@ -108,6 +142,11 @@ export default function Settings() {
     const activeProfileImage = !removeProfileImage
         ? (profileImagePreview || getProfileImageUrl(user?.profile_image))
         : null;
+
+    const previewLogo = logoPreview || logoUrl;
+    const previewPalette = brandPalette(
+        normalizeHexColor(settings.brand_color, brandColor),
+    );
 
     const hasPendingProfileChanges = () => {
         if (profileImageFile !== null) return true;
@@ -173,6 +212,10 @@ export default function Settings() {
     const handleSave = async () => {
         const schema = {
             app_name: (val) => validateString(val, 1),
+            brand_color: (val) =>
+                /^#[0-9A-Fa-f]{6}$/.test(String(val || "").trim())
+                    ? null
+                    : "Use a hex color like #8A1538",
             contact_email: (val) => validateEmail(val),
             default_quest_reward: (val) => validateNumber(val, 0),
         };
@@ -199,6 +242,7 @@ export default function Settings() {
             const hasProfileUpdates = hasPendingProfileChanges();
 
             await settingsService.updateSettings(settings);
+            await refreshBranding();
 
             if (hasProfileUpdates) {
                 await saveProfileChanges();
@@ -225,6 +269,14 @@ export default function Settings() {
             }
         };
     }, [profileImagePreview]);
+
+    useEffect(() => {
+        return () => {
+            if (logoPreview && logoPreview.startsWith("blob:")) {
+                URL.revokeObjectURL(logoPreview);
+            }
+        };
+    }, [logoPreview]);
 
     const handleImageChange = (e) => {
         const file = e.target.files?.[0];
@@ -274,6 +326,85 @@ export default function Settings() {
             setTimeout(() => setErrorMessage(""), 3000);
         } finally {
             setIsProfileSaving(false);
+        }
+    };
+
+    const handleLogoChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setLogoError("");
+        if (!LOGO_TYPES.includes(file.type)) {
+            setLogoError("Use a PNG, JPG, WebP, or SVG file.");
+            return;
+        }
+        if (file.size > MAX_LOGO_BYTES) {
+            setLogoError("Logo must be 4MB or smaller.");
+            return;
+        }
+
+        if (logoPreview && logoPreview.startsWith("blob:")) {
+            URL.revokeObjectURL(logoPreview);
+        }
+        setLogoFile(file);
+        setLogoPreview(URL.createObjectURL(file));
+    };
+
+    const handleLogoSave = async () => {
+        if (!logoFile) return;
+        try {
+            setLogoBusy(true);
+            setLogoError("");
+            setErrorMessage("");
+            await settingsService.uploadLogo(logoFile);
+            await refreshBranding();
+            if (logoPreview && logoPreview.startsWith("blob:")) {
+                URL.revokeObjectURL(logoPreview);
+            }
+            setLogoFile(null);
+            setLogoPreview(null);
+            setSuccessMessage("Application logo updated.");
+            setTimeout(() => setSuccessMessage(""), 3500);
+        } catch (error) {
+            console.error("Failed to upload logo", error);
+            setLogoError(
+                error.response?.data?.error?.message ||
+                    error.message ||
+                    "Failed to upload the logo. Please try again.",
+            );
+        } finally {
+            setLogoBusy(false);
+            if (logoInputRef.current) {
+                logoInputRef.current.value = "";
+            }
+        }
+    };
+
+    const handleLogoRemove = async () => {
+        try {
+            setLogoBusy(true);
+            setLogoError("");
+            await settingsService.removeLogo();
+            await refreshBranding();
+            if (logoPreview && logoPreview.startsWith("blob:")) {
+                URL.revokeObjectURL(logoPreview);
+            }
+            setLogoFile(null);
+            setLogoPreview(null);
+            setSuccessMessage("Application logo reset to the bundled default.");
+            setTimeout(() => setSuccessMessage(""), 3500);
+        } catch (error) {
+            console.error("Failed to remove logo", error);
+            setLogoError(
+                error.response?.data?.error?.message ||
+                    error.message ||
+                    "Failed to remove the logo. Please try again.",
+            );
+        } finally {
+            setLogoBusy(false);
+            if (logoInputRef.current) {
+                logoInputRef.current.value = "";
+            }
         }
     };
 
@@ -466,17 +597,75 @@ export default function Settings() {
                     </Card>
 
                     <Card>
-                        <h3 className="text-sm font-bold text-gray-900 mb-5">
-                            General Settings
+                        <h3 className="text-sm font-bold text-gray-900 mb-5 flex items-center gap-2">
+                            <Palette size={18} className="text-brand" />
+                            Branding &amp; Identity
                         </h3>
+
+                        <p className="text-xs text-gray-500 -mt-2 mb-5">
+                            The application name, logo, and accent color used by
+                            the admin panel, the public site, and the mobile app.
+                        </p>
+
+                        {/* Live preview */}
+                        <div className="rounded-md overflow-hidden border border-brand-border mb-6">
+                            <div
+                                className="px-4 py-3 flex items-center gap-3"
+                                style={{ backgroundColor: previewPalette.brand }}
+                            >
+                                <div className="w-9 h-9 bg-white rounded-md flex items-center justify-center p-1.5 shrink-0 overflow-hidden">
+                                    <img
+                                        src={previewLogo}
+                                        alt=""
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-white text-sm font-extrabold leading-none truncate max-w-[180px]">
+                                        {settings.app_name || "Application name"}
+                                    </p>
+                                    <p className="text-[9px] uppercase tracking-widest text-white/70 font-bold mt-1">
+                                        Admin Panel
+                                    </p>
+                                </div>
+                                <span
+                                    className="ml-auto text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded"
+                                    style={{
+                                        backgroundColor: previewPalette.border,
+                                        color: previewPalette.brand,
+                                    }}
+                                >
+                                    Preview
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3 px-4 py-2.5 bg-brand-light/40">
+                                <div
+                                    className="h-2 flex-1 rounded-full"
+                                    style={{
+                                        backgroundColor: previewPalette.border,
+                                    }}
+                                />
+                                <div
+                                    className="h-2 w-10 rounded-full"
+                                    style={{
+                                        backgroundColor: previewPalette.brand,
+                                    }}
+                                />
+                                <span className="text-[10px] font-bold text-gray-500">
+                                    {previewPalette.brand}
+                                </span>
+                            </div>
+                        </div>
+
                         <div className="space-y-5">
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    App Name
+                                    Application Name
                                 </label>
                                 <input
                                     type="text"
                                     value={settings.app_name}
+                                    maxLength={100}
                                     onChange={(e) =>
                                         handleChange("app_name", e.target.value)
                                     }
@@ -488,6 +677,165 @@ export default function Settings() {
                                     </p>
                                 )}
                             </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                                    <ImageIcon size={14} />
+                                    Application Logo
+                                </label>
+                                <div className="flex items-center gap-4 p-4 rounded-md bg-brand-light/20 border border-brand-border/60">
+                                    <div className="w-16 h-16 rounded-md bg-white border border-brand-border flex items-center justify-center p-2 shrink-0 overflow-hidden">
+                                        <img
+                                            src={previewLogo}
+                                            alt="Application logo preview"
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                        <p className="text-[11px] text-gray-500">
+                                            PNG, JPG, WebP or SVG. Max 4MB.
+                                            Square images look best.
+                                        </p>
+                                        <input
+                                            ref={logoInputRef}
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                                            className="hidden"
+                                            onChange={handleLogoChange}
+                                        />
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    logoInputRef.current?.click()
+                                                }
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-white border border-brand-border text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+                                            >
+                                                <Upload size={13} />
+                                                {logoFile
+                                                    ? "Change File"
+                                                    : "Choose Logo"}
+                                            </button>
+                                            {logoFile && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleLogoSave}
+                                                    disabled={logoBusy}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-brand text-white hover:bg-brand/90 transition-colors disabled:opacity-60 cursor-pointer"
+                                                >
+                                                    <Save size={13} />
+                                                    {logoBusy
+                                                        ? "Saving..."
+                                                        : "Save Logo"}
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={handleLogoRemove}
+                                                disabled={logoBusy}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60 cursor-pointer"
+                                            >
+                                                <Trash2 size={13} />
+                                                Reset
+                                            </button>
+                                        </div>
+                                        {logoError && (
+                                            <p className="text-[11px] font-semibold text-red-500">
+                                                {logoError}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Brand Color
+                                </label>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <input
+                                        type="color"
+                                        aria-label="Brand color"
+                                        value={previewPalette.brand}
+                                        onChange={(e) =>
+                                            handleChange(
+                                                "brand_color",
+                                                e.target.value.toUpperCase(),
+                                            )
+                                        }
+                                        className="h-11 w-14 rounded-md border border-brand-border bg-white p-1 cursor-pointer"
+                                    />
+                                    <input
+                                        type="text"
+                                        aria-label="Brand color hex"
+                                        value={settings.brand_color}
+                                        maxLength={7}
+                                        onChange={(e) =>
+                                            handleChange(
+                                                "brand_color",
+                                                e.target.value.toUpperCase(),
+                                            )
+                                        }
+                                        className={`w-32 border rounded-md bg-white text-sm py-2.5 px-3 focus:outline-none focus:ring-2 font-mono font-medium ${errors.brand_color ? "border-red-500 focus:ring-red-200" : "border-brand-border focus:ring-brand/20"}`}
+                                    />
+                                    <span className="text-[11px] text-gray-500">
+                                        Drives navigation, buttons, and accents.
+                                    </span>
+                                </div>
+                                {errors.brand_color && (
+                                    <p className="text-xs text-red-500">
+                                        {errors.brand_color}
+                                    </p>
+                                )}
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    {DEFAULT_BRAND_PRESETS.map((preset) => {
+                                        const isActive =
+                                            normalizeHexColor(
+                                                settings.brand_color,
+                                                brandColor,
+                                            ) === preset.value;
+                                        return (
+                                            <button
+                                                key={preset.value}
+                                                type="button"
+                                                title={preset.label}
+                                                onClick={() =>
+                                                    handleChange(
+                                                        "brand_color",
+                                                        preset.value,
+                                                    )
+                                                }
+                                                className={`h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 cursor-pointer ${isActive ? "border-gray-900 ring-2 ring-gray-200" : "border-white shadow"}`}
+                                                style={{
+                                                    backgroundColor:
+                                                        preset.value,
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                                {!isDarkColor(previewPalette.brand) && (
+                                    <p className="text-[11px] font-semibold text-amber-600">
+                                        Light colors make the white sidebar
+                                        text hard to read. A deeper shade is
+                                        recommended.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <p className="text-[11px] text-gray-500 mt-5 pt-4 border-t border-brand-border">
+                            Saving applies the color and name immediately across
+                            the admin panel and public site. The mobile app reads
+                            the same values from the API on its next launch.
+                        </p>
+                    </Card>
+
+                    <Card>
+                        <h3 className="text-sm font-bold text-gray-900 mb-5">
+                            General Settings
+                        </h3>
+                        <div className="space-y-5">
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                                     Contact Email

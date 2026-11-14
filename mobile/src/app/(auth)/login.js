@@ -14,6 +14,7 @@ import {
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { useAuth } from "../../hooks/useAuth";
+import { useBrandTheme } from "../../hooks/useBrandTheme";
 import theme from "../../theme/tokens";
 import { Link, useRouter } from "expo-router";
 import { Eye, EyeOff, AlertTriangle } from "lucide-react-native";
@@ -27,6 +28,7 @@ export default function LoginScreen() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const { login, loginAsGuest, isLoading } = useAuth();
+    const { logoSource, appName, primaryColor } = useBrandTheme();
     const [error, setError] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
     const [isDeactivated, setIsDeactivated] = useState(false);
@@ -171,11 +173,11 @@ export default function LoginScreen() {
                         <View style={styles.headerContainer}>
                             <View style={styles.logoBox}>
                                 <Image 
-                                    source={require('../../../assets/images/logo.png')} 
+                                    source={logoSource} 
                                     style={{ width: 150, height: 150, resizeMode: 'contain' }} 
                                 />
                             </View>
-                            <Text style={styles.welcomeText}>ARQuest</Text>
+                            <Text style={styles.welcomeText}>{appName}</Text>
                             <Text style={styles.subtitleText}>
                                 Campus Exploration System
                             </Text>
@@ -262,7 +264,7 @@ export default function LoginScreen() {
                                 style={styles.forgotPassword}
                                 onPress={() => router.push("/(auth)/forgot-password")}
                             >
-                                <Text style={styles.forgotText}>Forgot Password?</Text>
+                                <Text style={[styles.forgotText, { color: primaryColor }]}>Forgot Password?</Text>
                             </TouchableOpacity>
 
                             {isDeactivated ? (
@@ -287,7 +289,7 @@ export default function LoginScreen() {
                                 <Text style={styles.switchText}>Don't have an account? </Text>
                                 <Link href="/(auth)/register" asChild>
                                     <TouchableOpacity>
-                                        <Text style={styles.switchLink}>Sign Up</Text>
+                                        <Text style={[styles.switchLink, { color: primaryColor }]}>Sign Up</Text>
                                     </TouchableOpacity>
                                 </Link>
                             </View>

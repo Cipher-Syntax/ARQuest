@@ -12,6 +12,8 @@ import { api } from "../services/api";
 
 const DEFAULT_SETTINGS = {
     app_name: "ARQuest",
+    brand_color: "#8A1538",
+    logo_url: null,
     maintenance_mode: false,
     demo_mode: false,
     enable_gps: true,

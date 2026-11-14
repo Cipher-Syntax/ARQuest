@@ -13,8 +13,8 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../hooks/useAuth";
+import { useBrandTheme } from "../../hooks/useBrandTheme";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
-import theme from "../../theme/tokens";
 import { CheckCircle, AlertCircle } from "lucide-react-native";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
@@ -24,6 +24,7 @@ export default function VerifyOTP() {
     const params = useLocalSearchParams();
     const bottomInset = useBottomInset(40);
     const { verifyOTP, resendOTP, isLoading } = useAuth();
+    const { theme, logoSource, appName } = useBrandTheme();
 
     const email = params?.email || "";
     const username = params?.username;
@@ -140,7 +141,13 @@ export default function VerifyOTP() {
                         ]}
                     >
                         <View style={styles.headerContainer}>
-                            <Text style={styles.welcomeText}>Verification</Text>
+                            <View style={styles.logoBox}>
+                                <Image
+                                    source={logoSource}
+                                    style={{ width: 100, height: 100, resizeMode: 'contain' }}
+                                />
+                            </View>
+                            <Text style={styles.welcomeText}>{appName}</Text>
                             <Text style={styles.subtitleText}>
                                 {email
                                     ? `Enter the 6-digit code sent to ${email}`
@@ -247,6 +254,10 @@ const styles = StyleSheet.create({
         marginBottom: 25,
         paddingHorizontal: 10,
         marginTop: 40,
+    },
+    logoBox: {
+        marginBottom: 10,
+        alignSelf: 'center',
     },
     welcomeText: {
         fontFamily: fonts.heading.bold,

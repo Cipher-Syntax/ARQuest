@@ -20,6 +20,7 @@ import {
     FileBarChart,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useBranding } from "../context/BrandingContext";
 
 const NAV_GROUPS = [
     {
@@ -69,6 +70,7 @@ function SidebarContent({
     setIsCollapsed,
 }) {
     const navRef = useRef(null);
+    const { appName, logoUrl } = useBranding();
     const [canScrollDown, setCanScrollDown] = useState(false);
     const [canScrollUp, setCanScrollUp] = useState(false);
 
@@ -109,17 +111,17 @@ function SidebarContent({
                 className={`px-5 py-6 flex items-center transition-all duration-300 border-b border-white/50 ${isCollapsed ? "justify-center px-0" : "justify-between"}`}
             >
                 <div className="flex items-center gap-3 border-white">
-                    <div className="w-10 h-10 bg-white text-brand rounded-md flex items-center justify-center shrink-0 p-2 shadow-sm">
+                    <div className="w-10 h-10 bg-white text-brand rounded-md flex items-center justify-center shrink-0 p-2 shadow-sm overflow-hidden">
                         <img
-                            src="/logo.png"
-                            alt="ARQuest"
+                            src={logoUrl}
+                            alt={appName}
                             className="w-full h-full object-contain"
                         />
                     </div>
                     {!isCollapsed && (
-                        <div className="animate-in fade-in duration-500">
-                            <p className="font-extrabold text-white text-lg tracking-tight leading-none">
-                                ARQuest
+                        <div className="animate-in fade-in duration-500 min-w-0">
+                            <p className="font-extrabold text-white text-lg tracking-tight leading-none truncate max-w-[150px]">
+                                {appName}
                             </p>
                             <p className="text-[10px] uppercase tracking-widest text-white/70 font-bold leading-none mt-1">
                                 Admin Panel

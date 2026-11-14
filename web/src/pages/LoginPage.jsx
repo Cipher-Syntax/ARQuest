@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { useBranding } from "../context/BrandingContext";
 import { theme } from "../theme";
 import { validateForm, validateRequired } from "../utils/validation";
 
@@ -14,6 +15,7 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [isMaintenance, setIsMaintenance] = useState(false);
     const { login, logout, user } = useAuth();
+    const { appName, logoUrl } = useBranding();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -81,15 +83,15 @@ const LoginPage = () => {
                 <div className="z-10 flex flex-col w-full h-full">
                     <div className="w-80 h-80 mx-auto flex items-center justify-center mb-12 relative mt-12">
                         <img
-                            src="/logo.png"
-                            alt="ARQuest Logo"
+                            src={logoUrl}
+                            alt={`${appName} Logo`}
                             className="w-72 h-72 object-contain filter drop-shadow-lg"
                         />
                     </div>
 
                     <div className="mt-auto mb-12">
                         <h1 className="text-5xl font-extrabold text-white tracking-tight mb-4 drop-shadow-md">
-                            ARQuest
+                            {appName}
                         </h1>
                         <p className="text-white/80 text-lg font-medium leading-relaxed max-w-lg">
                             The ultimate campus exploration platform. Manage
@@ -110,8 +112,8 @@ const LoginPage = () => {
                     <div className="text-center space-y-2">
                         <div className="w-16 h-16 mx-auto mb-4 lg:hidden flex items-center justify-center">
                             <img
-                                src="/logo.png"
-                                alt="ARQuest"
+                                src={logoUrl}
+                                alt={appName}
                                 className="w-16 h-16 object-contain"
                             />
                         </div>

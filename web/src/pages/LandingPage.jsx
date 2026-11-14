@@ -7,6 +7,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@google/model-viewer';
 import { useAuth } from '../hooks/useAuth';
+import { useBranding } from '../context/BrandingContext';
 import { buildingService } from '../services/buildingService';
 import { navigationService } from '../services/navigationService';
 
@@ -125,6 +126,7 @@ const FAQItem = ({ question, answer }) => {
 const LandingPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { appName, logoUrl } = useBranding();
     const [buildings, setBuildings] = useState([]);
     const [buildingsLoading, setBuildingsLoading] = useState(true);
     const [selectedBuilding, setSelectedBuilding] = useState(null);
@@ -240,14 +242,14 @@ const LandingPage = () => {
             <nav className="fixed top-0 inset-x-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200/50">
                 <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between text-xs font-semibold tracking-wide text-gray-800">
                     <Link to="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-                        <img src="/logo.png" alt="ARQuest Logo" className="w-5 h-5 object-contain" />
-                        <span className="font-bold">ARQuest</span>
+                        <img src={logoUrl} alt={`${appName} Logo`} className="w-5 h-5 object-contain" />
+                        <span className="font-bold">{appName}</span>
                     </Link>
                     
                     <div className="hidden md:flex gap-8">
-                        <a href="#map" className="hover:text-[#8A1538] transition-colors">Map</a>
-                        <a href="#ecosystem" className="hover:text-[#8A1538] transition-colors">Ecosystem</a>
-                        <a href="#features" className="hover:text-[#8A1538] transition-colors">Features</a>
+                        <a href="#map" className="hover:text-brand transition-colors">Map</a>
+                        <a href="#ecosystem" className="hover:text-brand transition-colors">Ecosystem</a>
+                        <a href="#features" className="hover:text-brand transition-colors">Features</a>
                     </div>
                 </div>
             </nav>
@@ -928,11 +930,11 @@ const LandingPage = () => {
             <footer className="bg-white py-12 border-t border-gray-200">
                 <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex items-center gap-3">
-                        <img src="/logo.png" alt="ARQuest Logo" className="w-8 h-8 object-contain grayscale opacity-80" />
-                        <span className="font-extrabold text-lg text-gray-900 tracking-tight">ARQuest</span>
+                        <img src={logoUrl} alt={`${appName} Logo`} className="w-8 h-8 object-contain grayscale opacity-80" />
+                        <span className="font-extrabold text-lg text-gray-900 tracking-tight">{appName}</span>
                     </div>
                     <div className="text-gray-500 text-sm font-medium">
-                        © {new Date().getFullYear()} ARQuest System. WMSU.
+                        © {new Date().getFullYear()} {appName} System. WMSU.
                     </div>
                 </div>
             </footer>

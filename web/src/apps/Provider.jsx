@@ -1,9 +1,12 @@
 import React from "react";
 import { AuthProvider } from "../hooks/useAuth";
+import { BrandingProvider } from "../context/BrandingContext";
 
 const Provider = ({ children }) => {
     return (
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+            <BrandingProvider>{children}</BrandingProvider>
+        </AuthProvider>
     )
 
 };

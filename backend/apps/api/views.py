@@ -15,7 +15,7 @@ def health_check(request):
 
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta
 from apps.buildings.models import Building, BuildingUnlock
 from apps.gamification.models import UserQuestProgress
 from apps.quizzes.models import TriviaFact
@@ -48,7 +48,8 @@ def dashboard_stats(request):
         'daily': [],
         'weekly': [],
         'monthly': [],
-        'yearly': []
+        'yearly': [],
+        'custom': []
     }
     
     # Daily: Last 7 days
@@ -211,8 +212,125 @@ def dashboard_stats(request):
         'recent_feedbacks': feedback_list
     })
 
+
+# ── GPS unlock series for an admin-chosen date range ───────────────────────────
+
+MAX_CUSTOM_RANGE_DAYS = 3660  # 10 years
+
+
+def _parse_iso_date(value):
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _custom_bucket_granularity(span_days):
+    """Pick a bucket size that keeps a custom range readable on the chart."""
+    if span_days <= 31:
+        return 'daily'
+    if span_days <= 182:
+        return 'weekly'
+    return 'monthly'
+
+
+def _custom_bucket_start(granularity, day):
+    if granularity == 'weekly':
+        return day - timedelta(days=day.weekday())
+    if granularity == 'monthly':
+        return day.replace(day=1)
+    return day
+
+
+def _custom_bucket_label(granularity, bucket_start):
+    if granularity == 'monthly':
+        return bucket_start.strftime('%b %Y')
+    if granularity == 'weekly':
+        return bucket_start.strftime('%b %d')
+    return bucket_start.strftime('%b %d')
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_gps_unlocks(request):
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=403)
+
+    start_date = _parse_iso_date(request.query_params.get('start_date'))
+    end_date = _parse_iso_date(request.query_params.get('end_date'))
+
+    if start_date is None or end_date is None:
+        return error_response(
+            ErrorCodes.VALIDATION_ERROR,
+            'start_date and end_date are required in YYYY-MM-DD format',
+            status_code=400,
+        )
+
+    if end_date < start_date:
+        return error_response(
+            ErrorCodes.VALIDATION_ERROR,
+            'end_date must be on or after start_date',
+            status_code=400,
+        )
+
+    span_days = (end_date - start_date).days + 1
+    if span_days > MAX_CUSTOM_RANGE_DAYS:
+        return error_response(
+            ErrorCodes.VALIDATION_ERROR,
+            f'Date range cannot exceed {MAX_CUSTOM_RANGE_DAYS} days',
+            status_code=400,
+        )
+
+    granularity = _custom_bucket_granularity(span_days)
+
+    # Ordered, zero-filled buckets so the chart always shows the full range.
+    buckets = []
+    if granularity == 'monthly':
+        cursor = start_date.replace(day=1)
+        last_bucket = end_date.replace(day=1)
+        while cursor <= last_bucket:
+            buckets.append(cursor)
+            cursor = (cursor.replace(day=28) + timedelta(days=4)).replace(day=1)
+    else:
+        step = timedelta(days=1 if granularity == 'daily' else 7)
+        cursor = _custom_bucket_start(granularity, start_date)
+        last_bucket = _custom_bucket_start(granularity, end_date)
+        while cursor <= last_bucket:
+            buckets.append(cursor)
+            cursor += step
+
+    counts = {bucket: 0 for bucket in buckets}
+
+    timestamps = BuildingUnlock.objects.filter(
+        source='geofence',
+        unlocked_at__date__gte=start_date,
+        unlocked_at__date__lte=end_date,
+    ).values_list('unlocked_at', flat=True)
+
+    for timestamp in timestamps:
+        local = timezone.localtime(timestamp) if timezone.is_aware(timestamp) else timestamp
+        bucket = _custom_bucket_start(granularity, local.date())
+        if bucket in counts:
+            counts[bucket] += 1
+
+    series = [
+        {'label': _custom_bucket_label(granularity, bucket), 'value': counts[bucket]}
+        for bucket in buckets
+    ]
+
+    return success_response({
+        'timeframe': 'custom',
+        'granularity': granularity,
+        'start_date': start_date.isoformat(),
+        'end_date': end_date.isoformat(),
+        'total': sum(counts.values()),
+        'series': series,
+    })
+
+
 from .models import SystemSetting
 from .serializers import SystemSettingSerializer
+
 
 @api_view(['GET', 'PUT'])
 @permission_classes([AllowAny])
@@ -220,13 +338,20 @@ def system_settings(request):
     settings = SystemSetting.get_settings()
     
     if request.method == 'GET':
-        return success_response(SystemSettingSerializer(settings).data)
+        return success_response(
+            SystemSettingSerializer(settings, context={'request': request}).data
+        )
         
     elif request.method == 'PUT':
         if request.user.is_anonymous or not request.user.is_admin_role:
             return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required to modify settings', status_code=403)
             
-        serializer = SystemSettingSerializer(settings, data=request.data, partial=True)
+        serializer = SystemSettingSerializer(
+            settings,
+            data=request.data,
+            partial=True,
+            context={'request': request},
+        )
         if serializer.is_valid():
             serializer.save()
             Notification.objects.create(
@@ -237,12 +362,78 @@ def system_settings(request):
             return success_response(serializer.data)
         return error_response(ErrorCodes.VALIDATION_ERROR, 'Invalid data', details=serializer.errors, status_code=400)
 
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def system_settings_logo(request):
+    """Upload or clear the application logo (branding CMS)."""
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required to modify branding', status_code=403)
+
+    settings = SystemSetting.get_settings()
+
+    if request.method == 'DELETE':
+        if settings.logo:
+            settings.logo.delete(save=False)
+        settings.logo = None
+        settings.save()
+        return success_response(
+            SystemSettingSerializer(settings, context={'request': request}).data
+        )
+
+    upload = request.FILES.get('logo') or request.FILES.get('file')
+    if upload is None:
+        return error_response(
+            ErrorCodes.VALIDATION_ERROR,
+            'Attach an image file under the "logo" field.',
+            status_code=400,
+        )
+
+    if upload.size > 4 * 1024 * 1024:
+        return error_response(
+            ErrorCodes.VALIDATION_ERROR,
+            'Logo must be 4 MB or smaller.',
+            status_code=400,
+        )
+
+    if not (upload.content_type or '').startswith('image/'):
+        return error_response(
+            ErrorCodes.VALIDATION_ERROR,
+            'Logo must be a PNG, JPG, SVG, or WebP image.',
+            status_code=400,
+        )
+
+    if settings.logo:
+        settings.logo.delete(save=False)
+    settings.logo = upload
+    settings.save()
+
+    Notification.objects.create(
+        title="Branding Updated",
+        message=f"The application logo was updated by {request.user.email}.",
+        type="SYSTEM"
+    )
+
+    return success_response(
+        SystemSettingSerializer(settings, context={'request': request}).data
+    )
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def public_settings(request):
     settings = SystemSetting.get_settings()
+
+    logo_url = None
+    if settings.logo:
+        try:
+            logo_url = request.build_absolute_uri(settings.logo.url)
+        except ValueError:
+            logo_url = None
+
     data = {
         "app_name": settings.app_name,
+        "brand_color": settings.brand_color,
+        "logo_url": logo_url,
         "maintenance_mode": settings.maintenance_mode,
         "demo_mode": settings.demo_mode,
         "enable_gps": settings.enable_gps,

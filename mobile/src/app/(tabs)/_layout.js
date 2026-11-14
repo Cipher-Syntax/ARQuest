@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { Home, Map, Scan, Building2, User, Trophy } from "lucide-react-native";
 import { View, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import theme from "../../theme/tokens";
+import { useBrandTheme } from "../../hooks/useBrandTheme";
 import { useAuth } from "../../hooks/useAuth";
 import { UnlockedBuildingsProvider } from "../../context/UnlockedBuildingsContext";
 import { Redirect } from "expo-router";
@@ -12,6 +12,8 @@ import OnboardingTutorial from "../../components/features/OnboardingTutorial";
 import JustineGuideModal from "../../components/features/JustineGuideModal";
 
 function CustomTabBar({ state, descriptors, navigation }) {
+    const { theme } = useBrandTheme();
+
     return (
         <SafeAreaView
             edges={["bottom"]}
@@ -109,6 +111,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
 export default function TabLayout() {
     const { user, isLoading } = useAuth();
+    const { theme } = useBrandTheme();
 
     useEffect(() => {
         if (user) {
