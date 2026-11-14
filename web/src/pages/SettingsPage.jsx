@@ -1021,8 +1021,10 @@ export default function Settings() {
                                         Accreditation Access
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">
-                                        Show accreditation data within building
-                                        pages.
+                                        Show accreditation records within
+                                        building pages. Add the data per building
+                                        in Buildings &rarr; Edit &rarr; Step 4:
+                                        Accreditation Record.
                                     </p>
                                 </div>
                                 <Toggle

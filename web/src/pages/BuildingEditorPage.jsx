@@ -20,6 +20,9 @@ import {
     Box,
     MonitorPlay,
     ChevronRight,
+    Award,
+    Plus,
+    Trash2,
 } from "lucide-react";
 import { buildingService } from "../services/buildingService";
 import { departmentService } from "../services/departmentService";
@@ -70,6 +73,43 @@ const STATUS_OPTIONS = [
     },
 ];
 
+const ACCREDITATION_STATUS_OPTIONS = [
+    { value: "NOT_SET", label: "Not Set" },
+    { value: "NOT_ACCREDITED", label: "Not Accredited" },
+    { value: "CANDIDATE", label: "Candidate" },
+    { value: "FOR_EVALUATION", label: "For Evaluation" },
+    { value: "ACCREDITED", label: "Accredited" },
+];
+
+const ACCREDITATION_LEVEL_OPTIONS = [
+    { value: "", label: "No level" },
+    { value: "LEVEL_I", label: "Level I" },
+    { value: "LEVEL_II", label: "Level II" },
+    { value: "LEVEL_III", label: "Level III" },
+    { value: "LEVEL_IV", label: "Level IV" },
+];
+
+const ACCREDITATION_CHECKLIST_STATUS_OPTIONS = [
+    { value: "COMPLIANT", label: "Compliant" },
+    { value: "PARTIAL", label: "Partially Compliant" },
+    { value: "NON_COMPLIANT", label: "Non-Compliant" },
+    { value: "NOT_APPLICABLE", label: "Not Applicable" },
+];
+
+const createDefaultAccreditation = () => ({
+    status: "NOT_SET",
+    level: "",
+    accrediting_body: "",
+    programs: [],
+    valid_until: "",
+    reference_no: "",
+    evaluated_at: "",
+    evaluator: "",
+    findings: "",
+    recommendation: "",
+    checklist: [],
+});
+
 const BuildingEditorPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -110,6 +150,7 @@ const BuildingEditorPage = () => {
         hotspots: [],
         primary_department_id: null,
         department_ids: [],
+        accreditation: createDefaultAccreditation(),
     });
 
     const [geofence, setGeofence] = useState({
@@ -379,6 +420,11 @@ const BuildingEditorPage = () => {
                 primary_department_id: data.primary_department?.id ?? null,
                 department_ids: data.departments?.map((d) => d.id) ?? [],
                 ...(draft || {}),
+                accreditation: {
+                    ...createDefaultAccreditation(),
+                    ...(data.accreditation || {}),
+                    ...(draft?.accreditation || {}),
+                },
                 model_file: prev.model_file instanceof File ? prev.model_file : null,
                 model_active: Boolean(prev.model_file instanceof File || draft?.model_file || data.model_file || data.model_url),
             }));
@@ -428,6 +474,79 @@ const BuildingEditorPage = () => {
             setErrors((prev) => ({ ...prev, [name]: null }));
         }
     };
+
+    const updateAccreditation = (field, value) => {
+        setIsDirty(true);
+        setBuilding((prev) => ({
+            ...prev,
+            accreditation: {
+                ...(prev.accreditation || createDefaultAccreditation()),
+                [field]: value,
+            },
+        }));
+    };
+
+    const addChecklistCriterion = () => {
+        setIsDirty(true);
+        setBuilding((prev) => {
+            const accreditation = prev.accreditation || createDefaultAccreditation();
+            return {
+                ...prev,
+                accreditation: {
+                    ...accreditation,
+                    checklist: [
+                        ...(accreditation.checklist || []),
+                        { label: "", status: "COMPLIANT", remarks: "" },
+                    ],
+                },
+            };
+        });
+    };
+
+    const updateChecklistCriterion = (index, field, value) => {
+        setIsDirty(true);
+        setBuilding((prev) => {
+            const accreditation = prev.accreditation || createDefaultAccreditation();
+            const checklist = [...(accreditation.checklist || [])];
+            checklist[index] = { ...checklist[index], [field]: value };
+            return {
+                ...prev,
+                accreditation: { ...accreditation, checklist },
+            };
+        });
+    };
+
+    const removeChecklistCriterion = (index) => {
+        setIsDirty(true);
+        setBuilding((prev) => {
+            const accreditation = prev.accreditation || createDefaultAccreditation();
+            return {
+                ...prev,
+                accreditation: {
+                    ...accreditation,
+                    checklist: (accreditation.checklist || []).filter(
+                        (_, i) => i !== index
+                    ),
+                },
+            };
+        });
+    };
+
+    const accreditationScore = (() => {
+        const weights = {
+            COMPLIANT: 1,
+            PARTIAL: 0.5,
+            NON_COMPLIANT: 0,
+        };
+        const values = (building.accreditation?.checklist || [])
+            .map((item) => weights[item.status])
+            .filter((value) => value !== undefined);
+        if (values.length === 0) return null;
+        return Math.round(
+            (values.reduce((sum, value) => sum + value, 0) / values.length) *
+                100
+        );
+    })();
 
     // Unified Form Validation
     const validateForm = () => {
@@ -539,6 +658,62 @@ const BuildingEditorPage = () => {
             if (building.hotspots) {
                 formData.append("hotspots", JSON.stringify(building.hotspots));
             }
+
+            const accreditation =
+                building.accreditation || createDefaultAccreditation();
+            formData.append(
+                "accreditation_status",
+                accreditation.status || "NOT_SET"
+            );
+            formData.append("accreditation_level", accreditation.level || "");
+            formData.append(
+                "accrediting_body",
+                accreditation.accrediting_body || ""
+            );
+            formData.append(
+                "accreditation_programs",
+                JSON.stringify(
+                    (accreditation.programs || [])
+                        .map((program) => String(program).trim())
+                        .filter(Boolean)
+                )
+            );
+            formData.append(
+                "accreditation_valid_until",
+                accreditation.valid_until || ""
+            );
+            formData.append(
+                "accreditation_reference_no",
+                accreditation.reference_no || ""
+            );
+            formData.append(
+                "accreditation_evaluated_at",
+                accreditation.evaluated_at || ""
+            );
+            formData.append(
+                "accreditation_evaluator",
+                accreditation.evaluator || ""
+            );
+            formData.append(
+                "accreditation_findings",
+                accreditation.findings || ""
+            );
+            formData.append(
+                "accreditation_recommendation",
+                accreditation.recommendation || ""
+            );
+            formData.append(
+                "accreditation_checklist",
+                JSON.stringify(
+                    (accreditation.checklist || [])
+                        .filter((item) => (item.label || "").trim())
+                        .map((item) => ({
+                            label: item.label.trim(),
+                            status: item.status || "NOT_APPLICABLE",
+                            remarks: (item.remarks || "").trim(),
+                        }))
+                )
+            );
 
             if (building.primary_department_id) {
                 formData.append(
@@ -934,6 +1109,7 @@ const BuildingEditorPage = () => {
                                                             hotspots: building.hotspots,
                                                             primary_department_id: building.primary_department_id,
                                                             department_ids: building.department_ids,
+                                                            accreditation: building.accreditation,
                                                         },
                                                         geofenceDraft: geofence,
                                                     },
@@ -1237,6 +1413,267 @@ const BuildingEditorPage = () => {
                                         buildingName={building.name}
                                         buildingStatus={building.status}
                                     />
+                                </div>
+
+                                {/* ROW 3: Accreditation record (admin-authored, professional read-only) */}
+                                <div className="bg-white border border-brand-border rounded-md shadow-xs p-6 space-y-5">
+                                    <div className="border-b border-gray-100 pb-3 flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="w-6 h-6 rounded-md bg-brand text-white font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
+                                                4
+                                            </span>
+                                            <div>
+                                                <h2 className="text-base font-bold text-gray-900 leading-tight flex items-center gap-2">
+                                                    Step 4: Accreditation Record
+                                                    <Award size={16} className="text-brand" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
+                                                        Optional
+                                                    </span>
+                                                </h2>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    Institutional evaluation data shown to accreditors on the mobile building page.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {accreditationScore !== null && (
+                                            <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-brand/10 text-brand border border-brand/20 shrink-0">
+                                                {accreditationScore}% compliant
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-md text-[11px] text-amber-900 flex items-start gap-2">
+                                        <Info size={14} className="text-amber-700 shrink-0 mt-0.5" />
+                                        <span>
+                                            <strong>Optional step.</strong> You can leave every field below blank and still save this building. Professionals will see a <strong>“No Accreditation Data Yet”</strong> message until you add data.
+                                            <br />
+                                            This record is <strong>authored by admins only</strong>. Professionals see it read-only on the building page when <strong>Settings &rarr; Accreditation Access</strong> is ON. Students and visitors never receive it.
+                                        </span>
+                                    </div>
+
+                                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-md text-[11px] text-gray-700">
+                                        <p className="font-bold text-gray-800 mb-1 uppercase tracking-wider text-[10px]">
+                                            Minimum setup for professionals to see it
+                                        </p>
+                                        <ol className="list-decimal list-inside space-y-0.5">
+                                            <li>Turn on <strong>Settings &rarr; Accreditation Access</strong>.</li>
+                                            <li>Set <strong>Status</strong> to anything except “Not Set”.</li>
+                                            <li>Add <strong>at least one checklist criterion</strong>.</li>
+                                        </ol>
+                                        <p className="mt-1.5 text-gray-500">
+                                            Accrediting Body and Valid Until are recommended. Everything else is optional.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Status
+                                            </label>
+                                            <select
+                                                value={building.accreditation?.status || "NOT_SET"}
+                                                onChange={(e) => updateAccreditation("status", e.target.value)}
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
+                                            >
+                                                {ACCREDITATION_STATUS_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Level
+                                            </label>
+                                            <select
+                                                value={building.accreditation?.level || ""}
+                                                onChange={(e) => updateAccreditation("level", e.target.value)}
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
+                                            >
+                                                {ACCREDITATION_LEVEL_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Accrediting Body
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={building.accreditation?.accrediting_body || ""}
+                                                onChange={(e) => updateAccreditation("accrediting_body", e.target.value)}
+                                                placeholder="e.g. AACCUP"
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                            Programs Covered
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={(building.accreditation?.programs || []).join(", ")}
+                                            onChange={(e) =>
+                                                updateAccreditation(
+                                                    "programs",
+                                                    e.target.value.split(",")
+                                                )
+                                            }
+                                            placeholder="Comma-separated, e.g. BS Biology, BS Chemistry"
+                                            className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Valid Until
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={building.accreditation?.valid_until || ""}
+                                                onChange={(e) => updateAccreditation("valid_until", e.target.value)}
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Reference No.
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={building.accreditation?.reference_no || ""}
+                                                onChange={(e) => updateAccreditation("reference_no", e.target.value)}
+                                                placeholder="e.g. AACCUP-2026-014"
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Evaluated On
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={building.accreditation?.evaluated_at || ""}
+                                                onChange={(e) => updateAccreditation("evaluated_at", e.target.value)}
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Evaluator
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={building.accreditation?.evaluator || ""}
+                                                onChange={(e) => updateAccreditation("evaluator", e.target.value)}
+                                                placeholder="e.g. Prof. J. Dela Cruz"
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Findings
+                                            </label>
+                                            <textarea
+                                                rows={3}
+                                                value={building.accreditation?.findings || ""}
+                                                onChange={(e) => updateAccreditation("findings", e.target.value)}
+                                                placeholder="Observed deficiencies or notable strengths..."
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none resize-y text-xs"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                Recommendation
+                                            </label>
+                                            <textarea
+                                                rows={3}
+                                                value={building.accreditation?.recommendation || ""}
+                                                onChange={(e) => updateAccreditation("recommendation", e.target.value)}
+                                                placeholder="Recommended action for the facility..."
+                                                className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none resize-y text-xs"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-gray-100 space-y-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                    Compliance Checklist
+                                                </label>
+                                                <p className="text-[11px] text-gray-500 mt-0.5">
+                                                    The compliance score is calculated automatically from these statuses.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={addChecklistCriterion}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-bold rounded-md border border-brand/20 transition-colors shrink-0"
+                                            >
+                                                <Plus size={13} /> Add Criterion
+                                            </button>
+                                        </div>
+
+                                        {(building.accreditation?.checklist || []).length === 0 ? (
+                                            <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-md text-center text-xs text-gray-500">
+                                                No criteria yet. Add one to start the evaluation checklist.
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {(building.accreditation?.checklist || []).map((item, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="grid grid-cols-1 md:grid-cols-[1.2fr_0.9fr_1.4fr_auto] gap-2 items-center p-2.5 bg-gray-50/70 border border-gray-200 rounded-md"
+                                                    >
+                                                        <input
+                                                            type="text"
+                                                            value={item.label || ""}
+                                                            onChange={(e) => updateChecklistCriterion(index, "label", e.target.value)}
+                                                            placeholder="Criterion (e.g. Laboratories)"
+                                                            className="px-2.5 py-2 bg-white border border-gray-200 rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none text-xs"
+                                                        />
+                                                        <select
+                                                            value={item.status || "COMPLIANT"}
+                                                            onChange={(e) => updateChecklistCriterion(index, "status", e.target.value)}
+                                                            className="px-2.5 py-2 bg-white border border-gray-200 rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none text-xs"
+                                                        >
+                                                            {ACCREDITATION_CHECKLIST_STATUS_OPTIONS.map((option) => (
+                                                                <option key={option.value} value={option.value}>
+                                                                    {option.label}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <input
+                                                            type="text"
+                                                            value={item.remarks || ""}
+                                                            onChange={(e) => updateChecklistCriterion(index, "remarks", e.target.value)}
+                                                            placeholder="Remarks (optional)"
+                                                            className="px-2.5 py-2 bg-white border border-gray-200 rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none text-xs"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeChecklistCriterion(index)}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                                            title="Remove criterion"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Bottom Action */}

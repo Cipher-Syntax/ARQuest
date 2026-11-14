@@ -26,7 +26,13 @@ import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { api, authService, geofencingService } from "../../services";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { ShieldAlert, X, Lock } from "lucide-react-native";
+import {
+    ShieldAlert,
+    X,
+    Lock,
+    Award,
+    ChevronRight,
+} from "lucide-react-native";
 import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
 import {
@@ -1294,6 +1300,72 @@ export default function BuildingsScreen() {
                                         </Text>
                                     </View>
                                 )}
+
+                                {(role === "professional" ||
+                                    role === "admin") &&
+                                    selectedBuilding.accreditation && (
+                                        <TouchableOpacity
+                                            style={styles.accreditationButton}
+                                            activeOpacity={0.85}
+                                            onPress={() => {
+                                                setModalVisible(false);
+                                                router.push({
+                                                    pathname: "/accreditation",
+                                                    params: {
+                                                        id: selectedBuilding.id,
+                                                    },
+                                                });
+                                            }}
+                                        >
+                                            <View
+                                                style={
+                                                    styles.accreditationButtonIcon
+                                                }
+                                            >
+                                                <Award
+                                                    size={18}
+                                                    color="#FFFFFF"
+                                                />
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text
+                                                    style={
+                                                        styles.accreditationButtonTitle
+                                                    }
+                                                >
+                                                    View Accreditation Record
+                                                </Text>
+                                                <Text
+                                                    style={
+                                                        styles.accreditationButtonSubtitle
+                                                    }
+                                                >
+                                                    {selectedBuilding
+                                                        .accreditation
+                                                        .status_label ||
+                                                        "Accreditation"}
+                                                    {selectedBuilding
+                                                        .accreditation
+                                                        .compliance_score !==
+                                                        null &&
+                                                    selectedBuilding
+                                                        .accreditation
+                                                        .compliance_score !==
+                                                        undefined
+                                                        ? ` · ${
+                                                              selectedBuilding
+                                                                  .accreditation
+                                                                  .compliance_score
+                                                          }% compliant`
+                                                        : ""}
+                                                </Text>
+                                            </View>
+                                            <ChevronRight
+                                                size={18}
+                                                color={theme.colors.primary}
+                                            />
+                                        </TouchableOpacity>
+                                    )}
                             </>
                         )}
                         </BottomSheetSurface>
@@ -1838,6 +1910,37 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.textPrimary,
         letterSpacing: 1,
+    },
+    accreditationButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginTop: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: "rgba(178, 24, 48, 0.25)",
+        backgroundColor: "rgba(178, 24, 48, 0.06)",
+    },
+    accreditationButtonIcon: {
+        width: 34,
+        height: 34,
+        borderRadius: theme.radius.md,
+        backgroundColor: theme.colors.primary,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    accreditationButtonTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 13,
+        color: theme.colors.textPrimary,
+    },
+    accreditationButtonSubtitle: {
+        fontFamily: fonts.body.regular,
+        fontSize: 11,
+        color: theme.colors.textSecondary,
+        marginTop: 1,
     },
     tacticalWarningText: {
         fontFamily: fonts.body.bold,

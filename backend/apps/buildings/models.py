@@ -63,6 +63,28 @@ class Building(SoftDeleteModel):
         ('MAINTENANCE', 'Under Construction / Maintenance'),
     ]
 
+    ACCREDITATION_STATUS_CHOICES = [
+        ('NOT_SET', 'Not Set'),
+        ('NOT_ACCREDITED', 'Not Accredited'),
+        ('CANDIDATE', 'Candidate'),
+        ('FOR_EVALUATION', 'For Evaluation'),
+        ('ACCREDITED', 'Accredited'),
+    ]
+
+    ACCREDITATION_LEVEL_CHOICES = [
+        ('LEVEL_I', 'Level I'),
+        ('LEVEL_II', 'Level II'),
+        ('LEVEL_III', 'Level III'),
+        ('LEVEL_IV', 'Level IV'),
+    ]
+
+    ACCREDITATION_CHECKLIST_STATUS_CHOICES = [
+        ('COMPLIANT', 'Compliant'),
+        ('PARTIAL', 'Partially Compliant'),
+        ('NON_COMPLIANT', 'Non-Compliant'),
+        ('NOT_APPLICABLE', 'Not Applicable'),
+    ]
+
     departments = models.ManyToManyField(Department, related_name='buildings', blank=True)
     primary_department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='primary_buildings', help_text='Determines the map pin color')
 
@@ -80,6 +102,29 @@ class Building(SoftDeleteModel):
     image = models.ImageField(upload_to='building_images/', blank=True, null=True, help_text='Auto-generated 2D thumbnail of the 3D model')
     hotspots = models.JSONField(default=list, blank=True)
     qr_code_secret = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
+    # Accreditation record, authored by admins and shown read-only to
+    # professionals when SystemSetting.enable_accreditation is on.
+    accreditation_status = models.CharField(
+        max_length=20,
+        choices=ACCREDITATION_STATUS_CHOICES,
+        default='NOT_SET',
+    )
+    accreditation_level = models.CharField(
+        max_length=20,
+        choices=ACCREDITATION_LEVEL_CHOICES,
+        blank=True,
+    )
+    accrediting_body = models.CharField(max_length=255, blank=True)
+    accreditation_programs = models.JSONField(default=list, blank=True)
+    accreditation_valid_until = models.DateField(null=True, blank=True)
+    accreditation_reference_no = models.CharField(max_length=100, blank=True)
+    accreditation_evaluated_at = models.DateField(null=True, blank=True)
+    accreditation_evaluator = models.CharField(max_length=255, blank=True)
+    accreditation_findings = models.TextField(blank=True)
+    accreditation_recommendation = models.TextField(blank=True)
+    accreditation_checklist = models.JSONField(default=list, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

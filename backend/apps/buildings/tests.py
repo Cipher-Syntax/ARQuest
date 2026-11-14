@@ -1782,3 +1782,158 @@ class BuildingExportCSVTest(APITestCase):
             response.status_code,
             (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
         )
+
+
+class AccreditationAccessTests(APITestCase):
+    def setUp(self):
+        from apps.api.models import SystemSetting
+
+        self.settings = SystemSetting.get_settings()
+        self.settings.enable_accreditation = False
+        self.settings.save(update_fields=['enable_accreditation'])
+
+        self.admin = User.objects.create_user(
+            username='accred_admin',
+            email='accred_admin@test.com',
+            password='Password123!',
+            role='admin',
+            email_verified=True,
+        )
+        self.professional = User.objects.create_user(
+            username='accred_prof',
+            email='accred_prof@test.com',
+            password='Password123!',
+            role='professional',
+            email_verified=True,
+        )
+        self.student = User.objects.create_user(
+            username='accred_student',
+            email='accred_student@test.com',
+            password='Password123!',
+            role='student',
+            email_verified=True,
+        )
+        self.visitor = User.objects.create_user(
+            username='accred_visitor',
+            email='accred_visitor@test.com',
+            password='Password123!',
+            role='visitor',
+            email_verified=True,
+        )
+        self.building = Building.objects.create(
+            name='Accreditation Hall',
+            slug='accreditation-hall',
+            latitude=14.5995,
+            longitude=120.9842,
+            is_active=True,
+            status='VISIBLE',
+        )
+        self.client = APIClient()
+
+    def _detail(self, user):
+        self.client.force_authenticate(user=user)
+        return self.client.get(f'/api/buildings/{self.building.id}/')
+
+    def test_admin_sees_accreditation_even_when_switch_is_off(self):
+        response = self._detail(self.admin)
+        self.assertEqual(response.status_code, 200)
+        accreditation = response.data['data']['accreditation']
+        self.assertIsNotNone(accreditation)
+        self.assertEqual(accreditation['status'], 'NOT_SET')
+
+    def test_professional_sees_accreditation_only_when_switch_is_on(self):
+        off = self._detail(self.professional)
+        self.assertIsNone(off.data['data']['accreditation'])
+
+        self.settings.enable_accreditation = True
+        self.settings.save(update_fields=['enable_accreditation'])
+
+        on = self._detail(self.professional)
+        self.assertIsNotNone(on.data['data']['accreditation'])
+
+    def test_student_and_visitor_never_receive_accreditation(self):
+        self.settings.enable_accreditation = True
+        self.settings.save(update_fields=['enable_accreditation'])
+
+        for user in (self.student, self.visitor):
+            response = self._detail(user)
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNone(response.data['data']['accreditation'])
+
+    def test_admin_can_author_accreditation_data_and_score(self):
+        self.client.force_authenticate(user=self.admin)
+        payload = {
+            'accreditation_status': 'ACCREDITED',
+            'accreditation_level': 'LEVEL_III',
+            'accrediting_body': 'AACCUP',
+            'accreditation_programs': ['BS Biology', 'BS Chemistry'],
+            'accreditation_valid_until': '2028-05-31',
+            'accreditation_reference_no': 'AACCUP-2026-014',
+            'accreditation_evaluated_at': '2026-11-14',
+            'accreditation_evaluator': 'Prof. J. Dela Cruz',
+            'accreditation_findings': 'Two labs lack fume hoods.',
+            'accreditation_recommendation': 'Allocate equipment budget.',
+            'accreditation_checklist': [
+                {'label': 'Instructional Spaces', 'status': 'COMPLIANT', 'remarks': ''},
+                {'label': 'Laboratories', 'status': 'PARTIAL', 'remarks': '1 of 3 labs'},
+                {'label': 'IT Infrastructure', 'status': 'NON_COMPLIANT', 'remarks': 'No Wi-Fi'},
+            ],
+        }
+        response = self.client.patch(
+            f'/api/buildings/{self.building.id}/', payload, format='json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.building.refresh_from_db()
+        self.assertEqual(self.building.accreditation_status, 'ACCREDITED')
+        self.assertEqual(self.building.accreditation_level, 'LEVEL_III')
+        self.assertEqual(self.building.accreditation_programs, ['BS Biology', 'BS Chemistry'])
+        self.assertEqual(len(self.building.accreditation_checklist), 3)
+
+        accreditation = response.data['data']['accreditation']
+        self.assertEqual(accreditation['status_label'], 'Accredited')
+        self.assertEqual(accreditation['level_label'], 'Level III')
+        self.assertEqual(accreditation['compliance_score'], 50)
+        self.assertEqual(accreditation['checklist'][1]['status_label'], 'Partially Compliant')
+
+    def test_multipart_json_strings_are_accepted(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(
+            f'/api/buildings/{self.building.id}/',
+            {
+                'accreditation_programs': '["BS Nursing"]',
+                'accreditation_checklist': '[{"label":"Library","status":"COMPLIANT"}]',
+                'accreditation_valid_until': '',
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.building.refresh_from_db()
+        self.assertEqual(self.building.accreditation_programs, ['BS Nursing'])
+        self.assertIsNone(self.building.accreditation_valid_until)
+        self.assertEqual(response.data['data']['accreditation']['compliance_score'], 100)
+
+    def test_invalid_checklist_status_is_rejected(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(
+            f'/api/buildings/{self.building.id}/',
+            {
+                'accreditation_checklist': [
+                    {'label': 'Library', 'status': 'MADE_UP'}
+                ],
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_non_admin_cannot_author_accreditation_data(self):
+        self.client.force_authenticate(user=self.professional)
+        response = self.client.patch(
+            f'/api/buildings/{self.building.id}/',
+            {'accreditation_status': 'ACCREDITED'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.building.refresh_from_db()
+        self.assertEqual(self.building.accreditation_status, 'NOT_SET')
