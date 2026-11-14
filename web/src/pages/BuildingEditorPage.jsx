@@ -162,6 +162,7 @@ const BuildingEditorPage = () => {
 
     const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
+    const [programsText, setProgramsText] = useState("");
     const [errors, setErrors] = useState({});
     const [geofenceErrors, setGeofenceErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState("");
@@ -385,6 +386,8 @@ const BuildingEditorPage = () => {
             if (location.state?.geofenceDraft) {
                 setGeofence(location.state.geofenceDraft);
             }
+            const draftPrograms = (location.state.buildingDraft?.accreditation?.programs || []).join(", ");
+            setProgramsText(draftPrograms);
             setIsDirty(true);
         }
         loadExistingBuildings();
@@ -428,6 +431,9 @@ const BuildingEditorPage = () => {
                 model_file: prev.model_file instanceof File ? prev.model_file : null,
                 model_active: Boolean(prev.model_file instanceof File || draft?.model_file || data.model_file || data.model_url),
             }));
+            // Initialize programs text from loaded accreditation
+            const loadedPrograms = (data.accreditation?.programs || draft?.accreditation?.programs || []).join(", ");
+            setProgramsText(loadedPrograms);
             try {
                 const geofenceData = await buildingService.getGeofence(id);
                 if (geofenceDraft) {
@@ -1518,13 +1524,15 @@ const BuildingEditorPage = () => {
                                         </label>
                                         <input
                                             type="text"
-                                            value={(building.accreditation?.programs || []).join(", ")}
-                                            onChange={(e) =>
-                                                updateAccreditation(
-                                                    "programs",
-                                                    e.target.value.split(",")
-                                                )
-                                            }
+                                            value={programsText}
+                                            onChange={(e) => setProgramsText(e.target.value)}
+                                            onBlur={(e) => {
+                                                const parsed = e.target.value
+                                                    .split(",")
+                                                    .map((p) => p.trim())
+                                                    .filter(Boolean);
+                                                updateAccreditation("programs", parsed);
+                                            }}
                                             placeholder="Comma-separated, e.g. BS Biology, BS Chemistry"
                                             className="mt-1.5 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none text-xs"
                                         />

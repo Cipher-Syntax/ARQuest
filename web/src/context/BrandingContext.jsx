@@ -32,11 +32,7 @@ export function BrandingProvider({ children }) {
 
     const syncDocument = useCallback((next) => {
         applyBrandPalette(next.brandColor);
-        // AppLayout appends " Admin" on authenticated pages; keep whichever
-        // suffix is already on the tab title so the two do not fight.
-        document.title = document.title.endsWith("Admin")
-            ? `${next.appName} Admin`
-            : next.appName;
+        document.title = next.appName;
     }, []);
 
     const refreshBranding = useCallback(async () => {

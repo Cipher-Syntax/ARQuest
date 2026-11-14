@@ -19,7 +19,7 @@ export default function AppLayout() {
             const data = await settingsService.getSettings();
             setSettings(data);
             if (data?.app_name) {
-                document.title = `${data.app_name} Admin`;
+                document.title = data.app_name;
             }
         } catch (err) {
             console.error(err);
