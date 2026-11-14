@@ -2,9 +2,11 @@ from django.db import transaction
 from django.db.models import Exists, OuterRef
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from rest_framework import status
 from django.utils import timezone
+import csv
+import io
 from apps.authentication.permissions import IsAdminRole
 from apps.api.responses import success_response, error_response
 from apps.api.errors import ErrorCodes
@@ -255,6 +257,85 @@ def building_detail(request, id):
             type="BUILDING"
         )
         return success_response({'message': 'Building deleted successfully'}, status_code=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminRole])
+def building_export_csv(request):
+    """Export every building and its details as a UTF-8 CSV.
+
+    Admin-only. Exports the full catalogue (all statuses, including drafts)
+    rather than the current page/filtered view, mirroring the reports export
+    pattern so the file is never truncated by client-side pagination.
+    """
+    buildings = (
+        Building.objects.select_related('primary_department')
+        .prefetch_related('departments', 'geofences')
+        .order_by('name')
+    )
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow([
+        'Name', 'Slug', 'Status', 'Active', 'Latitude', 'Longitude',
+        'Primary Department', 'Departments', 'Geofence Latitude',
+        'Geofence Longitude', 'Geofence Radius (m)', 'Description',
+        'Has 3D Model', 'Model Version', 'Model File Size (MB)',
+        'Model Active', 'Image URL', 'QR Code Secret', 'Created At',
+        'Updated At',
+    ])
+
+    for building in buildings:
+        geofence = next(
+            (g for g in building.geofences.all() if g.is_active), None
+        )
+        image_url = (
+            request.build_absolute_uri(building.image.url)
+            if building.image else ''
+        )
+        model_size_mb = (
+            round(building.model_file_size / (1024 * 1024), 2)
+            if building.model_file_size else ''
+        )
+        created_at = (
+            timezone.localtime(building.created_at).strftime('%Y-%m-%d %H:%M:%S')
+            if building.created_at else ''
+        )
+        updated_at = (
+            timezone.localtime(building.updated_at).strftime('%Y-%m-%d %H:%M:%S')
+            if building.updated_at else ''
+        )
+
+        writer.writerow([
+            building.name,
+            building.slug,
+            building.get_status_display(),
+            'Yes' if building.is_active else 'No',
+            building.latitude if building.latitude is not None else '',
+            building.longitude if building.longitude is not None else '',
+            building.primary_department.name if building.primary_department else '',
+            '; '.join(d.name for d in building.departments.all()),
+            geofence.latitude if geofence else '',
+            geofence.longitude if geofence else '',
+            geofence.radius_meters if geofence else '',
+            building.description,
+            'Yes' if building.model_file else 'No',
+            building.model_version,
+            model_size_mb,
+            'Yes' if building.model_active else 'No',
+            image_url,
+            str(building.qr_code_secret),
+            created_at,
+            updated_at,
+        ])
+
+    filename = f"arquest-buildings-{timezone.now().date().isoformat()}.csv"
+    response = HttpResponse(
+        '\ufeff' + buffer.getvalue(),
+        content_type='text/csv; charset=utf-8',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 @api_view(['GET', 'POST'])

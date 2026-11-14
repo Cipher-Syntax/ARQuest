@@ -104,6 +104,7 @@ export default function BuildingsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [visibilityFilter, setVisibilityFilter] = useState("all");
+    const [isExporting, setIsExporting] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
 
     const getInitialPage = () => {
@@ -206,6 +207,17 @@ export default function BuildingsPage() {
         setVisibilityFilter("all");
     };
 
+    const handleExportCsv = async () => {
+        setIsExporting(true);
+        try {
+            await buildingService.exportBuildingsCSV();
+        } catch (err) {
+            console.error("Failed to export buildings", err);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const hasActiveFilters =
         searchTerm !== "" || statusFilter !== "all" || visibilityFilter !== "all";
 
@@ -272,6 +284,16 @@ export default function BuildingsPage() {
                     </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <Button
+                        variant="secondary"
+                        onClick={handleExportCsv}
+                        loading={isExporting}
+                        className="gap-2 justify-center shadow-sm"
+                        title="Export all buildings to CSV"
+                    >
+                        <Download size={18} />
+                        Export CSV
+                    </Button>
                     <Button
                         onClick={handleAddClick}
                         className="gap-2 justify-center shadow-sm"

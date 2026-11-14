@@ -10,6 +10,7 @@ urlpatterns = [
     path('archived/', views.building_archived_list, name='building_archived_list'),
     path('cron/cleanup/', views.cron_cleanup, name='cron_cleanup'),
     path('public/', views.public_buildings_list, name='public_buildings_list'),
+    path('export/', views.building_export_csv, name='building_export_csv'),
     path('', views.building_list_create, name='building_list_create'),
     path('<uuid:id>/', views.building_detail, name='building_detail'),
     path('<uuid:pk>/restore/', views.building_restore, name='building_restore'),

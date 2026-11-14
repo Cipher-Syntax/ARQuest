@@ -1692,3 +1692,85 @@ class FeatureToggleTests(APITestCase):
         self.assertFalse(response.data['leaderboard_enabled'])
         self.assertEqual(len(response.data['data']), 1)
         self.assertEqual(response.data['data'][0]['username'], 'toggle_student')
+
+
+class BuildingExportCSVTest(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='export_admin',
+            email='export_admin@test.com',
+            password='password123',
+            role='admin',
+        )
+        self.admin.email_verified = True
+        self.admin.save()
+
+        self.student = User.objects.create_user(
+            username='export_student',
+            email='export_student@test.com',
+            password='password123',
+            role='student',
+        )
+        self.student.email_verified = True
+        self.student.save()
+
+        self.visible = Building.objects.create(
+            name='Visible Hall',
+            slug='visible-hall',
+            description='A visible building',
+            latitude=14.599512,
+            longitude=120.984222,
+            status='VISIBLE',
+            is_active=True,
+        )
+        self.draft = Building.objects.create(
+            name='Draft Hall',
+            slug='draft-hall',
+            status='DRAFT',
+            is_active=False,
+        )
+        Geofence.objects.create(
+            building=self.visible,
+            latitude=14.599512,
+            longitude=120.984222,
+            radius_meters=30,
+            is_active=True,
+        )
+
+    def test_admin_export_returns_csv_with_all_buildings(self):
+        import csv
+        import io
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/buildings/export/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('text/csv', response['Content-Type'])
+        self.assertIn('attachment;', response['Content-Disposition'])
+        self.assertIn('arquest-buildings-', response['Content-Disposition'])
+
+        rows = list(csv.reader(io.StringIO(response.content.decode('utf-8-sig'))))
+        self.assertEqual(rows[0][0], 'Name')
+        self.assertEqual(rows[0][1], 'Slug')
+
+        names = [row[0] for row in rows[1:]]
+        # Exports the whole catalogue, including drafts, not just the page.
+        self.assertIn('Visible Hall', names)
+        self.assertIn('Draft Hall', names)
+
+        visible_row = next(row for row in rows[1:] if row[0] == 'Visible Hall')
+        self.assertEqual(visible_row[2], 'Published (Visible)')
+        self.assertEqual(visible_row[3], 'Yes')
+        self.assertEqual(str(self.visible.qr_code_secret), visible_row[17])
+
+    def test_non_admin_export_is_forbidden(self):
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get('/api/buildings/export/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_unauthenticated_export_is_denied(self):
+        response = self.client.get('/api/buildings/export/')
+        self.assertIn(
+            response.status_code,
+            (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+        )

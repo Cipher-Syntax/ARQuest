@@ -86,4 +86,26 @@ export const buildingService = {
         const response = await api.delete(`/api/buildings/${id}/hard-delete/`);
         return response.data;
     },
+
+    exportBuildingsCSV: async () => {
+        const response = await api.get("/api/buildings/export/", {
+            responseType: "blob",
+        });
+
+        const disposition = response.headers?.["content-disposition"];
+        const match = /filename="?([^";]+)"?/i.exec(disposition || "");
+        const today = new Date().toISOString().slice(0, 10);
+        const filename = match?.[1] || `arquest-buildings-${today}.csv`;
+
+        const url = URL.createObjectURL(response.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        return filename;
+    },
 };
