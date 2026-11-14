@@ -696,10 +696,19 @@ export default function ARScreen() {
             }
             announcedArrivalBldgIds.add(arrivalKey);
 
-            try {
-                SoundManager.play("building_unlock");
-            } catch {
-                // Non-fatal if audio fails
+            // Only sound the unlock chime for a building the user does not own
+            // yet. Arriving at an already-unlocked building still shows the
+            // "You have arrived" card, but silently, so the unlock stinger does
+            // not replay on every visit.
+            const isAlreadyUnlocked = unlockedBuildings.some(
+                (b) => String(b.id) === arrivalKey
+            );
+            if (!isAlreadyUnlocked) {
+                try {
+                    SoundManager.play("building_unlock");
+                } catch {
+                    // Non-fatal if audio fails
+                }
             }
             setShowArrivalModal(true);
             Animated.timing(arrivalModalAnim, {
@@ -740,6 +749,7 @@ export default function ARScreen() {
         geofenceStatus?.status,
         distanceToTarget,
         arrivalModalAnim,
+        unlockedBuildings,
     ]);
 
     // Cleanup arrival modal immediately when switching away from the AR tab

@@ -450,6 +450,7 @@ def unlock_building(request):
             serializer = BuildingUnlockSerializer(unlock)
             data = serializer.data
             data['newly_earned_badges'] = newly_earned_badges
+            data['newly_unlocked'] = created  # True = first unlock, False = already had access
             return success_response(data)
     
     return error_response(ErrorCodes.GEOFENCE_OUTSIDE, 'Not inside any building geofence', status_code=400)

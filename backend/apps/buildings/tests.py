@@ -602,16 +602,24 @@ class BuildingUnlockTestCase(TestCase):
 
     def test_repeated_unlock_no_duplicate(self):
         self.client.force_authenticate(user=self.user)
-        self.client.post('/api/buildings/unlock/', {
+        first = self.client.post('/api/buildings/unlock/', {
             'latitude': 14.5995,
             'longitude': 120.9842,
             'accuracy_meters': 10
         })
-        self.client.post('/api/buildings/unlock/', {
+        # First entry is a real unlock: the client uses this flag to decide
+        # whether to play the unlock sound / refresh XP.
+        self.assertTrue(first.data['data']['newly_unlocked'])
+
+        second = self.client.post('/api/buildings/unlock/', {
             'latitude': 14.5995,
             'longitude': 120.9842,
             'accuracy_meters': 10
         })
+        # Re-validating an already-owned building must report "not new" so the
+        # mobile app stays silent instead of replaying the unlock stinger.
+        self.assertFalse(second.data['data']['newly_unlocked'])
+
         count = BuildingUnlock.objects.filter(user=self.user, building=self.building).count()
         self.assertEqual(count, 1)
 

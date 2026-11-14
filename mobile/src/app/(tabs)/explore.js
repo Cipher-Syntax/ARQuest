@@ -306,7 +306,9 @@ export default function ExploreScreen() {
                         // Only celebrate a genuinely new unlock. Re-validating a
                         // building the student already owns must stay silent, or
                         // every visit (and tab change) replays the unlock sound.
-                        const isNewUnlock = unlockResult?.newly_unlocked !== false;
+                        // Strict `=== true`: a missing flag must never be read as
+                        // "newly unlocked" (the geofence endpoint used to omit it).
+                        const isNewUnlock = unlockResult?.newly_unlocked === true;
 
                         if (role === "student") {
                             if (isNewUnlock) {
