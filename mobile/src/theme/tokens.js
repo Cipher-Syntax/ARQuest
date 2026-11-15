@@ -54,4 +54,6 @@ export const theme = {
     radius,
 };
 
+export const baseTheme = theme;
+
 export default theme;

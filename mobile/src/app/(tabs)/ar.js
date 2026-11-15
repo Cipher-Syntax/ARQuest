@@ -1384,6 +1384,7 @@ export default function ARScreen() {
                                     nextWaypoint: nextWaypoint,
                                     isArrived: isArrived,
                                     onModelLoadingChange: setIsArModelLoading,
+                                    brandColor: colors.primary,
                                 }}
                                 style={styles.camera}
                             />

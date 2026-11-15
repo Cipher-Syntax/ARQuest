@@ -4,7 +4,7 @@ import React, {
     useMemo,
 } from "react";
 import { usePublicSettings } from "./PublicSettingsContext";
-import baseTheme from "../theme/tokens";
+import { baseTheme } from "../theme/tokens";
 
 const DEFAULT_BRAND = "#8A1538";
 

@@ -16,8 +16,7 @@ import {
 
 
 import { getDistance, getRhumbLineBearing } from 'geolib';
-import { useThemeColors } from '../../context/ThemeContext';
-import { baseTheme } from '../../theme/tokens';
+import baseTheme, { colors } from '../../theme/tokens';
 
 /**
  * Calculates relative angle (degrees) and Cartesian offset (meters)
@@ -113,14 +112,15 @@ const INNER_RING_POINTS = [
 const ArrivedBeacon = React.memo(function ArrivedBeacon({
     buildingName,
     modelUri,
+    brandColor,
     isLoading,
     isUnavailable,
     onModelLoadStart,
     onModelLoadEnd,
     onModelError,
 }) {
-    const colors = useThemeColors();
     const modelSource = useMemo(() => ({ uri: modelUri }), [modelUri]);
+    const primaryColor = brandColor || colors.primary;
 
     return (
         <>
@@ -134,7 +134,7 @@ const ArrivedBeacon = React.memo(function ArrivedBeacon({
                     fontFamily: 'Arial',
                     fontSize: 26,
                     fontWeight: 'bold',
-                    color: colors.primary,
+                    color: primaryColor,
                     textAlign: 'center',
                     textAlignVertical: 'center',
                 }}
@@ -216,7 +216,7 @@ const ArrivedBeacon = React.memo(function ArrivedBeacon({
                         fontFamily: 'Arial',
                         fontSize: 16,
                         fontWeight: 'bold',
-                        color: colors.primary,
+                        color: primaryColor,
                         textAlign: 'center',
                         textAlignVertical: 'center',
                     }}
@@ -241,7 +241,10 @@ export default function ARQuestScene(props) {
         buildingName,
         isArrived = false,
         onModelLoadingChange,
+        brandColor,
     } = sceneNavigator.viroAppProps || {};
+
+    const primaryColor = brandColor || colors.primary;
 
     const [targetAngle, setTargetAngle] = useState(0);
     const [chevronPositions, setChevronPositions] = useState([]);
@@ -250,8 +253,6 @@ export default function ARQuestScene(props) {
     const [modelLoaded, setModelLoaded] = useState(false);
     // Camera-following position for the arrived 3D model — updated every camera frame
     const [arrivedModelPosition, setArrivedModelPosition] = useState([0, -0.60, -2.6]);
-
-    const colors = useThemeColors();
 
     const stableModelUrlRef = useRef(modelUrl);
     if (modelUrl) {
@@ -573,7 +574,7 @@ export default function ARQuestScene(props) {
                         height={1}
                         scale={[0.34, 0.34, 0.34]}
                         position={[0, 0.16, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: colors.primary, textAlign: 'center', textAlignVertical: 'center' }}
+                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: primaryColor, textAlign: 'center', textAlignVertical: 'center' }}
                         materials={['glowArrow']}
                     />
 
@@ -584,7 +585,7 @@ export default function ARQuestScene(props) {
                         height={1}
                         scale={[0.24, 0.24, 0.24]}
                         position={[0, -0.06, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: colors.primary, textAlign: 'center', textAlignVertical: 'center' }}
+                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: primaryColor, textAlign: 'center', textAlignVertical: 'center' }}
                         materials={['glowArrow']}
                     />
                 </ViroNode>
@@ -603,6 +604,7 @@ export default function ARQuestScene(props) {
                     <ArrivedBeacon
                         buildingName={effectiveBuildingName}
                         modelUri={sceneModelUri}
+                        brandColor={primaryColor}
                         isLoading={
                             Boolean(sceneModelUri) && !modelLoaded && !modelError
                         }
@@ -619,10 +621,9 @@ export default function ARQuestScene(props) {
 
 // ── AR Material Definitions ──────────────────────────────────────────────────
 // Seeded with the base palette so the first frame has a valid material.
-// ARQuestScene re-registers the brand materials whenever the admin color changes.
 ViroMaterials.createMaterials({
     glowArrow: {
-        diffuseColor: baseTheme.colors.primary,
+        diffuseColor: colors.primary,
         lightingModel: 'Constant', // Unaffected by dark environments
     },
     glowArrowGold: {
@@ -634,7 +635,7 @@ ViroMaterials.createMaterials({
         lightingModel: 'Constant',
     },
     beaconBase: {
-        diffuseColor: baseTheme.colors.primary,
+        diffuseColor: colors.primary,
         lightingModel: 'Constant',
     },
     textMaterial: {
