@@ -253,21 +253,6 @@ export default function ARQuestScene(props) {
 
     const colors = useThemeColors();
 
-    // Keep the Viro material registry in sync with the admin's brand color.
-    useEffect(() => {
-        ViroMaterials.createMaterials({
-            glowArrow: {
-                diffuseColor: colors.primary,
-                lightingModel: 'Constant',
-            },
-            beaconBase: {
-                diffuseColor: colors.primary,
-                lightingModel: 'Constant',
-            },
-        });
-    }, [colors.primary]);
-
-    // Retain last valid modelUrl and buildingName so background network re-fetches cannot wipe them out mid-session
     const stableModelUrlRef = useRef(modelUrl);
     if (modelUrl) {
         stableModelUrlRef.current = modelUrl;
