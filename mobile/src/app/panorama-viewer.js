@@ -12,13 +12,16 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
 import ViewerHeader from "../components/viewer/ViewerHeader";
-import { theme } from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { api } from "../services";
 import { assetService } from "../services";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
 import { panoramaViewerHtmlString } from "../../assets/panorama-viewer";
 
 export default function PanoramaViewerScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { buildingId, buildingName, targetSceneId, fromVirtualTour } =
         useLocalSearchParams();
     const router = useRouter();
@@ -241,7 +244,7 @@ export default function PanoramaViewerScreen() {
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator
                         size="large"
-                        color={theme.colors.arHighlight}
+                        color={colors.arHighlight}
                     />
                     <Text style={styles.loadingText}>Loading Panorama...</Text>
                 </View>
@@ -307,7 +310,7 @@ export default function PanoramaViewerScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
@@ -326,7 +329,7 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         backgroundColor: "rgba(0,0,0,0.5)",
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         justifyContent: "center",
         alignItems: "center",
         zIndex: 20,
@@ -344,14 +347,14 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         color: "#fff",
-        marginTop: theme.spacing.md,
+        marginTop: spacing.md,
         fontSize: 16,
     },
     errorContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        padding: theme.spacing.lg,
+        padding: spacing.lg,
     },
     errorText: {
         color: "#fff",

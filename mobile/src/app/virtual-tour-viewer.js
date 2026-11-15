@@ -15,13 +15,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { DeviceMotion } from "expo-sensors";
-import { theme } from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { assetService } from "../services";
 import { api } from "../services";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
 import { virtualTourViewerHtmlString } from "../../assets/virtual-tour-viewer";
 
 export default function VirtualTourViewerScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const {
         buildingId,
         buildingName,
@@ -658,7 +661,7 @@ export default function VirtualTourViewerScreen() {
                     <Ionicons
                         name="settings-outline"
                         size={20}
-                        color={theme.colors.arHighlight}
+                        color={colors.arHighlight}
                     />
                 </TouchableOpacity>
 
@@ -670,7 +673,7 @@ export default function VirtualTourViewerScreen() {
                     <Ionicons
                         name="close"
                         size={24}
-                        color={theme.colors.arHighlight}
+                        color={colors.arHighlight}
                     />
                 </TouchableOpacity>
             </View>
@@ -694,7 +697,7 @@ export default function VirtualTourViewerScreen() {
                         <Ionicons
                             name="warning-outline"
                             size={32}
-                            color={theme.colors.error}
+                            color={colors.error}
                         />
                         <Text style={styles.errorText}>{error}</Text>
                     </View>
@@ -707,7 +710,7 @@ export default function VirtualTourViewerScreen() {
                     <View style={styles.loadingCard}>
                         <ActivityIndicator
                             size="large"
-                            color={theme.colors.primary}
+                            color={colors.primary}
                         />
                         <Text style={styles.loadingText}>
                             {statusText}
@@ -737,7 +740,7 @@ export default function VirtualTourViewerScreen() {
                                 <Ionicons
                                     name="globe-outline"
                                     size={20}
-                                    color={theme.colors.arHighlight}
+                                    color={colors.arHighlight}
                                 />
                                 <Text style={styles.modalTitle}>
                                     SELECT 360° ROOM
@@ -774,7 +777,7 @@ export default function VirtualTourViewerScreen() {
                                                     : "business-outline"
                                             }
                                             size={18}
-                                            color={theme.colors.arHighlight}
+                                            color={colors.arHighlight}
                                         />
                                         <View>
                                             <Text style={styles.roomItemTitle}>
@@ -822,7 +825,7 @@ export default function VirtualTourViewerScreen() {
                                 <Ionicons
                                     name="settings-sharp"
                                     size={20}
-                                    color={theme.colors.arHighlight}
+                                    color={colors.arHighlight}
                                 />
                                 <Text style={styles.modalTitle}>
                                     TOUR SETTINGS
@@ -1032,7 +1035,7 @@ export default function VirtualTourViewerScreen() {
                                         size={22}
                                         color={
                                             showLabels
-                                                ? theme.colors.arHighlight
+                                                ? colors.arHighlight
                                                 : "#8AA3AA"
                                         }
                                     />
@@ -1120,7 +1123,7 @@ export default function VirtualTourViewerScreen() {
 }
 
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
@@ -1143,11 +1146,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: "rgba(0, 229, 255, 0.15)",
         borderWidth: 1,
-        borderColor: theme.colors.arHighlight,
+        borderColor: colors.arHighlight,
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 22,
-        shadowColor: theme.colors.arHighlight,
+        shadowColor: colors.arHighlight,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
@@ -1155,8 +1158,8 @@ const styles = StyleSheet.create({
     },
     panoramaEquivBtnActive: {
         backgroundColor: "rgba(0, 229, 255, 0.35)",
-        borderColor: theme.colors.arHighlight,
-        shadowColor: theme.colors.arHighlight,
+        borderColor: colors.arHighlight,
+        shadowColor: colors.arHighlight,
         shadowOpacity: 0.7,
     },
     panoramaEquivBtnDisabled: {
@@ -1164,7 +1167,7 @@ const styles = StyleSheet.create({
         borderColor: "rgba(255, 255, 255, 0.2)",
     },
     panoramaEquivText: {
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         fontSize: 12,
         fontWeight: "bold",
         letterSpacing: 1,
@@ -1183,7 +1186,7 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         backgroundColor: "rgba(0,0,0,0.5)",
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -1193,7 +1196,7 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         backgroundColor: "rgba(0,0,0,0.5)",
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -1207,7 +1210,7 @@ const styles = StyleSheet.create({
     buildingName: {
         fontSize: 16,
         fontWeight: "900",
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         letterSpacing: 3,
         textTransform: "uppercase",
         textShadowColor: "rgba(0, 0, 0, 0.75)",
@@ -1216,7 +1219,7 @@ const styles = StyleSheet.create({
     },
     hudSubtitle: {
         fontSize: 10,
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         fontWeight: "bold",
         letterSpacing: 2,
         marginTop: 4,
@@ -1237,8 +1240,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     loadingText: {
-        color: theme.colors.arHighlight,
-        marginTop: theme.spacing.md,
+        color: colors.arHighlight,
+        marginTop: spacing.md,
         fontSize: 12,
         fontWeight: "bold",
         letterSpacing: 2,
@@ -1252,14 +1255,14 @@ const styles = StyleSheet.create({
     },
     errorCard: {
         backgroundColor: "#fff",
-        padding: theme.spacing.xl,
-        borderRadius: theme.radius.lg,
+        padding: spacing.xl,
+        borderRadius: radius.lg,
         alignItems: "center",
         maxWidth: "80%",
     },
     errorText: {
-        color: theme.colors.error,
-        marginTop: theme.spacing.md,
+        color: colors.error,
+        marginTop: spacing.md,
         fontSize: 16,
         textAlign: "center",
         fontWeight: "bold",

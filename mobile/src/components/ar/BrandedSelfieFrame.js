@@ -1,8 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { theme } from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function BrandedSelfieFrame({ buildingName, visible }) {
+    const styles = useThemedStyles(createStyles);
     if (!visible) return null;
 
     const currentDate = new Date().toLocaleDateString("en-US", {
@@ -37,7 +38,7 @@ export default function BrandedSelfieFrame({ buildingName, visible }) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         ...StyleSheet.absoluteFillObject,
         pointerEvents: "none",
@@ -55,18 +56,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         borderBottomWidth: 3,
-        borderBottomColor: theme.colors.primary,
+        borderBottomColor: colors.primary,
     },
     logoText: {
         fontSize: 28,
         fontWeight: "700",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 1,
     },
     tagline: {
         fontSize: 12,
         fontWeight: "500",
-        color: theme.colors.accent,
+        color: colors.accent,
         textTransform: "uppercase",
         letterSpacing: 2,
     },
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         backgroundColor: "rgba(15, 65, 74, 0.85)",
         borderTopWidth: 3,
-        borderTopColor: theme.colors.primary,
+        borderTopColor: colors.primary,
     },
     visitedContainer: {
         marginBottom: 8,
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     visitedLabel: {
         fontSize: 14,
         fontWeight: "500",
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textTransform: "uppercase",
         letterSpacing: 1.5,
         marginBottom: 4,
@@ -95,18 +96,18 @@ const styles = StyleSheet.create({
     buildingNameLarge: {
         fontSize: 24,
         fontWeight: "700",
-        color: theme.colors.accent,
+        color: colors.accent,
     },
     dateText: {
         fontSize: 12,
         fontWeight: "400",
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
     },
     corner: {
         position: "absolute",
         width: 40,
         height: 40,
-        borderColor: theme.colors.accent,
+        borderColor: colors.accent,
         borderWidth: 3,
     },
     topLeft: {

@@ -21,7 +21,6 @@ import {
     CheckCircle2,
     MapPin,
 } from "lucide-react-native";
-import theme from "../../theme/tokens";
 import { fonts } from "../../constants/typography";
 import {
     AnimatedBottomBar,

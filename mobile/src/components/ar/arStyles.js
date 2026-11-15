@@ -1,9 +1,9 @@
 import { StyleSheet } from "react-native";
 
-import { theme } from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 
-export const styles = StyleSheet.create({
+export const createArStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
@@ -27,30 +27,30 @@ export const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        padding: theme.spacing.xl,
+        padding: spacing.xl,
     },
     permissionTitle: {
-        fontSize: theme.typography.xl,
+        fontSize: typography.xl,
         fontWeight: "600",
         color: "#fff",
-        marginTop: theme.spacing.lg,
-        marginBottom: theme.spacing.sm,
+        marginTop: spacing.lg,
+        marginBottom: spacing.sm,
     },
     permissionText: {
-        fontSize: theme.typography.md,
-        color: theme.colors.textMuted,
+        fontSize: typography.md,
+        color: colors.textMuted,
         textAlign: "center",
-        marginBottom: theme.spacing.xl,
+        marginBottom: spacing.xl,
     },
     permissionButton: {
-        backgroundColor: theme.colors.primary,
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.xl,
-        borderRadius: theme.radius.md,
+        backgroundColor: colors.primary,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.xl,
+        borderRadius: radius.md,
     },
     permissionButtonText: {
         color: "#fff",
-        fontSize: theme.typography.md,
+        fontSize: typography.md,
         fontWeight: "600",
     },
     
@@ -100,7 +100,7 @@ export const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 10,
         paddingHorizontal: 16,
         borderRadius: 6,
@@ -130,11 +130,11 @@ export const styles = StyleSheet.create({
         elevation: 4,
     },
     qrBigButtonActive: {
-        backgroundColor: theme.colors.success,
+        backgroundColor: colors.success,
     },
     qrBigButtonText: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 14,
         letterSpacing: 0.5,
         marginLeft: 8,
@@ -170,7 +170,7 @@ export const styles = StyleSheet.create({
         height: 160,
     },
     navDistanceText: {
-        color: theme.colors.success,
+        color: colors.success,
         fontSize: 18,
         fontFamily: fonts.heading.bold,
         marginTop: 20,
@@ -212,14 +212,14 @@ export const styles = StyleSheet.create({
         position: "absolute",
         width: "100%",
         height: 2,
-        backgroundColor: theme.colors.success,
-        shadowColor: theme.colors.success,
+        backgroundColor: colors.success,
+        shadowColor: colors.success,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 1,
         shadowRadius: 8,
     },
     scanningText: {
-        color: theme.colors.success,
+        color: colors.success,
         fontFamily: fonts.heading.bold,
         fontSize: 12,
         letterSpacing: 2,
@@ -276,7 +276,7 @@ export const styles = StyleSheet.create({
         marginRight: 12,
         overflow: "hidden",
         borderRadius: 6,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
     },
     modelMiniature: {
         width: "100%",
@@ -287,21 +287,21 @@ export const styles = StyleSheet.create({
     },
     targetLabel: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 10,
         letterSpacing: 1.5,
         marginBottom: 2,
     },
     buildingLabel: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 16,
         letterSpacing: 0.5,
         textTransform: "uppercase",
     },
     buildingStatus: {
         fontFamily: fonts.body.bold,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
         marginTop: 2,
         letterSpacing: 0.5,
@@ -310,7 +310,7 @@ export const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -322,7 +322,7 @@ export const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         borderWidth: 4,
-        borderColor: theme.colors.arHighlight,
+        borderColor: colors.arHighlight,
     },
     captureButtonInner: {
         justifyContent: "center",
@@ -332,17 +332,17 @@ export const styles = StyleSheet.create({
         marginTop: 12,
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: theme.colors.border,
+        borderTopColor: colors.border,
     },
     intelHeader: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         fontSize: 9,
         fontWeight: "bold",
         letterSpacing: 1,
         marginBottom: 4,
     },
     intelText: {
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
         lineHeight: 18,
         fontFamily: "monospace",
@@ -423,7 +423,7 @@ export const styles = StyleSheet.create({
         paddingBottom: 40,
         zIndex: 100,
         borderTopWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     triviaModalHeader: {
         flexDirection: "row",
@@ -433,31 +433,31 @@ export const styles = StyleSheet.create({
     },
     triviaTitle: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 18,
         letterSpacing: 2,
     },
     closeTriviaBtn: {
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         padding: 6,
         borderRadius: 20,
     },
     triviaContentBorder: {
         borderLeftWidth: 2,
-        borderLeftColor: theme.colors.primary,
+        borderLeftColor: colors.primary,
         paddingLeft: 16,
         marginBottom: 20,
     },
     triviaBuildingName: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 14,
         marginBottom: 8,
         letterSpacing: 2,
     },
     triviaText: {
         fontFamily: fonts.body.regular,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
         lineHeight: 22,
     },
@@ -469,13 +469,13 @@ export const styles = StyleSheet.create({
         width: "100%",
         justifyContent: "center",
         paddingVertical: 14,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         borderWidth: 1,
         borderColor: "rgba(178, 24, 48, 0.3)",
     },
     rewardText: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 16,
         marginLeft: 8,
         letterSpacing: 1,
@@ -904,3 +904,5 @@ export const styles = StyleSheet.create({
         letterSpacing: 1,
     },
 });
+
+export const useArStyles = () => useThemedStyles(createArStyles);

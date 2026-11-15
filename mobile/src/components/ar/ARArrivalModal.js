@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { styles } from "./arStyles";
+import { useArStyles } from "./arStyles";
 
 /**
  * Reward-style arrival card shown when the user reaches a destination.
@@ -22,6 +22,8 @@ export default function ARArrivalModal({
     buildingName,
     missionExp,
 }) {
+    const styles = useArStyles();
+
     return (
         <Modal
             transparent={true}

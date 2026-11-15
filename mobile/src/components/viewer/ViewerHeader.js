@@ -2,9 +2,10 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { theme } from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function ViewerHeader({ title }) {
+    const styles = useThemedStyles(createStyles);
     const router = useRouter();
 
     const handleBack = () => {
@@ -30,7 +31,7 @@ export default function ViewerHeader({ title }) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     header: {
         position: "absolute",
         top: 0,
@@ -39,19 +40,19 @@ const styles = StyleSheet.create({
         height: 60,
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: theme.spacing.md,
-        paddingTop: theme.spacing.sm,
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.sm,
         backgroundColor: "rgba(0,0,0,0.5)",
         zIndex: 10,
     },
     backButton: {
-        padding: theme.spacing.sm,
+        padding: spacing.sm,
     },
     title: {
         flex: 1,
         color: "#fff",
         fontSize: 18,
         fontWeight: "600",
-        marginLeft: theme.spacing.sm,
+        marginLeft: spacing.sm,
     },
 });

@@ -10,10 +10,11 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import theme from "../theme/tokens";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
 
 export default function Index() {
+    const styles = useThemedStyles(createStyles);
     const { user, isLoading } = useAuth();
     const [minSplashTimeDone, setMinSplashTimeDone] = useState(false);
     const fadeAnim = React.useRef(new Animated.Value(1)).current;
@@ -65,7 +66,7 @@ export default function Index() {
     return <Redirect href="/(tabs)" />;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000", // Black behind image just in case
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
     subHeadline: {
         fontFamily: fonts.heading.bold,
         fontSize: 46, // Made slightly bigger
-        color: theme.colors.primary,
+        color: colors.primary,
         textShadowColor: "rgba(0, 0, 0, 0.75)",
         textShadowOffset: { width: 0, height: 4 },
         textShadowRadius: 10,

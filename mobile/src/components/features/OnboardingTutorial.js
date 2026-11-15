@@ -28,7 +28,8 @@ import {
     CheckSquare,
 } from "lucide-react-native";
 import { router } from "expo-router";
-import theme from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -218,6 +219,8 @@ const getTutorialSteps = (role) => {
 };
 
 export default function OnboardingTutorial() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { user } = useAuth();
     const [isVisible, setIsVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
@@ -364,7 +367,7 @@ export default function OnboardingTutorial() {
 
                         {/* Icon Container */}
                         <View style={styles.iconContainer}>
-                            <Icon color={theme.colors.primary} size={32} />
+                            <Icon color={colors.primary} size={32} />
                         </View>
 
                         {/* Title & Description */}
@@ -395,9 +398,9 @@ export default function OnboardingTutorial() {
                             >
                                 <View style={[styles.checkbox, isAgreed && styles.checkboxActive]}>
                                     {isAgreed ? (
-                                        <CheckSquare size={20} color={theme.colors.primary} />
+                                        <CheckSquare size={20} color={colors.primary} />
                                     ) : (
-                                        <Square size={20} color={theme.colors.textMuted} />
+                                        <Square size={20} color={colors.textMuted} />
                                     )}
                                 </View>
                                 <Text style={styles.legalCheckText}>
@@ -418,7 +421,7 @@ export default function OnboardingTutorial() {
                                     activeOpacity={0.8}
                                 >
                                     <ChevronLeft
-                                        color={theme.colors.textSecondary}
+                                        color={colors.textSecondary}
                                         size={18}
                                     />
                                     <Text style={styles.prevText}>BACK</Text>
@@ -481,7 +484,7 @@ export default function OnboardingTutorial() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.8)",
@@ -501,7 +504,7 @@ const styles = StyleSheet.create({
     },
     tooltipBox: {
         width: width * 0.88,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         borderRadius: 24,
         paddingVertical: 24,
         paddingHorizontal: 20,
@@ -532,13 +535,13 @@ const styles = StyleSheet.create({
     badgeText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 0.8,
     },
     stepCounter: {
         fontFamily: fonts.body.medium,
         fontSize: 12,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
     },
     iconContainer: {
         width: 68,
@@ -555,7 +558,7 @@ const styles = StyleSheet.create({
         fontFamily: fonts.heading.bold,
         fontWeight: "bold",
         fontSize: 18,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 8,
         textAlign: "center",
         letterSpacing: 0.5,
@@ -563,7 +566,7 @@ const styles = StyleSheet.create({
     description: {
         fontFamily: fonts.body.regular,
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: "center",
         marginBottom: 18,
         lineHeight: 19,
@@ -586,7 +589,7 @@ const styles = StyleSheet.create({
         width: 18,
         height: 6,
         borderRadius: 3,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
     },
     buttonRow: {
         flexDirection: "row",
@@ -602,12 +605,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     prevText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         letterSpacing: 0.5,
         marginLeft: 2,
     },
@@ -616,12 +619,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     skipText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 12,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 0.5,
     },
     nextBtn: {
@@ -629,11 +632,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: 22,
-        shadowColor: theme.colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.35,
         shadowRadius: 8,
@@ -657,7 +660,7 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
         borderLeftColor: "transparent",
         borderRightColor: "transparent",
-        borderTopColor: theme.colors.surface,
+        borderTopColor: colors.surface,
         marginLeft: -14,
     },
     highlightCircle: {
@@ -667,7 +670,7 @@ const styles = StyleSheet.create({
         height: 56,
         borderRadius: 28,
         borderWidth: 2,
-        borderColor: theme.colors.primary,
+        borderColor: colors.primary,
         backgroundColor: "rgba(178, 24, 48, 0.25)",
         marginLeft: -28,
     },
@@ -678,7 +681,7 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 6,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         marginTop: 6,
         marginBottom: 16,
     },
@@ -693,16 +696,16 @@ const styles = StyleSheet.create({
         flex: 1,
         fontFamily: fonts.body.regular,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 18,
     },
     legalLink: {
         fontFamily: fonts.heading.semiBold,
-        color: theme.colors.primary,
+        color: colors.primary,
         textDecorationLine: "underline",
     },
     nextBtnDisabled: {
-        backgroundColor: theme.colors.border,
+        backgroundColor: colors.border,
         shadowOpacity: 0,
         elevation: 0,
     },

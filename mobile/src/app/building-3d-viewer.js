@@ -11,13 +11,16 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { theme } from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { assetService } from "../services";
 import { api } from "../services";
 import { viewer3dHtmlString } from "../../assets/viewer3d";
 import { usePublicSettings } from "../context/PublicSettingsContext";
 
 export default function Building3DViewerScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const {
         buildingId,
         buildingName,
@@ -291,7 +294,7 @@ export default function Building3DViewerScreen() {
                 <Ionicons
                     name="close"
                     size={24}
-                    color={theme.colors.arHighlight}
+                    color={colors.arHighlight}
                 />
             </TouchableOpacity>
 
@@ -351,7 +354,7 @@ export default function Building3DViewerScreen() {
                         <Ionicons
                             name="warning-outline"
                             size={32}
-                            color={theme.colors.error}
+                            color={colors.error}
                         />
                         <Text style={styles.errorText}>{error}</Text>
                     </View>
@@ -363,7 +366,7 @@ export default function Building3DViewerScreen() {
                     <View style={styles.loadingCard}>
                         <ActivityIndicator
                             size="large"
-                            color={theme.colors.primary}
+                            color={colors.primary}
                         />
                         <Text style={styles.loadingText}>
                             {statusText}
@@ -375,10 +378,10 @@ export default function Building3DViewerScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
     },
     webview: {
         ...StyleSheet.absoluteFillObject,
@@ -391,9 +394,9 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         justifyContent: "center",
         alignItems: "center",
         zIndex: 20,
@@ -416,22 +419,22 @@ const styles = StyleSheet.create({
     buildingName: {
         fontSize: 16,
         fontWeight: "900",
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         letterSpacing: 3,
         textTransform: "uppercase",
         textAlign: "center",
     },
     hudSubtitle: {
         fontSize: 10,
-        color: theme.colors.success,
+        color: colors.success,
         fontWeight: "bold",
         letterSpacing: 2,
         marginTop: 4,
     },
     descriptionContainer: {
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         padding: 16,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
     },
     descriptionHeader: {
         flexDirection: "row",
@@ -441,13 +444,13 @@ const styles = StyleSheet.create({
     descriptionTitle: {
         fontSize: 11,
         fontWeight: "900",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 2,
     },
     descriptionLine: {
         flex: 1,
         height: 2,
-        backgroundColor: theme.colors.arHighlight,
+        backgroundColor: colors.arHighlight,
         marginLeft: 12,
     },
     descriptionScroll: {
@@ -455,7 +458,7 @@ const styles = StyleSheet.create({
     },
     buildingDescription: {
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 20,
         fontFamily: "monospace",
         textAlign: "justify",
@@ -464,7 +467,7 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         zIndex: 30,
     },
     loadingCard: {
@@ -472,8 +475,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     loadingText: {
-        color: theme.colors.arHighlight,
-        marginTop: theme.spacing.md,
+        color: colors.arHighlight,
+        marginTop: spacing.md,
         fontSize: 12,
         fontWeight: "bold",
         letterSpacing: 2,
@@ -482,19 +485,19 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         zIndex: 30,
     },
     errorCard: {
         backgroundColor: "#fff",
-        padding: theme.spacing.xl,
-        borderRadius: theme.radius.lg,
+        padding: spacing.xl,
+        borderRadius: radius.lg,
         alignItems: "center",
         maxWidth: "80%",
     },
     errorText: {
-        color: theme.colors.error,
-        marginTop: theme.spacing.md,
+        color: colors.error,
+        marginTop: spacing.md,
         fontSize: 16,
         textAlign: "center",
         fontWeight: "bold",
@@ -502,19 +505,19 @@ const styles = StyleSheet.create({
     triviaContainer: {
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         padding: 12,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         marginBottom: 8,
     },
     triviaTitle: {
         fontSize: 11,
         fontWeight: "900",
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         letterSpacing: 2,
         marginBottom: 4,
     },
     triviaText: {
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontStyle: "italic",
         fontFamily: "monospace",
     },

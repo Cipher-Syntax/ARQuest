@@ -9,7 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { AlertTriangle, RefreshCw } from "lucide-react-native";
 
-import { styles } from "./arStyles";
+import { useArStyles } from "./arStyles";
 
 /**
  * Shown when claiming a quest fails (e.g. timeout) so progress is not lost.
@@ -23,6 +23,8 @@ export default function ARClaimErrorModal({
     questTitle,
     questExp,
 }) {
+    const styles = useArStyles();
+
     return (
         <Modal
             transparent={true}

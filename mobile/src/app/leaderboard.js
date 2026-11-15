@@ -32,7 +32,8 @@ import {
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { api } from "../services";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
 import { AVATARS } from "../constants/Avatars";
@@ -90,6 +91,8 @@ const getRankDetails = (exp = 0, rankInfo = null) => {
 };
 
 export default function LeaderboardScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { user } = useAuth();
     // Android 3-button navigation floats the sticky bar over the system bar,
     // so the bar and the list need the bottom inset as padding.
@@ -269,7 +272,7 @@ export default function LeaderboardScreen() {
                     style={{
                         fontFamily: fonts.heading.bold,
                         fontSize: size * 0.42,
-                        color: theme.colors.primary,
+                        color: colors.primary,
                     }}
                 >
                     {letter}
@@ -375,7 +378,7 @@ export default function LeaderboardScreen() {
                     <View style={styles.filterBanner}>
                         <Text style={styles.filterBannerText} numberOfLines={1}>
                             Filtering:{" "}
-                            <Text style={{ fontWeight: "bold", color: theme.colors.primary }}>
+                            <Text style={{ fontWeight: "bold", color: colors.primary }}>
                                 {activeFilter === "above_avg"
                                     ? `≥ ${metrics.avgScore.toLocaleString()} XP (Above Avg)`
                                     : "Campus Legends (≥ 2,000 XP)"}
@@ -575,7 +578,7 @@ export default function LeaderboardScreen() {
 
                 {/* --- Section Header for Rank List --- */}
                 <View style={styles.listHeaderRow}>
-                    <Trophy size={16} color={theme.colors.primary} />
+                    <Trophy size={16} color={colors.primary} />
                     <Text style={styles.listHeaderTitle}>
                         {searchTerm || activeFilter !== "all" ? "SEARCH RESULTS" : "CAMPUS RANKINGS"}
                     </Text>
@@ -592,7 +595,7 @@ export default function LeaderboardScreen() {
             <View style={{ marginTop: 24, marginBottom: 50 }}>
                 {/* --- Recent Quests Taken Activity Section --- */}
                 <View style={styles.sectionHeader}>
-                    <Clock size={16} color={theme.colors.primary} />
+                    <Clock size={16} color={colors.primary} />
                     <Text style={styles.sectionTitle}>RECENT QUESTS TAKEN</Text>
                 </View>
 
@@ -645,14 +648,14 @@ export default function LeaderboardScreen() {
             >
                 {/* Rank Number Badge */}
                 <View style={styles.rankPositionWrap}>
-                    <Text style={[styles.rankPositionText, isMe && { color: theme.colors.primary }]}>
+                    <Text style={[styles.rankPositionText, isMe && { color: colors.primary }]}>
                         #{rank}
                     </Text>
                 </View>
 
                 {/* Avatar */}
                 <View style={styles.avatarWrap}>
-                    {renderAvatar(item, 44, isMe ? theme.colors.primary : "#E2E8F0")}
+                    {renderAvatar(item, 44, isMe ? colors.primary : "#E2E8F0")}
                 </View>
 
                 {/* Student Info */}
@@ -722,7 +725,7 @@ export default function LeaderboardScreen() {
 
             {leaderboardEnabled === false ? (
                 <View style={styles.emptyContainer}>
-                    <Trophy size={48} color={theme.colors.textMuted} />
+                    <Trophy size={48} color={colors.textMuted} />
                     <Text style={styles.emptyTitle}>Leaderboard Disabled</Text>
                     <Text style={styles.emptySubtitle}>
                         The administrator has turned off student rankings.
@@ -731,7 +734,7 @@ export default function LeaderboardScreen() {
                 </View>
             ) : loading ? (
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             ) : (
                 <FlatList
@@ -749,7 +752,7 @@ export default function LeaderboardScreen() {
                         <RefreshControl
                             refreshing={refreshing}
                             onRefresh={onRefresh}
-                            tintColor={theme.colors.primary}
+                            tintColor={colors.primary}
                         />
                     }
                     ListEmptyComponent={
@@ -824,7 +827,7 @@ export default function LeaderboardScreen() {
 
                             {/* Avatar & Rank Ring */}
                             <View style={styles.modalAvatarContainer}>
-                                {renderAvatar(selectedStudent, 76, theme.colors.primary)}
+                                {renderAvatar(selectedStudent, 76, colors.primary)}
                                 <View style={styles.modalRankPill}>
                                     <Text style={styles.modalRankPillText}>
                                         RANK #{selectedStudent.rank || "—"}
@@ -911,7 +914,7 @@ export default function LeaderboardScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F8FAFC",

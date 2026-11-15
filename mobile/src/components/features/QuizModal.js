@@ -10,13 +10,17 @@ import {
     Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import theme from "../../theme/tokens";
+import { useThemeColors, useThemeValue } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import { api } from "../../services";
 import SoundManager from "../../utils/SoundManager";
 import { BottomSheetSurface, ModalSafeArea } from "../ui/SafeAreaSheet";
 
 export default function QuizModal({ visible, building, onClose }) {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
+    const spacing = useThemeValue("spacing");
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -165,7 +169,7 @@ export default function QuizModal({ visible, building, onClose }) {
                     onPress={onClose}
                 >
                     <BottomSheetSurface
-                        base={theme.spacing.xl * 2}
+                        base={spacing.xl * 2}
                         style={styles.bottomSheet}
                     >
                         <View style={styles.sheetHandle} />
@@ -174,7 +178,7 @@ export default function QuizModal({ visible, building, onClose }) {
                         <Ionicons
                             name="school"
                             size={24}
-                            color={theme.colors.arHighlight}
+                            color={colors.arHighlight}
                         />
                         <Text style={styles.title}>TRIVIA QUIZ</Text>
                     </View>
@@ -183,7 +187,7 @@ export default function QuizModal({ visible, building, onClose }) {
                         <View style={styles.loadingContainer}>
                             <ActivityIndicator
                                 size="large"
-                                color={theme.colors.arHighlight}
+                                color={colors.arHighlight}
                             />
                             <Text style={styles.loadingText}>
                                 Fetching Daily Questions...
@@ -319,7 +323,7 @@ export default function QuizModal({ visible, building, onClose }) {
                                     let optionStyle = styles.optionBtn;
                                     let optionTextStyle = styles.optionText;
                                     let iconName = "ellipse-outline";
-                                    let iconColor = theme.colors.textMuted;
+                                    let iconColor = colors.textMuted;
 
                                     if (selectedAnswer !== null) {
                                         if (opt === correctOption) {
@@ -332,7 +336,7 @@ export default function QuizModal({ visible, building, onClose }) {
                                                 styles.textWhite,
                                             ];
                                             iconName = "checkmark-circle";
-                                            iconColor = theme.colors.white;
+                                            iconColor = colors.white;
                                         } else if (
                                             opt === selectedAnswer &&
                                             !isCorrect
@@ -346,7 +350,7 @@ export default function QuizModal({ visible, building, onClose }) {
                                                 styles.textWhite,
                                             ];
                                             iconName = "close-circle";
-                                            iconColor = theme.colors.white;
+                                            iconColor = colors.white;
                                         }
                                     }
 
@@ -395,7 +399,7 @@ export default function QuizModal({ visible, building, onClose }) {
                                     <Ionicons
                                         name="arrow-forward"
                                         size={18}
-                                        color={theme.colors.surface}
+                                        color={colors.surface}
                                     />
                                 </TouchableOpacity>
                             )}
@@ -408,39 +412,39 @@ export default function QuizModal({ visible, building, onClose }) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.6)",
         justifyContent: "flex-end",
     },
     bottomSheet: {
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        padding: theme.spacing.lg,
-        paddingBottom: theme.spacing.xl * 2,
+        padding: spacing.lg,
+        paddingBottom: spacing.xl * 2,
         maxHeight: "80%",
     },
     sheetHandle: {
         width: 40,
         height: 4,
-        backgroundColor: theme.colors.border,
+        backgroundColor: colors.border,
         borderRadius: 2,
         alignSelf: "center",
-        marginBottom: theme.spacing.lg,
+        marginBottom: spacing.lg,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: theme.spacing.lg,
-        gap: theme.spacing.sm,
+        marginBottom: spacing.lg,
+        gap: spacing.sm,
     },
     title: {
         fontFamily: fonts.heading.bold,
         fontSize: 18,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 2,
     },
     loadingContainer: {
@@ -449,7 +453,7 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 12,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         fontFamily: fonts.heading.regular,
     },
     emptyContainer: {
@@ -457,43 +461,43 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     emptyText: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         textAlign: "center",
         marginBottom: 20,
     },
     closeBtn: {
         paddingVertical: 10,
         paddingHorizontal: 20,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     closeBtnText: {
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         fontFamily: fonts.heading.bold,
     },
     quizContent: {
-        marginTop: theme.spacing.sm,
+        marginTop: spacing.sm,
     },
     progressRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: theme.spacing.md,
+        marginBottom: spacing.md,
     },
     progressLeft: {
         flexDirection: "column",
         gap: 2,
     },
     progressBadge: {
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         fontSize: 13,
         fontFamily: fonts.heading.bold,
         letterSpacing: 1.5,
     },
     dailySubBadge: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         fontSize: 10,
         fontFamily: fonts.heading.regular,
         letterSpacing: 0.8,
@@ -512,17 +516,17 @@ const styles = StyleSheet.create({
         borderColor: "rgba(255, 255, 255, 0.25)",
     },
     stepDotActive: {
-        backgroundColor: theme.colors.arHighlight,
-        borderColor: theme.colors.arHighlight,
+        backgroundColor: colors.arHighlight,
+        borderColor: colors.arHighlight,
         width: 22,
         borderRadius: 5,
     },
     stepDotDone: {
-        backgroundColor: theme.colors.success,
-        borderColor: theme.colors.success,
+        backgroundColor: colors.success,
+        borderColor: colors.success,
     },
     progressText: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         fontSize: 12,
         fontFamily: fonts.heading.bold,
         letterSpacing: 1,
@@ -551,14 +555,14 @@ const styles = StyleSheet.create({
     summaryTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 20,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 2,
         textAlign: "center",
     },
     summarySubtitle: {
         fontFamily: fonts.heading.regular,
         fontSize: 14,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         marginTop: 4,
         marginBottom: 20,
         textAlign: "center",
@@ -567,12 +571,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         borderRadius: 14,
         paddingVertical: 14,
         paddingHorizontal: 24,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         marginBottom: 18,
         width: "100%",
     },
@@ -583,24 +587,24 @@ const styles = StyleSheet.create({
     statValue: {
         fontFamily: fonts.heading.bold,
         fontSize: 22,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     statLabel: {
         fontFamily: fonts.heading.regular,
         fontSize: 10,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 1,
         marginTop: 2,
     },
     statDivider: {
         width: 1,
         height: 32,
-        backgroundColor: theme.colors.border,
+        backgroundColor: colors.border,
     },
     summaryEncouragement: {
         fontFamily: fonts.heading.regular,
         fontSize: 13,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         textAlign: "center",
         lineHeight: 20,
         marginBottom: 24,
@@ -610,7 +614,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 14,
         paddingHorizontal: 28,
         borderRadius: 12,
@@ -626,39 +630,39 @@ const styles = StyleSheet.create({
     questionText: {
         fontSize: 18,
         fontFamily: fonts.heading.bold,
-        color: theme.colors.textPrimary,
-        marginBottom: theme.spacing.xl,
+        color: colors.textPrimary,
+        marginBottom: spacing.xl,
         lineHeight: 26,
     },
     optionsContainer: {
-        gap: theme.spacing.md,
+        gap: spacing.md,
     },
     optionBtn: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         padding: 16,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         gap: 12,
     },
     optionCorrect: {
-        backgroundColor: theme.colors.success,
-        borderColor: theme.colors.success,
+        backgroundColor: colors.success,
+        borderColor: colors.success,
     },
     optionWrong: {
-        backgroundColor: theme.colors.error,
-        borderColor: theme.colors.error,
+        backgroundColor: colors.error,
+        borderColor: colors.error,
     },
     optionText: {
         flex: 1,
         fontSize: 15,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         fontFamily: fonts.heading.medium,
     },
     textWhite: {
-        color: theme.colors.white,
+        color: colors.white,
     },
     rewardPopup: {
         position: "absolute",
@@ -684,14 +688,14 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.textPrimary,
+        backgroundColor: colors.textPrimary,
         paddingVertical: 14,
         borderRadius: 12,
-        marginTop: theme.spacing.xl,
+        marginTop: spacing.xl,
         gap: 8,
     },
     nextBtnText: {
-        color: theme.colors.surface,
+        color: colors.surface,
         fontFamily: fonts.heading.bold,
         letterSpacing: 1,
     },

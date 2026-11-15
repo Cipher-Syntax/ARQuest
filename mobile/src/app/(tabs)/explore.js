@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import theme from "../../theme/tokens";
+import { useThemeColors, useThemeValue } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService, assetService } from "../../services";
@@ -28,6 +29,9 @@ import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
 
 export default function ExploreScreen() {
     const isFocused = useIsFocused();
+    const colors = useThemeColors();
+    const spacing = useThemeValue("spacing");
+    const styles = useThemedStyles(createStyles);
     const { role } = useRoleAccess();
     const { checkToken } = useAuth();
     const {
@@ -383,18 +387,18 @@ export default function ExploreScreen() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={[theme.colors.primary]}
-                        tintColor={theme.colors.primary}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.title}>AR Explorer</Text>
-                    <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 16, textAlign: 'center', marginTop: -2 }}>
+                    <Text style={{ fontFamily: fonts.heading.bold, color: colors.textPrimary, fontSize: 16, textAlign: 'center', marginTop: -2 }}>
                         Explore Campus
                     </Text>
-                    <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 20 }}>
+                    <Text style={{ fontFamily: fonts.body.regular, color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 20 }}>
                         Uncover hidden stories and unlock exclusive rewards as you wander.
                     </Text>
                 </View>
@@ -487,13 +491,13 @@ export default function ExploreScreen() {
                             <Ionicons
                                 name="location"
                                 size={22}
-                                color={theme.colors.primary}
+                                color={colors.primary}
                             />
                             <Text style={styles.cardTitle}>YOUR LOCATION</Text>
                             {isValidating && (
                                 <ActivityIndicator
                                     size="small"
-                                    color={theme.colors.primary}
+                                    color={colors.primary}
                                     style={{ marginLeft: "auto" }}
                                 />
                             )}
@@ -530,7 +534,7 @@ export default function ExploreScreen() {
                             <View style={styles.loadingBox}>
                                 <ActivityIndicator
                                     size="small"
-                                    color={theme.colors.primary}
+                                    color={colors.primary}
                                 />
                                 <Text style={styles.loadingText}>
                                     Finding your location...
@@ -544,7 +548,7 @@ export default function ExploreScreen() {
                             <Ionicons
                                 name="business"
                                 size={22}
-                                color={theme.colors.primary}
+                                color={colors.primary}
                             />
                             <Text style={styles.cardTitle}>
                                 TARGET BUILDING
@@ -579,8 +583,8 @@ export default function ExploreScreen() {
                                                 "inside" &&
                                             validationResult.building
                                                 .is_active !== false
-                                                ? theme.colors.white
-                                                : theme.colors.primary
+                                                ? colors.white
+                                                : colors.primary
                                         }
                                     />
                                 </View>
@@ -607,7 +611,7 @@ export default function ExploreScreen() {
                                                 styles.textWhite,
                                             validationResult.building
                                                 .is_active === false && {
-                                                color: theme.colors.error,
+                                                color: colors.error,
                                             },
                                         ]}
                                     >
@@ -625,7 +629,7 @@ export default function ExploreScreen() {
                                 <Ionicons
                                     name="search"
                                     size={24}
-                                    color={theme.colors.textMuted}
+                                    color={colors.textMuted}
                                     style={{ marginRight: 10 }}
                                 />
                                 <Text style={styles.noTargetText}>
@@ -643,7 +647,7 @@ export default function ExploreScreen() {
                             <Ionicons
                                 name="map"
                                 size={22}
-                                color={theme.colors.primary}
+                                color={colors.primary}
                             />
                             <Text style={styles.cardTitle}>
                                 NEARBY BUILDINGS
@@ -682,8 +686,8 @@ export default function ExploreScreen() {
                                             size={18}
                                             color={
                                                 isUnlocked
-                                                    ? theme.colors.white
-                                                    : theme.colors.primary
+                                                    ? colors.white
+                                                    : colors.primary
                                             }
                                         />
                                     </View>
@@ -720,7 +724,7 @@ export default function ExploreScreen() {
                                             </Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
-                                            style={[styles.navigateBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.primary }]}
+                                            style={[styles.navigateBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary }]}
                                             onPress={() =>
                                                 router.push({
                                                     pathname: "/(tabs)/buildings",
@@ -731,9 +735,9 @@ export default function ExploreScreen() {
                                             <Ionicons
                                                 name="map-outline"
                                                 size={16}
-                                                color={theme.colors.primary}
+                                                color={colors.primary}
                                             />
-                                            <Text style={[styles.navigateText, { color: theme.colors.primary }]}>
+                                            <Text style={[styles.navigateText, { color: colors.primary }]}>
                                                 Map
                                             </Text>
                                         </TouchableOpacity>
@@ -750,15 +754,15 @@ export default function ExploreScreen() {
                         {/* Progress Tracker */}
                         <View style={styles.card}>
                             <View style={styles.cardHeaderRow}>
-                                <Text style={[styles.cardTitle, { color: theme.colors.textPrimary, fontSize: 20, fontFamily: fonts.heading.bold }]}>
+                                <Text style={[styles.cardTitle, { color: colors.textPrimary, fontSize: 20, fontFamily: fonts.heading.bold }]}>
                                     Campus Explorer
                                 </Text>
                             </View>
-                            <Text style={{ fontFamily: fonts.body.regular, color: theme.colors.textSecondary, fontSize: 14, marginBottom: 16 }}>
+                            <Text style={{ fontFamily: fonts.body.regular, color: colors.textSecondary, fontSize: 14, marginBottom: 16 }}>
                                 Collect stamps from every landmark
                             </Text>
-                            <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textPrimary, fontSize: 24, marginBottom: 12 }}>
-                                {unlockedBuildings.length} <Text style={{ fontFamily: fonts.body.regular, fontSize: 14, color: theme.colors.textSecondary }}>/ {totalBuildings || 15}</Text>
+                            <Text style={{ fontFamily: fonts.heading.bold, color: colors.textPrimary, fontSize: 24, marginBottom: 12 }}>
+                                {unlockedBuildings.length} <Text style={{ fontFamily: fonts.body.regular, fontSize: 14, color: colors.textSecondary }}>/ {totalBuildings || 15}</Text>
                             </Text>
                             <View style={styles.progressBarContainer}>
                                 <LinearGradient
@@ -776,10 +780,10 @@ export default function ExploreScreen() {
                         {/* Daily Quest */}
                         <View style={styles.card}>
                             <View style={styles.cardHeaderRow}>
-                                <Text style={[styles.cardTitle, { color: theme.colors.textPrimary, fontSize: 20, fontFamily: fonts.heading.bold }]}>
+                                <Text style={[styles.cardTitle, { color: colors.textPrimary, fontSize: 20, fontFamily: fonts.heading.bold }]}>
                                     Daily Missions
                                 </Text>
-                                <View style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                                <View style={{ backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
                                     <Text style={{ color: '#FFF', fontFamily: fonts.heading.bold, fontSize: 10, letterSpacing: 1 }}>{activeQuests.length} TASKS</Text>
                                 </View>
                             </View>
@@ -787,8 +791,8 @@ export default function ExploreScreen() {
                             {/* Weekly Progress Bar */}
                             <View style={{ marginBottom: 20 }}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.textSecondary, fontSize: 12 }}>WEEKLY CHALLENGE</Text>
-                                    <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.primary, fontSize: 12 }}>{weeklyProgress.completed} / {weeklyProgress.target}</Text>
+                                    <Text style={{ fontFamily: fonts.heading.bold, color: colors.textSecondary, fontSize: 12 }}>WEEKLY CHALLENGE</Text>
+                                    <Text style={{ fontFamily: fonts.heading.bold, color: colors.primary, fontSize: 12 }}>{weeklyProgress.completed} / {weeklyProgress.target}</Text>
                                 </View>
                                 <View style={styles.progressBarContainer}>
                                     <LinearGradient
@@ -815,7 +819,7 @@ export default function ExploreScreen() {
                                         <View
                                             key={quest.id}
                                             style={{
-                                                marginBottom: theme.spacing.md,
+                                                marginBottom: spacing.md,
                                                 opacity: quest.is_completed ? 0.5 : 1
                                             }}
                                         >
@@ -824,7 +828,7 @@ export default function ExploreScreen() {
                                                     <Text
                                                         style={{
                                                             fontFamily: fonts.heading.bold,
-                                                            color: theme.colors.textPrimary,
+                                                            color: colors.textPrimary,
                                                             fontSize: 16,
                                                             flex: 1
                                                         }}
@@ -838,7 +842,7 @@ export default function ExploreScreen() {
                                                 <Text
                                                     style={{
                                                         fontFamily: fonts.body.regular,
-                                                        color: theme.colors.textSecondary,
+                                                        color: colors.textSecondary,
                                                         fontSize: 13,
                                                         marginBottom: 8,
                                                     }}
@@ -851,7 +855,7 @@ export default function ExploreScreen() {
                                                     </Text>
                                                 )}
                                                 {quest.is_completed && (
-                                                    <Text style={{ fontFamily: fonts.heading.bold, color: theme.colors.success, fontSize: 12, marginTop: 4 }}>
+                                                    <Text style={{ fontFamily: fonts.heading.bold, color: colors.success, fontSize: 12, marginTop: 4 }}>
                                                         ✓ COMPLETED
                                                     </Text>
                                                 )}
@@ -862,7 +866,7 @@ export default function ExploreScreen() {
                                                         <Ionicons
                                                             name="gift"
                                                             size={18}
-                                                            color={theme.colors.primary}
+                                                            color={colors.primary}
                                                         />
                                                         <Text style={styles.compassText}>
                                                             Reward: {quest.reward_points} EXP
@@ -870,7 +874,7 @@ export default function ExploreScreen() {
                                                     </View>
                                                     <TouchableOpacity
                                                         style={{
-                                                            backgroundColor: theme.colors.primary,
+                                                            backgroundColor: colors.primary,
                                                             paddingHorizontal: 12,
                                                             paddingVertical: 6,
                                                             borderRadius: 6,
@@ -949,38 +953,38 @@ export default function ExploreScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius) => StyleSheet.create({
     container: {
         flex: 1,
     },
     contentContainer: {
-        padding: theme.spacing.lg,
+        padding: spacing.lg,
         paddingBottom: 40,
     },
     header: {
         alignItems: "center",
-        marginTop: theme.spacing.xl,
-        marginBottom: theme.spacing.xl,
+        marginTop: spacing.xl,
+        marginBottom: spacing.xl,
     },
     title: {
         fontFamily: fonts.heading.bold,
         fontSize: 34,
         fontWeight: "900",
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 1,
         textTransform: "uppercase",
     },
     subtitle: {
         fontFamily: fonts.body.regular,
         fontSize: 16,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 6,
     },
     radarContainer: {
         alignItems: "center",
         justifyContent: "center",
         height: 250,
-        marginBottom: theme.spacing.xl,
+        marginBottom: spacing.xl,
     },
     radarRing: {
         position: "absolute",
@@ -1025,10 +1029,10 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     card: {
-        backgroundColor: theme.colors.white,
-        borderRadius: theme.radius.lg,
-        padding: theme.spacing.lg,
-        marginBottom: theme.spacing.lg,
+        backgroundColor: colors.white,
+        borderRadius: radius.lg,
+        padding: spacing.lg,
+        marginBottom: spacing.lg,
         borderWidth: 1,
         borderColor: "rgba(0,0,0,0.06)",
         overflow: "hidden",
@@ -1036,12 +1040,12 @@ const styles = StyleSheet.create({
     cardHeaderRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: theme.spacing.lg,
+        marginBottom: spacing.lg,
     },
     cardTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 1,
         marginLeft: 10,
     },
@@ -1055,7 +1059,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#F9FAFB",
         paddingVertical: 14,
         paddingHorizontal: 8,
-        borderRadius: theme.radius.lg,
+        borderRadius: radius.lg,
         alignItems: "center",
         borderWidth: 1,
         borderColor: "#F3F4F6",
@@ -1063,36 +1067,36 @@ const styles = StyleSheet.create({
     telemetryLabel: {
         fontFamily: fonts.body.medium,
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         marginBottom: 6,
     },
     telemetryValue: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     loadingBox: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        padding: theme.spacing.lg,
+        padding: spacing.lg,
     },
     loadingText: {
         fontFamily: fonts.body.medium,
-        color: theme.colors.textSecondary,
-        marginLeft: theme.spacing.md,
+        color: colors.textSecondary,
+        marginLeft: spacing.md,
         fontSize: 15,
     },
     divider: {
         height: 1,
         backgroundColor: "#F3F4F6",
-        marginVertical: theme.spacing.xl,
+        marginVertical: spacing.xl,
     },
     targetBox: {
         flexDirection: "row",
         alignItems: "center",
         padding: 16,
-        borderRadius: theme.radius.lg,
+        borderRadius: radius.lg,
         borderWidth: 1.5,
     },
     targetSearching: {
@@ -1122,16 +1126,16 @@ const styles = StyleSheet.create({
     targetName: {
         fontFamily: fonts.heading.bold,
         fontSize: 18,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 6,
     },
     targetDistance: {
         fontFamily: fonts.body.medium,
         fontSize: 14,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     textWhite: {
-        color: theme.colors.white,
+        color: colors.white,
     },
     noTargetBox: {
         flexDirection: "row",
@@ -1139,14 +1143,14 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         padding: 20,
         backgroundColor: "#F9FAFB",
-        borderRadius: theme.radius.lg,
+        borderRadius: radius.lg,
         borderWidth: 1.5,
         borderColor: "#E5E7EB",
         borderStyle: "dashed",
     },
     noTargetText: {
         fontFamily: fonts.body.medium,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 15,
     },
     nearbyRow: {
@@ -1168,14 +1172,14 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     nearbyIconWrapperActive: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
     },
     nearbyInfo: {
         flex: 1,
     },
     nearbyName: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 17,
         marginBottom: 6,
     },
@@ -1188,13 +1192,13 @@ const styles = StyleSheet.create({
     },
     nearbyDistance: {
         fontFamily: fonts.body.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 13,
     },
     navigateBtn: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 20,
@@ -1220,13 +1224,13 @@ const styles = StyleSheet.create({
     progressText: {
         fontFamily: fonts.body.medium,
         fontSize: 14,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: "right",
     },
     questBriefBox: {
-        backgroundColor: theme.colors.white,
+        backgroundColor: colors.white,
         padding: 16,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         borderWidth: 1,
         borderColor: "#F3F4F6",
         marginBottom: 12,
@@ -1234,7 +1238,7 @@ const styles = StyleSheet.create({
     questHint: {
         fontFamily: fonts.body.regular,
         fontSize: 16,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         fontStyle: "italic",
         lineHeight: 24,
     },
@@ -1245,13 +1249,13 @@ const styles = StyleSheet.create({
     compassText: {
         fontFamily: fonts.heading.bold,
         fontSize: 15,
-        color: theme.colors.primary,
+        color: colors.primary,
         marginLeft: 8,
     },
     emptyLogText: {
         fontFamily: fonts.body.regular,
         fontSize: 15,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     badgeToast: {
         position: "absolute",

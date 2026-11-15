@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Animated } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
-import { theme } from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
 
 /**
  * The reference compass mark as a small HUD badge: crimson ring with a white
@@ -17,6 +17,7 @@ const OVERSHOOT_DEG = 14;
 
 export default function ARCompassBadge({ rotation = 0, size = 62 }) {
     // Animated values are not React refs, so they can be read during render.
+    const colors = useThemeColors();
     const [spin] = useState(() => new Animated.Value(rotation));
 
     useEffect(() => {
@@ -59,7 +60,7 @@ export default function ARCompassBadge({ rotation = 0, size = 62 }) {
                     cy="50"
                     r="44"
                     fill="none"
-                    stroke={theme.colors.primary}
+                    stroke={colors.primary}
                     strokeWidth="8"
                 />
 
@@ -72,8 +73,8 @@ export default function ARCompassBadge({ rotation = 0, size = 62 }) {
                 />
                 <Path
                     d={ARROW_PATH}
-                    fill={theme.colors.primary}
-                    stroke={theme.colors.primary}
+                    fill={colors.primary}
+                    stroke={colors.primary}
                     strokeWidth="1.5"
                     strokeLinejoin="round"
                 />

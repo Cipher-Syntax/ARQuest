@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { AlertTriangle, RefreshCw } from "lucide-react-native";
-import theme from "../../theme/tokens";
 
 export class ErrorBoundary extends React.Component {
     constructor(props) {

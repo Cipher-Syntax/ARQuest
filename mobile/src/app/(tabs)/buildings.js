@@ -19,7 +19,8 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import theme from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { usePublicSettings } from "../../context/PublicSettingsContext";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
@@ -44,37 +45,41 @@ import NavigationTurnHUD from "../../components/features/NavigationTurnHUD";
 import SoundManager from "../../utils/SoundManager";
 import { ErrorBoundary } from "../../components/ui/ErrorBoundary";
 
-const BuildingListItem = React.memo(({ item, isUnlocked, isVisitor, isLast, onPress }) => (
-    <TouchableOpacity 
-        style={{ 
-            padding: 12, 
-            backgroundColor: '#FFF',
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            borderBottomWidth: isLast ? 0 : 1,
-            borderBottomColor: '#E5E7EB',
-            height: 85,
-        }}
-        onPress={onPress}
-        activeOpacity={0.7}
-    >
-        <View style={{ width: 60, height: 60, borderRadius: 12, backgroundColor: theme.colors.bgPrimary, overflow: 'hidden', marginRight: 16, justifyContent: 'center', alignItems: 'center' }}>
-            {item.image_url ? (
-                <Image source={{ uri: item.image_url }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
-            ) : (
-                <Ionicons name="business" size={24} color={theme.colors.textMuted} />
-            )}
-        </View>
-        <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.heading.bold, fontSize: 16, color: theme.colors.textPrimary, marginBottom: 4 }} numberOfLines={1}>{item.name}</Text>
-            <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: theme.colors.textSecondary }} numberOfLines={1}>
-                {item.primary_department ? `${item.primary_department.name} • ` : ""} 
-                {item.is_active === false ? "CLOSED" : (item.status === "MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE")}
-            </Text>
-        </View>
-        <Ionicons name={isUnlocked || isVisitor ? "chevron-forward" : "lock-closed"} size={20} color={isUnlocked || isVisitor ? theme.colors.primary : theme.colors.textMuted} />
-    </TouchableOpacity>
-));
+const BuildingListItem = React.memo(({ item, isUnlocked, isVisitor, isLast, onPress }) => {
+    const colors = useThemeColors();
+
+    return (
+        <TouchableOpacity 
+            style={{ 
+                padding: 12, 
+                backgroundColor: '#FFF',
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                borderBottomWidth: isLast ? 0 : 1,
+                borderBottomColor: '#E5E7EB',
+                height: 85,
+            }}
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
+            <View style={{ width: 60, height: 60, borderRadius: 12, backgroundColor: colors.bgPrimary, overflow: 'hidden', marginRight: 16, justifyContent: 'center', alignItems: 'center' }}>
+                {item.image_url ? (
+                    <Image source={{ uri: item.image_url }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+                ) : (
+                    <Ionicons name="business" size={24} color={colors.textMuted} />
+                )}
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 16, color: colors.textPrimary, marginBottom: 4 }} numberOfLines={1}>{item.name}</Text>
+                <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: colors.textSecondary }} numberOfLines={1}>
+                    {item.primary_department ? `${item.primary_department.name} • ` : ""} 
+                    {item.is_active === false ? "CLOSED" : (item.status === "MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE")}
+                </Text>
+            </View>
+            <Ionicons name={isUnlocked || isVisitor ? "chevron-forward" : "lock-closed"} size={20} color={isUnlocked || isVisitor ? colors.primary : colors.textMuted} />
+        </TouchableOpacity>
+    );
+});
 
 export default function BuildingsScreen() {
     const isFocused = useIsFocused();
@@ -89,6 +94,8 @@ export default function BuildingsScreen() {
     const { enable_trivia } = usePublicSettings();
     const router = useRouter();
     const { targetBuildingId } = useLocalSearchParams();
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
 
     const [authToken, setAuthToken] = useState("");
 
@@ -709,11 +716,11 @@ export default function BuildingsScreen() {
 
             {/* Toggle Switch */}
             <View style={{ position: 'absolute', top: 45, right:16, alignSelf: 'center', zIndex: 100, flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 20, padding: 4, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
-                <TouchableOpacity onPress={() => setViewMode('map')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'map' ? theme.colors.primary : 'transparent' }}>
-                    <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'map' ? '#FFF' : theme.colors.textSecondary }}>Map View</Text>
+                <TouchableOpacity onPress={() => setViewMode('map')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'map' ? colors.primary : 'transparent' }}>
+                    <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'map' ? '#FFF' : colors.textSecondary }}>Map View</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setViewMode('list')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'list' ? theme.colors.primary : 'transparent' }}>
-                    <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'list' ? '#FFF' : theme.colors.textSecondary }}>List View</Text>
+                <TouchableOpacity onPress={() => setViewMode('list')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'list' ? colors.primary : 'transparent' }}>
+                    <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'list' ? '#FFF' : colors.textSecondary }}>List View</Text>
                 </TouchableOpacity>
             </View>
 
@@ -722,7 +729,7 @@ export default function BuildingsScreen() {
                         <View style={styles.loadingOverlay}>
                             <ActivityIndicator
                                 size="large"
-                                color={theme.colors.primary}
+                                color={colors.primary}
                             />
                             <Text style={styles.loadingText}>Loading Map...</Text>
                         </View>
@@ -785,13 +792,13 @@ export default function BuildingsScreen() {
                             style={[
                                 styles.terminalInput,
                                 !routeOrigin && {
-                                    color: theme.colors.success,
+                                    color: colors.success,
                                     fontWeight: "bold",
                                 },
                             ]}
                             placeholder="Your Location"
                             placeholderTextColor={
-                                !routeOrigin ? theme.colors.success : "#999999"
+                                !routeOrigin ? colors.success : "#999999"
                             }
                             value={originQuery}
                             onChangeText={setOriginQuery}
@@ -808,7 +815,7 @@ export default function BuildingsScreen() {
                                 onPress={handleClearOrigin}
                                 style={styles.clearRouteBtn}
                             >
-                                <X color={theme.colors.textMuted} size={18} />
+                                <X color={colors.textMuted} size={18} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -843,7 +850,7 @@ export default function BuildingsScreen() {
                                 onPress={handleClearRoute}
                                 style={styles.clearRouteBtn}
                             >
-                                <X color={theme.colors.textMuted} size={18} />
+                                <X color={colors.textMuted} size={18} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -968,19 +975,19 @@ export default function BuildingsScreen() {
                 )}
             </View>
 
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: theme.colors.surfaceSoft, display: viewMode === 'list' ? 'flex' : 'none', paddingTop: 110, paddingHorizontal: 16 }}>
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: colors.surfaceSoft, display: viewMode === 'list' ? 'flex' : 'none', paddingTop: 110, paddingHorizontal: 16 }}>
                     <View style={{ marginBottom: 16, backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }}>
-                        <Ionicons name="search" size={20} color={theme.colors.textMuted} style={{ marginRight: 8 }} />
+                        <Ionicons name="search" size={20} color={colors.textMuted} style={{ marginRight: 8 }} />
                         <TextInput
-                            style={{ flex: 1, fontFamily: fonts.body.regular, fontSize: 16, color: theme.colors.textPrimary }}
+                            style={{ flex: 1, fontFamily: fonts.body.regular, fontSize: 16, color: colors.textPrimary }}
                             placeholder="Search buildings..."
-                            placeholderTextColor={theme.colors.textMuted}
+                            placeholderTextColor={colors.textMuted}
                             value={listSearchQuery}
                             onChangeText={setListSearchQuery}
                         />
                         {listSearchQuery.length > 0 && (
                             <TouchableOpacity onPress={() => setListSearchQuery("")}>
-                                <Ionicons name="close-circle" size={20} color={theme.colors.textMuted} />
+                                <Ionicons name="close-circle" size={20} color={colors.textMuted} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -1086,7 +1093,7 @@ export default function BuildingsScreen() {
                                 {selectedBuilding.is_active === false ? (
                                     <View style={styles.restrictedContainer}>
                                         <ShieldAlert
-                                            color={theme.colors.error}
+                                            color={colors.error}
                                             size={20}
                                             style={{ marginBottom: 4 }}
                                         />
@@ -1119,8 +1126,7 @@ export default function BuildingsScreen() {
                                                     style={[
                                                         styles.tacticalActionText,
                                                         {
-                                                            color: theme.colors
-                                                                .textMuted,
+                                                            color: colors.textMuted,
                                                         },
                                                     ]}
                                                 >
@@ -1145,8 +1151,7 @@ export default function BuildingsScreen() {
                                                     style={[
                                                         styles.tacticalActionText,
                                                         {
-                                                            color: theme.colors
-                                                                .textMuted,
+                                                            color: colors.textMuted,
                                                         },
                                                     ]}
                                                 >
@@ -1185,8 +1190,7 @@ export default function BuildingsScreen() {
                                                     style={[
                                                         styles.tacticalActionText,
                                                         {
-                                                            color: theme.colors
-                                                                .textMuted,
+                                                            color: colors.textMuted,
                                                         },
                                                     ]}
                                                 >
@@ -1204,8 +1208,7 @@ export default function BuildingsScreen() {
                                                     style={[
                                                         styles.tacticalActionText,
                                                         {
-                                                            color: theme.colors
-                                                                .textMuted,
+                                                            color: colors.textMuted,
                                                         },
                                                     ]}
                                                 >
@@ -1257,8 +1260,7 @@ export default function BuildingsScreen() {
                                                     styles.tacticalActionBtn,
                                                     {
                                                         borderColor:
-                                                            theme.colors
-                                                                .primary,
+                                                            colors.primary,
                                                     },
                                                 ]}
                                                 onPress={() => {
@@ -1270,8 +1272,7 @@ export default function BuildingsScreen() {
                                                     style={[
                                                         styles.tacticalActionText,
                                                         {
-                                                            color: theme.colors
-                                                                .primary,
+                                                            color: colors.primary,
                                                         },
                                                     ]}
                                                 >
@@ -1288,7 +1289,7 @@ export default function BuildingsScreen() {
                                         }}
                                     >
                                         <ShieldAlert
-                                            color={theme.colors.primary}
+                                            color={colors.primary}
                                             size={24}
                                             style={{ marginBottom: 8 }}
                                         />
@@ -1362,7 +1363,7 @@ export default function BuildingsScreen() {
                                             </View>
                                             <ChevronRight
                                                 size={18}
-                                                color={theme.colors.primary}
+                                                color={colors.primary}
                                             />
                                         </TouchableOpacity>
                                     )}
@@ -1387,7 +1388,7 @@ export default function BuildingsScreen() {
                             <Ionicons
                                 name="game-controller-outline"
                                 size={28}
-                                color={theme.colors.arHighlight}
+                                color={colors.arHighlight}
                             />
                             <Text style={styles.controlPickerTitle}>
                                 SELECT CONTROL MODE
@@ -1407,7 +1408,7 @@ export default function BuildingsScreen() {
                                 <Ionicons
                                     name="options-outline"
                                     size={32}
-                                    color={theme.colors.arHighlight}
+                                    color={colors.arHighlight}
                                 />
                             </View>
                             <View style={styles.controlOptionText}>
@@ -1422,7 +1423,7 @@ export default function BuildingsScreen() {
                             <Ionicons
                                 name="chevron-forward"
                                 size={20}
-                                color={theme.colors.textMuted}
+                                color={colors.textMuted}
                             />
                         </TouchableOpacity>
 
@@ -1443,14 +1444,14 @@ export default function BuildingsScreen() {
                                 <Ionicons
                                     name="phone-portrait-outline"
                                     size={32}
-                                    color={theme.colors.success}
+                                    color={colors.success}
                                 />
                             </View>
                             <View style={styles.controlOptionText}>
                                 <Text
                                     style={[
                                         styles.controlOptionTitle,
-                                        { color: theme.colors.success },
+                                        { color: colors.success },
                                     ]}
                                 >
                                     GYROSCOPE
@@ -1466,7 +1467,7 @@ export default function BuildingsScreen() {
                             <Ionicons
                                 name="chevron-forward"
                                 size={20}
-                                color={theme.colors.textMuted}
+                                color={colors.textMuted}
                             />
                         </TouchableOpacity>
 
@@ -1525,7 +1526,7 @@ export default function BuildingsScreen() {
                                     onPress={() => router.push({ pathname: "/(tabs)/ar", params: { targetBuildingId: routeTarget.id, buildingId: routeTarget.id } })}
                                     activeOpacity={0.8}
                                 >
-                                    <Ionicons name="cube-outline" size={16} color={theme.colors.primary} />
+                                    <Ionicons name="cube-outline" size={16} color={colors.primary} />
                                     <Text style={styles.arQuickBtnText}>AR</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
@@ -1626,7 +1627,7 @@ export default function BuildingsScreen() {
                     </View>
                     <View style={styles.floatingQuickInfo}>
                         <Text style={styles.floatingQuickTitle}>MISSIONS</Text>
-                        <Text style={[styles.floatingQuickSub, isQuickUnlocked && { color: theme.colors.success }]}>
+                        <Text style={[styles.floatingQuickSub, isQuickUnlocked && { color: colors.success }]}>
                             {isQuickUnlocked ? "Unlocked 🎯" : "Locked 🔒"}
                         </Text>
                     </View>
@@ -1666,24 +1667,24 @@ export default function BuildingsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
     },
     webview: {
         flex: 1,
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: theme.colors.bgPrimary,
+        backgroundColor: colors.bgPrimary,
         justifyContent: "center",
         alignItems: "center",
         zIndex: 10,
     },
     loadingText: {
-        color: theme.colors.primary,
+        color: colors.primary,
         marginTop: 10,
         fontFamily: fonts.heading.bold,
         letterSpacing: 1,
@@ -1697,20 +1698,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingBottom: 40,
         borderBottomWidth: 4,
-        borderBottomColor: theme.colors.primary,
+        borderBottomColor: colors.primary,
         zIndex: 10,
     },
     terminalHeader: {
         fontFamily: fonts.heading.bold,
         fontSize: 14,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 1,
         // marginBottom: 16,
         marginTop: 10
     },
     terminalInputContainer: {
         borderLeftWidth: 2,
-        borderLeftColor: theme.colors.primary,
+        borderLeftColor: colors.primary,
         paddingLeft: 12,
         gap: 12,
         marginTop: 10,
@@ -1726,20 +1727,20 @@ const styles = StyleSheet.create({
     terminalInputLabel: {
         fontFamily: fonts.body.bold,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         width: 45,
     },
     terminalInput: {
         flex: 1,
         fontFamily: fonts.body.regular,
         fontSize: 14,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         backgroundColor: "#FFFFFF",
         paddingHorizontal: 12,
         paddingVertical: 10,
         borderWidth: 1,
-        borderColor: theme.colors.border,
-        borderRadius: theme.radius.md,
+        borderColor: colors.border,
+        borderRadius: radius.md,
     },
     toInputWrapper: {
         flex: 1,
@@ -1750,13 +1751,13 @@ const styles = StyleSheet.create({
         width: "100%",
         fontFamily: fonts.body.regular,
         fontSize: 14,
-        color: theme.colors.primary,
+        color: colors.primary,
         backgroundColor: "#FFFFFF",
         paddingHorizontal: 12,
         paddingVertical: 10,
         borderWidth: 1,
-        borderColor: theme.colors.primary,
-        borderRadius: theme.radius.md,
+        borderColor: colors.primary,
+        borderRadius: radius.md,
     },
     distanceCornerBadge: {
         position: "absolute",
@@ -1764,8 +1765,8 @@ const styles = StyleSheet.create({
         right: 12,
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
-        borderColor: theme.colors.primary,
-        borderRadius: theme.radius.sm,
+        borderColor: colors.primary,
+        borderRadius: radius.sm,
         paddingHorizontal: 6,
         paddingVertical: 1,
         zIndex: 10,
@@ -1778,46 +1779,46 @@ const styles = StyleSheet.create({
     distanceCornerBadgeText: {
         fontSize: 10,
         fontFamily: fonts.body.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 0.5,
     },
     clearRouteBtn: {
-        padding: theme.spacing.xs,
+        padding: spacing.xs,
     },
     searchResultsContainer: {
-        marginTop: theme.spacing.sm,
-        backgroundColor: theme.colors.bgPrimary,
-        borderRadius: theme.radius.md,
+        marginTop: spacing.sm,
+        backgroundColor: colors.bgPrimary,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         maxHeight: 200,
     },
     searchResultsList: {
         flexGrow: 0,
     },
     searchResultItem: {
-        padding: theme.spacing.md,
+        padding: spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.surfaceSoft,
+        borderBottomColor: colors.surfaceSoft,
     },
     searchResultName: {
         fontSize: 16,
         fontFamily: fonts.heading.bold,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     searchResultStatus: {
         fontSize: 11,
         fontFamily: fonts.body.bold,
-        color: theme.colors.success,
+        color: colors.success,
         marginTop: 2,
         letterSpacing: 1,
     },
     searchResultStatusInactive: {
-        color: theme.colors.error,
+        color: colors.error,
     },
     searchNoResult: {
-        padding: theme.spacing.md,
-        color: theme.colors.textMuted,
+        padding: spacing.md,
+        color: colors.textMuted,
         fontFamily: fonts.body.regular,
         fontStyle: "italic",
         textAlign: "center",
@@ -1834,7 +1835,7 @@ const styles = StyleSheet.create({
         right: 0,
         backgroundColor: "rgba(255,255,255,0.95)",
         borderTopWidth: 3,
-        borderTopColor: theme.colors.primary,
+        borderTopColor: colors.primary,
         padding: 20,
         paddingBottom: 40,
         shadowColor: "#000",
@@ -1852,7 +1853,7 @@ const styles = StyleSheet.create({
     tacticalModalSubtitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 12,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 1,
         marginBottom: 4,
     },
@@ -1866,7 +1867,7 @@ const styles = StyleSheet.create({
     tacticalModalDistance: {
         fontFamily: fonts.body.regular,
         fontSize: 14,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     tacticalModalBadge: {
         backgroundColor: "rgba(0,0,0,0.05)",
@@ -1878,16 +1879,16 @@ const styles = StyleSheet.create({
     },
     tacticalModalBadgeLocked: {
         backgroundColor: "rgba(178,24,48,0.1)",
-        borderColor: theme.colors.primary,
+        borderColor: colors.primary,
     },
     tacticalBadgeText: {
         fontFamily: fonts.body.bold,
         fontSize: 11,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 1,
     },
     tacticalBadgeTextLocked: {
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     tacticalActionGrid: {
         flexDirection: "column",
@@ -1898,17 +1899,17 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderWidth: 1,
         borderColor: "#CCCCCC",
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         alignItems: "center",
     },
     tacticalActionBtnDisabled: {
         opacity: 0.5,
-        backgroundColor: theme.colors.bgSecondary,
+        backgroundColor: colors.bgSecondary,
     },
     tacticalActionText: {
         fontFamily: fonts.heading.bold,
         fontSize: 14,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 1,
     },
     accreditationButton: {
@@ -1918,7 +1919,7 @@ const styles = StyleSheet.create({
         marginTop: 12,
         paddingVertical: 12,
         paddingHorizontal: 12,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         borderWidth: 1,
         borderColor: "rgba(178, 24, 48, 0.25)",
         backgroundColor: "rgba(178, 24, 48, 0.06)",
@@ -1926,33 +1927,33 @@ const styles = StyleSheet.create({
     accreditationButtonIcon: {
         width: 34,
         height: 34,
-        borderRadius: theme.radius.md,
-        backgroundColor: theme.colors.primary,
+        borderRadius: radius.md,
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
     },
     accreditationButtonTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 13,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     accreditationButtonSubtitle: {
         fontFamily: fonts.body.regular,
         fontSize: 11,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 1,
     },
     tacticalWarningText: {
         fontFamily: fonts.body.bold,
         fontSize: 12,
-        color: theme.colors.primary,
+        color: colors.primary,
         textAlign: "center",
     },
     restrictedContainer: {
         paddingVertical: 16,
         backgroundColor: "rgba(226, 54, 54, 0.05)",
         borderWidth: 1,
-        borderColor: theme.colors.error,
+        borderColor: colors.error,
         alignItems: "center",
         width: "100%",
         marginTop: 12,
@@ -1960,7 +1961,7 @@ const styles = StyleSheet.create({
     restrictedText: {
         fontSize: 12,
         fontFamily: fonts.heading.bold,
-        color: theme.colors.error,
+        color: colors.error,
         letterSpacing: 1,
         marginTop: 8,
     },
@@ -1975,38 +1976,38 @@ const styles = StyleSheet.create({
     },
     controlPickerCard: {
         width: "100%",
-        backgroundColor: theme.colors.bgSecondary,
-        borderRadius: theme.radius.xl,
+        backgroundColor: colors.bgSecondary,
+        borderRadius: radius.xl,
         borderWidth: 1,
-        borderColor: theme.colors.border,
-        paddingBottom: theme.spacing.md,
+        borderColor: colors.border,
+        paddingBottom: spacing.md,
         overflow: "hidden",
     },
     controlPickerHeader: {
         alignItems: "center",
-        paddingTop: theme.spacing.xl,
-        paddingBottom: theme.spacing.lg,
-        paddingHorizontal: theme.spacing.lg,
+        paddingTop: spacing.xl,
+        paddingBottom: spacing.lg,
+        paddingHorizontal: spacing.lg,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: colors.border,
         gap: 6,
     },
     controlPickerTitle: {
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         fontSize: 16,
         fontWeight: "900",
         letterSpacing: 3,
         marginTop: 8,
     },
     controlPickerSubtitle: {
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
         textAlign: "center",
     },
     controlOption: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: theme.spacing.lg,
+        paddingHorizontal: spacing.lg,
         paddingVertical: 18,
         gap: 14,
     },
@@ -2029,18 +2030,18 @@ const styles = StyleSheet.create({
         gap: 3,
     },
     controlOptionTitle: {
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         fontSize: 14,
         fontWeight: "800",
         letterSpacing: 2,
     },
     controlOptionDesc: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         fontSize: 12,
         lineHeight: 17,
     },
     controlOptionBadge: {
-        color: theme.colors.success,
+        color: colors.success,
         fontSize: 10,
         fontWeight: "bold",
         letterSpacing: 1.5,
@@ -2048,20 +2049,20 @@ const styles = StyleSheet.create({
     },
     controlDivider: {
         height: 1,
-        backgroundColor: theme.colors.border,
-        marginHorizontal: theme.spacing.lg,
+        backgroundColor: colors.border,
+        marginHorizontal: spacing.lg,
     },
     controlCancelBtn: {
-        marginTop: theme.spacing.md,
-        marginHorizontal: theme.spacing.lg,
+        marginTop: spacing.md,
+        marginHorizontal: spacing.lg,
         paddingVertical: 12,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         alignItems: "center",
     },
     controlCancelText: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         fontSize: 13,
         fontWeight: "bold",
         letterSpacing: 2,
@@ -2074,7 +2075,7 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -2084,7 +2085,7 @@ const styles = StyleSheet.create({
     legendTitle: {
         fontSize: 10,
         fontWeight: "bold",
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 1,
         marginBottom: 8,
     },
@@ -2101,7 +2102,7 @@ const styles = StyleSheet.create({
     },
     legendText: {
         fontSize: 12,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: "500",
     },
     routeNavCard: {
@@ -2114,7 +2115,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.12,
@@ -2134,12 +2135,12 @@ const styles = StyleSheet.create({
     routeNavTitle: {
         fontSize: 15,
         fontFamily: fonts.heading.bold,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     routeNavSubtitle: {
         fontSize: 12,
         fontFamily: fonts.body.regular,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 2,
     },
     pulseLiveDot: {
@@ -2173,13 +2174,13 @@ const styles = StyleSheet.create({
         gap: 4,
         backgroundColor: "#FFF0F0",
         borderWidth: 1,
-        borderColor: theme.colors.primary,
+        borderColor: colors.primary,
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 18,
     },
     arQuickBtnText: {
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 12,
         fontFamily: fonts.body.bold,
     },
@@ -2213,7 +2214,7 @@ const styles = StyleSheet.create({
         paddingVertical: 7,
         paddingHorizontal: 12,
         borderWidth: 2,
-        borderColor: theme.colors.primary,
+        borderColor: colors.primary,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.18,
@@ -2230,13 +2231,13 @@ const styles = StyleSheet.create({
         height: 38,
         borderRadius: 19,
         borderWidth: 1.5,
-        borderColor: theme.colors.primary,
+        borderColor: colors.primary,
     },
     floatingQuestBadge: {
         position: "absolute",
         top: -4,
         right: -4,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         minWidth: 16,
         height: 16,
         borderRadius: 8,
@@ -2257,13 +2258,13 @@ const styles = StyleSheet.create({
     floatingQuickTitle: {
         fontSize: 11,
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 0.6,
     },
     floatingQuickSub: {
         fontSize: 10,
         fontFamily: fonts.body.bold,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         marginTop: 1,
     },
 });

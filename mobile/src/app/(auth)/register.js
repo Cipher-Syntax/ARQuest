@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { useBrandTheme } from "../../hooks/useBrandTheme";
-import theme from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { Eye, EyeOff, Check, X } from "lucide-react-native";
 import { useAuth } from "../../hooks/useAuth";
@@ -21,10 +22,12 @@ import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 
 export default function RegisterScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const router = useRouter();
     const bottomInset = useBottomInset(40);
     const { register, isLoading } = useAuth();
-    const { theme, logoSource, appName, primaryColor } = useBrandTheme();
+    const { logoSource, appName, primaryColor } = useBrandTheme();
 
     const [formData, setFormData] = useState({
         username: "",
@@ -105,7 +108,7 @@ export default function RegisterScreen() {
     const PasswordRule = ({ isValid, text }) => (
         <View style={styles.ruleContainer}>
             {isValid ? (
-                <Check color={theme.colors.success} size={14} />
+                <Check color={colors.success} size={14} />
             ) : (
                 <X color="#EF4444" size={14} />
             )}
@@ -314,7 +317,7 @@ export default function RegisterScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -431,7 +434,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     ruleValid: {
-        color: theme.colors.success,
+        color: colors.success,
     },
     ruleInvalid: {
         color: '#64748B',
@@ -471,7 +474,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     switchLink: {
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 14,
         fontWeight: '700',
     },

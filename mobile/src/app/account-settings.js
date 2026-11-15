@@ -34,12 +34,15 @@ import {
 import { router } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
 import { AVATARS } from "../constants/Avatars";
 import { customAlert as Alert } from "../components/ui/CustomAlert";
 
 export default function AccountSettingsScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { user, checkToken, logout } = useAuth();
 
     // Modals
@@ -219,7 +222,7 @@ export default function AccountSettingsScreen() {
                     style={styles.backButton}
                     activeOpacity={0.8}
                 >
-                    <ArrowLeft color={theme.colors.textPrimary} size={22} />
+                    <ArrowLeft color={colors.textPrimary} size={22} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Account Settings</Text>
                 <View style={{ width: 36 }} />
@@ -279,7 +282,7 @@ export default function AccountSettingsScreen() {
                             }}
                             activeOpacity={0.8}
                         >
-                            <Edit3 size={13} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                            <Edit3 size={13} color={colors.primary} style={{ marginRight: 4 }} />
                             <Text style={styles.editHeaderBtnText}>Edit Name</Text>
                         </TouchableOpacity>
                     </View>
@@ -287,7 +290,7 @@ export default function AccountSettingsScreen() {
                     {/* First Name */}
                     <View style={styles.fieldRow}>
                         <View style={styles.fieldIconWrap}>
-                            <UserIcon size={16} color={theme.colors.primary} />
+                            <UserIcon size={16} color={colors.primary} />
                         </View>
                         <View style={styles.fieldTextWrap}>
                             <Text style={styles.fieldLabel}>First Name</Text>
@@ -300,7 +303,7 @@ export default function AccountSettingsScreen() {
                     {/* Last Name */}
                     <View style={styles.fieldRow}>
                         <View style={styles.fieldIconWrap}>
-                            <UserIcon size={16} color={theme.colors.primary} />
+                            <UserIcon size={16} color={colors.primary} />
                         </View>
                         <View style={styles.fieldTextWrap}>
                             <Text style={styles.fieldLabel}>Last Name</Text>
@@ -313,7 +316,7 @@ export default function AccountSettingsScreen() {
                     {/* Username (Locked) */}
                     <View style={styles.fieldRow}>
                         <View style={styles.fieldIconWrap}>
-                            <Lock size={16} color={theme.colors.textMuted} />
+                            <Lock size={16} color={colors.textMuted} />
                         </View>
                         <View style={styles.fieldTextWrap}>
                             <Text style={styles.fieldLabel}>Username (Unique ID)</Text>
@@ -327,7 +330,7 @@ export default function AccountSettingsScreen() {
                     {/* Email (Locked) */}
                     <View style={styles.fieldRow}>
                         <View style={styles.fieldIconWrap}>
-                            <Mail size={16} color={theme.colors.textMuted} />
+                            <Mail size={16} color={colors.textMuted} />
                         </View>
                         <View style={styles.fieldTextWrap}>
                             <Text style={styles.fieldLabel}>Email Address</Text>
@@ -342,7 +345,7 @@ export default function AccountSettingsScreen() {
                     {/* Account Role (Locked) */}
                     <View style={styles.fieldRow}>
                         <View style={styles.fieldIconWrap}>
-                            <Shield size={16} color={theme.colors.textMuted} />
+                            <Shield size={16} color={colors.textMuted} />
                         </View>
                         <View style={styles.fieldTextWrap}>
                             <Text style={styles.fieldLabel}>Account Role</Text>
@@ -358,7 +361,7 @@ export default function AccountSettingsScreen() {
                     {/* Member Since (Locked) */}
                     <View style={[styles.fieldRow, { borderBottomWidth: 0 }]}>
                         <View style={styles.fieldIconWrap}>
-                            <Calendar size={16} color={theme.colors.textMuted} />
+                            <Calendar size={16} color={colors.textMuted} />
                         </View>
                         <View style={styles.fieldTextWrap}>
                             <Text style={styles.fieldLabel}>Member Since</Text>
@@ -382,7 +385,7 @@ export default function AccountSettingsScreen() {
                         activeOpacity={0.7}
                     >
                         <View style={styles.actionIconWrap}>
-                            <Key size={18} color={theme.colors.primary} />
+                            <Key size={18} color={colors.primary} />
                         </View>
                         <View style={styles.actionTextWrap}>
                             <Text style={styles.actionTitle}>Change Password</Text>
@@ -390,13 +393,13 @@ export default function AccountSettingsScreen() {
                                 Update your account login credentials
                             </Text>
                         </View>
-                        <ChevronRight size={18} color={theme.colors.textMuted} />
+                        <ChevronRight size={18} color={colors.textMuted} />
                     </TouchableOpacity>
                 </View>
 
                 {/* Section 3: Danger Zone */}
                 <View style={[styles.card, styles.dangerCard]}>
-                    <Text style={[styles.cardSectionTitle, { color: theme.colors.error }]}>
+                    <Text style={[styles.cardSectionTitle, { color: colors.error }]}>
                         DANGER ZONE
                     </Text>
                     <TouchableOpacity
@@ -414,10 +417,10 @@ export default function AccountSettingsScreen() {
                                 { backgroundColor: "rgba(211, 47, 47, 0.08)" },
                             ]}
                         >
-                            <AlertTriangle size={18} color={theme.colors.error} />
+                            <AlertTriangle size={18} color={colors.error} />
                         </View>
                         <View style={styles.actionTextWrap}>
-                            <Text style={[styles.actionTitle, { color: theme.colors.error }]}>
+                            <Text style={[styles.actionTitle, { color: colors.error }]}>
                                 Deactivate Account
                             </Text>
                             <Text style={styles.actionSubtitle}>
@@ -446,7 +449,7 @@ export default function AccountSettingsScreen() {
                                 onPress={() => setAvatarModalVisible(false)}
                                 style={styles.modalCloseBtn}
                             >
-                                <X size={20} color={theme.colors.textPrimary} />
+                                <X size={20} color={colors.textPrimary} />
                             </TouchableOpacity>
                         </View>
 
@@ -520,7 +523,7 @@ export default function AccountSettingsScreen() {
                                 onPress={() => setEditProfileVisible(false)}
                                 style={styles.modalCloseBtn}
                             >
-                                <X size={20} color={theme.colors.textPrimary} />
+                                <X size={20} color={colors.textPrimary} />
                             </TouchableOpacity>
                         </View>
 
@@ -531,7 +534,7 @@ export default function AccountSettingsScreen() {
                                 value={firstName}
                                 onChangeText={setFirstName}
                                 placeholder="Enter first name"
-                                placeholderTextColor={theme.colors.textMuted}
+                                placeholderTextColor={colors.textMuted}
                             />
                         </View>
 
@@ -542,7 +545,7 @@ export default function AccountSettingsScreen() {
                                 value={lastName}
                                 onChangeText={setLastName}
                                 placeholder="Enter last name"
-                                placeholderTextColor={theme.colors.textMuted}
+                                placeholderTextColor={colors.textMuted}
                             />
                         </View>
 
@@ -587,7 +590,7 @@ export default function AccountSettingsScreen() {
                                 onPress={() => setPasswordModalVisible(false)}
                                 style={styles.modalCloseBtn}
                             >
-                                <X size={20} color={theme.colors.textPrimary} />
+                                <X size={20} color={colors.textPrimary} />
                             </TouchableOpacity>
                         </View>
 
@@ -606,7 +609,7 @@ export default function AccountSettingsScreen() {
                                     value={oldPassword}
                                     onChangeText={setOldPassword}
                                     placeholder="Enter current password"
-                                    placeholderTextColor={theme.colors.textMuted}
+                                    placeholderTextColor={colors.textMuted}
                                     secureTextEntry={!showOldPass}
                                 />
                                 <TouchableOpacity
@@ -614,9 +617,9 @@ export default function AccountSettingsScreen() {
                                     style={styles.eyeBtn}
                                 >
                                     {showOldPass ? (
-                                        <EyeOff size={18} color={theme.colors.textMuted} />
+                                        <EyeOff size={18} color={colors.textMuted} />
                                     ) : (
-                                        <Eye size={18} color={theme.colors.textMuted} />
+                                        <Eye size={18} color={colors.textMuted} />
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -631,7 +634,7 @@ export default function AccountSettingsScreen() {
                                     value={newPassword}
                                     onChangeText={setNewPassword}
                                     placeholder="Enter new password"
-                                    placeholderTextColor={theme.colors.textMuted}
+                                    placeholderTextColor={colors.textMuted}
                                     secureTextEntry={!showNewPass}
                                 />
                                 <TouchableOpacity
@@ -639,9 +642,9 @@ export default function AccountSettingsScreen() {
                                     style={styles.eyeBtn}
                                 >
                                     {showNewPass ? (
-                                        <EyeOff size={18} color={theme.colors.textMuted} />
+                                        <EyeOff size={18} color={colors.textMuted} />
                                     ) : (
-                                        <Eye size={18} color={theme.colors.textMuted} />
+                                        <Eye size={18} color={colors.textMuted} />
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -656,7 +659,7 @@ export default function AccountSettingsScreen() {
                                     value={newPasswordConfirm}
                                     onChangeText={setNewPasswordConfirm}
                                     placeholder="Confirm new password"
-                                    placeholderTextColor={theme.colors.textMuted}
+                                    placeholderTextColor={colors.textMuted}
                                     secureTextEntry={!showConfirmPass}
                                 />
                                 <TouchableOpacity
@@ -664,9 +667,9 @@ export default function AccountSettingsScreen() {
                                     style={styles.eyeBtn}
                                 >
                                     {showConfirmPass ? (
-                                        <EyeOff size={18} color={theme.colors.textMuted} />
+                                        <EyeOff size={18} color={colors.textMuted} />
                                     ) : (
-                                        <Eye size={18} color={theme.colors.textMuted} />
+                                        <Eye size={18} color={colors.textMuted} />
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -708,20 +711,20 @@ export default function AccountSettingsScreen() {
                 >
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeaderRow}>
-                            <Text style={[styles.modalTitle, { color: theme.colors.error }]}>
+                            <Text style={[styles.modalTitle, { color: colors.error }]}>
                                 Deactivate Account
                             </Text>
                             <TouchableOpacity
                                 onPress={() => setDeactivateModalVisible(false)}
                                 style={styles.modalCloseBtn}
                             >
-                                <X size={20} color={theme.colors.textPrimary} />
+                                <X size={20} color={colors.textPrimary} />
                             </TouchableOpacity>
                         </View>
 
                         {/* Explanation Banner */}
                         <View style={styles.deactivateInfoBox}>
-                            <AlertTriangle size={20} color={theme.colors.error} style={{ marginTop: 2, marginRight: 10 }} />
+                            <AlertTriangle size={20} color={colors.error} style={{ marginTop: 2, marginRight: 10 }} />
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.deactivateInfoTitle}>
                                     What happens when you deactivate?
@@ -749,7 +752,7 @@ export default function AccountSettingsScreen() {
                                     value={deactivatePassword}
                                     onChangeText={setDeactivatePassword}
                                     placeholder="Enter your account password"
-                                    placeholderTextColor={theme.colors.textMuted}
+                                    placeholderTextColor={colors.textMuted}
                                     secureTextEntry={!showDeactivatePass}
                                 />
                                 <TouchableOpacity
@@ -757,9 +760,9 @@ export default function AccountSettingsScreen() {
                                     style={styles.eyeBtn}
                                 >
                                     {showDeactivatePass ? (
-                                        <EyeOff size={18} color={theme.colors.textMuted} />
+                                        <EyeOff size={18} color={colors.textMuted} />
                                     ) : (
-                                        <Eye size={18} color={theme.colors.textMuted} />
+                                        <Eye size={18} color={colors.textMuted} />
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -791,7 +794,7 @@ export default function AccountSettingsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",
@@ -817,7 +820,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 17,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.3,
     },
     content: {
@@ -845,7 +848,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 6,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -861,7 +864,7 @@ const styles = StyleSheet.create({
         width: 28,
         height: 28,
         borderRadius: 6,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
         borderWidth: 2,
@@ -870,7 +873,7 @@ const styles = StyleSheet.create({
     usernameText: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     roleBadge: {
@@ -884,7 +887,7 @@ const styles = StyleSheet.create({
     roleBadgeText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10.5,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 0.5,
     },
     card: {
@@ -927,7 +930,7 @@ const styles = StyleSheet.create({
     editHeaderBtnText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 11.5,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     fieldRow: {
         flexDirection: "row",
@@ -951,18 +954,18 @@ const styles = StyleSheet.create({
     fieldLabel: {
         fontFamily: fonts.body.regular,
         fontSize: 11.5,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         marginBottom: 1,
     },
     fieldValue: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 13.5,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     fieldValueMuted: {
         fontFamily: fonts.body.medium,
         fontSize: 13.5,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     lockedPill: {
         backgroundColor: "#F3F4F6",
@@ -973,7 +976,7 @@ const styles = StyleSheet.create({
     lockedPillText: {
         fontFamily: fonts.heading.bold,
         fontSize: 9.5,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 0.4,
     },
     verifiedPill: {
@@ -1010,13 +1013,13 @@ const styles = StyleSheet.create({
     actionTitle: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 14,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     actionSubtitle: {
         fontFamily: fonts.body.regular,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     modalOverlay: {
         flex: 1,
@@ -1046,7 +1049,7 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 17,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     modalCloseBtn: {
         padding: 4,
@@ -1070,7 +1073,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         fontFamily: fonts.body.regular,
         fontSize: 13.5,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     inputWithIconWrap: {
         flexDirection: "row",
@@ -1086,7 +1089,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         fontFamily: fonts.body.regular,
         fontSize: 13.5,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     eyeBtn: {
         padding: 4,
@@ -1102,7 +1105,7 @@ const styles = StyleSheet.create({
     errorText: {
         fontFamily: fonts.body.medium,
         fontSize: 12,
-        color: theme.colors.error,
+        color: colors.error,
         lineHeight: 16,
     },
     deactivateInfoBox: {
@@ -1118,13 +1121,13 @@ const styles = StyleSheet.create({
     deactivateInfoTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 12.5,
-        color: theme.colors.error,
+        color: colors.error,
         marginBottom: 4,
     },
     deactivateInfoText: {
         fontFamily: fonts.body.regular,
         fontSize: 11.5,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 17,
     },
     avatarGrid: {
@@ -1144,7 +1147,7 @@ const styles = StyleSheet.create({
         position: "relative",
     },
     avatarOptionSelected: {
-        borderColor: theme.colors.primary,
+        borderColor: colors.primary,
         backgroundColor: "rgba(155, 27, 48, 0.04)",
     },
     avatarOptionImage: {
@@ -1159,7 +1162,7 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 6,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -1180,13 +1183,13 @@ const styles = StyleSheet.create({
     modalSecondaryBtnText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     modalPrimaryBtn: {
         paddingVertical: 10,
         paddingHorizontal: 18,
         borderRadius: 6,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -1194,7 +1197,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 18,
         borderRadius: 6,
-        backgroundColor: theme.colors.error,
+        backgroundColor: colors.error,
         alignItems: "center",
         justifyContent: "center",
     },

@@ -26,7 +26,8 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { api } from "../services";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
 import { useLocationTracking } from "../hooks/useLocationTracking";
@@ -35,6 +36,8 @@ import { geofencingService } from "../services";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function MissionsScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { user } = useAuth();
     const { location } = useLocationTracking();
 
@@ -267,7 +270,7 @@ export default function MissionsScreen() {
                     onPress={() => router.back()}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
-                    <ArrowLeft size={22} color={theme.colors.primary} />
+                    <ArrowLeft size={22} color={colors.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerTextWrap}>
                     <Text style={styles.headerTitle}>Missions & Quests</Text>
@@ -285,8 +288,8 @@ export default function MissionsScreen() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={[theme.colors.primary]}
-                        tintColor={theme.colors.primary}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
@@ -301,9 +304,9 @@ export default function MissionsScreen() {
                         <Text style={styles.statHint}>Cleared missions</Text>
                     </View>
 
-                    <View style={[styles.statCard, { borderLeftColor: theme.colors.primary }]}>
+                    <View style={[styles.statCard, { borderLeftColor: colors.primary }]}>
                         <View style={styles.statHeader}>
-                            <Crosshair size={16} color={theme.colors.primary} />
+                            <Crosshair size={16} color={colors.primary} />
                             <Text style={styles.statLabel}>AVAILABLE</Text>
                         </View>
                         <Text style={styles.statValue}>{availableMissions.length}</Text>
@@ -334,7 +337,7 @@ export default function MissionsScreen() {
                             color={
                                 selectedTab === "available"
                                     ? "#FFFFFF"
-                                    : theme.colors.textMuted
+                                    : colors.textMuted
                             }
                         />
                         <Text
@@ -374,7 +377,7 @@ export default function MissionsScreen() {
                             color={
                                 selectedTab === "completed"
                                     ? "#FFFFFF"
-                                    : theme.colors.textMuted
+                                    : colors.textMuted
                             }
                         />
                         <Text
@@ -477,7 +480,7 @@ export default function MissionsScreen() {
                 {/* Mission Cards List */}
                 {loading ? (
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                        <ActivityIndicator size="large" color={colors.primary} />
                         <Text style={styles.loadingText}>Loading campus missions...</Text>
                     </View>
                 ) : displayedMissions.length === 0 ? (
@@ -493,7 +496,7 @@ export default function MissionsScreen() {
                             </>
                         ) : selectedTab === "completed" ? (
                             <>
-                                <Crosshair size={48} color={theme.colors.textMuted} style={{ marginBottom: 12 }} />
+                                <Crosshair size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
                                 <Text style={styles.emptyTitle}>No Completed Missions Yet</Text>
                                 <Text style={styles.emptySubtitle}>
                                     You have not cleared any missions in this filter yet. Head over to the Available tab and start a mission to earn EXP!
@@ -501,7 +504,7 @@ export default function MissionsScreen() {
                             </>
                         ) : (
                             <>
-                                <Compass size={48} color={theme.colors.textMuted} style={{ marginBottom: 12 }} />
+                                <Compass size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
                                 <Text style={styles.emptyTitle}>No Missions Found</Text>
                                 <Text style={styles.emptySubtitle}>
                                     No campus missions match your current filter selection.
@@ -536,7 +539,7 @@ export default function MissionsScreen() {
                                                 {mission.type === "timed" ? (
                                                     <Timer size={10} color="#b45309" />
                                                 ) : (
-                                                    <Crosshair size={10} color={theme.colors.primary} />
+                                                    <Crosshair size={10} color={colors.primary} />
                                                 )}
                                                 <Text
                                                     style={[
@@ -607,7 +610,7 @@ export default function MissionsScreen() {
                                     {/* Target Building & Details */}
                                     <View style={styles.targetSection}>
                                         <View style={styles.targetIconWrap}>
-                                            <Building2 size={14} color={theme.colors.textSecondary} />
+                                            <Building2 size={14} color={colors.textSecondary} />
                                         </View>
                                         <View style={styles.targetDetails}>
                                             <Text style={styles.targetLabel}>TARGET LOCATION</Text>
@@ -640,7 +643,7 @@ export default function MissionsScreen() {
                                                     <Text style={styles.inspectBtnText}>
                                                         View Map
                                                     </Text>
-                                                    <ChevronRight size={14} color={theme.colors.textSecondary} />
+                                                    <ChevronRight size={14} color={colors.textSecondary} />
                                                 </TouchableOpacity>
                                             </View>
                                         ) : (
@@ -674,7 +677,7 @@ export default function MissionsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#FFFFFF",
@@ -685,7 +688,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: colors.border,
         backgroundColor: "#FFFFFF",
     },
     backButton: {
@@ -703,13 +706,13 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 18,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.3,
     },
     headerSubtitle: {
         fontFamily: fonts.body.regular,
         fontSize: 11,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         marginTop: 1,
     },
     content: {
@@ -733,7 +736,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 10,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         borderLeftWidth: 4,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
@@ -750,18 +753,18 @@ const styles = StyleSheet.create({
     statLabel: {
         fontFamily: fonts.heading.bold,
         fontSize: 9,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         letterSpacing: 0.5,
     },
     statValue: {
         fontFamily: fonts.heading.bold,
         fontSize: 18,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     statHint: {
         fontFamily: fonts.body.regular,
         fontSize: 9,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         marginTop: 2,
     },
 
@@ -784,7 +787,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     tabButtonActive: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.15,
@@ -794,7 +797,7 @@ const styles = StyleSheet.create({
     tabText: {
         fontFamily: fonts.heading.bold,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     tabTextActive: {
         color: "#FFFFFF",
@@ -811,7 +814,7 @@ const styles = StyleSheet.create({
     tabBadgeText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     tabBadgeTextActive: {
         color: "#FFFFFF",
@@ -829,20 +832,20 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     subfilterPillActive: {
         backgroundColor: "rgba(178, 24, 48, 0.08)",
-        borderColor: theme.colors.primary,
+        borderColor: colors.primary,
     },
     subfilterText: {
         fontFamily: fonts.body.medium,
         fontSize: 11,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     subfilterTextActive: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
 
     // Mission Cards
@@ -854,7 +857,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 14,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.06,
@@ -892,7 +895,7 @@ const styles = StyleSheet.create({
     typeBadgeText: {
         fontFamily: fonts.heading.bold,
         fontSize: 9,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 0.3,
     },
     typeBadgeTextTimed: {
@@ -943,7 +946,7 @@ const styles = StyleSheet.create({
     rewardText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     rewardTextCompleted: {
         color: "#15803d",
@@ -951,14 +954,14 @@ const styles = StyleSheet.create({
     missionTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 15,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 6,
         lineHeight: 20,
     },
     missionHint: {
         fontFamily: fonts.body.regular,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontStyle: "italic",
         lineHeight: 17,
         marginBottom: 10,
@@ -990,13 +993,13 @@ const styles = StyleSheet.create({
     targetLabel: {
         fontFamily: fonts.heading.bold,
         fontSize: 8,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 0.5,
     },
     targetName: {
         fontFamily: fonts.heading.bold,
         fontSize: 12,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     distanceBadge: {
         flexDirection: "row",
@@ -1007,7 +1010,7 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     distanceText: {
         fontFamily: fonts.heading.bold,
@@ -1023,11 +1026,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 10,
         borderRadius: 6,
         gap: 6,
-        shadowColor: theme.colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3,
@@ -1063,12 +1066,12 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     inspectBtnText: {
         fontFamily: fonts.body.medium,
         fontSize: 11,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
 
     // Empty / Loading states
@@ -1081,7 +1084,7 @@ const styles = StyleSheet.create({
     loadingText: {
         fontFamily: fonts.body.regular,
         fontSize: 13,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
     },
     emptyContainer: {
         paddingVertical: 48,
@@ -1091,19 +1094,19 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFFFF",
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     emptyTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 8,
         textAlign: "center",
     },
     emptySubtitle: {
         fontFamily: fonts.body.regular,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: "center",
         lineHeight: 18,
     },

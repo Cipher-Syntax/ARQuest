@@ -18,7 +18,7 @@ import { WebView } from "react-native-webview";
 
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services";
-import theme from "../../theme/tokens";
+import { useThemeColors, useThemeValue } from "../../context/ThemeContext";
 import { fonts } from "../../constants/typography";
 import ARGlassCard from "../../components/ar/ARGlassCard";
 import ARButton from "../../components/ar/ARButton";
@@ -47,6 +47,13 @@ export default function HomeScreen() {
     const isFocused = useIsFocused();
     const { user, showStreakModal } = useAuth();
     const { enable_leaderboard } = usePublicSettings();
+    const colors = useThemeColors();
+    const radius = useThemeValue("radius");
+    const spacing = useThemeValue("spacing");
+    const styles = useMemo(
+        () => createStyles(colors, spacing, radius),
+        [colors, spacing, radius],
+    );
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -240,7 +247,7 @@ export default function HomeScreen() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={[theme.colors.primary]}
+                        colors={[colors.primary]}
                         tintColor={"#FFFFFF"}
                     />
                 }
@@ -363,15 +370,15 @@ export default function HomeScreen() {
                                             paddingHorizontal: 10,
                                             paddingVertical: 5,
                                             borderRadius: 16,
-                                            backgroundColor: heroMissionTab === "available" ? theme.colors.primary : "transparent",
+                                            backgroundColor: heroMissionTab === "available" ? colors.primary : "transparent",
                                         }}
                                         onPress={() => setHeroMissionTab("available")}
                                     >
-                                        <Crosshair size={12} color={heroMissionTab === "available" ? "#FFFFFF" : theme.colors.textSecondary} />
+                                        <Crosshair size={12} color={heroMissionTab === "available" ? "#FFFFFF" : colors.textSecondary} />
                                         <Text style={{
                                             fontFamily: fonts.heading.bold,
                                             fontSize: 11,
-                                            color: heroMissionTab === "available" ? "#FFFFFF" : theme.colors.textSecondary,
+                                            color: heroMissionTab === "available" ? "#FFFFFF" : colors.textSecondary,
                                         }}>
                                             Available ({activeQuests.length})
                                         </Text>
@@ -389,11 +396,11 @@ export default function HomeScreen() {
                                         }}
                                         onPress={() => setHeroMissionTab("completed")}
                                     >
-                                        <CheckCircle2 size={12} color={heroMissionTab === "completed" ? "#FFFFFF" : theme.colors.textSecondary} />
+                                        <CheckCircle2 size={12} color={heroMissionTab === "completed" ? "#FFFFFF" : colors.textSecondary} />
                                         <Text style={{
                                             fontFamily: fonts.heading.bold,
                                             fontSize: 11,
-                                            color: heroMissionTab === "completed" ? "#FFFFFF" : theme.colors.textSecondary,
+                                            color: heroMissionTab === "completed" ? "#FFFFFF" : colors.textSecondary,
                                         }}>
                                             Completed ({completedQuestsToday.length})
                                         </Text>
@@ -437,7 +444,7 @@ export default function HomeScreen() {
                                                 <View style={styles.heroTopRow}>
                                                     <View style={styles.heroLabelChip}>
                                                         <Crosshair
-                                                            color={theme.colors.primary}
+                                                            color={colors.primary}
                                                             size={14}
                                                         />
                                                         <Text style={styles.heroChipText}>
@@ -509,9 +516,9 @@ export default function HomeScreen() {
                                                         shadowRadius: 4,
                                                         elevation: 4,
                                                         borderWidth: 1,
-                                                        borderColor: theme.colors.border
+                                                        borderColor: colors.border
                                                     }}>
-                                                        <ChevronRight color={theme.colors.primary} size={20} />
+                                                        <ChevronRight color={colors.primary} size={20} />
                                                     </View>
                                                 )}
                                             </View>
@@ -596,7 +603,7 @@ export default function HomeScreen() {
                                             <View style={styles.heroTopRow}>
                                                 <View style={styles.heroLabelChip}>
                                                     <Crosshair
-                                                        color={theme.colors.primary}
+                                                        color={colors.primary}
                                                         size={14}
                                                     />
                                                     <Text style={styles.heroChipText}>
@@ -624,7 +631,7 @@ export default function HomeScreen() {
                                                 SWIPE
                                             </Text>
                                             <ChevronRight
-                                                color={theme.colors.textMuted}
+                                                color={colors.textMuted}
                                                 size={12}
                                             />
                                         </View>
@@ -774,8 +781,7 @@ export default function HomeScreen() {
                                                     styles.ticketStub,
                                                     {
                                                         backgroundColor:
-                                                            theme.colors
-                                                                .textMuted,
+                                                            colors.textMuted,
                                                         borderColor:
                                                             "rgba(255,255,255,0.1)",
                                                     },
@@ -816,8 +822,7 @@ export default function HomeScreen() {
                                                     style={[
                                                         styles.ticketTitle,
                                                         {
-                                                            color: theme.colors
-                                                                .textMuted,
+                                                            color: colors.textMuted,
                                                         },
                                                     ]}
                                                     numberOfLines={2}
@@ -839,9 +844,7 @@ export default function HomeScreen() {
                                                             style={[
                                                                 styles.ticketTargetValue,
                                                                 {
-                                                                    color: theme
-                                                                        .colors
-                                                                        .textMuted,
+                                                                    color: colors.textMuted,
                                                                 },
                                                             ]}
                                                         >
@@ -853,8 +856,7 @@ export default function HomeScreen() {
                                                             styles.ticketDeployBtn,
                                                             {
                                                                 backgroundColor:
-                                                                    theme.colors
-                                                                        .surfaceSoft,
+                                                                    colors.surfaceSoft,
                                                             },
                                                         ]}
                                                     >
@@ -862,9 +864,7 @@ export default function HomeScreen() {
                                                             style={[
                                                                 styles.ticketDeployText,
                                                                 {
-                                                                    color: theme
-                                                                        .colors
-                                                                        .textMuted,
+                                                                    color: colors.textMuted,
                                                                 },
                                                             ]}
                                                         >
@@ -883,7 +883,7 @@ export default function HomeScreen() {
                             <View style={styles.heroTopRow}>
                                 <View style={styles.heroLabelChip}>
                                     <Activity
-                                        color={theme.colors.primary}
+                                        color={colors.primary}
                                         size={14}
                                     />
                                     <Text style={styles.heroChipText}>
@@ -953,7 +953,7 @@ export default function HomeScreen() {
                             <View style={styles.splitCard}>
                                 <View style={styles.splitIconWrap}>
                                     <Trophy
-                                        color={theme.colors.primary}
+                                        color={colors.primary}
                                         size={24}
                                     />
                                 </View>
@@ -968,7 +968,7 @@ export default function HomeScreen() {
                             <View style={styles.splitCard}>
                                 <View style={styles.splitIconWrap}>
                                     <MapPin
-                                        color={theme.colors.primary}
+                                        color={colors.primary}
                                         size={24}
                                     />
                                 </View>
@@ -987,7 +987,7 @@ export default function HomeScreen() {
                             <View style={styles.splitCard}>
                                 <View style={styles.splitIconWrap}>
                                     <Building
-                                        color={theme.colors.primary}
+                                        color={colors.primary}
                                         size={24}
                                     />
                                 </View>
@@ -1004,7 +1004,7 @@ export default function HomeScreen() {
                             <View style={styles.splitCard}>
                                 <View style={styles.splitIconWrap}>
                                     <MapPin
-                                        color={theme.colors.primary}
+                                        color={colors.primary}
                                         size={24}
                                     />
                                 </View>
@@ -1034,7 +1034,7 @@ export default function HomeScreen() {
                             >
                                 <View style={styles.actionIconWrap}>
                                     <ScanLine
-                                        color={theme.colors.primary}
+                                        color={colors.primary}
                                         size={24}
                                     />
                                 </View>
@@ -1047,7 +1047,7 @@ export default function HomeScreen() {
                             >
                                 <View style={styles.actionIconWrap}>
                                     <MapIcon
-                                        color={theme.colors.primary}
+                                        color={colors.primary}
                                         size={24}
                                     />
                                 </View>
@@ -1064,7 +1064,7 @@ export default function HomeScreen() {
                                     >
                                         <View style={styles.actionIconWrap}>
                                             <Crosshair
-                                                color={theme.colors.primary}
+                                                color={colors.primary}
                                                 size={24}
                                             />
                                         </View>
@@ -1082,7 +1082,7 @@ export default function HomeScreen() {
                                         >
                                             <View style={styles.actionIconWrap}>
                                                 <BarChart2
-                                                    color={theme.colors.primary}
+                                                    color={colors.primary}
                                                     size={24}
                                                 />
                                             </View>
@@ -1098,7 +1098,7 @@ export default function HomeScreen() {
                                     >
                                         <View style={styles.actionIconWrap}>
                                             <Trophy
-                                                color={theme.colors.primary}
+                                                color={colors.primary}
                                                 size={24}
                                             />
                                         </View>
@@ -1114,7 +1114,7 @@ export default function HomeScreen() {
                                 >
                                     <View style={styles.actionIconWrap}>
                                         <CheckCircle2
-                                            color={theme.colors.primary}
+                                            color={colors.primary}
                                             size={24}
                                         />
                                     </View>
@@ -1204,7 +1204,7 @@ export default function HomeScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB", // Crisp off-white background
@@ -1313,8 +1313,8 @@ const styles = StyleSheet.create({
     },
     heroCard: {
         backgroundColor: "#FFFFFF",
-        borderRadius: theme.radius.lg,
-        padding: theme.spacing.lg,
+        borderRadius: radius.lg,
+        padding: spacing.lg,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.08,
@@ -1335,20 +1335,20 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(155, 27, 48, 0.1)",
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: theme.radius.full,
+        borderRadius: radius.full,
     },
     heroChipText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 1.5,
     },
     heroExpBadge: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: theme.radius.full,
-        shadowColor: theme.colors.primary,
+        borderRadius: radius.full,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 5,
@@ -1362,7 +1362,7 @@ const styles = StyleSheet.create({
     heroQuestTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 22,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         lineHeight: 28,
         marginBottom: 20,
     },
@@ -1373,36 +1373,36 @@ const styles = StyleSheet.create({
     },
     heroTargetInfo: {
         flex: 1,
-        marginRight: theme.spacing.md,
+        marginRight: spacing.md,
     },
     heroTargetLabel: {
         fontFamily: fonts.body.regular,
         fontSize: 10,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 1,
         marginBottom: 4,
     },
     heroTargetValue: {
         fontFamily: fonts.heading.bold,
         fontSize: 14,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     heroDeployBtn: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingHorizontal: 18,
         paddingVertical: 12,
-        borderRadius: theme.radius.sm,
+        borderRadius: radius.sm,
         gap: 6,
-        shadowColor: theme.colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.4,
         shadowRadius: 8,
         elevation: 5,
     },
     heroDeployBtnDisabled: {
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         shadowOpacity: 0,
         elevation: 0,
     },
@@ -1413,7 +1413,7 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     heroDeployTextDisabled: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
     },
     sectionHeader: {
         flexDirection: "row",
@@ -1428,7 +1428,7 @@ const styles = StyleSheet.create({
     swipeHintText: {
         fontFamily: fonts.body.bold,
         fontSize: 10,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         marginRight: 2,
     },
     ticketScroll: {
@@ -1443,7 +1443,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         width: Dimensions.get("window").width - 76, // Leave a bit of edge for next card hint
         backgroundColor: "#FFFFFF",
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.08,
@@ -1452,9 +1452,9 @@ const styles = StyleSheet.create({
     },
     ticketStub: {
         width: 70,
-        backgroundColor: theme.colors.primary,
-        borderTopLeftRadius: theme.radius.md,
-        borderBottomLeftRadius: theme.radius.md,
+        backgroundColor: colors.primary,
+        borderTopLeftRadius: radius.md,
+        borderBottomLeftRadius: radius.md,
         justifyContent: "center",
         alignItems: "center",
         borderRightWidth: 2,
@@ -1499,7 +1499,7 @@ const styles = StyleSheet.create({
     ticketTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 12,
         lineHeight: 22,
     },
@@ -1511,25 +1511,25 @@ const styles = StyleSheet.create({
     ticketTargetLabel: {
         fontFamily: fonts.body.bold,
         fontSize: 9,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 1,
         marginBottom: 2,
     },
     ticketTargetValue: {
         fontFamily: fonts.heading.bold,
         fontSize: 12,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     ticketDeployBtn: {
         backgroundColor: "rgba(155, 27, 48, 0.1)",
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: theme.radius.sm,
+        borderRadius: radius.sm,
     },
     ticketDeployText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 1,
     },
     splitRow: {
@@ -1539,9 +1539,9 @@ const styles = StyleSheet.create({
     },
     mapPreviewContainer: {
         backgroundColor: "#FFFFFF",
-        borderRadius: theme.radius.lg,
+        borderRadius: radius.lg,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         position: "relative",
         height: 280,
         overflow: "hidden",
@@ -1576,13 +1576,13 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 16,
         alignSelf: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 20,
-        shadowColor: theme.colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -1597,7 +1597,7 @@ const styles = StyleSheet.create({
     splitCard: {
         flex: 1,
         backgroundColor: "#FFFFFF",
-        borderRadius: theme.radius.lg,
+        borderRadius: radius.lg,
         padding: 16,
         alignItems: "center",
         shadowColor: "#000",
@@ -1618,13 +1618,13 @@ const styles = StyleSheet.create({
     splitValue: {
         fontFamily: fonts.heading.bold,
         fontSize: 24,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     splitLabel: {
         fontFamily: fonts.body.bold,
         fontSize: 10,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 1,
     },
     section: {
@@ -1633,7 +1633,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 14,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         letterSpacing: 1.5,
         marginBottom: 16,
     },
@@ -1646,7 +1646,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         backgroundColor: "#FFFFFF",
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",
@@ -1655,7 +1655,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     actionIconWrap: {
         marginBottom: 12,
@@ -1663,7 +1663,7 @@ const styles = StyleSheet.create({
     actionText: {
         fontFamily: fonts.heading.bold,
         fontSize: 12,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     floatingJustineCircleBtn: {
         position: "absolute",

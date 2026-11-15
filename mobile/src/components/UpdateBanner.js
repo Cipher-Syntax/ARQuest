@@ -1,8 +1,8 @@
 import React from "react";
 import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { styles } from "./styles/UpdateBanner.styles";
-import theme from "../theme/tokens";
+import { useUpdateBannerStyles } from "./styles/UpdateBanner.styles";
+import { useThemeColors } from "../context/ThemeContext";
 
 const UpdateBanner = ({
     visible,
@@ -11,6 +11,8 @@ const UpdateBanner = ({
     onDismissPress,
     title = "Update Available",
 }) => {
+    const colors = useThemeColors();
+    const styles = useUpdateBannerStyles();
     if (!visible) return null;
 
     return (
@@ -24,7 +26,7 @@ const UpdateBanner = ({
             <View style={styles.backdrop}>
                 <View style={styles.modalCard}>
                     <View style={styles.iconWrap}>
-                        <Ionicons name="cloud-download-outline" size={32} color={theme.colors.primary} />
+                        <Ionicons name="cloud-download-outline" size={32} color={colors.primary} />
                     </View>
 
                     <View style={styles.headerRow}>

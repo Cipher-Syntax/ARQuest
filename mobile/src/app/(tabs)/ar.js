@@ -19,7 +19,8 @@ import { captureRef } from "react-native-view-shot";
 import { router, useLocalSearchParams, useFocusEffect, useNavigation } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { X, Camera as CameraIcon, Navigation } from "lucide-react-native";
-import { theme } from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useArStyles } from "../../components/ar/arStyles";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService, assetService } from "../../services";
@@ -47,7 +48,6 @@ import ARUnlockedModal from "../../components/ar/ARUnlockedModal";
 import { usePublicSettings } from "../../context/PublicSettingsContext";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useAuth } from "../../hooks/useAuth";
-import { styles } from "../../components/ar/arStyles";
 import SoundManager from "../../utils/SoundManager";
 import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
 import ErrorBoundary from "../../components/ui/ErrorBoundary";
@@ -60,6 +60,8 @@ const announcedArrivalBldgIds = new Set();
 
 export default function ARScreen() {
     const isFocused = useIsFocused();
+    const colors = useThemeColors();
+    const styles = useArStyles();
     const { user, checkToken } = useAuth();
     const [cameraPermission, requestCameraPermission] = useCameraPermissions();
     const [mediaPermission, requestMediaPermission] =
@@ -1293,7 +1295,7 @@ export default function ARScreen() {
         return (
             <View style={styles.container}>
                 <View style={styles.permissionContainer}>
-                    <CameraIcon size={64} color={theme.colors.textMuted} />
+                    <CameraIcon size={64} color={colors.textMuted} />
                     <Text style={styles.permissionTitle}>
                         AR Access Restricted
                     </Text>
@@ -1325,7 +1327,7 @@ export default function ARScreen() {
         return (
             <View style={styles.container}>
                 <View style={styles.permissionContainer}>
-                    <CameraIcon size={64} color={theme.colors.textMuted} />
+                    <CameraIcon size={64} color={colors.textMuted} />
                     <Text style={styles.permissionTitle}>
                         Camera Permission Required
                     </Text>
@@ -1405,7 +1407,7 @@ export default function ARScreen() {
                 {!capturing && (
                     <View style={styles.topLeftControls}>
                         <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
-                            <X size={24} color={theme.colors.primary} />
+                            <X size={24} color={colors.primary} />
                         </TouchableOpacity>
 
                         
@@ -1413,7 +1415,7 @@ export default function ARScreen() {
                         {/* Active Missions Pill */}
                         {user?.role === "student" && Array.isArray(activeQuests) && activeQuests.length > 0 && !triviaModalVisible && (
                             <TouchableOpacity style={styles.missionsPill}>
-                                <Ionicons name="list" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                                <Ionicons name="list" size={14} color={colors.primary} style={{ marginRight: 4 }} />
                                 <Text style={styles.missionsPillText}>
                                     {activeQuests.filter(q => !q.is_completed).length} MISSIONS
                                 </Text>
@@ -1463,7 +1465,7 @@ export default function ARScreen() {
                                         <Text style={styles.targetLabel}>
                                             {isArrived ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
                                         </Text>
-                                        <Text style={[styles.buildingLabel, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
+                                        <Text style={[styles.buildingLabel, { color: colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
                                             {activeBldg?.name || 'Target'}
                                         </Text>
                                         
@@ -1493,16 +1495,16 @@ export default function ARScreen() {
                                                     </View>
                                                 </View>
                                             ) : (
-                                                <Text style={[styles.buildingStatus, { color: theme.colors.success }]}>
+                                                <Text style={[styles.buildingStatus, { color: colors.success }]}>
                                                     ✓ You have arrived!
                                                 </Text>
                                             )
                                         ) : (
                                             <>
-                                                <Text style={[styles.buildingStatus, { color: theme.colors.textSecondary }]}>
+                                                <Text style={[styles.buildingStatus, { color: colors.textSecondary }]}>
                                                     📍 {dist} meters away
                                                 </Text>
-                                                <Text style={[styles.buildingStatus, { fontSize: 10, marginTop: 4, color: theme.colors.textMuted }]}>
+                                                <Text style={[styles.buildingStatus, { fontSize: 10, marginTop: 4, color: colors.textMuted }]}>
                                                     Keep moving closer to unlock.
                                                 </Text>
                                             </>

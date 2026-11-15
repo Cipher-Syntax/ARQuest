@@ -1,7 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import theme from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export const GeoStatusIndicator = ({
     status,
@@ -10,10 +11,12 @@ export const GeoStatusIndicator = ({
     mockedGPS,
     onRetry,
 }) => {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const getStatusConfig = () => {
         if (permissionDenied) {
             return {
-                color: theme.colors.error,
+                color: colors.error,
                 bg: "#FFF0F0",
                 border: "#FFCACA",
                 text: "Location access denied.",
@@ -26,7 +29,7 @@ export const GeoStatusIndicator = ({
 
         if (mockedGPS) {
             return {
-                color: theme.colors.error,
+                color: colors.error,
                 bg: "#FFF0F0",
                 border: "#FFCACA",
                 text: "Fake GPS Detected",
@@ -40,7 +43,7 @@ export const GeoStatusIndicator = ({
         switch (status) {
             case "inside":
                 return {
-                    color: theme.colors.primary,
+                    color: colors.primary,
                     bg: "#FFF5F5",
                     border: "rgba(127,3,3,0.2)",
                     text: buildingName ? `Inside ${buildingName}` : "Inside Building",
@@ -51,7 +54,7 @@ export const GeoStatusIndicator = ({
                 };
             case "nearby":
                 return {
-                    color: theme.colors.accent,
+                    color: colors.accent,
                     bg: "#F0F8FB",
                     border: "rgba(150,192,206,0.3)",
                     text: buildingName ? `Near ${buildingName}` : "Near Building",
@@ -73,7 +76,7 @@ export const GeoStatusIndicator = ({
                 };
             case "loading":
                 return {
-                    color: theme.colors.textSecondary,
+                    color: colors.textSecondary,
                     bg: "#F5F5F5",
                     border: "rgba(0,0,0,0.08)",
                     text: "Getting Location...",
@@ -84,7 +87,7 @@ export const GeoStatusIndicator = ({
                 };
             default:
                 return {
-                    color: theme.colors.textSecondary,
+                    color: colors.textSecondary,
                     bg: "#F5F5F5",
                     border: "rgba(0,0,0,0.08)",
                     text: "Outside Campus",
@@ -120,24 +123,24 @@ export const GeoStatusIndicator = ({
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flexDirection: "row",
         alignItems: "center",
-        padding: theme.spacing.md,
+        padding: spacing.md,
         borderLeftWidth: 4,
         borderWidth: 1,
-        borderRadius: theme.radius.md,
-        marginVertical: theme.spacing.xs,
+        borderRadius: radius.md,
+        marginVertical: spacing.xs,
     },
     icon: {
-        marginRight: theme.spacing.sm,
+        marginRight: spacing.sm,
     },
     textGroup: {
         flex: 1,
     },
     text: {
-        fontSize: theme.typography.sm,
+        fontSize: typography.sm,
         fontWeight: "600",
     },
     subText: {
@@ -148,10 +151,10 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         borderWidth: 1,
-        borderRadius: theme.radius.sm,
+        borderRadius: radius.sm,
         paddingHorizontal: 10,
         paddingVertical: 5,
-        marginLeft: theme.spacing.sm,
+        marginLeft: spacing.sm,
     },
     actionText: {
         fontSize: 12,

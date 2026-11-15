@@ -33,7 +33,8 @@ import { router } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { StatusBar } from "expo-status-bar";
 import { api } from "../../services";
-import theme from "../../theme/tokens";
+import { useThemeColors, useThemeValue } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { useAuth } from "../../hooks/useAuth";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { AVATARS } from "../../constants/Avatars";
@@ -44,6 +45,9 @@ import { usePublicSettings } from "../../context/PublicSettingsContext";
 
 export default function ProfileScreen() {
     const isFocused = useIsFocused();
+    const colors = useThemeColors();
+    const radius = useThemeValue("radius");
+    const styles = useThemedStyles(createStyles);
     const { user, logout, checkToken, showStreakModal } = useAuth();
     const { stopTracking } = useLocationTracking();
     const { enable_leaderboard } = usePublicSettings();
@@ -137,7 +141,7 @@ export default function ProfileScreen() {
                 <Icon
                     size={20}
                     color={
-                        destructive ? theme.colors.error : theme.colors.primary
+                        destructive ? colors.error : colors.primary
                     }
                 />
             </View>
@@ -145,7 +149,7 @@ export default function ProfileScreen() {
                 <Text
                     style={[
                         styles.settingsTitle,
-                        destructive && { color: theme.colors.error },
+                        destructive && { color: colors.error },
                     ]}
                 >
                     {title}
@@ -159,7 +163,7 @@ export default function ProfileScreen() {
                 color={
                     destructive
                         ? "rgba(211, 47, 47, 0.4)"
-                        : theme.colors.textMuted
+                        : colors.textMuted
                 }
             />
         </TouchableOpacity>
@@ -179,8 +183,8 @@ export default function ProfileScreen() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={[theme.colors.primary]}
-                        tintColor={theme.colors.primary}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
@@ -257,7 +261,7 @@ export default function ProfileScreen() {
                             {loading ? (
                                 <ActivityIndicator
                                     size="small"
-                                    color={theme.colors.primary}
+                                    color={colors.primary}
                                     style={{ padding: 10 }}
                                 />
                             ) : (
@@ -317,7 +321,7 @@ export default function ProfileScreen() {
                 {user?.role === "student" && (
                     <View style={styles.gamifiedStatsGrid}>
                         <View style={styles.gamifiedStatBox}>
-                            <Crosshair size={28} color={theme.colors.primary} />
+                            <Crosshair size={28} color={colors.primary} />
                             <Text style={[styles.gamifiedStatValue, { marginTop: 4 }]}>
                                 {(myStats?.quests_completed || 0).toString().padStart(2, '0')}
                             </Text>
@@ -326,7 +330,7 @@ export default function ProfileScreen() {
                             </Text>
                         </View>
                         <View style={styles.gamifiedStatBox}>
-                            <Award size={28} color={theme.colors.primary} />
+                            <Award size={28} color={colors.primary} />
                             <Text style={[styles.gamifiedStatValue, { marginTop: 4 }]}>
                                 {badgeCount ? badgeCount.split("/")[0].padStart(2, '0') : "00"}
                             </Text>
@@ -351,7 +355,7 @@ export default function ProfileScreen() {
                                 <Text style={styles.seeAllText}>VIEW ALL</Text>
                                 <ChevronRight
                                     size={14}
-                                    color={theme.colors.arHighlight}
+                                    color={colors.arHighlight}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -423,10 +427,10 @@ export default function ProfileScreen() {
                                 style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
                                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             >
-                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 11, color: theme.colors.primary }}>
+                                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 11, color: colors.primary }}>
                                     View All ({questHistory.length})
                                 </Text>
-                                <ChevronRight size={13} color={theme.colors.primary} />
+                                <ChevronRight size={13} color={colors.primary} />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.missionLogCard}>
@@ -648,9 +652,9 @@ export default function ProfileScreen() {
                 >
                     <View
                         style={{
-                            backgroundColor: theme.colors.surface,
+                            backgroundColor: colors.surface,
                             width: "85%",
-                            borderRadius: theme.radius.xl,
+                            borderRadius: radius.xl,
                             padding: 24,
                             maxHeight: "80%",
                         }}
@@ -659,7 +663,7 @@ export default function ProfileScreen() {
                             style={{
                                 fontFamily: fonts.heading.bold,
                                 fontSize: 20,
-                                color: theme.colors.textPrimary,
+                                color: colors.textPrimary,
                                 marginBottom: 8,
                                 textAlign: "center",
                             }}
@@ -670,7 +674,7 @@ export default function ProfileScreen() {
                             style={{
                                 fontFamily: fonts.body.regular,
                                 fontSize: 13,
-                                color: theme.colors.textSecondary,
+                                color: colors.textSecondary,
                                 marginBottom: 20,
                                 textAlign: "center",
                             }}
@@ -698,7 +702,7 @@ export default function ProfileScreen() {
                                                     ? 1
                                                     : 0,
                                             borderBottomColor:
-                                                theme.colors.border,
+                                                colors.border,
                                             opacity: isLocked ? 0.6 : 1,
                                         }}
                                     >
@@ -709,14 +713,14 @@ export default function ProfileScreen() {
                                                 borderRadius: 24,
                                                 backgroundColor: isCurrentRank
                                                     ? "rgba(178,24,48,0.1)"
-                                                    : theme.colors.surfaceSoft,
+                                                    : colors.surfaceSoft,
                                                 justifyContent: "center",
                                                 alignItems: "center",
                                                 marginRight: 16,
                                                 borderWidth: 1,
                                                 borderColor: isCurrentRank
-                                                    ? theme.colors.primary
-                                                    : theme.colors.border,
+                                                    ? colors.primary
+                                                    : colors.border,
                                             }}
                                         >
                                             <Text style={{ fontSize: 24 }}>
@@ -730,9 +734,8 @@ export default function ProfileScreen() {
                                                         fonts.heading.bold,
                                                     fontSize: 16,
                                                     color: isCurrentRank
-                                                        ? theme.colors.primary
-                                                        : theme.colors
-                                                              .textPrimary,
+                                                        ? colors.primary
+                                                        : colors.textPrimary,
                                                 }}
                                             >
                                                 Lv.{rank.level} {rank.title}
@@ -741,8 +744,7 @@ export default function ProfileScreen() {
                                                 style={{
                                                     fontFamily: fonts.body.bold,
                                                     fontSize: 12,
-                                                    color: theme.colors
-                                                        .textSecondary,
+                                                    color: colors.textSecondary,
                                                 }}
                                             >
                                                 {rank.min_exp} EXP Required
@@ -752,7 +754,7 @@ export default function ProfileScreen() {
                                             <View
                                                 style={{
                                                     backgroundColor:
-                                                        theme.colors.primary,
+                                                        colors.primary,
                                                     paddingHorizontal: 8,
                                                     paddingVertical: 4,
                                                     borderRadius: 12,
@@ -777,9 +779,9 @@ export default function ProfileScreen() {
 
                         <TouchableOpacity
                             style={{
-                                backgroundColor: theme.colors.primary,
+                                backgroundColor: colors.primary,
                                 padding: 14,
-                                borderRadius: theme.radius.lg,
+                                borderRadius: radius.lg,
                                 marginTop: 20,
                                 alignItems: "center",
                             }}
@@ -802,23 +804,23 @@ export default function ProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.bgPrimary,
+        backgroundColor: colors.bgPrimary,
     },
     appBar: {
         paddingHorizontal: 20,
         paddingVertical: 15,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: colors.border,
     },
     appBarTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 22,
         fontWeight: "bold",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.5,
     },
     scrollContent: {
@@ -826,12 +828,12 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     playerCard: {
-        backgroundColor: theme.colors.primary,
-        borderRadius: theme.radius.xl,
+        backgroundColor: colors.primary,
+        borderRadius: radius.xl,
         overflow: "hidden",
-        marginBottom: theme.spacing.xl,
+        marginBottom: spacing.xl,
         elevation: 8,
-        shadowColor: theme.colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -839,7 +841,7 @@ const styles = StyleSheet.create({
     playerCardTop: {
         flexDirection: "row",
         alignItems: "center",
-        padding: theme.spacing.lg,
+        padding: spacing.lg,
     },
     playerAvatar: {
         width: 70,
@@ -848,7 +850,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255, 255, 255, 0.1)",
         justifyContent: "center",
         alignItems: "center",
-        marginRight: theme.spacing.md,
+        marginRight: spacing.md,
         borderWidth: 2,
         borderColor: "rgba(255, 255, 255, 0.3)",
     },
@@ -882,7 +884,7 @@ const styles = StyleSheet.create({
     },
     playerCardBottom: {
         backgroundColor: "rgba(0, 0, 0, 0.15)",
-        padding: theme.spacing.lg,
+        padding: spacing.lg,
     },
     progressHeader: {
         flexDirection: "row",
@@ -949,7 +951,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: "#ffffff",
         paddingVertical: 16,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -980,7 +982,7 @@ const styles = StyleSheet.create({
     },
     seeAllText: {
         fontFamily: fonts.hud.bold,
-        color: theme.colors.arHighlight,
+        color: colors.arHighlight,
         fontSize: 10,
         letterSpacing: 1,
         marginRight: 2,
@@ -1015,9 +1017,9 @@ const styles = StyleSheet.create({
     },
     badgeIconWrapperLocked: {
         borderWidth: 2,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         borderStyle: "dashed",
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         shadowOpacity: 0,
         elevation: 0,
     },
@@ -1026,26 +1028,26 @@ const styles = StyleSheet.create({
     },
     badgeName: {
         fontFamily: fonts.heading.medium,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 10,
         textAlign: "center",
     },
     badgeNameLocked: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
     },
     emptyContainer: {
         padding: 20,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         width: "100%",
     },
     emptyText: {
         fontFamily: fonts.body.regular,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         fontSize: 12,
     },
     sectionContainer: {
@@ -1061,10 +1063,10 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     settingsCard: {
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         overflow: "hidden",
     },
     settingsRow: {
@@ -1072,12 +1074,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: colors.border,
     },
     settingsIconWrapper: {
         width: 38,
         height: 38,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         backgroundColor: "rgba(178, 24, 48, 0.08)",
         justifyContent: "center",
         alignItems: "center",
@@ -1090,17 +1092,17 @@ const styles = StyleSheet.create({
         fontFamily: fonts.body.bold || fonts.body.medium,
         fontSize: 15,
         fontWeight: "600",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     settingsSubtitle: {
         fontSize: 12.5,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 2,
     },
     missionLogCard: {
-        backgroundColor: theme.colors.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         borderLeftWidth: 3,
-        borderLeftColor: theme.colors.primary,
+        borderLeftColor: colors.primary,
         padding: 12,
         borderRadius: 4,
     },
@@ -1109,22 +1111,22 @@ const styles = StyleSheet.create({
     },
     missionLogDivider: {
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: colors.border,
         borderStyle: "dashed",
     },
     missionLogText: {
         fontFamily: "monospace",
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
         marginBottom: 4,
     },
     missionLogPrefix: {
-        color: theme.colors.primary,
+        color: colors.primary,
         fontWeight: "bold",
     },
     missionLogReward: {
         fontFamily: "monospace",
-        color: theme.colors.primary,
+        color: colors.primary,
         fontWeight: "bold",
         fontSize: 12,
     },

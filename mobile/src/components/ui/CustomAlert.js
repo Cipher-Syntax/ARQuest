@@ -1,6 +1,7 @@
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import theme from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import { AlertCircle, Info } from "lucide-react-native";
 
@@ -17,6 +18,8 @@ export const customAlert = (title, message, buttons) => {
 };
 
 const CustomAlert = forwardRef((props, ref) => {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const [visible, setVisible] = useState(false);
     const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
@@ -53,9 +56,9 @@ const CustomAlert = forwardRef((props, ref) => {
                 <View style={styles.alertBox}>
                     <View style={styles.iconContainer}>
                         {isError ? (
-                            <AlertCircle color={theme.colors.error} size={36} />
+                            <AlertCircle color={colors.error} size={36} />
                         ) : (
-                            <Info color={theme.colors.primary} size={36} />
+                            <Info color={colors.primary} size={36} />
                         )}
                     </View>
                     <Text style={styles.title}>{title}</Text>
@@ -96,7 +99,7 @@ const CustomAlert = forwardRef((props, ref) => {
     );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.75)",
@@ -106,8 +109,8 @@ const styles = StyleSheet.create({
     },
     alertBox: {
         width: "85%",
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
         padding: 24,
         alignItems: "center",
         shadowColor: "#000",
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
     title: {
         fontFamily: fonts.heading.bold,
         fontSize: 18,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 8,
         textAlign: "center",
         letterSpacing: 0.5,
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
     message: {
         fontFamily: fonts.body.regular,
         fontSize: 14,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: "center",
         marginBottom: 24,
         lineHeight: 20,
@@ -143,18 +146,18 @@ const styles = StyleSheet.create({
     },
     button: {
         flex: 1,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 12,
-        borderRadius: theme.radius.sm,
+        borderRadius: radius.sm,
         alignItems: "center",
     },
     buttonCancel: {
-        backgroundColor: theme.colors.surfaceLight,
+        backgroundColor: colors.surfaceLight,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     buttonDestructive: {
-        backgroundColor: theme.colors.error,
+        backgroundColor: colors.error,
     },
     buttonText: {
         fontFamily: fonts.heading.bold,
@@ -163,7 +166,7 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     buttonTextCancel: {
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     buttonTextDestructive: {
         color: "#FFFFFF",

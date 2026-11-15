@@ -2,12 +2,12 @@ import { Stack } from "expo-router";
 import { AuthProvider, useAuthState, useAuthActions } from "../context/AuthContext";
 import { LocationProvider } from "../context/LocationContext";
 import { PublicSettingsProvider } from "../context/PublicSettingsContext";
+import { ThemeProvider, useThemeColors } from "../context/ThemeContext";
 import OfflineBanner from "../components/ui/OfflineBanner";
 import DemoModeBanner from "../components/ui/DemoModeBanner";
 import CustomAlert, { alertRef } from "../components/ui/CustomAlert";
 import DailyStreakModal from "../components/features/DailyStreakModal";
 import { StatusBar } from "expo-status-bar";
-import theme from "../theme/tokens";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -15,6 +15,22 @@ import UpdateBanner from "../components/UpdateBanner";
 import useAppUpdate from "../hooks/useAppUpdate";
 
 SplashScreen.preventAutoHideAsync();
+
+function AppStack() {
+    const colors = useThemeColors();
+
+    return (
+        <Stack
+            screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.bgPrimary },
+            }}
+        >
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+    );
+}
 
 function RootLayoutContent() {
     const { streakModalData } = useAuthState();
@@ -28,34 +44,28 @@ function RootLayoutContent() {
     } = useAppUpdate();
 
     return (
-        <>
-            <StatusBar style="dark" />
-            <OfflineBanner />
-            <DemoModeBanner />
-            <UpdateBanner
-                visible={shouldShowUpdateBanner}
-                isUpdating={isUpdateDownloading}
-                onUpdatePress={applyUpdate}
-                onDismissPress={dismissUpdateBanner}
-            />
-            <CustomAlert ref={alertRef} />
-            <DailyStreakModal
-                visible={streakModalData?.visible || false}
-                streakCount={streakModalData?.streakCount || 0}
-                bonusExp={streakModalData?.bonusExp || 0}
-                isNewCheckin={streakModalData?.isNewCheckin || false}
-                onClose={hideStreakModal}
-            />
-            <Stack
-                screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: theme.colors.bgPrimary },
-                }}
-            >
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            </Stack>
-        </>
+        <ThemeProvider>
+            <>
+                <StatusBar style="dark" />
+                <OfflineBanner />
+                <DemoModeBanner />
+                <UpdateBanner
+                    visible={shouldShowUpdateBanner}
+                    isUpdating={isUpdateDownloading}
+                    onUpdatePress={applyUpdate}
+                    onDismissPress={dismissUpdateBanner}
+                />
+                <CustomAlert ref={alertRef} />
+                <DailyStreakModal
+                    visible={streakModalData?.visible || false}
+                    streakCount={streakModalData?.streakCount || 0}
+                    bonusExp={streakModalData?.bonusExp || 0}
+                    isNewCheckin={streakModalData?.isNewCheckin || false}
+                    onClose={hideStreakModal}
+                />
+                <AppStack />
+            </>
+        </ThemeProvider>
     );
 }
 

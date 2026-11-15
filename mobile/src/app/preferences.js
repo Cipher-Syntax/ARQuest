@@ -32,13 +32,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import * as Location from "expo-location";
 import { Camera as ExpoCamera } from "expo-camera";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
 import soundManager from "../utils/SoundManager";
 import { customAlert as Alert } from "../components/ui/CustomAlert";
 
 export default function PreferencesScreen() {
     // Audio & Haptics
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const [soundEffects, setSoundEffects] = useState(true);
     const [haptics, setHaptics] = useState(true);
 
@@ -183,7 +186,7 @@ export default function PreferencesScreen() {
                     style={styles.backButton}
                     activeOpacity={0.8}
                 >
-                    <ArrowLeft color={theme.colors.textPrimary} size={22} />
+                    <ArrowLeft color={colors.textPrimary} size={22} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>App Preferences</Text>
                 <View style={{ width: 36 }} />
@@ -200,7 +203,7 @@ export default function PreferencesScreen() {
                     {/* Sound Effects */}
                     <View style={styles.settingRow}>
                         <View style={styles.settingIconWrap}>
-                            <Volume2 size={18} color={theme.colors.primary} />
+                            <Volume2 size={18} color={colors.primary} />
                         </View>
                         <View style={styles.settingTextWrap}>
                             <Text style={styles.settingTitle}>Sound Effects (SFX)</Text>
@@ -211,7 +214,7 @@ export default function PreferencesScreen() {
                         <Switch
                             value={soundEffects}
                             onValueChange={toggleSoundEffects}
-                            trackColor={{ false: "#E5E7EB", true: theme.colors.primary }}
+                            trackColor={{ false: "#E5E7EB", true: colors.primary }}
                             thumbColor="#FFFFFF"
                         />
                     </View>
@@ -219,7 +222,7 @@ export default function PreferencesScreen() {
                     {/* Haptic Vibration */}
                     <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
                         <View style={styles.settingIconWrap}>
-                            <Vibrate size={18} color={theme.colors.primary} />
+                            <Vibrate size={18} color={colors.primary} />
                         </View>
                         <View style={styles.settingTextWrap}>
                             <Text style={styles.settingTitle}>Haptic Vibration</Text>
@@ -230,7 +233,7 @@ export default function PreferencesScreen() {
                         <Switch
                             value={haptics}
                             onValueChange={toggleHaptics}
-                            trackColor={{ false: "#E5E7EB", true: theme.colors.primary }}
+                            trackColor={{ false: "#E5E7EB", true: colors.primary }}
                             thumbColor="#FFFFFF"
                         />
                     </View>
@@ -243,7 +246,7 @@ export default function PreferencesScreen() {
                     {/* Push Notifications */}
                     <View style={styles.settingRow}>
                         <View style={styles.settingIconWrap}>
-                            <Bell size={18} color={theme.colors.primary} />
+                            <Bell size={18} color={colors.primary} />
                         </View>
                         <View style={styles.settingTextWrap}>
                             <Text style={styles.settingTitle}>Push Notifications</Text>
@@ -254,7 +257,7 @@ export default function PreferencesScreen() {
                         <Switch
                             value={pushNotifications}
                             onValueChange={togglePushNotifications}
-                            trackColor={{ false: "#E5E7EB", true: theme.colors.primary }}
+                            trackColor={{ false: "#E5E7EB", true: colors.primary }}
                             thumbColor="#FFFFFF"
                         />
                     </View>
@@ -273,7 +276,7 @@ export default function PreferencesScreen() {
                         <Switch
                             value={streakReminders}
                             onValueChange={toggleStreakReminders}
-                            trackColor={{ false: "#E5E7EB", true: theme.colors.primary }}
+                            trackColor={{ false: "#E5E7EB", true: colors.primary }}
                             thumbColor="#FFFFFF"
                         />
                     </View>
@@ -295,7 +298,7 @@ export default function PreferencesScreen() {
                     {/* Location Permission */}
                     <View style={styles.settingRow}>
                         <View style={styles.settingIconWrap}>
-                            <MapPin size={18} color={theme.colors.primary} />
+                            <MapPin size={18} color={colors.primary} />
                         </View>
                         <View style={styles.settingTextWrap}>
                             <Text style={styles.settingTitle}>Location (GPS)</Text>
@@ -314,7 +317,7 @@ export default function PreferencesScreen() {
                             {locationPermission === "granted" ? (
                                 <Check size={11} color="#059669" style={{ marginRight: 2 }} />
                             ) : (
-                                <X size={11} color={theme.colors.error} style={{ marginRight: 2 }} />
+                                <X size={11} color={colors.error} style={{ marginRight: 2 }} />
                             )}
                             <Text
                                 style={[
@@ -323,7 +326,7 @@ export default function PreferencesScreen() {
                                         color:
                                             locationPermission === "granted"
                                                 ? "#059669"
-                                                : theme.colors.error,
+                                                : colors.error,
                                     },
                                 ]}
                             >
@@ -335,7 +338,7 @@ export default function PreferencesScreen() {
                     {/* Camera Permission */}
                     <View style={styles.settingRow}>
                         <View style={styles.settingIconWrap}>
-                            <Camera size={18} color={theme.colors.primary} />
+                            <Camera size={18} color={colors.primary} />
                         </View>
                         <View style={styles.settingTextWrap}>
                             <Text style={styles.settingTitle}>Camera Access</Text>
@@ -354,7 +357,7 @@ export default function PreferencesScreen() {
                             {cameraPermission === "granted" ? (
                                 <Check size={11} color="#059669" style={{ marginRight: 2 }} />
                             ) : (
-                                <X size={11} color={theme.colors.error} style={{ marginRight: 2 }} />
+                                <X size={11} color={colors.error} style={{ marginRight: 2 }} />
                             )}
                             <Text
                                 style={[
@@ -363,7 +366,7 @@ export default function PreferencesScreen() {
                                         color:
                                             cameraPermission === "granted"
                                                 ? "#059669"
-                                                : theme.colors.error,
+                                                : colors.error,
                                     },
                                 ]}
                             >
@@ -378,9 +381,9 @@ export default function PreferencesScreen() {
                         onPress={openSystemSettings}
                         activeOpacity={0.8}
                     >
-                        <Settings size={15} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                        <Settings size={15} color={colors.primary} style={{ marginRight: 6 }} />
                         <Text style={styles.openSettingsBtnText}>Open Phone Device Settings</Text>
-                        <ExternalLink size={13} color={theme.colors.primary} style={{ marginLeft: 6 }} />
+                        <ExternalLink size={13} color={colors.primary} style={{ marginLeft: 6 }} />
                     </TouchableOpacity>
                 </View>
 
@@ -391,7 +394,7 @@ export default function PreferencesScreen() {
                     {/* Distance Unit */}
                     <View style={styles.settingRow}>
                         <View style={styles.settingIconWrap}>
-                            <Ruler size={18} color={theme.colors.primary} />
+                            <Ruler size={18} color={colors.primary} />
                         </View>
                         <View style={styles.settingTextWrap}>
                             <Text style={styles.settingTitle}>Distance Unit</Text>
@@ -440,7 +443,7 @@ export default function PreferencesScreen() {
                     {/* Compass Map Rotation */}
                     <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
                         <View style={styles.settingIconWrap}>
-                            <Compass size={18} color={theme.colors.primary} />
+                            <Compass size={18} color={colors.primary} />
                         </View>
                         <View style={styles.settingTextWrap}>
                             <Text style={styles.settingTitle}>Compass Map Rotation</Text>
@@ -451,7 +454,7 @@ export default function PreferencesScreen() {
                         <Switch
                             value={compassRotation}
                             onValueChange={toggleCompassRotation}
-                            trackColor={{ false: "#E5E7EB", true: theme.colors.primary }}
+                            trackColor={{ false: "#E5E7EB", true: colors.primary }}
                             thumbColor="#FFFFFF"
                         />
                     </View>
@@ -462,7 +465,7 @@ export default function PreferencesScreen() {
                     <Text style={styles.cardSectionTitle}>STORAGE & CACHE</Text>
                     <View style={styles.cacheRow}>
                         <View style={styles.settingIconWrap}>
-                            <HardDrive size={18} color={theme.colors.textSecondary} />
+                            <HardDrive size={18} color={colors.textSecondary} />
                         </View>
                         <View style={styles.settingTextWrap}>
                             <Text style={styles.settingTitle}>3D Models & Cache</Text>
@@ -477,10 +480,10 @@ export default function PreferencesScreen() {
                             activeOpacity={0.8}
                         >
                             {isClearingCache ? (
-                                <ActivityIndicator size="small" color={theme.colors.primary} />
+                                <ActivityIndicator size="small" color={colors.primary} />
                             ) : (
                                 <>
-                                    <Trash2 size={13} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                                    <Trash2 size={13} color={colors.primary} style={{ marginRight: 4 }} />
                                     <Text style={styles.clearCacheBtnText}>Clear</Text>
                                 </>
                             )}
@@ -494,7 +497,7 @@ export default function PreferencesScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",
@@ -520,7 +523,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 17,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.3,
     },
     content: {
@@ -561,7 +564,7 @@ const styles = StyleSheet.create({
     refreshBtnText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 11,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     settingRow: {
         flexDirection: "row",
@@ -586,13 +589,13 @@ const styles = StyleSheet.create({
     settingTitle: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 14,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     settingSubtitle: {
         fontFamily: fonts.body.regular,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 16,
     },
     permissionBadge: {
@@ -627,7 +630,7 @@ const styles = StyleSheet.create({
     openSettingsBtnText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 12.5,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     unitSelector: {
         flexDirection: "row",
@@ -641,12 +644,12 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     unitSegmentActive: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
     },
     unitSegmentText: {
         fontFamily: fonts.heading.bold,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     unitSegmentTextActive: {
         color: "#FFFFFF",
@@ -669,6 +672,6 @@ const styles = StyleSheet.create({
     clearCacheBtnText: {
         fontFamily: fonts.heading.bold,
         fontSize: 12,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
 });

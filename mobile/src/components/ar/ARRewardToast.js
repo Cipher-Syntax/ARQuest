@@ -1,12 +1,13 @@
 import { View, Text, Animated } from "react-native";
 
-import { styles } from "./arStyles";
+import { useArStyles } from "./arStyles";
 
 /**
  * Slide-down reward toast for a newly earned badge or a level-up.
  * `variant` selects the matching style block.
  */
 export default function ARRewardToast({ variant, anim, emoji, label, name }) {
+    const styles = useArStyles();
     const isBadge = variant === "badge";
 
     return (

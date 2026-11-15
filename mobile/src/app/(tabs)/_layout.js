@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { Home, Map, Scan, Building2, User, Trophy } from "lucide-react-native";
 import { View, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useBrandTheme } from "../../hooks/useBrandTheme";
+import { useThemeColors } from "../../context/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
 import { UnlockedBuildingsProvider } from "../../context/UnlockedBuildingsContext";
 import { Redirect } from "expo-router";
@@ -12,14 +12,14 @@ import OnboardingTutorial from "../../components/features/OnboardingTutorial";
 import JustineGuideModal from "../../components/features/JustineGuideModal";
 
 function CustomTabBar({ state, descriptors, navigation }) {
-    const { theme } = useBrandTheme();
+    const colors = useThemeColors();
 
     return (
         <SafeAreaView
             edges={["bottom"]}
             style={{
-                backgroundColor: theme.colors.surface, // Light tab bar base
-                borderTopColor: theme.colors.border,
+                backgroundColor: colors.surface,
+                borderTopColor: colors.border,
                 borderTopWidth: 1,
             }}
         >
@@ -69,7 +69,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                         width: 60,
                                         height: 60,
                                         borderRadius: 30,
-                                        backgroundColor: theme.colors.primary,
+                                        backgroundColor: colors.primary,
                                         alignItems: "center",
                                         justifyContent: "center",
                                         marginBottom: 8,
@@ -82,16 +82,16 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                     {options.tabBarIcon &&
                                         options.tabBarIcon({
                                             color: isFocused
-                                                ? theme.colors.primary // WMSU Red for active
-                                                : theme.colors.textMuted,
+                                                ? colors.primary
+                                                : colors.textMuted,
                                             size: 24,
                                         })}
                                     <Text
                                         style={{
                                             fontSize: 12,
                                             color: isFocused
-                                                ? theme.colors.primary // WMSU Red
-                                                : theme.colors.textMuted,
+                                                ? colors.primary
+                                                : colors.textMuted,
                                             fontWeight: isFocused
                                                 ? "600"
                                                 : "400",
@@ -111,7 +111,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
 export default function TabLayout() {
     const { user, isLoading } = useAuth();
-    const { theme } = useBrandTheme();
+    const colors = useThemeColors();
 
     useEffect(() => {
         if (user) {
@@ -131,15 +131,15 @@ export default function TabLayout() {
                     <Tabs
                         screenOptions={{
                             headerStyle: {
-                                backgroundColor: theme.colors.primary,
+                                backgroundColor: colors.primary,
                             },
                             headerTintColor: "#FFFFFF",
                             tabBarStyle: {
-                                backgroundColor: theme.colors.surface,
-                                borderTopColor: theme.colors.border,
+                                backgroundColor: colors.surface,
+                                borderTopColor: colors.border,
                             },
-                            tabBarActiveTintColor: theme.colors.primary,
-                            tabBarInactiveTintColor: theme.colors.textMuted,
+                            tabBarActiveTintColor: colors.primary,
+                            tabBarInactiveTintColor: colors.textMuted,
                         }}
                         tabBar={(props) => <CustomTabBar {...props} />}
                     >

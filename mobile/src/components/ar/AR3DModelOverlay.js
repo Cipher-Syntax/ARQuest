@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator, Text, Image } from "react-native";
 import { WebView } from "react-native-webview";
-import { theme } from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { arViewerHtmlString } from "../../../assets/ar-viewer";
 
 export default function AR3DModelOverlay({
@@ -11,6 +12,8 @@ export default function AR3DModelOverlay({
     onSnapshotReady,
     style,
 }) {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [webViewReady, setWebViewReady] = useState(false);
@@ -102,7 +105,7 @@ export default function AR3DModelOverlay({
                 <View style={styles.loadingOverlay}>
                     <ActivityIndicator
                         size="large"
-                        color={theme.colors.accent}
+                        color={colors.accent}
                     />
                     <Text style={styles.loadingText}>Loading 3D Model...</Text>
                 </View>
@@ -118,7 +121,7 @@ export default function AR3DModelOverlay({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         position: "absolute",
         top: 80,
@@ -140,7 +143,7 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 8,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 10,
         textShadowColor: "rgba(0,0,0,0.8)",
         textShadowOffset: { width: 0, height: 0 },
@@ -154,7 +157,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     errorText: {
-        color: theme.colors.error,
+        color: colors.error,
         fontSize: 10,
         textAlign: "center",
         backgroundColor: "rgba(0,0,0,0.6)",

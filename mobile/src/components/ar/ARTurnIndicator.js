@@ -2,7 +2,7 @@ import React from "react";
 import { Animated, Text, View } from "react-native";
 
 import ARCompassBadge from "./ARCompassBadge";
-import { styles } from "./arStyles";
+import { useArStyles } from "./arStyles";
 
 /**
  * Directional prompts shown at walking-turn moments, drawn as compass badges.
@@ -16,21 +16,22 @@ const TURN_CONFIG = {
     left: {
         rotation: -90,
         label: "TURN LEFT",
-        container: styles.turnArrowLeft,
+        containerKey: "turnArrowLeft",
     },
     right: {
         rotation: 90,
         label: "TURN RIGHT",
-        container: styles.turnArrowRight,
+        containerKey: "turnArrowRight",
     },
     around: {
         rotation: 180,
         label: "TURN AROUND",
-        container: styles.turnArrowAround,
+        containerKey: "turnArrowAround",
     },
 };
 
 export default function ARTurnIndicator({ turnDirection, pulseAnim }) {
+    const styles = useArStyles();
     const config = TURN_CONFIG[turnDirection];
 
     if (!config) {
@@ -49,7 +50,7 @@ export default function ARTurnIndicator({ turnDirection, pulseAnim }) {
     });
 
     return (
-        <View pointerEvents="none" style={config.container}>
+        <View pointerEvents="none" style={styles[config.containerKey]}>
             <Animated.View style={[styles.turnArrowDisc, { transform: [{ scale }] }]}>
                 <Animated.View style={[styles.turnArrowHalo, { opacity: haloOpacity }]} />
                 <ARCompassBadge rotation={config.rotation} size={62} />

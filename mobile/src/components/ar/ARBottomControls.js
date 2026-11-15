@@ -1,8 +1,8 @@
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { QrCode, Camera as CameraIcon } from "lucide-react-native";
 
-import { theme } from "../../theme/tokens";
-import { styles } from "./arStyles";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useArStyles } from "./arStyles";
 
 /**
  * Bottom action bar: QR scanner toggle and AR snapshot capture.
@@ -15,6 +15,8 @@ export default function ARBottomControls({
     showQr = true,
     showCapture = true,
 }) {
+    const colors = useThemeColors();
+    const styles = useArStyles();
     return (
         <View style={styles.bottomControls}>
             {showQr && (
@@ -22,7 +24,7 @@ export default function ARBottomControls({
                     style={[styles.qrBigButton, isScanningQr && styles.qrBigButtonActive]}
                     onPress={() => onToggleQr(!isScanningQr)}
                 >
-                    <QrCode size={20} color={isScanningQr ? "#fff" : theme.colors.primary} />
+                    <QrCode size={20} color={isScanningQr ? "#fff" : colors.primary} />
                     <Text style={[styles.qrBigButtonText, isScanningQr && { color: "#fff" }]}>
                         {isScanningQr ? "SCANNING QR..." : "SCAN QR CODE"}
                     </Text>
@@ -38,9 +40,9 @@ export default function ARBottomControls({
                 >
                     <View style={styles.captureButtonInner}>
                         {capturing ? (
-                            <ActivityIndicator size="small" color={theme.colors.primary} />
+                            <ActivityIndicator size="small" color={colors.primary} />
                         ) : (
-                            <CameraIcon size={28} color={theme.colors.primary} />
+                            <CameraIcon size={28} color={colors.primary} />
                         )}
                     </View>
                 </TouchableOpacity>

@@ -18,7 +18,7 @@ import {
     ChevronRight,
     Award,
 } from "lucide-react-native";
-import theme from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
 
@@ -31,6 +31,7 @@ export default function DailyStreakModal({
     isNewCheckin = false,
     onClose,
 }) {
+    const styles = useThemedStyles(createStyles);
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -297,7 +298,7 @@ export default function DailyStreakModal({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.7)",
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
     ribbonTitle: {
         fontFamily: fonts.hud.bold,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         letterSpacing: 1.2,
     },
     cycleBadge: {
@@ -527,13 +528,13 @@ const styles = StyleSheet.create({
     calloutTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 13,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     calloutDescription: {
         fontFamily: fonts.body.regular,
         fontSize: 11,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 15,
     },
     actionButton: {

@@ -15,7 +15,7 @@ import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { useAuth } from "../../hooks/useAuth";
 import { useBrandTheme } from "../../hooks/useBrandTheme";
-import theme from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { Link, useRouter } from "expo-router";
 import { Eye, EyeOff, AlertTriangle } from "lucide-react-native";
 import ARButton from "../../components/ar/ARButton";
@@ -23,6 +23,7 @@ import { fonts } from "../../constants/typography";
 import { validateString } from "../../utils/validation";
 
 export default function LoginScreen() {
+    const styles = useThemedStyles(createStyles);
     const bottomInset = useBottomInset(40);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -325,7 +326,7 @@ export default function LoginScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -466,7 +467,7 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
     forgotText: {
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 14,
         fontWeight: '600'
     },
@@ -493,7 +494,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     switchLink: {
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 14,
         fontWeight: '700',
     },

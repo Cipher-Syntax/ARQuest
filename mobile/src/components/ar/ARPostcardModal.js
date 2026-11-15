@@ -22,7 +22,8 @@ import {
     Award,
     Check,
 } from "lucide-react-native";
-import { colors, radius } from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
 
@@ -37,6 +38,8 @@ export default function ARPostcardModal({
     user,
     onClose,
 }) {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const [scaleAnim] = useState(() => new Animated.Value(0.85));
     const [opacityAnim] = useState(() => new Animated.Value(0));
     const postcardCardRef = useRef(null);
@@ -315,7 +318,7 @@ export default function ARPostcardModal({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(7, 42, 48, 0.88)",

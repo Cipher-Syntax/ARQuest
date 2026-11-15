@@ -27,7 +27,8 @@ import {
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { api } from "../services";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
 import { useAuth } from "../hooks/useAuth";
 
@@ -58,11 +59,11 @@ const CHECKLIST_TONES = {
     },
 };
 
-const scoreTone = (score) => {
-    if (score === null || score === undefined) return theme.colors.textMuted;
+const scoreTone = (score, colors) => {
+    if (score === null || score === undefined) return colors.textMuted;
     if (score >= 80) return "#059669";
     if (score >= 50) return "#B45309";
-    return theme.colors.error;
+    return colors.error;
 };
 
 const formatDate = (value) => {
@@ -77,10 +78,12 @@ const formatDate = (value) => {
 };
 
 const DetailRow = ({ icon: Icon, label, value }) => {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     if (!value) return null;
     return (
         <View style={styles.detailRow}>
-            <Icon size={15} color={theme.colors.textMuted} />
+            <Icon size={15} color={colors.textMuted} />
             <View style={styles.detailTextWrap}>
                 <Text style={styles.detailLabel}>{label}</Text>
                 <Text style={styles.detailValue}>{value}</Text>
@@ -89,17 +92,24 @@ const DetailRow = ({ icon: Icon, label, value }) => {
     );
 };
 
-const SectionCard = ({ icon: Icon, title, children }) => (
-    <View style={styles.card}>
-        <View style={styles.cardHeader}>
-            <Icon size={17} color={theme.colors.primary} />
-            <Text style={styles.cardTitle}>{title}</Text>
+const SectionCard = ({ icon: Icon, title, children }) => {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
+
+    return (
+        <View style={styles.card}>
+            <View style={styles.cardHeader}>
+                <Icon size={17} color={colors.primary} />
+                <Text style={styles.cardTitle}>{title}</Text>
+            </View>
+            {children}
         </View>
-        {children}
-    </View>
-);
+    );
+};
 
 export default function AccreditationScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { id } = useLocalSearchParams();
     const { user } = useAuth();
     const [building, setBuilding] = useState(null);
@@ -148,7 +158,7 @@ export default function AccreditationScreen() {
         if (loading) {
             return (
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             );
         }
@@ -156,7 +166,7 @@ export default function AccreditationScreen() {
         if (!isProfessional) {
             return (
                 <View style={styles.centered}>
-                    <ShieldAlert size={40} color={theme.colors.error} />
+                    <ShieldAlert size={40} color={colors.error} />
                     <Text style={styles.stateTitle}>Restricted Access</Text>
                     <Text style={styles.stateText}>
                         Accreditation records are available to accreditors and
@@ -169,7 +179,7 @@ export default function AccreditationScreen() {
         if (error) {
             return (
                 <View style={styles.centered}>
-                    <AlertTriangle size={40} color={theme.colors.error} />
+                    <AlertTriangle size={40} color={colors.error} />
                     <Text style={styles.stateTitle}>Could Not Load Record</Text>
                     <Text style={styles.stateText}>{error}</Text>
                     <TouchableOpacity
@@ -189,7 +199,7 @@ export default function AccreditationScreen() {
         if (!accreditation) {
             return (
                 <View style={styles.centered}>
-                    <ShieldCheck size={40} color={theme.colors.textMuted} />
+                    <ShieldCheck size={40} color={colors.textMuted} />
                     <Text style={styles.stateTitle}>Accreditation Unavailable</Text>
                     <Text style={styles.stateText}>
                         Accreditation access is currently turned off by the
@@ -202,7 +212,7 @@ export default function AccreditationScreen() {
         if (accreditation.status === "NOT_SET" && checklist.length === 0) {
             return (
                 <View style={styles.centered}>
-                    <FileText size={40} color={theme.colors.textMuted} />
+                    <FileText size={40} color={colors.textMuted} />
                     <Text style={styles.stateTitle}>No Accreditation Data Yet</Text>
                     <Text style={styles.stateText}>
                         The administrator has not published accreditation data
@@ -224,7 +234,7 @@ export default function AccreditationScreen() {
                             </Text>
                             {accreditation.level_label ? (
                                 <View style={styles.levelPill}>
-                                    <Award size={12} color={theme.colors.primary} />
+                                    <Award size={12} color={colors.primary} />
                                     <Text style={styles.levelPillText}>
                                         {accreditation.level_label}
                                     </Text>
@@ -234,13 +244,13 @@ export default function AccreditationScreen() {
                         <View
                             style={[
                                 styles.scoreBadge,
-                                { borderColor: scoreTone(score) },
+                                { borderColor: scoreTone(score, colors) },
                             ]}
                         >
                             <Text
                                 style={[
                                     styles.scoreValue,
-                                    { color: scoreTone(score) },
+                                    { color: scoreTone(score, colors) },
                                 ]}
                             >
                                 {score === null || score === undefined
@@ -258,7 +268,7 @@ export default function AccreditationScreen() {
                                     styles.progressFill,
                                     {
                                         width: `${score}%`,
-                                        backgroundColor: scoreTone(score),
+                                        backgroundColor: scoreTone(score, colors),
                                     },
                                 ]}
                             />
@@ -385,7 +395,7 @@ export default function AccreditationScreen() {
                     style={styles.backButton}
                     activeOpacity={0.8}
                 >
-                    <ArrowLeft size={22} color={theme.colors.textPrimary} />
+                    <ArrowLeft size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <View style={styles.headerTitleWrap}>
                     <Text style={styles.headerTitle}>Accreditation Record</Text>
@@ -405,7 +415,7 @@ export default function AccreditationScreen() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        tintColor={theme.colors.primary}
+                        tintColor={colors.primary}
                     />
                 }
             >
@@ -416,7 +426,7 @@ export default function AccreditationScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",
@@ -447,12 +457,12 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     headerSubtitle: {
         fontFamily: fonts.body.regular,
         fontSize: 11,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         marginTop: 1,
     },
     scrollContent: {
@@ -469,14 +479,14 @@ const styles = StyleSheet.create({
     stateTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 17,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginTop: 12,
         textAlign: "center",
     },
     stateText: {
         fontFamily: fonts.body.regular,
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: "center",
         lineHeight: 19,
         marginTop: 6,
@@ -486,7 +496,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         paddingVertical: 10,
         borderRadius: 6,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
     },
     retryText: {
         fontFamily: fonts.heading.bold,
@@ -510,12 +520,12 @@ const styles = StyleSheet.create({
         fontFamily: fonts.hud.bold,
         fontSize: 10,
         letterSpacing: 1.1,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
     },
     heroTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 22,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginTop: 2,
     },
     levelPill: {
@@ -534,7 +544,7 @@ const styles = StyleSheet.create({
     levelPillText: {
         fontFamily: fonts.heading.bold,
         fontSize: 11,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     scoreBadge: {
         minWidth: 76,
@@ -554,7 +564,7 @@ const styles = StyleSheet.create({
         fontFamily: fonts.hud.bold,
         fontSize: 8,
         letterSpacing: 0.8,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         marginTop: 1,
     },
     progressTrack: {
@@ -571,7 +581,7 @@ const styles = StyleSheet.create({
     heroMeta: {
         fontFamily: fonts.body.medium,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 10,
     },
     detailList: {
@@ -593,13 +603,13 @@ const styles = StyleSheet.create({
         fontFamily: fonts.hud.bold,
         fontSize: 9,
         letterSpacing: 0.7,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         textTransform: "uppercase",
     },
     detailValue: {
         fontFamily: fonts.body.medium,
         fontSize: 13,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginTop: 1,
     },
     card: {
@@ -618,7 +628,7 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 13,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         textTransform: "uppercase",
         letterSpacing: 0.4,
     },
@@ -638,7 +648,7 @@ const styles = StyleSheet.create({
     chipText: {
         fontFamily: fonts.body.medium,
         fontSize: 11,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     checklistItem: {
         flexDirection: "row",
@@ -654,12 +664,12 @@ const styles = StyleSheet.create({
     checklistLabel: {
         fontFamily: fonts.body.medium,
         fontSize: 13,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     checklistRemarks: {
         fontFamily: fonts.body.regular,
         fontSize: 11,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 2,
         lineHeight: 16,
     },
@@ -680,7 +690,7 @@ const styles = StyleSheet.create({
     bodyText: {
         fontFamily: fonts.body.regular,
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 20,
     },
 });

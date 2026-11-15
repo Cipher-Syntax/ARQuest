@@ -3,9 +3,10 @@ import { View, Text, StyleSheet, Animated } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { WifiOff } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import theme from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function OfflineBanner() {
+    const styles = useThemedStyles(createStyles);
     const [isConnected, setIsConnected] = useState(true);
     const [animation] = useState(new Animated.Value(0));
     const insets = useSafeAreaInsets();
@@ -56,13 +57,13 @@ export default function OfflineBanner() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         position: "absolute",
         top: 0,
         left: 0,
         right: 0,
-        backgroundColor: theme.colors.error || "#B21830",
+        backgroundColor: colors.error || "#B21830",
         zIndex: 9999,
         paddingBottom: 10,
         shadowColor: "#000",

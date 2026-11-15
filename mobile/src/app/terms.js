@@ -9,15 +9,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, ShieldCheck, MapPin, AlertTriangle } from "lucide-react-native";
 import { router } from "expo-router";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
 
 export default function TermsScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <ArrowLeft size={22} color={theme.colors.textPrimary} />
+                    <ArrowLeft size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Terms and Conditions</Text>
                 <View style={{ width: 36 }} />
@@ -54,7 +57,7 @@ export default function TermsScreen() {
 
                     <View style={styles.alertBox}>
                         <View style={styles.alertHeader}>
-                            <AlertTriangle size={18} color={theme.colors.warning} />
+                            <AlertTriangle size={18} color={colors.warning} />
                             <Text style={styles.alertTitle}>6. Location and Physical Safety</Text>
                         </View>
                         <Text style={styles.alertBody}>
@@ -106,7 +109,7 @@ export default function TermsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: { flex: 1, backgroundColor: "#F9FAFB" },
     header: {
         flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -114,22 +117,22 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1, borderBottomColor: "#E5E7EB",
     },
     backButton: { width: 36, height: 36, borderRadius: 6, justifyContent: "center", alignItems: "center", backgroundColor: "#F3F4F6" },
-    headerTitle: { fontFamily: fonts.heading.bold, fontSize: 17, color: theme.colors.textPrimary, letterSpacing: 0.3 },
+    headerTitle: { fontFamily: fonts.heading.bold, fontSize: 17, color: colors.textPrimary, letterSpacing: 0.3 },
     scrollContent: { padding: 16 },
     contentCard: {
         backgroundColor: "#FFFFFF", borderRadius: 6, padding: 20,
         borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
     },
-    effectiveDate: { fontFamily: fonts.heading.semiBold, fontSize: 13, color: theme.colors.textMuted, marginBottom: 20 },
-    sectionTitle: { fontFamily: fonts.heading.bold, fontSize: 15, color: theme.colors.textPrimary, marginTop: 24, marginBottom: 8 },
-    bodyText: { fontFamily: fonts.body.regular, fontSize: 13.5, color: theme.colors.textSecondary, lineHeight: 22 },
+    effectiveDate: { fontFamily: fonts.heading.semiBold, fontSize: 13, color: colors.textMuted, marginBottom: 20 },
+    sectionTitle: { fontFamily: fonts.heading.bold, fontSize: 15, color: colors.textPrimary, marginTop: 24, marginBottom: 8 },
+    bodyText: { fontFamily: fonts.body.regular, fontSize: 13.5, color: colors.textSecondary, lineHeight: 22 },
     alertBox: {
         backgroundColor: "rgba(245, 124, 0, 0.08)", borderRadius: 6, padding: 16,
         borderWidth: 1, borderColor: "rgba(245, 124, 0, 0.3)", marginTop: 24, marginBottom: 8,
     },
     alertHeader: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-    alertTitle: { fontFamily: fonts.heading.bold, fontSize: 15, color: theme.colors.warning, marginLeft: 8 },
-    alertBody: { fontFamily: fonts.body.regular, fontSize: 13.5, color: theme.colors.textPrimary, lineHeight: 20, marginBottom: 10 },
-    alertBullet: { fontFamily: fonts.body.regular, fontSize: 13, color: theme.colors.textSecondary, lineHeight: 20, marginLeft: 8, marginBottom: 4 },
+    alertTitle: { fontFamily: fonts.heading.bold, fontSize: 15, color: colors.warning, marginLeft: 8 },
+    alertBody: { fontFamily: fonts.body.regular, fontSize: 13.5, color: colors.textPrimary, lineHeight: 20, marginBottom: 10 },
+    alertBullet: { fontFamily: fonts.body.regular, fontSize: 13, color: colors.textSecondary, lineHeight: 20, marginLeft: 8, marginBottom: 4 },
 });

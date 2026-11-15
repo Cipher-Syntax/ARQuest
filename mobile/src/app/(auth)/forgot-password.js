@@ -15,12 +15,13 @@ import { useRouter } from "expo-router";
 import { ArrowLeft, Mail, KeyRound } from "lucide-react-native";
 import { useAuth } from "../../hooks/useAuth";
 import { useBrandTheme } from "../../hooks/useBrandTheme";
-import theme from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 
 export default function ForgotPasswordScreen() {
+    const styles = useThemedStyles(createStyles);
     const router = useRouter();
     const bottomInset = useBottomInset(40);
     const { forgotPassword, isLoading } = useAuth();
@@ -187,7 +188,7 @@ export default function ForgotPasswordScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -343,7 +344,7 @@ const styles = StyleSheet.create({
         color: "#64748B",
     },
     linkTextBold: {
-        color: theme.colors.primary,
+        color: colors.primary,
         fontWeight: "700",
     },
 });

@@ -2,10 +2,9 @@ import React from "react";
 import {
     TouchableOpacity,
     Text,
-    StyleSheet,
     ActivityIndicator,
 } from "react-native";
-import theme from "../../theme/tokens";
+import { useThemeColors, useThemeValue } from "../../context/ThemeContext";
 import { fonts } from "../../constants/typography";
 
 export default function ARButton({
@@ -16,33 +15,34 @@ export default function ARButton({
     variant = "primary",
     style,
 }) {
+    const colors = useThemeColors();
+    const spacing = useThemeValue("spacing");
+    const radius = useThemeValue("radius");
+    const typography = useThemeValue("typography");
+
     const isAccent = variant === "accent";
     const isOutline = variant === "outline";
 
+    const buttonStyle = [
+        styles.button(colors, spacing, radius),
+        isAccent && styles.buttonAccent(colors),
+        isOutline && styles.buttonOutline(colors),
+        disabled && styles.buttonDisabled,
+        style,
+    ];
+
     return (
         <TouchableOpacity
-            style={[
-                styles.button,
-                isAccent && styles.buttonAccent,
-                isOutline && styles.buttonOutline,
-                disabled && styles.buttonDisabled,
-                style,
-            ]}
+            style={buttonStyle}
             onPress={onPress}
             disabled={disabled || isLoading}
         >
             {isLoading ? (
                 <ActivityIndicator
-                    color={isOutline ? theme.colors.primary : "#451A03"}
+                    color={isOutline ? colors.primary : "#451A03"}
                 />
             ) : (
-                <Text
-                    style={[
-                        styles.text,
-                        isAccent && styles.textAccent,
-                        isOutline && styles.textOutline,
-                    ]}
-                >
+                <Text style={styles.text(typography)}>
                     {title}
                 </Text>
             )}
@@ -50,40 +50,33 @@ export default function ARButton({
     );
 }
 
-const styles = StyleSheet.create({
-    button: {
-        backgroundColor: theme.colors.primary,
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.md,
+const styles = {
+    button: (colors, spacing, radius) => ({
+        backgroundColor: colors.primary,
+        padding: spacing.md,
+        borderRadius: radius.md,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.1)",
-    },
-    buttonAccent: {
-        backgroundColor: theme.colors.accent,
+    }),
+    buttonAccent: (colors) => ({
+        backgroundColor: colors.accent,
         borderColor: "#D97706",
-    },
-    buttonOutline: {
+    }),
+    buttonOutline: (colors) => ({
         backgroundColor: "transparent",
-        borderColor: theme.colors.border,
-    },
+        borderColor: colors.border,
+    }),
     buttonDisabled: {
         opacity: 0.5,
     },
-    text: {
+    text: (typography) => ({
         fontFamily: fonts.heading.bold,
         color: "#FFFFFF",
-        fontSize: theme.typography.md,
+        fontSize: typography.md,
         fontWeight: "bold",
         textTransform: "uppercase",
         letterSpacing: 1,
-    },
-    textAccent: {
-        color: "#451A03", // Dark brown/black for contrast on gold
-    },
-    textOutline: {
-        color: theme.colors.textSecondary,
-        textTransform: "none",
-    },
-});
+    }),
+};

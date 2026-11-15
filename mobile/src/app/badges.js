@@ -13,11 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Award } from "lucide-react-native";
 import { router } from "expo-router";
 import { api } from "../services";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
 
 export default function BadgesScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { user } = useAuth();
     const [badges, setBadges] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -121,9 +124,9 @@ export default function BadgesScreen() {
                     onPress={() => router.back()}
                     style={styles.backButton}
                 >
-                    <ArrowLeft color={theme.colors.textPrimary} size={24} />
+                    <ArrowLeft color={colors.textPrimary} size={24} />
                 </TouchableOpacity>
-                <Award size={22} color={theme.colors.primary} />
+                <Award size={22} color={colors.primary} />
                 <Text style={styles.title}>ACHIEVEMENTS</Text>
                 <View style={{ width: 24 }} />
             </View>
@@ -163,7 +166,7 @@ export default function BadgesScreen() {
                 <View style={styles.centered}>
                     <ActivityIndicator
                         size="large"
-                        color={theme.colors.primary}
+                        color={colors.primary}
                     />
                 </View>
             ) : (
@@ -176,8 +179,8 @@ export default function BadgesScreen() {
                     showsVerticalScrollIndicator={false}
                     refreshing={refreshing}
                     onRefresh={onRefresh}
-                    colors={[theme.colors.primary]}
-                    tintColor={theme.colors.primary}
+                    colors={[colors.primary]}
+                    tintColor={colors.primary}
                 />
             )}
 
@@ -230,7 +233,7 @@ export default function BadgesScreen() {
                                     {
                                         color: selected.earned
                                             ? selected.color_hex
-                                            : theme.colors.textMuted,
+                                            : colors.textMuted,
                                     },
                                 ]}
                             >
@@ -273,10 +276,10 @@ export default function BadgesScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.bgPrimary,
+        backgroundColor: colors.bgPrimary,
     },
     header: {
         flexDirection: "row",
@@ -284,9 +287,9 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingVertical: 15,
         paddingHorizontal: 20,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: colors.border,
     },
     backButton: {
         padding: 5,
@@ -296,7 +299,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 18,
         fontWeight: "900",
-        color: theme.colors.primary,
+        color: colors.primary,
         marginLeft: 10,
         letterSpacing: 2,
     },
@@ -304,11 +307,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         margin: 16,
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
         padding: 16,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         gap: 16,
     },
     summaryLeft: {
@@ -318,12 +321,12 @@ const styles = StyleSheet.create({
         fontFamily: fonts.hud.bold,
         fontSize: 32,
         fontWeight: "900",
-        color: theme.colors.primary,
+        color: colors.primary,
         lineHeight: 36,
     },
     summaryLabel: {
         fontSize: 11,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         textTransform: "uppercase",
         letterSpacing: 1,
     },
@@ -332,19 +335,19 @@ const styles = StyleSheet.create({
     },
     progressBarBg: {
         height: 8,
-        backgroundColor: theme.colors.bgSecondary,
+        backgroundColor: colors.bgSecondary,
         borderRadius: 4,
         overflow: "hidden",
         marginBottom: 6,
     },
     progressBarFill: {
         height: "100%",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         borderRadius: 4,
     },
     progressPct: {
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: "600",
     },
     centered: {
@@ -360,12 +363,12 @@ const styles = StyleSheet.create({
         flex: 1,
         margin: 6,
         alignItems: "center",
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.md,
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
         paddingVertical: 16,
         paddingHorizontal: 8,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     badgeCardLocked: {
         opacity: 0.6,
@@ -391,17 +394,17 @@ const styles = StyleSheet.create({
         height: 14,
         borderRadius: 7,
         borderWidth: 2,
-        borderColor: theme.colors.surface,
+        borderColor: colors.surface,
     },
     badgeName: {
         fontSize: 11,
         fontWeight: "bold",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         textAlign: "center",
         letterSpacing: 0.5,
     },
     badgeNameLocked: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
     },
     // Modal
     modalOverlay: {
@@ -412,13 +415,13 @@ const styles = StyleSheet.create({
         padding: 32,
     },
     detailCard: {
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.lg,
+        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
         padding: 28,
         alignItems: "center",
         width: "100%",
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
     },
     detailIconCircle: {
         width: 88,
@@ -442,7 +445,7 @@ const styles = StyleSheet.create({
     },
     detailDesc: {
         fontSize: 14,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: "center",
         lineHeight: 22,
         marginBottom: 20,
@@ -460,13 +463,13 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     closeBtn: {
-        backgroundColor: theme.colors.bgSecondary,
+        backgroundColor: colors.bgSecondary,
         paddingVertical: 10,
         paddingHorizontal: 32,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
     },
     closeBtnText: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         fontWeight: "bold",
         letterSpacing: 1,
         fontSize: 13,

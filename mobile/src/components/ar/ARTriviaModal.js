@@ -2,8 +2,8 @@ import { View, Text, TouchableOpacity, Animated, StyleSheet } from "react-native
 import { Ionicons } from "@expo/vector-icons";
 import { X } from "lucide-react-native";
 
-import { theme } from "../../theme/tokens";
-import { styles } from "./arStyles";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useArStyles } from "./arStyles";
 
 /**
  * Bottom sheet with building trivia or the completion message for a mission.
@@ -17,6 +17,8 @@ export default function ARTriviaModal({
     body,
     rewardPoints,
 }) {
+    const colors = useThemeColors();
+    const styles = useArStyles();
     return (
         <View style={[StyleSheet.absoluteFillObject, { zIndex: 100 }]} pointerEvents="box-none">
             {/* Dark backdrop */}
@@ -34,14 +36,14 @@ export default function ARTriviaModal({
                     >
                         <Ionicons
                             name="book"
-                            color={theme.colors.primary}
+                            color={colors.primary}
                             size={22}
                             style={{ marginRight: 8 }}
                         />
                         <Text style={styles.triviaTitle}>{title}</Text>
                     </View>
                     <TouchableOpacity onPress={onClose} style={styles.closeTriviaBtn}>
-                        <X color={theme.colors.primary} size={20} />
+                        <X color={colors.primary} size={20} />
                     </TouchableOpacity>
                 </View>
 
@@ -52,7 +54,7 @@ export default function ARTriviaModal({
 
                 {rewardPoints !== null && (
                     <View style={styles.rewardBadge}>
-                        <Ionicons name="flash" color={theme.colors.primary} size={20} />
+                        <Ionicons name="flash" color={colors.primary} size={20} />
                         <Text style={styles.rewardText}>+{rewardPoints} EXP</Text>
                     </View>
                 )}

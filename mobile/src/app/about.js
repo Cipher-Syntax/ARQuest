@@ -28,11 +28,14 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
 import { useBrandTheme } from "../hooks/useBrandTheme";
 
 export default function AboutScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { theme: brandTheme, logoSource, appName, primaryColor } = useBrandTheme();
     const handleEmail = () => {
         Linking.openURL("mailto:support@arquest.com?subject=ARQuest Support Inquiry");
@@ -47,7 +50,7 @@ export default function AboutScreen() {
                     style={styles.backButton}
                     activeOpacity={0.8}
                 >
-                    <ArrowLeft size={22} color={theme.colors.textPrimary} />
+                    <ArrowLeft size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>About {appName}</Text>
                 <View style={{ width: 36 }} />
@@ -77,7 +80,7 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Compass size={18} color={theme.colors.primary} />
+                            <Compass size={18} color={colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>What is ARQuest?</Text>
                     </View>
@@ -90,7 +93,7 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Target size={18} color={theme.colors.primary} />
+                            <Target size={18} color={colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>Our Purpose</Text>
                     </View>
@@ -103,14 +106,14 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Layers size={18} color={theme.colors.primary} />
+                            <Layers size={18} color={colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>What You Can Do</Text>
                     </View>
                     <View style={styles.featureList}>
                         <View style={styles.featureItem}>
                             <View style={styles.featureIconWrap}>
-                                <MapPin size={16} color={theme.colors.primary} />
+                                <MapPin size={16} color={colors.primary} />
                             </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Explore the Campus</Text>
@@ -122,7 +125,7 @@ export default function AboutScreen() {
 
                         <View style={styles.featureItem}>
                             <View style={styles.featureIconWrap}>
-                                <ScanLine size={16} color={theme.colors.primary} />
+                                <ScanLine size={16} color={colors.primary} />
                             </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Use the AR Camera</Text>
@@ -134,7 +137,7 @@ export default function AboutScreen() {
 
                         <View style={styles.featureItem}>
                             <View style={styles.featureIconWrap}>
-                                <Eye size={16} color={theme.colors.primary} />
+                                <Eye size={16} color={colors.primary} />
                             </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Inspect 3D & 360° Tours</Text>
@@ -146,7 +149,7 @@ export default function AboutScreen() {
 
                         <View style={styles.featureItem}>
                             <View style={styles.featureIconWrap}>
-                                <Target size={16} color={theme.colors.primary} />
+                                <Target size={16} color={colors.primary} />
                             </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Complete Missions & Quizzes</Text>
@@ -158,7 +161,7 @@ export default function AboutScreen() {
 
                         <View style={styles.featureItem}>
                             <View style={styles.featureIconWrap}>
-                                <CheckCircle2 size={16} color={theme.colors.primary} />
+                                <CheckCircle2 size={16} color={colors.primary} />
                             </View>
                             <View style={styles.featureTextWrap}>
                                 <Text style={styles.featureItemTitle}>Track Visited Buildings</Text>
@@ -174,7 +177,7 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <ShieldCheck size={18} color={theme.colors.primary} />
+                            <ShieldCheck size={18} color={colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>Key Features</Text>
                     </View>
@@ -201,7 +204,7 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <BookOpen size={18} color={theme.colors.primary} />
+                            <BookOpen size={18} color={colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>How It Works</Text>
                     </View>
@@ -260,7 +263,7 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Users size={18} color={theme.colors.primary} />
+                            <Users size={18} color={colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>Meet the Team</Text>
                     </View>
@@ -281,7 +284,7 @@ export default function AboutScreen() {
                         {/* Member 1: Hannah Jean T. Balimbingan */}
                         <View style={styles.memberCard}>
                             <View style={[styles.memberIconWrap, { backgroundColor: "rgba(155, 27, 48, 0.08)" }]}>
-                                <Briefcase size={16} color={theme.colors.primary} />
+                                <Briefcase size={16} color={colors.primary} />
                             </View>
                             <View style={styles.memberInfo}>
                                 <Text style={styles.memberName}>Balimbingan, Hannah Jean T.</Text>
@@ -323,7 +326,7 @@ export default function AboutScreen() {
                 <View style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.sectionIconWrap}>
-                            <Mail size={18} color={theme.colors.primary} />
+                            <Mail size={18} color={colors.primary} />
                         </View>
                         <Text style={styles.sectionTitle}>Contact & Support</Text>
                     </View>
@@ -346,7 +349,7 @@ export default function AboutScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",
@@ -372,7 +375,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 17,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.3,
     },
     scrollContent: {
@@ -438,13 +441,13 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 15,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.2,
     },
     bodyText: {
         fontFamily: fonts.body.regular,
         fontSize: 13.5,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 21,
     },
     featureList: {
@@ -470,13 +473,13 @@ const styles = StyleSheet.create({
     featureItemTitle: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 13.5,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     featureItemDesc: {
         fontFamily: fonts.body.regular,
         fontSize: 12.5,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 18,
     },
     bulletList: {
@@ -485,12 +488,12 @@ const styles = StyleSheet.create({
     bulletText: {
         fontFamily: fonts.body.regular,
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 19,
     },
     boldText: {
         fontFamily: fonts.heading.semiBold,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     stepList: {
         gap: 14,
@@ -503,7 +506,7 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 6,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
         marginRight: 10,
@@ -520,13 +523,13 @@ const styles = StyleSheet.create({
     stepTitle: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 13.5,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     stepDesc: {
         fontFamily: fonts.body.regular,
         fontSize: 12.5,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 18,
     },
     teamHeaderBox: {
@@ -545,7 +548,7 @@ const styles = StyleSheet.create({
     teamGroup: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     teamPill: {
         backgroundColor: "rgba(155, 27, 48, 0.08)",
@@ -558,13 +561,13 @@ const styles = StyleSheet.create({
     teamPillText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 0.4,
     },
     teamDesc: {
         fontFamily: fonts.body.regular,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 16,
     },
     memberList: {
@@ -594,7 +597,7 @@ const styles = StyleSheet.create({
     memberName: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 13,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 3,
     },
     roleBadge: {
@@ -607,19 +610,19 @@ const styles = StyleSheet.create({
     roleBadgeText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 0.2,
     },
     emailButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderRadius: 6,
         marginTop: 12,
-        shadowColor: theme.colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,

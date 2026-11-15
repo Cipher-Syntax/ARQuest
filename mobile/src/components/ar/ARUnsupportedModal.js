@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { AlertTriangle } from "lucide-react-native";
 
-import { theme } from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
 import { fonts } from "../../constants/typography";
 
 /**
@@ -10,6 +10,7 @@ import { fonts } from "../../constants/typography";
  * non-AR fallbacks instead of a broken camera session.
  */
 export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
+    const colors = useThemeColors();
     if (!visible) return null;
 
     return (
@@ -33,7 +34,7 @@ export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
                     maxWidth: 360,
                     overflow: "hidden",
                     borderWidth: 1,
-                    borderColor: theme.colors.border,
+                    borderColor: colors.border,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.25,
@@ -44,7 +45,7 @@ export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
                 {/* Header Ribbon */}
                 <View
                     style={{
-                        backgroundColor: theme.colors.primary,
+                        backgroundColor: colors.primary,
                         paddingVertical: 14,
                         paddingHorizontal: 16,
                         flexDirection: "row",
@@ -71,7 +72,7 @@ export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
                     <Text
                         style={{
                             fontFamily: fonts.body.bold,
-                            color: theme.colors.textPrimary,
+                            color: colors.textPrimary,
                             fontSize: 14,
                             marginBottom: 8,
                         }}
@@ -81,7 +82,7 @@ export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
                     <Text
                         style={{
                             fontFamily: fonts.body.regular,
-                            color: theme.colors.textSecondary,
+                            color: colors.textSecondary,
                             fontSize: 13,
                             lineHeight: 20,
                             marginBottom: 20,
@@ -96,7 +97,7 @@ export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
                     <View style={{ gap: 10 }}>
                         <TouchableOpacity
                             style={{
-                                backgroundColor: theme.colors.primary,
+                                backgroundColor: colors.primary,
                                 paddingVertical: 12,
                                 paddingHorizontal: 16,
                                 borderRadius: 6,
@@ -127,7 +128,7 @@ export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
                                 alignItems: "center",
                                 justifyContent: "center",
                                 borderWidth: 1,
-                                borderColor: theme.colors.border,
+                                borderColor: colors.border,
                             }}
                             onPress={onUseQr}
                             activeOpacity={0.7}
@@ -135,7 +136,7 @@ export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
                             <Text
                                 style={{
                                     fontFamily: fonts.heading.bold,
-                                    color: theme.colors.textPrimary,
+                                    color: colors.textPrimary,
                                     fontSize: 11,
                                     letterSpacing: 0.5,
                                 }}

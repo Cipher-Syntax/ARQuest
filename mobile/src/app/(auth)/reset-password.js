@@ -17,16 +17,19 @@ import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import { useAuth } from "../../hooks/useAuth";
 import { useBrandTheme } from "../../hooks/useBrandTheme";
-import theme from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
 
 export default function ResetPasswordScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const router = useRouter();
     const params = useLocalSearchParams();
     const bottomInset = useBottomInset(40);
     const { resetPassword, forgotPassword, isLoading } = useAuth();
-    const { theme, logoSource, appName, primaryColor } = useBrandTheme();
+    const { logoSource, appName, primaryColor } = useBrandTheme();
 
     const [email, setEmail] = useState(params?.email || "");
     const [otp, setOtp] = useState("");
@@ -207,7 +210,7 @@ export default function ResetPasswordScreen() {
     const PasswordRule = ({ isValid, text }) => (
         <View style={styles.ruleContainer}>
             {isValid ? (
-                <Check color={theme.colors.success} size={14} />
+                <Check color={colors.success} size={14} />
             ) : (
                 <X color="#EF4444" size={14} />
             )}
@@ -412,7 +415,7 @@ export default function ResetPasswordScreen() {
                                     <View style={styles.matchRow}>
                                         {doPasswordsMatch ? (
                                             <>
-                                                <Check color={theme.colors.success} size={14} />
+                                                <Check color={colors.success} size={14} />
                                                 <Text style={styles.matchTextValid}>Passwords match</Text>
                                             </>
                                         ) : (
@@ -455,7 +458,7 @@ export default function ResetPasswordScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -568,7 +571,7 @@ const styles = StyleSheet.create({
     resendLinkText: {
         fontSize: 12,
         fontWeight: "700",
-        color: theme.colors.primary,
+        color: colors.primary,
     },
     resendDisabledText: {
         color: "#94A3B8",
@@ -635,7 +638,7 @@ const styles = StyleSheet.create({
         fontWeight: "500",
     },
     ruleValid: {
-        color: theme.colors.success,
+        color: colors.success,
     },
     ruleInvalid: {
         color: "#64748B",
@@ -649,7 +652,7 @@ const styles = StyleSheet.create({
     matchTextValid: {
         fontSize: 11,
         fontWeight: "600",
-        color: theme.colors.success,
+        color: colors.success,
         marginLeft: 4,
     },
     matchTextInvalid: {
@@ -677,7 +680,7 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
     message: {
-        color: theme.colors.success,
+        color: colors.success,
         marginBottom: 15,
         textAlign: "center",
         fontSize: 14,
@@ -702,7 +705,7 @@ const styles = StyleSheet.create({
         color: "#64748B",
     },
     linkTextBold: {
-        color: theme.colors.primary,
+        color: colors.primary,
         fontWeight: "700",
     },
 });

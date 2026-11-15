@@ -8,7 +8,7 @@ import {
     StyleSheet,
 } from "react-native";
 import { AlertTriangle, RefreshCw, Navigation, ShieldX } from "lucide-react-native";
-import { theme } from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 /**
  * Shown when QR-based building unlock fails.
@@ -24,6 +24,7 @@ export default function ARQRErrorModal({
     threshold,
     buildingName,
 }) {
+    const styles = useThemedStyles(createStyles);
     if (!visible) return null;
 
     const isTooFar = message?.includes("meters") || message?.includes("too far");
@@ -132,7 +133,7 @@ export default function ARQRErrorModal({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.7)",
@@ -143,8 +144,8 @@ const styles = StyleSheet.create({
     card: {
         width: "100%",
         maxWidth: 360,
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.radius.lg,
+        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
         padding: 28,
         alignItems: "center",
         shadowColor: "#000",
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: theme.colors.primary + "15",
+        backgroundColor: colors.primary + "15",
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 16,
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
     tagline: {
         fontSize: 11,
         fontWeight: "700",
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 1.5,
         textTransform: "uppercase",
         marginBottom: 4,
@@ -173,14 +174,14 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 22,
         fontWeight: "700",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 16,
         textAlign: "center",
     },
     distanceCard: {
         width: "100%",
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: theme.radius.md,
+        backgroundColor: colors.surfaceLight,
+        borderRadius: radius.md,
         padding: 16,
         marginBottom: 16,
     },
@@ -196,33 +197,33 @@ const styles = StyleSheet.create({
     distanceLabel: {
         fontSize: 10,
         fontWeight: "600",
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 0.5,
         marginBottom: 2,
     },
     distanceValue: {
         fontSize: 20,
         fontWeight: "700",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
     },
     distanceDivider: {
         width: 1,
         height: 40,
-        backgroundColor: theme.colors.border,
+        backgroundColor: colors.border,
         marginHorizontal: 16,
     },
     buildingName: {
         marginTop: 12,
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: theme.colors.border,
+        borderTopColor: colors.border,
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: "center",
     },
     message: {
         fontSize: 14,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: "center",
         lineHeight: 20,
         marginBottom: 20,
@@ -230,14 +231,14 @@ const styles = StyleSheet.create({
     },
     hintBox: {
         width: "100%",
-        backgroundColor: theme.colors.primary + "10",
-        borderRadius: theme.radius.md,
+        backgroundColor: colors.primary + "10",
+        borderRadius: radius.md,
         padding: 12,
         marginBottom: 20,
     },
     hintText: {
         fontSize: 13,
-        color: theme.colors.primary,
+        color: colors.primary,
         textAlign: "center",
         fontWeight: "500",
     },
@@ -248,24 +249,24 @@ const styles = StyleSheet.create({
     },
     dismissBtn: {
         flex: 1,
-        backgroundColor: theme.colors.surfaceLight,
+        backgroundColor: colors.surfaceLight,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         paddingVertical: 14,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         alignItems: "center",
     },
     dismissText: {
         fontSize: 14,
         fontWeight: "700",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.5,
     },
     retryBtn: {
         flex: 1,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 14,
-        borderRadius: theme.radius.md,
+        borderRadius: radius.md,
         alignItems: "center",
         flexDirection: "row",
         justifyContent: "center",

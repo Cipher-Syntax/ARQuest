@@ -20,12 +20,15 @@ import {
     Send,
     HelpCircle,
 } from "lucide-react-native";
-import theme from "../../theme/tokens";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import { api } from "../../services";
 import { validateString } from "../../utils/validation";
 
 export default function FeedbackModal({ visible, onClose }) {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const [type, setType] = useState("bug");
     const [message, setMessage] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -93,7 +96,7 @@ export default function FeedbackModal({ visible, onClose }) {
             >
                 <Icon
                     size={16}
-                    color={isSelected ? activeColor : theme.colors.textMuted}
+                    color={isSelected ? activeColor : colors.textMuted}
                     style={{ marginRight: 6 }}
                 />
                 <Text
@@ -136,7 +139,7 @@ export default function FeedbackModal({ visible, onClose }) {
                             onPress={onClose}
                             activeOpacity={0.8}
                         >
-                            <X size={18} color={theme.colors.textPrimary} />
+                            <X size={18} color={colors.textPrimary} />
                         </TouchableOpacity>
                     </View>
 
@@ -152,7 +155,7 @@ export default function FeedbackModal({ visible, onClose }) {
                                 value="bug"
                                 label="Bug Report"
                                 icon={AlertCircle}
-                                activeColor={theme.colors.error}
+                                activeColor={colors.error}
                                 activeBg="rgba(211, 47, 47, 0.08)"
                             />
                             <TypeOption
@@ -166,7 +169,7 @@ export default function FeedbackModal({ visible, onClose }) {
                                 value="other"
                                 label="General Feedback"
                                 icon={MessageSquare}
-                                activeColor={theme.colors.primary}
+                                activeColor={colors.primary}
                                 activeBg="rgba(155, 27, 48, 0.08)"
                             />
                         </View>
@@ -185,7 +188,7 @@ export default function FeedbackModal({ visible, onClose }) {
                                       ? "What new feature or improvement would you like to see in ARQuest?..."
                                       : "Share your thoughts, suggestions, or general campus feedback..."
                             }
-                            placeholderTextColor={theme.colors.textMuted}
+                            placeholderTextColor={colors.textMuted}
                             multiline
                             numberOfLines={5}
                             value={message}
@@ -239,7 +242,7 @@ export default function FeedbackModal({ visible, onClose }) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -271,13 +274,13 @@ const styles = StyleSheet.create({
     title: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.2,
     },
     subtitle: {
         fontFamily: fonts.body.regular,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 2,
     },
     closeButton: {
@@ -317,7 +320,7 @@ const styles = StyleSheet.create({
     typeOptionText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     input: {
         backgroundColor: "#F9FAFB",
@@ -328,11 +331,11 @@ const styles = StyleSheet.create({
         minHeight: 120,
         fontFamily: fonts.body.regular,
         fontSize: 13,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 16,
     },
     inputError: {
-        borderColor: theme.colors.error,
+        borderColor: colors.error,
         backgroundColor: "rgba(211, 47, 47, 0.02)",
     },
     errorBox: {
@@ -346,7 +349,7 @@ const styles = StyleSheet.create({
     errorText: {
         fontFamily: fonts.body.medium,
         fontSize: 11.5,
-        color: theme.colors.error,
+        color: colors.error,
     },
     actionsRow: {
         flexDirection: "row",
@@ -364,24 +367,24 @@ const styles = StyleSheet.create({
     cancelBtnText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 12.5,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     submitBtn: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 10,
         paddingHorizontal: 18,
         borderRadius: 6,
-        shadowColor: theme.colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
         elevation: 2,
     },
     submitBtnDisabled: {
-        backgroundColor: theme.colors.border,
+        backgroundColor: colors.border,
         shadowOpacity: 0,
         elevation: 0,
     },

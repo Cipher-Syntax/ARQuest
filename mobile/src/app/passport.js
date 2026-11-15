@@ -21,11 +21,14 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { api } from "../services";
-import theme from "../theme/tokens";
+import { useThemeColors } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
 
 const PassportStampCard = React.memo(({ building, isUnlocked }) => {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     return (
         <View
             style={[
@@ -51,7 +54,7 @@ const PassportStampCard = React.memo(({ building, isUnlocked }) => {
                     <View style={styles.placeholderImage}>
                         <Building2
                             size={28}
-                            color={isUnlocked ? theme.colors.primary : theme.colors.textMuted}
+                            color={isUnlocked ? colors.primary : colors.textMuted}
                         />
                     </View>
                 )}
@@ -72,7 +75,7 @@ const PassportStampCard = React.memo(({ building, isUnlocked }) => {
                         </>
                     ) : (
                         <>
-                            <Lock size={10} color={theme.colors.textMuted} style={{ marginRight: 2 }} />
+                            <Lock size={10} color={colors.textMuted} style={{ marginRight: 2 }} />
                             <Text style={styles.statusBadgeTextLocked}>LOCKED</Text>
                         </>
                     )}
@@ -105,6 +108,8 @@ const PassportStampCard = React.memo(({ building, isUnlocked }) => {
 });
 
 export default function PassportScreen() {
+    const colors = useThemeColors();
+    const styles = useThemedStyles(createStyles);
     const { user } = useAuth();
     const [buildings, setBuildings] = useState([]);
     const [unlockedIds, setUnlockedIds] = useState(new Set());
@@ -279,14 +284,14 @@ export default function PassportScreen() {
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator
                         size="large"
-                        color={theme.colors.primary}
+                        color={colors.primary}
                     />
                 </View>
             );
         }
         return (
             <View style={styles.emptyContainer}>
-                <Building2 size={40} color={theme.colors.textMuted} style={{ marginBottom: 8 }} />
+                <Building2 size={40} color={colors.textMuted} style={{ marginBottom: 8 }} />
                 <Text style={styles.emptyTitle}>No Buildings Found</Text>
                 <Text style={styles.emptySubtext}>
                     {filter === "visited"
@@ -306,7 +311,7 @@ export default function PassportScreen() {
                     style={styles.backButton}
                     activeOpacity={0.8}
                 >
-                    <ArrowLeft size={22} color={theme.colors.textPrimary} />
+                    <ArrowLeft size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>
                     {isProfessional ? "Visited Buildings" : "Campus Passport"}
@@ -334,7 +339,7 @@ export default function PassportScreen() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        tintColor={theme.colors.primary}
+                        tintColor={colors.primary}
                     />
                 }
             />
@@ -342,7 +347,7 @@ export default function PassportScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",
@@ -368,7 +373,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 17,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.3,
     },
     scrollContent: {
@@ -401,7 +406,7 @@ const styles = StyleSheet.create({
     },
     progressCount: {
         fontFamily: fonts.heading.bold,
-        color: theme.colors.primary,
+        color: colors.primary,
         fontSize: 13.5,
     },
     progressBarContainer: {
@@ -413,12 +418,12 @@ const styles = StyleSheet.create({
     },
     progressBarFill: {
         height: "100%",
-        backgroundColor: theme.colors.primary,
+        backgroundColor: colors.primary,
         borderRadius: 6,
     },
     progressSubtext: {
         fontFamily: fonts.body.regular,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
         lineHeight: 16,
     },
@@ -436,13 +441,13 @@ const styles = StyleSheet.create({
         borderColor: "#E5E7EB",
     },
     filterPillActive: {
-        backgroundColor: theme.colors.primary,
-        borderColor: theme.colors.primary,
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     filterPillText: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     filterPillTextActive: {
         color: "#FFFFFF",
@@ -459,13 +464,13 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontFamily: fonts.heading.bold,
         fontSize: 15,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     emptySubtext: {
         fontFamily: fonts.body.regular,
         fontSize: 12.5,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         textAlign: "center",
     },
     columnWrapper: {
@@ -543,7 +548,7 @@ const styles = StyleSheet.create({
     statusBadgeTextLocked: {
         fontFamily: fonts.heading.bold,
         fontSize: 9,
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
         letterSpacing: 0.4,
     },
     cardFooter: {
@@ -553,13 +558,13 @@ const styles = StyleSheet.create({
     buildingName: {
         fontFamily: fonts.heading.semiBold,
         fontSize: 12.5,
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         lineHeight: 16,
         marginBottom: 4,
         minHeight: 32,
     },
     buildingNameLocked: {
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
     },
     codeRow: {
         flexDirection: "row",
@@ -568,10 +573,10 @@ const styles = StyleSheet.create({
     buildingCode: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: theme.colors.primary,
+        color: colors.primary,
         letterSpacing: 0.5,
     },
     buildingCodeLocked: {
-        color: theme.colors.textMuted,
+        color: colors.textMuted,
     },
 });

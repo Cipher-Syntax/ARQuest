@@ -1,7 +1,6 @@
 import { Stack } from "expo-router";
 import { ImageBackground, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import theme from "../../theme/tokens";
 
 export default function AuthLayout() {
     return (

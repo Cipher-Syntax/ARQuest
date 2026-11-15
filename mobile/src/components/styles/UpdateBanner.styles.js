@@ -1,8 +1,8 @@
 import { StyleSheet } from "react-native";
-import theme from "../../theme/tokens";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 
-export const styles = StyleSheet.create({
+export const createUpdateBannerStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     backdrop: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.70)",
@@ -14,9 +14,9 @@ export const styles = StyleSheet.create({
         width: "100%",
         maxWidth: 360,
         borderRadius: 6, // Strict 6px standard
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         paddingHorizontal: 20,
         paddingTop: 24,
         paddingBottom: 20,
@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
     },
     title: {
         fontFamily: fonts?.heading?.bold || "System",
-        color: theme.colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: "800",
         fontSize: 18,
         marginBottom: 6,
@@ -53,7 +53,7 @@ export const styles = StyleSheet.create({
     },
     subtitle: {
         fontFamily: fonts?.body?.regular || "System",
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: "400",
         fontSize: 13,
         lineHeight: 19,
@@ -70,11 +70,11 @@ export const styles = StyleSheet.create({
         minHeight: 44,
         paddingHorizontal: 16,
         borderRadius: 6, // Strict 6px standard
-        backgroundColor: theme.colors.primary, // WMSU Crimson (#B21830)
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
         flex: 1,
-        shadowColor: theme.colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -105,7 +105,7 @@ export const styles = StyleSheet.create({
         minHeight: 44,
         borderRadius: 6, // Strict 6px standard
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: colors.border,
         backgroundColor: "transparent",
         justifyContent: "center",
         alignItems: "center",
@@ -117,10 +117,13 @@ export const styles = StyleSheet.create({
     },
     dismissText: {
         fontFamily: fonts?.heading?.bold || "System",
-        color: theme.colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: "700",
         fontSize: 13,
         letterSpacing: 0.5,
         textTransform: "uppercase",
     },
 });
+
+export const useUpdateBannerStyles = () =>
+    useThemedStyles(createUpdateBannerStyles);
