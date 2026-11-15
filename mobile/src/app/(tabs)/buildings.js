@@ -44,6 +44,7 @@ import QuickMissionsModal from "../../components/features/QuickMissionsModal";
 import NavigationTurnHUD from "../../components/features/NavigationTurnHUD";
 import SoundManager from "../../utils/SoundManager";
 import { ErrorBoundary } from "../../components/ui/ErrorBoundary";
+import { toRgba } from "../../utils/color";
 
 const BuildingListItem = React.memo(({ item, isUnlocked, isVisitor, isLast, onPress }) => {
     const colors = useThemeColors();
@@ -887,7 +888,7 @@ export default function BuildingsScreen() {
                                                 borderLeftWidth: 4,
                                                 borderLeftColor:
                                                     b.primary_department
-                                                        .color_hex || "#B21830",
+                                                        .color_hex || colors.primary,
                                                 paddingLeft: 8,
                                             },
                                         ]}
@@ -940,7 +941,7 @@ export default function BuildingsScreen() {
                                                 borderLeftWidth: 4,
                                                 borderLeftColor:
                                                     b.primary_department
-                                                        .color_hex || "#B21830",
+                                                        .color_hex || colors.primary,
                                                 paddingLeft: 8,
                                             },
                                         ]}
@@ -1565,7 +1566,7 @@ export default function BuildingsScreen() {
                             style={[
                                 styles.legendDot,
                                 {
-                                    backgroundColor: "#8a1538",
+                                    backgroundColor: colors.primaryDark,
                                     borderWidth: 2,
                                     borderColor: "#FFFFFF",
                                 },
@@ -1878,7 +1879,7 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         marginLeft: 12,
     },
     tacticalModalBadgeLocked: {
-        backgroundColor: "rgba(178,24,48,0.1)",
+        backgroundColor: toRgba(colors.primary, 0.1),
         borderColor: colors.primary,
     },
     tacticalBadgeText: {
@@ -1921,8 +1922,8 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         paddingHorizontal: 12,
         borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.25)",
-        backgroundColor: "rgba(178, 24, 48, 0.06)",
+        borderColor: toRgba(colors.primary, 0.25),
+        backgroundColor: toRgba(colors.primary, 0.06),
     },
     accreditationButtonIcon: {
         width: 34,

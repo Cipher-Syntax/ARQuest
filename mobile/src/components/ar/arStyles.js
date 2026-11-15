@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { toRgba } from "../../utils/color";
 
 import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
@@ -368,7 +369,7 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         height: 30,
         borderTopWidth: 3,
         borderLeftWidth: 3,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
     },
     reticleTopRight: {
         position: "absolute",
@@ -378,7 +379,7 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         height: 30,
         borderTopWidth: 3,
         borderRightWidth: 3,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
     },
     reticleBottomLeft: {
         position: "absolute",
@@ -388,7 +389,7 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         height: 30,
         borderBottomWidth: 3,
         borderLeftWidth: 3,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
     },
     reticleBottomRight: {
         position: "absolute",
@@ -398,7 +399,7 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         height: 30,
         borderBottomWidth: 3,
         borderRightWidth: 3,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
     },
     reticleCenterPoint: {
         position: "absolute",
@@ -408,7 +409,7 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         height: 6,
         marginLeft: -3,
         marginTop: -3,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         borderRadius: 3,
     },
     triviaModal: {
@@ -464,14 +465,14 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
     rewardBadge: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(178, 24, 48, 0.1)",
+        backgroundColor: toRgba(colors.primary, 0.1),
         alignSelf: "center",
         width: "100%",
         justifyContent: "center",
         paddingVertical: 14,
         borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.3)",
+        borderColor: toRgba(colors.primary, 0.3),
     },
     rewardText: {
         fontFamily: fonts.heading.bold,
@@ -585,7 +586,7 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'rgba(15, 23, 42, 0.55)',
-        shadowColor: '#B21830',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.65,
         shadowRadius: 12,
@@ -681,9 +682,9 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(178, 24, 48, 0.35)",
+        backgroundColor: toRgba(colors.primary, 0.35),
         borderWidth: 1,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         borderRadius: 12,
         paddingVertical: 10,
         paddingHorizontal: 14,
@@ -885,13 +886,13 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         flex: 1.4,
         paddingVertical: 12,
         borderRadius: 10,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         borderWidth: 1,
         borderColor: "#FFD700",
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.4,
         shadowRadius: 6,

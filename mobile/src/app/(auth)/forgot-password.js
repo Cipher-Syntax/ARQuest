@@ -19,6 +19,7 @@ import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { useBottomInset } from "../../components/ui/SafeAreaSheet";
 import ARButton from "../../components/ar/ARButton";
 import { fonts } from "../../constants/typography";
+import { toRgba } from "../../utils/color";
 
 export default function ForgotPasswordScreen() {
     const styles = useThemedStyles(createStyles);
@@ -238,7 +239,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: "rgba(138, 21, 56, 0.8)",
+        backgroundColor: toRgba(colors.primaryDark, 0.8),
         borderWidth: 1,
         borderColor: "rgba(255, 255, 255, 0.2)",
         justifyContent: "center",

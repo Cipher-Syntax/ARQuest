@@ -1514,7 +1514,7 @@ export default function ARScreen() {
                                         {!capturing && !triviaModalVisible && isArrived && (
                                             user?.role === 'student' && matchingQuest ? (
                                                 <TouchableOpacity 
-                                                    style={[styles.claimQuestBtn, { backgroundColor: '#B21830' }]} 
+                                                    style={[styles.claimQuestBtn, { backgroundColor: colors.primary }]} 
                                                     onPress={() => handleClaimQuest(matchingQuest)}
                                                     disabled={isClaiming}
                                                     activeOpacity={0.8}

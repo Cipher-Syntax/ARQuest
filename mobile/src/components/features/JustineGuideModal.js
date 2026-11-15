@@ -18,6 +18,9 @@ import {
     RotateCcw,
 } from "lucide-react-native";
 import { useAuth } from "../../hooks/useAuth";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
+import { toRgba } from "../../utils/color";
 import { AnimatedBottomBar, ModalSafeArea, useBottomInset } from "../ui/SafeAreaSheet";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -88,6 +91,8 @@ const TOUR_STEPS = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function JustineGuideModal() {
+    const colors = useThemeColors();
+    const S = useThemedStyles(createStyles);
     const { user } = useAuth();
     // The tour overlay is rooted at the tab layout, so it must account for
     // the system nav bar when positioning pointers above the tab bar.
@@ -232,7 +237,7 @@ export default function JustineGuideModal() {
     // ── Shared: X close button ────────────────────────────────────────────────
     const CloseBtn = () => (
         <TouchableOpacity onPress={handleDismiss} style={S.closeBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <X size={15} color="#B21830" />
+            <X size={15} color={colors.primary} />
         </TouchableOpacity>
     );
 
@@ -284,7 +289,7 @@ export default function JustineGuideModal() {
                     ) : (
                         <View style={S.hintBtnRow}>
                             <TouchableOpacity style={S.outlineBtn} onPress={startTour} activeOpacity={0.8}>
-                                <RotateCcw size={13} color="#B21830" />
+                                <RotateCcw size={13} color={colors.primary} />
                                 <Text style={S.outlineBtnText}>Replay Tour</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={S.crimsonBtn} onPress={handleDismiss} activeOpacity={0.85}>
@@ -400,8 +405,8 @@ export default function JustineGuideModal() {
                             width: ringW,
                             height: ringW,
                             borderRadius: ringR,
-                            borderColor: isAR ? "#EBBC26" : "#B21830",
-                            backgroundColor: isAR ? "rgba(235,188,38,0.22)" : "rgba(178,24,48,0.22)",
+                            borderColor: isAR ? "#EBBC26" : colors.primary,
+                            backgroundColor: isAR ? "rgba(235,188,38,0.22)" : toRgba(colors.primary, 0.22),
                             transform: [{ scale: ringScale }],
                             opacity: ringOpacity,
                         },
@@ -465,7 +470,7 @@ export default function JustineGuideModal() {
                             style={S.cardCloseBtn}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
-                            <X size={14} color="#B21830" />
+                            <X size={14} color={colors.primary} />
                         </TouchableOpacity>
                     </View>
 
@@ -506,9 +511,9 @@ export default function JustineGuideModal() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STYLES  — Crimson (#B21830) + White (#FFFFFF) theme
+// STYLES  — Brand primary + White theme
 // ─────────────────────────────────────────────────────────────────────────────
-const S = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.55)",
@@ -524,7 +529,7 @@ const S = StyleSheet.create({
         borderRadius: 14,
         backgroundColor: "#FFFFFF",
         borderWidth: 1.5,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
         zIndex: 20,
@@ -533,15 +538,15 @@ const S = StyleSheet.create({
     // ── Progress dots ─────────────────────────────────────────────────────────
     dotsRow: { flexDirection: "row", gap: 5, alignItems: "center" },
     dot:     { width: 26, height: 4, borderRadius: 4, backgroundColor: "#E5E5E5" },
-    dotActive: { backgroundColor: "#B21830" },
-    dotDone:   { backgroundColor: "rgba(178,24,48,0.35)" },
+    dotActive: { backgroundColor: colors.primary },
+    dotDone:   { backgroundColor: toRgba(colors.primary, 0.35) },
 
     // ── Shared buttons ────────────────────────────────────────────────────────
     crimsonBtn: {
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 6,
@@ -560,11 +565,11 @@ const S = StyleSheet.create({
         paddingVertical: 10,
         borderRadius: 6,
         borderWidth: 1.5,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         backgroundColor: "#FFFFFF",
     },
     outlineBtnText: {
-        color: "#B21830",
+        color: colors.primary,
         fontSize: 12,
         fontWeight: "700",
     },
@@ -596,13 +601,13 @@ const S = StyleSheet.create({
         right: 0,
         backgroundColor: "#FFFFFF",
         borderTopWidth: 3,
-        borderTopColor: "#B21830",
+        borderTopColor: colors.primary,
         paddingTop: 18,
         paddingBottom: 30,
         paddingHorizontal: 18,
         gap: 10,
         zIndex: 15,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.12,
         shadowRadius: 12,
@@ -612,7 +617,7 @@ const S = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         alignSelf: "flex-start",
         paddingHorizontal: 12,
         paddingVertical: 5,
@@ -645,9 +650,9 @@ const S = StyleSheet.create({
         right: 20,
         borderRadius: 6,
         borderWidth: 2.5,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         borderStyle: "dashed",
-        backgroundColor: "rgba(178,24,48,0.06)",
+        backgroundColor: toRgba(colors.primary, 0.06),
         zIndex: 5,
     },
 
@@ -664,7 +669,7 @@ const S = StyleSheet.create({
         borderRightWidth: 22,
         borderTopColor: "transparent",
         borderBottomColor: "transparent",
-        borderRightColor: "#B21830",
+        borderRightColor: colors.primary,
     },
 
     spotlightBubble: {
@@ -674,7 +679,7 @@ const S = StyleSheet.create({
         backgroundColor: "#FFFFFF",
         borderRadius: 6,
         borderWidth: 2,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         padding: 12,
         zIndex: 10,
         shadowColor: "#000",
@@ -700,7 +705,7 @@ const S = StyleSheet.create({
         borderTopWidth: 11,
         borderLeftColor: "transparent",
         borderRightColor: "transparent",
-        borderTopColor: "#B21830",
+        borderTopColor: colors.primary,
     },
 
     spotlightCharWrap: {
@@ -724,12 +729,12 @@ const S = StyleSheet.create({
         justifyContent: "space-between",
         backgroundColor: "#FFFFFF",
         borderTopWidth: 3,
-        borderTopColor: "#B21830",
+        borderTopColor: colors.primary,
         paddingTop: 14,
         paddingBottom: 28,
         paddingHorizontal: 18,
         zIndex: 15,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.12,
         shadowRadius: 10,
@@ -742,7 +747,7 @@ const S = StyleSheet.create({
         left: 14,
         right: 14,
         borderWidth: 1.5,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
     },
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -756,9 +761,9 @@ const S = StyleSheet.create({
         backgroundColor: "#FFFFFF",
         borderRadius: 6,
         borderWidth: 2,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         padding: 16,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 10,
@@ -772,7 +777,7 @@ const S = StyleSheet.create({
         marginBottom: 8,
     },
     tabBadge: {
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 6,
@@ -825,7 +830,7 @@ const S = StyleSheet.create({
         borderTopWidth: 16,
         borderLeftColor: "transparent",
         borderRightColor: "transparent",
-        borderTopColor: "#B21830",
+        borderTopColor: colors.primary,
     },
     arrowDownAR: {
         borderTopColor: "#EBBC26",

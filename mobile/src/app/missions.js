@@ -32,6 +32,7 @@ import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
 import { useLocationTracking } from "../hooks/useLocationTracking";
 import { geofencingService } from "../services";
+import { toRgba } from "../utils/color";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -620,7 +621,7 @@ export default function MissionsScreen() {
                                         </View>
                                         {distance && !isCompleted && (
                                             <View style={styles.distanceBadge}>
-                                                <MapPin size={10} color="#b21830" />
+                                                <MapPin size={10} color={colors.primary} />
                                                 <Text style={styles.distanceText}>{distance}</Text>
                                             </View>
                                         )}
@@ -695,7 +696,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         width: 38,
         height: 38,
         borderRadius: 8,
-        backgroundColor: "rgba(178, 24, 48, 0.08)",
+        backgroundColor: toRgba(colors.primary, 0.08),
         alignItems: "center",
         justifyContent: "center",
         marginRight: 12,
@@ -835,7 +836,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         borderColor: colors.border,
     },
     subfilterPillActive: {
-        backgroundColor: "rgba(178, 24, 48, 0.08)",
+        backgroundColor: toRgba(colors.primary, 0.08),
         borderColor: colors.primary,
     },
     subfilterText: {
@@ -887,7 +888,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         paddingHorizontal: 7,
         paddingVertical: 2.5,
         borderRadius: 4,
-        backgroundColor: "rgba(178, 24, 48, 0.08)",
+        backgroundColor: toRgba(colors.primary, 0.08),
     },
     typeBadgeTimed: {
         backgroundColor: "rgba(245, 158, 11, 0.12)",
@@ -935,9 +936,9 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 12,
-        backgroundColor: "rgba(178, 24, 48, 0.08)",
+        backgroundColor: toRgba(colors.primary, 0.08),
         borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.2)",
+        borderColor: toRgba(colors.primary, 0.2),
     },
     rewardPillCompleted: {
         backgroundColor: "#DCFCE7",
@@ -1015,7 +1016,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     distanceText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10,
-        color: "#b21830",
+        color: colors.primary,
     },
     cardFooter: {
         borderTopWidth: 1,

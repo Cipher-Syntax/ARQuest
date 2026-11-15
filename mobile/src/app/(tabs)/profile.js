@@ -42,6 +42,7 @@ import { fonts } from "../../constants/typography";
 import FeedbackModal from "../../components/ui/FeedbackModal";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { usePublicSettings } from "../../context/PublicSettingsContext";
+import { toRgba } from "../../utils/color";
 
 export default function ProfileScreen() {
     const isFocused = useIsFocused();
@@ -190,7 +191,7 @@ export default function ProfileScreen() {
             >
                 {/* --- Player ID Card (#6) --- */}
                 <LinearGradient
-                    colors={["#8A1538", "#B21830"]}
+                    colors={[colors.primaryDark, colors.primary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.playerCard}
@@ -712,7 +713,7 @@ export default function ProfileScreen() {
                                                 height: 48,
                                                 borderRadius: 24,
                                                 backgroundColor: isCurrentRank
-                                                    ? "rgba(178,24,48,0.1)"
+                                                    ? toRgba(colors.primary, 0.1)
                                                     : colors.surfaceSoft,
                                                 justifyContent: "center",
                                                 alignItems: "center",
@@ -1006,10 +1007,10 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 8,
-        backgroundColor: "rgba(220, 20, 60, 0.1)",
+        backgroundColor: toRgba(colors.primary, 0.1),
         borderWidth: 2,
-        borderColor: "#DC143C",
-        shadowColor: "#DC143C",
+        borderColor: colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.6,
         shadowRadius: 8,
@@ -1080,7 +1081,7 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         width: 38,
         height: 38,
         borderRadius: radius.md,
-        backgroundColor: "rgba(178, 24, 48, 0.08)",
+        backgroundColor: toRgba(colors.primary, 0.08),
         justifyContent: "center",
         alignItems: "center",
         marginRight: 14,

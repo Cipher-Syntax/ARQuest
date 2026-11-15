@@ -8,6 +8,7 @@ import {
     Dimensions,
 } from "react-native";
 import { ArrowLeft, ArrowRight, ArrowUp, CheckCircle } from "lucide-react-native";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -17,6 +18,7 @@ export default function NavigationTurnHUD({
     distance = 10,
     instruction = "Turn left ahead",
 }) {
+    const styles = useThemedStyles(createStyles);
     const slideAnim = useRef(new Animated.Value(-80)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -109,7 +111,7 @@ export default function NavigationTurnHUD({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     container: {
         position: "absolute",
         top: 130, // Directly below the FROM/TO terminal
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFFFF",
         borderRadius: 6, // Strict 6px standard
         borderWidth: 2,
-        borderColor: "#B21830", // WMSU Crimson
+        borderColor: colors.primary, // WMSU Crimson
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 10,
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
         width: 38,
         height: 38,
         borderRadius: 6,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -158,7 +160,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     distanceLabel: {
-        color: "#B21830",
+        color: colors.primary,
         fontSize: 10,
         fontWeight: "900",
         letterSpacing: 0.8,

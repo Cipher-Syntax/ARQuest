@@ -18,6 +18,7 @@ import {
     ChevronRight,
     Award,
 } from "lucide-react-native";
+import { useThemeColors } from "../../context/ThemeContext";
 import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import SoundManager from "../../utils/SoundManager";
@@ -31,6 +32,7 @@ export default function DailyStreakModal({
     isNewCheckin = false,
     onClose,
 }) {
+    const colors = useThemeColors();
     const styles = useThemedStyles(createStyles);
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -131,7 +133,7 @@ export default function DailyStreakModal({
                 >
                     {/* Top Decorative Ribbon Background */}
                     <LinearGradient
-                        colors={["#7F0303", "#B21830"]}
+                        colors={[colors.primaryDark, colors.primary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.headerGradient}
@@ -154,7 +156,7 @@ export default function DailyStreakModal({
                             ]}
                         >
                             <LinearGradient
-                                colors={["#FFA500", "#FF4500", "#B21830"]}
+                                colors={["#FFA500", "#FF4500", colors.primary]}
                                 style={styles.flameCircle}
                             >
                                 <Flame size={36} color="#FFFFFF" />
@@ -222,7 +224,7 @@ export default function DailyStreakModal({
                                                         <Check size={12} color="#FFFFFF" strokeWidth={3} />
                                                     </View>
                                                 ) : isToday ? (
-                                                    <Flame size={20} color="#B21830" />
+                                                    <Flame size={20} color={colors.primary} />
                                                 ) : item.isCrown ? (
                                                     <Trophy size={16} color="#F59E0B" />
                                                 ) : item.isMilestone ? (
@@ -265,7 +267,7 @@ export default function DailyStreakModal({
                                 {cycleDay === 3 || cycleDay === 6 || cycleDay === 7 ? (
                                     <Award size={20} color="#F59E0B" />
                                 ) : (
-                                    <Trophy size={20} color="#B21830" />
+                                    <Trophy size={20} color={colors.primary} />
                                 )}
                             </View>
                             <View style={styles.calloutTextContainer}>
@@ -447,7 +449,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         color: "#16A34A",
     },
     dayNumberToday: {
-        color: "#B21830",
+        color: colors.primary,
         fontWeight: "bold",
     },
     dayIconSlot: {
@@ -474,13 +476,13 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         color: "#16A34A",
     },
     dayExpToday: {
-        color: "#B21830",
+        color: colors.primary,
         fontWeight: "bold",
         fontSize: 11,
     },
     todayPill: {
         marginTop: 4,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingHorizontal: 4,
         paddingVertical: 1,
         borderRadius: 4,
@@ -541,11 +543,11 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingVertical: 14,
         borderRadius: 12,
         gap: 6,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.3,
         shadowRadius: 6,

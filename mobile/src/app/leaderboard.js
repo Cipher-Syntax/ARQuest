@@ -37,6 +37,7 @@ import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
 import { AVATARS } from "../constants/Avatars";
+import { toRgba } from "../utils/color";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -306,8 +307,8 @@ export default function LeaderboardScreen() {
                         onPress={() => setActiveFilter("all")}
                         activeOpacity={0.8}
                     >
-                        <View style={[styles.metricIconWrap, { backgroundColor: "rgba(178, 24, 48, 0.1)" }]}>
-                            <Users size={18} color="#B21830" />
+                        <View style={[styles.metricIconWrap, { backgroundColor: toRgba(colors.primary, 0.1) }]}>
+                            <Users size={18} color={colors.primary} />
                         </View>
                         <View>
                             <Text style={styles.metricLabel}>TOTAL</Text>
@@ -397,7 +398,7 @@ export default function LeaderboardScreen() {
                         {/* Podium Header */}
                         <View style={styles.podiumHeader}>
                             <View style={styles.podiumBadge}>
-                                <Trophy size={13} color="#B21830" />
+                                <Trophy size={13} color={colors.primary} />
                                 <Text style={styles.podiumBadgeText}>CAMPUS HALL OF FAME</Text>
                             </View>
                             <Text style={styles.podiumTitle}>Top Explorer Champions</Text>
@@ -469,7 +470,7 @@ export default function LeaderboardScreen() {
                                     <Text style={[styles.podiumRankTitle, { color: "#D97706", fontWeight: "700" }]} numberOfLines={1}>
                                         {getRankDetails(firstPlace.points, firstPlace.rank_info).title}
                                     </Text>
-                                    <View style={[styles.podiumExpPill, { backgroundColor: "#B21830", borderColor: "#B21830" }]}>
+                                    <View style={[styles.podiumExpPill, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                                         <Text style={[styles.podiumExpText, { color: "#FFFFFF" }]}>
                                             {firstPlace.points.toLocaleString()} XP
                                         </Text>
@@ -719,7 +720,7 @@ export default function LeaderboardScreen() {
                 </View>
 
                 <View style={styles.trophyIconHeader}>
-                    <Trophy size={20} color="#B21830" />
+                    <Trophy size={20} color={colors.primary} />
                 </View>
             </View>
 
@@ -885,7 +886,7 @@ export default function LeaderboardScreen() {
                             {/* Stats Grid */}
                             <View style={styles.modalStatsGrid}>
                                 <View style={styles.modalStatItem}>
-                                    <Award size={18} color="#B21830" style={{ marginBottom: 4 }} />
+                                    <Award size={18} color={colors.primary} style={{ marginBottom: 4 }} />
                                     <Text style={styles.modalStatValue}>{selectedStudent.points.toLocaleString()}</Text>
                                     <Text style={styles.modalStatLabel}>TOTAL EXP</Text>
                                 </View>
@@ -963,7 +964,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         width: 36,
         height: 36,
         borderRadius: 8,
-        backgroundColor: "#FEF2F2",
+        backgroundColor: toRgba(colors.primary, 0.08),
         alignItems: "center",
         justifyContent: "center",
     },
@@ -993,8 +994,8 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         elevation: 1,
     },
     metricCardActive: {
-        borderColor: "#B21830",
-        backgroundColor: "#FEF2F2",
+        borderColor: colors.primary,
+        backgroundColor: toRgba(colors.primary, 0.08),
     },
     metricCardActiveSuccess: {
         borderColor: "#16A34A",
@@ -1052,7 +1053,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     filterBannerReset: {
         fontSize: 11,
         fontFamily: fonts.body.bold,
-        color: "#B21830",
+        color: colors.primary,
         marginLeft: 8,
     },
 
@@ -1065,7 +1066,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         paddingTop: 16,
         paddingHorizontal: 12,
         marginBottom: 16,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.06,
         shadowRadius: 6,
@@ -1079,17 +1080,17 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        backgroundColor: "#FEF2F2",
+        backgroundColor: toRgba(colors.primary, 0.08),
         paddingHorizontal: 10,
         paddingVertical: 3,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: "#FECACA",
+        borderColor: toRgba(colors.primary, 0.3),
     },
     podiumBadgeText: {
         fontSize: 9.5,
         fontFamily: fonts.heading.bold,
-        color: "#B21830",
+        color: colors.primary,
         letterSpacing: 0.8,
     },
     podiumTitle: {
@@ -1225,8 +1226,8 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         borderColor: "#E2E8F0",
     },
     filterPillActive: {
-        backgroundColor: "#B21830",
-        borderColor: "#B21830",
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     filterPillText: {
         fontSize: 11,
@@ -1272,8 +1273,8 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         elevation: 1,
     },
     myRankRow: {
-        backgroundColor: "#FEF2F2",
-        borderColor: "#B21830",
+        backgroundColor: toRgba(colors.primary, 0.08),
+        borderColor: colors.primary,
         borderWidth: 1.5,
     },
     rankPositionWrap: {
@@ -1298,7 +1299,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         color: "#111827",
     },
     myStudentName: {
-        color: "#B21830",
+        color: colors.primary,
     },
     youBadge: {
         backgroundColor: "#16A34A",
@@ -1347,8 +1348,8 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         borderColor: "#E2E8F0",
     },
     pointsBadgeMy: {
-        backgroundColor: "#B21830",
-        borderColor: "#B21830",
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     pointsText: {
         fontSize: 11.5,
@@ -1394,7 +1395,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         marginTop: 4,
         marginRight: 10,
     },
@@ -1449,7 +1450,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         right: 0,
         backgroundColor: "#FFFFFF",
         borderTopWidth: 2,
-        borderTopColor: "#B21830",
+        borderTopColor: colors.primary,
         paddingVertical: 10,
         paddingHorizontal: 16,
         flexDirection: "row",
@@ -1470,7 +1471,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -1482,7 +1483,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     myRankStickyTitle: {
         fontSize: 9,
         fontFamily: fonts.heading.bold,
-        color: "#B21830",
+        color: colors.primary,
         letterSpacing: 0.6,
     },
     myRankStickyPoints: {
@@ -1495,7 +1496,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         flexDirection: "row",
         alignItems: "center",
         gap: 4,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingVertical: 7,
         paddingHorizontal: 12,
         borderRadius: 6,
@@ -1549,7 +1550,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     modalRankPill: {
         position: "absolute",
         bottom: -8,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 10,
@@ -1633,7 +1634,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     },
     modalDoneBtn: {
         width: "100%",
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingVertical: 10,
         borderRadius: 6,
         alignItems: "center",

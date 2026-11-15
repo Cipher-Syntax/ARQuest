@@ -32,6 +32,7 @@ import { useThemeColors } from "../../context/ThemeContext";
 import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import { useAuth } from "../../hooks/useAuth";
+import { toRgba } from "../../utils/color";
 
 const { width } = Dimensions.get("window");
 
@@ -525,9 +526,9 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         marginBottom: 16,
     },
     badgeWrap: {
-        backgroundColor: "rgba(178, 24, 48, 0.15)",
+        backgroundColor: toRgba(colors.primary, 0.15),
         borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.3)",
+        borderColor: toRgba(colors.primary, 0.3),
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
@@ -546,13 +547,13 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     iconContainer: {
         width: 68,
         height: 68,
-        backgroundColor: "rgba(178, 24, 48, 0.12)",
+        backgroundColor: toRgba(colors.primary, 0.12),
         borderRadius: 34,
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 14,
         borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.25)",
+        borderColor: toRgba(colors.primary, 0.25),
     },
     title: {
         fontFamily: fonts.heading.bold,
@@ -671,7 +672,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         borderRadius: 28,
         borderWidth: 2,
         borderColor: colors.primary,
-        backgroundColor: "rgba(178, 24, 48, 0.25)",
+        backgroundColor: toRgba(colors.primary, 0.25),
         marginLeft: -28,
     },
     legalCheckRow: {

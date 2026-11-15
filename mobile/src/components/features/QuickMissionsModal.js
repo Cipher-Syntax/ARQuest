@@ -22,6 +22,9 @@ import {
     MapPin,
 } from "lucide-react-native";
 import { fonts } from "../../constants/typography";
+import { useThemeColors } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
+import { toRgba } from "../../utils/color";
 import {
     AnimatedBottomBar,
     BottomSheetView,
@@ -54,6 +57,8 @@ export default function QuickMissionsModal({
     userLocation = null,
     allBuildings = [],
 }) {
+    const colors = useThemeColors();
+    const S = useThemedStyles(createStyles);
     // viewState: "intro" (big 2D character + explanation first) -> "missions" (locked or unlocked list)
     const bottomInset = useBottomInset(0);
     const [viewState, setViewState] = useState("intro");
@@ -218,7 +223,7 @@ export default function QuickMissionsModal({
                                 style={S.closeBtn}
                                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                             >
-                                <X size={15} color="#B21830" />
+                                <X size={15} color={colors.primary} />
                             </TouchableOpacity>
 
                             {/* Justine Name Tag */}
@@ -309,7 +314,7 @@ export default function QuickMissionsModal({
                                     onPress={() => setViewState("intro")}
                                     activeOpacity={0.75}
                                 >
-                                    <ArrowLeft size={14} color="#B21830" />
+                                    <ArrowLeft size={14} color={colors.primary} />
                                     <Text style={S.backToGuideText}>GUIDE</Text>
                                 </TouchableOpacity>
 
@@ -323,7 +328,7 @@ export default function QuickMissionsModal({
                                     style={S.closeBtnInline}
                                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                    <X size={15} color="#B21830" />
+                                    <X size={15} color={colors.primary} />
                                 </TouchableOpacity>
                             </View>
 
@@ -381,7 +386,7 @@ export default function QuickMissionsModal({
                                     {!isUnlocked ? (
                                         <View style={S.lockedContainer}>
                                             <View style={S.lockedIconCircle}>
-                                                <Lock size={24} color="#B21830" />
+                                                <Lock size={24} color={colors.primary} />
                                             </View>
 
                                             <Text style={S.lockedTitle}>Missions Locked! 🛑</Text>
@@ -498,7 +503,7 @@ export default function QuickMissionsModal({
                                                                 </Text>
 
                                                                 <View style={S.targetRow}>
-                                                                    <Building2 size={13} color="#B21830" />
+                                                                    <Building2 size={13} color={colors.primary} />
                                                                     <Text
                                                                         style={S.targetBuildingText}
                                                                         numberOfLines={1}
@@ -517,7 +522,7 @@ export default function QuickMissionsModal({
                                                                             <Text style={S.navigateActionText}>
                                                                                 {dist !== null ? `${dist}m away • ` : ""}Set Destination & Plot Route
                                                                             </Text>
-                                                                            <ChevronRight size={14} color="#B21830" />
+                                                                            <ChevronRight size={14} color={colors.primary} />
                                                                         </>
                                                                     )}
                                                                 </View>
@@ -622,7 +627,7 @@ export default function QuickMissionsModal({
     );
 }
 
-const S = StyleSheet.create({
+const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.60)",
@@ -649,14 +654,14 @@ const S = StyleSheet.create({
     vnBar: {
         backgroundColor: "#FFFFFF",
         borderTopWidth: 3,
-        borderTopColor: "#B21830",
+        borderTopColor: colors.primary,
         minHeight: 285,
         paddingTop: 22,
         paddingBottom: 36,
         paddingHorizontal: 18,
         gap: 12,
         zIndex: 15,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.14,
         shadowRadius: 12,
@@ -666,7 +671,7 @@ const S = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         alignSelf: "flex-start",
         paddingHorizontal: 12,
         paddingVertical: 5,
@@ -697,7 +702,7 @@ const S = StyleSheet.create({
     },
     boldText: {
         fontFamily: fonts.body.bold,
-        color: "#B21830",
+        color: colors.primary,
     },
 
     // ── Guideline Callout Box ─────────────────────────────────────────────────
@@ -707,7 +712,7 @@ const S = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#FCA5A5",
         borderLeftWidth: 4,
-        borderLeftColor: "#B21830",
+        borderLeftColor: colors.primary,
         paddingVertical: 8,
         paddingHorizontal: 10,
         gap: 4,
@@ -720,7 +725,7 @@ const S = StyleSheet.create({
     guidelineCalloutTitle: {
         fontSize: 10.5,
         fontFamily: fonts.heading.bold,
-        color: "#B21830",
+        color: colors.primary,
         letterSpacing: 0.5,
     },
     guidelineCalloutText: {
@@ -731,7 +736,7 @@ const S = StyleSheet.create({
     },
     boldHighlight: {
         fontFamily: fonts.body.bold,
-        color: "#B21830",
+        color: colors.primary,
     },
 
     // ── VN Bottom Row (Intro Screen) ──────────────────────────────────────────
@@ -763,11 +768,11 @@ const S = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingHorizontal: 18,
         paddingVertical: 10,
         borderRadius: 8,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
@@ -790,7 +795,7 @@ const S = StyleSheet.create({
         borderRadius: 14,
         backgroundColor: "#FFFFFF",
         borderWidth: 1.5,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
         zIndex: 20,
@@ -801,7 +806,7 @@ const S = StyleSheet.create({
         borderRadius: 14,
         backgroundColor: "#FFFFFF",
         borderWidth: 1.5,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -827,13 +832,13 @@ const S = StyleSheet.create({
         borderTopLeftRadius: 18,
         borderTopRightRadius: 18,
         borderTopWidth: 3,
-        borderTopColor: "#B21830",
+        borderTopColor: colors.primary,
         paddingTop: 16,
         paddingBottom: 24,
         paddingHorizontal: 16,
         height: MISSIONS_CARD_HEIGHT,
         zIndex: 15,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.15,
         shadowRadius: 10,
@@ -854,18 +859,18 @@ const S = StyleSheet.create({
         borderRadius: 6,
         backgroundColor: "#FFF0F0",
         borderWidth: 1,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
     },
     backToGuideText: {
         fontSize: 11,
         fontFamily: fonts.body.bold,
-        color: "#B21830",
+        color: colors.primary,
     },
     badge: {
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 6,
@@ -897,7 +902,7 @@ const S = StyleSheet.create({
         borderRadius: 6,
     },
     segmentedTabBtnActive: {
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
@@ -934,7 +939,7 @@ const S = StyleSheet.create({
         borderRadius: 25,
         backgroundColor: "#FFF0F0",
         borderWidth: 2,
-        borderColor: "#B21830",
+        borderColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 8,
@@ -942,7 +947,7 @@ const S = StyleSheet.create({
     lockedTitle: {
         fontSize: 15,
         fontFamily: fonts.heading.bold,
-        color: "#B21830",
+        color: colors.primary,
         marginBottom: 4,
     },
     speechText: {
@@ -985,7 +990,7 @@ const S = StyleSheet.create({
     progressValue: {
         fontSize: 11,
         fontFamily: fonts.body.bold,
-        color: "#B21830",
+        color: colors.primary,
     },
     progressTrack: {
         height: 7,
@@ -995,7 +1000,7 @@ const S = StyleSheet.create({
     },
     progressFill: {
         height: "100%",
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         borderRadius: 4,
     },
     primaryBtn: {
@@ -1003,11 +1008,11 @@ const S = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         width: "100%",
         paddingVertical: 11,
         borderRadius: 8,
-        shadowColor: "#B21830",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 4,
@@ -1109,17 +1114,17 @@ const S = StyleSheet.create({
         color: "#059669",
     },
     rewardPill: {
-        backgroundColor: "#FEF2F2",
+        backgroundColor: toRgba(colors.primary, 0.08),
         paddingHorizontal: 7,
         paddingVertical: 2,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: "#FECACA",
+        borderColor: toRgba(colors.primary, 0.3),
     },
     rewardText: {
         fontSize: 9.5,
         fontFamily: fonts.body.bold,
-        color: "#B21830",
+        color: colors.primary,
     },
     alreadyHerePill: {
         flexDirection: "row",
@@ -1166,7 +1171,7 @@ const S = StyleSheet.create({
     navigateActionText: {
         fontSize: 11,
         fontFamily: fonts.body.bold,
-        color: "#B21830",
+        color: colors.primary,
     },
     navigateActionTextDisabled: {
         fontSize: 10.5,

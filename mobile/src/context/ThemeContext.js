@@ -49,12 +49,25 @@ export function ThemeProvider({ children }) {
         const light = mixWithWhite(primary, 0.96);
         const border = mixWithWhite(primary, 0.78);
 
+        // Multiplicative darkening keeps the hue recognizable. 0.75 turns the
+        // default #B21830 into roughly the token #850F22.
+        const darken = (hex, amount) => {
+            const { r, g, b } = hexToRgb(hex);
+            const factor = Math.max(0, Math.min(1, 1 - amount));
+            const channel = (v) =>
+                Math.round(v * factor)
+                    .toString(16)
+                    .padStart(2, "0")
+                    .toUpperCase();
+            return `#${channel(r)}${channel(g)}${channel(b)}`;
+        };
+
         const theme = {
             ...baseTheme,
             colors: {
                 ...baseTheme.colors,
                 primary,
-                primaryDark: mixWithWhite(primary, 0.35),
+                primaryDark: darken(primary, 0.25),
                 arHighlight: primary,
                 brand: primary,
                 brandLight: light,

@@ -26,6 +26,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { StatusBar } from "expo-status-bar";
 import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
+import { toRgba } from "../../utils/color";
 
 export default function ExploreScreen() {
     const isFocused = useIsFocused();
@@ -453,8 +454,8 @@ export default function ExploreScreen() {
                         <LinearGradient
                             colors={
                                 isTracking
-                                    ? ["#850F22", "#B21830"]
-                                    : ["#B21830", "#E53935"]
+                                    ? [colors.primaryDark, colors.primary]
+                                    : [colors.primary, colors.primaryDark]
                             }
                             style={styles.radarButton}
                             start={{ x: 0, y: 0 }}
@@ -766,7 +767,7 @@ export default function ExploreScreen() {
                             </Text>
                             <View style={styles.progressBarContainer}>
                                 <LinearGradient
-                                    colors={["#B21830", "#E53935"]}
+                                    colors={[colors.primary, colors.primaryDark]}
                                     style={[
                                         styles.progressBarFill,
                                         { width: `${progressPercentage}%` },
@@ -992,12 +993,12 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         height: 170,
         borderRadius: 85,
         borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.2)",
-        backgroundColor: "rgba(178, 24, 48, 0.02)",
+        borderColor: toRgba(colors.primary, 0.2),
+        backgroundColor: toRgba(colors.primary, 0.02),
     },
     radarRingActive: {
-        borderColor: "rgba(178, 24, 48, 0.6)",
-        backgroundColor: "rgba(178, 24, 48, 0.08)",
+        borderColor: toRgba(colors.primary, 0.6),
+        backgroundColor: toRgba(colors.primary, 0.08),
     },
     radarDashedRing: {
         position: "absolute",
@@ -1005,7 +1006,7 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         height: 210,
         borderRadius: 105,
         borderWidth: 2,
-        borderColor: "rgba(178, 24, 48, 0.4)",
+        borderColor: toRgba(colors.primary, 0.4),
         borderStyle: "dashed",
     },
     radarButtonWrapper: {
@@ -1185,7 +1186,7 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
     },
     nearbyDistBadge: {
         alignSelf: "flex-start",
-        backgroundColor: "rgba(178, 24, 48, 0.08)",
+        backgroundColor: toRgba(colors.primary, 0.08),
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,

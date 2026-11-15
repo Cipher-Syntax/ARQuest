@@ -12,8 +12,10 @@ import { useRouter } from "expo-router";
 import { AVATARS } from "../../constants/Avatars";
 import { api } from "../../services";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function AvatarSelectionScreen() {
+    const styles = useThemedStyles(createStyles);
     const [selectedId, setSelectedId] = useState(null);
     const router = useRouter();
 
@@ -73,7 +75,7 @@ export default function AvatarSelectionScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
     container: {
         flex: 1,
         padding: 24,
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    selected: { borderColor: "#85001E" },
+    selected: { borderColor: colors.primary },
     avatar: {
         width: 96,
         height: 96,
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
     },
     button: {
         marginTop: 20,
-        backgroundColor: "#85001E",
+        backgroundColor: colors.primary,
         paddingVertical: 16,
         borderRadius: 9999,
         width: "100%",

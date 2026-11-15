@@ -1,6 +1,7 @@
 import { StyleSheet } from "react-native";
 import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
+import { toRgba } from "../../utils/color";
 
 export const createUpdateBannerStyles = (colors, spacing, radius, typography) => StyleSheet.create({
     backdrop: {
@@ -30,9 +31,9 @@ export const createUpdateBannerStyles = (colors, spacing, radius, typography) =>
         width: 64,
         height: 64,
         borderRadius: 6, // Strict 6px standard
-        backgroundColor: "rgba(178, 24, 48, 0.08)", // WMSU Crimson soft tint
+        backgroundColor: toRgba(colors.primary, 0.08), // WMSU Crimson soft tint
         borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.18)",
+        borderColor: toRgba(colors.primary, 0.18),
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 16,

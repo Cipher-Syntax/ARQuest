@@ -31,6 +31,7 @@ import { useThemeColors } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
 import { useAuth } from "../hooks/useAuth";
+import { toRgba } from "../utils/color";
 
 const CHECKLIST_TONES = {
     COMPLIANT: {
@@ -537,9 +538,9 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
-        backgroundColor: "rgba(178, 24, 48, 0.08)",
+        backgroundColor: toRgba(colors.primary, 0.08),
         borderWidth: 1,
-        borderColor: "rgba(178, 24, 48, 0.18)",
+        borderColor: toRgba(colors.primary, 0.18),
     },
     levelPillText: {
         fontFamily: fonts.heading.bold,

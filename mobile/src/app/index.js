@@ -11,9 +11,12 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useThemedStyles } from "../hooks/useThemedStyles";
+import { useThemeColors } from "../context/ThemeContext";
 import { fonts } from "../constants/typography";
+import { toRgba } from "../utils/color";
 
 export default function Index() {
+    const colors = useThemeColors();
     const styles = useThemedStyles(createStyles);
     const { user, isLoading } = useAuth();
     const [minSplashTimeDone, setMinSplashTimeDone] = useState(false);
@@ -41,7 +44,7 @@ export default function Index() {
                     <LinearGradient
                         colors={[
                             "transparent",
-                            "rgba(138, 21, 56, 0.8)",
+                            toRgba(colors.primaryDark, 0.8),
                             "rgba(0,0,0,0.9)",
                         ]}
                         style={styles.gradientOverlay}

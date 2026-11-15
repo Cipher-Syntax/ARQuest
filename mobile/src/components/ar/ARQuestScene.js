@@ -16,6 +16,8 @@ import {
 
 
 import { getDistance, getRhumbLineBearing } from 'geolib';
+import { useThemeColors } from '../../context/ThemeContext';
+import { baseTheme } from '../../theme/tokens';
 
 /**
  * Calculates relative angle (degrees) and Cartesian offset (meters)
@@ -117,6 +119,7 @@ const ArrivedBeacon = React.memo(function ArrivedBeacon({
     onModelLoadEnd,
     onModelError,
 }) {
+    const colors = useThemeColors();
     const modelSource = useMemo(() => ({ uri: modelUri }), [modelUri]);
 
     return (
@@ -131,7 +134,7 @@ const ArrivedBeacon = React.memo(function ArrivedBeacon({
                     fontFamily: 'Arial',
                     fontSize: 26,
                     fontWeight: 'bold',
-                    color: '#B21830',
+                    color: colors.primary,
                     textAlign: 'center',
                     textAlignVertical: 'center',
                 }}
@@ -213,7 +216,7 @@ const ArrivedBeacon = React.memo(function ArrivedBeacon({
                         fontFamily: 'Arial',
                         fontSize: 16,
                         fontWeight: 'bold',
-                        color: '#B21830',
+                        color: colors.primary,
                         textAlign: 'center',
                         textAlignVertical: 'center',
                     }}
@@ -247,6 +250,22 @@ export default function ARQuestScene(props) {
     const [modelLoaded, setModelLoaded] = useState(false);
     // Camera-following position for the arrived 3D model — updated every camera frame
     const [arrivedModelPosition, setArrivedModelPosition] = useState([0, -0.60, -2.6]);
+
+    const colors = useThemeColors();
+
+    // Keep the Viro material registry in sync with the admin's brand color.
+    useEffect(() => {
+        ViroMaterials.createMaterials({
+            glowArrow: {
+                diffuseColor: colors.primary,
+                lightingModel: 'Constant',
+            },
+            beaconBase: {
+                diffuseColor: colors.primary,
+                lightingModel: 'Constant',
+            },
+        });
+    }, [colors.primary]);
 
     // Retain last valid modelUrl and buildingName so background network re-fetches cannot wipe them out mid-session
     const stableModelUrlRef = useRef(modelUrl);
@@ -569,7 +588,7 @@ export default function ARQuestScene(props) {
                         height={1}
                         scale={[0.34, 0.34, 0.34]}
                         position={[0, 0.16, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
+                        style={{ fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold', color: colors.primary, textAlign: 'center', textAlignVertical: 'center' }}
                         materials={['glowArrow']}
                     />
 
@@ -580,7 +599,7 @@ export default function ARQuestScene(props) {
                         height={1}
                         scale={[0.24, 0.24, 0.24]}
                         position={[0, -0.06, 0]}
-                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: '#B21830', textAlign: 'center', textAlignVertical: 'center' }}
+                        style={{ fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', color: colors.primary, textAlign: 'center', textAlignVertical: 'center' }}
                         materials={['glowArrow']}
                     />
                 </ViroNode>
@@ -614,9 +633,11 @@ export default function ARQuestScene(props) {
 }
 
 // ── AR Material Definitions ──────────────────────────────────────────────────
+// Seeded with the base palette so the first frame has a valid material.
+// ARQuestScene re-registers the brand materials whenever the admin color changes.
 ViroMaterials.createMaterials({
     glowArrow: {
-        diffuseColor: '#B21830',   // WMSU Crimson Red
+        diffuseColor: baseTheme.colors.primary,
         lightingModel: 'Constant', // Unaffected by dark environments
     },
     glowArrowGold: {
@@ -628,7 +649,7 @@ ViroMaterials.createMaterials({
         lightingModel: 'Constant',
     },
     beaconBase: {
-        diffuseColor: '#B21830',   // WMSU Crimson Red
+        diffuseColor: baseTheme.colors.primary,
         lightingModel: 'Constant',
     },
     textMaterial: {

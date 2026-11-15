@@ -254,7 +254,7 @@ export default function HomeScreen() {
             >
                 {/* Massive Crimson Header */}
                 <LinearGradient
-                    colors={["#9b1b30", "#7a1525"]}
+                    colors={[colors.primary, colors.primaryDark]}
                     style={styles.crimsonHeader}
                 >
                     <View style={styles.headerTopRow}>
@@ -1218,7 +1218,7 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         paddingHorizontal: 20,
         borderBottomLeftRadius: 35,
         borderBottomRightRadius: 35,
-        shadowColor: "#9b1b30",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.35,
         shadowRadius: 20,
@@ -1674,7 +1674,7 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         borderRadius: 29,
         backgroundColor: "#FFFFFF",
         borderWidth: 2.5,
-        borderColor: "#B21830", // WMSU Crimson
+        borderColor: colors.primary, // WMSU Crimson
         alignItems: "center",
         justifyContent: "center",
         shadowColor: "#000",
@@ -1693,7 +1693,7 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
     floatingAskBadge: {
         position: "absolute",
         bottom: -7,
-        backgroundColor: "#B21830", // WMSU Crimson
+        backgroundColor: colors.primary, // WMSU Crimson
         paddingHorizontal: 7,
         paddingVertical: 2,
         borderRadius: 6,
@@ -1715,7 +1715,7 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         position: "absolute",
         top: -3,
         right: -3,
-        backgroundColor: "#B21830",
+        backgroundColor: colors.primary,
         borderRadius: 10,
         minWidth: 18,
         height: 18,

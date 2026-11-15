@@ -387,7 +387,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         paddingHorizontal: 16,
         alignItems: "center",
         marginBottom: 16,
-        shadowColor: "#9b1b30",
+        shadowColor: colors.primaryDark,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
