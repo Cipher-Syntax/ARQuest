@@ -233,7 +233,6 @@ erDiagram
         boolean     enable_qr
         boolean     enable_ar_selfie
         boolean     enable_trivia
-        boolean     enable_accreditation
         boolean     enable_leaderboard
         int         default_quest_reward
     }

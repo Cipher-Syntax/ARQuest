@@ -20,7 +20,6 @@ const DEFAULT_SETTINGS = {
     enable_qr: true,
     enable_ar_selfie: true,
     enable_trivia: true,
-    enable_accreditation: false,
     enable_leaderboard: true,
 };
 

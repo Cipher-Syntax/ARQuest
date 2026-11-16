@@ -350,7 +350,6 @@ export default function Dashboard() {
         { key: "enable_ar_selfie", label: "AR Selfie" },
         { key: "enable_trivia", label: "Trivia" },
         { key: "enable_leaderboard", label: "Leaderboard" },
-        { key: "enable_accreditation", label: "Accreditation" },
         { key: "maintenance_mode", label: "Maintenance", danger: true },
     ];
 

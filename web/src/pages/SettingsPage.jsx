@@ -56,7 +56,6 @@ export default function Settings() {
         enable_gps: true,
         enable_qr: true,
         enable_ar_selfie: true,
-        enable_accreditation: false,
         enable_trivia: true,
         enable_leaderboard: true,
         default_quest_reward: 50,
@@ -1010,29 +1009,6 @@ export default function Settings() {
                                         handleChange(
                                             "enable_ar_selfie",
                                             !settings.enable_ar_selfie,
-                                        )
-                                    }
-                                />
-                            </div>
-                            <div className="h-px bg-brand-border" />
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900">
-                                        Accreditation Access
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                        Show accreditation records within
-                                        building pages. Add the data per building
-                                        in Buildings &rarr; Edit &rarr; Step 4:
-                                        Accreditation Record.
-                                    </p>
-                                </div>
-                                <Toggle
-                                    checked={settings.enable_accreditation}
-                                    onChange={() =>
-                                        handleChange(
-                                            "enable_accreditation",
-                                            !settings.enable_accreditation,
                                         )
                                     }
                                 />

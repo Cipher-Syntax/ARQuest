@@ -440,7 +440,6 @@ def public_settings(request):
         "enable_qr": settings.enable_qr,
         "enable_ar_selfie": settings.enable_ar_selfie,
         "enable_trivia": settings.enable_trivia,
-        "enable_accreditation": settings.enable_accreditation,
         "enable_leaderboard": settings.enable_leaderboard,
     }
     return Response({"success": True, "data": data})

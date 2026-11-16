@@ -31,7 +31,6 @@ class SystemSetting(models.Model):
     enable_qr = models.BooleanField(default=True)
     enable_ar_selfie = models.BooleanField(default=True)
     enable_trivia = models.BooleanField(default=True)
-    enable_accreditation = models.BooleanField(default=False)
     
     # Gamification
     enable_leaderboard = models.BooleanField(default=True)
