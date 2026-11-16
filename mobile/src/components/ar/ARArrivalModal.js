@@ -21,6 +21,7 @@ export default function ARArrivalModal({
     anim,
     buildingName,
     missionExp,
+    discoveryExp = 0,
 }) {
     const styles = useArStyles();
 
@@ -96,6 +97,17 @@ export default function ARArrivalModal({
                                 <Ionicons name="ribbon" size={15} color="#00E5FF" style={{ marginRight: 6 }} />
                                 <Text style={styles.arrivalRewardBadgeText}>
                                     CAMPUS LANDMARK UNLOCKED
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* First-time discovery EXP, credited when this arrival
+                            also performed the unlock. */}
+                        {discoveryExp > 0 && (
+                            <View style={styles.arrivalRewardExpPill}>
+                                <Ionicons name="sparkles" size={15} color="#FFD700" style={{ marginRight: 6 }} />
+                                <Text style={styles.arrivalRewardExpText}>
+                                    FIRST DISCOVERY: +{discoveryExp} EXP
                                 </Text>
                             </View>
                         )}

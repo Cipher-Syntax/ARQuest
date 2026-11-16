@@ -640,6 +640,114 @@ class BuildingUnlockTestCase(TestCase):
         self.assertEqual(response.data['data'][0]['unlock_source'], 'role_access')
 
 
+class UnlockDiscoveryExpTests(APITestCase):
+    """First-time unlocks earn the +25 EXP discovery reward exactly once."""
+
+    def setUp(self):
+        from apps.api.models import SystemSetting
+
+        self.settings = SystemSetting.get_settings()
+        self.settings.enable_gps = True
+        self.settings.enable_qr = True
+        self.settings.demo_mode = False
+        self.settings.save()
+
+        self.client = APIClient()
+        self.student = User.objects.create_user(
+            username='discovery_student',
+            email='discovery_student@test.com',
+            password='testpass123',
+            role='student',
+        )
+        self.professional = User.objects.create_user(
+            username='discovery_professional',
+            email='discovery_professional@test.com',
+            password='testpass123',
+            role='professional',
+        )
+        self.building = Building.objects.create(
+            name='Discovery Hall',
+            slug='discovery-hall',
+            latitude=14.5995,
+            longitude=120.9842,
+            is_active=True,
+            status='VISIBLE',
+        )
+        Geofence.objects.create(
+            building=self.building,
+            latitude=14.5995,
+            longitude=120.9842,
+            radius_meters=50,
+            is_active=True,
+        )
+
+    def _geofence_unlock(self, user=None):
+        self.client.force_authenticate(user=user or self.student)
+        return self.client.post('/api/buildings/unlock/', {
+            'latitude': 14.5995,
+            'longitude': 120.9842,
+            'accuracy_meters': 10,
+        })
+
+    def _scan_qr(self):
+        self.client.force_authenticate(user=self.student)
+        return self.client.post('/api/buildings/unlock/qr/', {
+            'qr_code_secret': str(self.building.qr_code_secret),
+            'lat': 14.5995,
+            'lng': 120.9842,
+        })
+
+    def _points(self, user=None):
+        user = user or self.student
+        user.refresh_from_db()
+        return user.exploration_points
+
+    def test_first_geofence_unlock_awards_discovery_exp(self):
+        response = self._geofence_unlock()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['data']['newly_unlocked'])
+        self.assertEqual(response.data['data']['exp_awarded'], 25)
+        self.assertEqual(response.data['data']['total_points'], 25)
+        self.assertEqual(self._points(), 25)
+
+    def test_repeat_unlock_does_not_award_exp_again(self):
+        self._geofence_unlock()
+        second = self._geofence_unlock()
+
+        self.assertFalse(second.data['data']['newly_unlocked'])
+        self.assertEqual(second.data['data']['exp_awarded'], 0)
+        self.assertEqual(second.data['data']['total_points'], 25)
+        self.assertEqual(self._points(), 25)
+
+    def test_qr_first_unlock_awards_discovery_exp(self):
+        response = self._scan_qr()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['data']['newly_unlocked'])
+        self.assertEqual(response.data['data']['exp_awarded'], 25)
+        self.assertEqual(self._points(), 25)
+
+    def test_demo_unlock_does_not_award_exp(self):
+        self.settings.demo_mode = True
+        self.settings.save()
+
+        response = self._scan_qr()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['data']['newly_unlocked'])
+        self.assertTrue(response.data['data']['demo_mode'])
+        self.assertEqual(response.data['data']['exp_awarded'], 0)
+        self.assertEqual(self._points(), 0)
+
+    def test_professional_unlock_does_not_award_exp(self):
+        response = self._geofence_unlock(user=self.professional)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['data']['exp_awarded'], 0)
+        self.assertEqual(self._points(user=self.professional), 0)
+
+
 class DepartmentAPITests(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(

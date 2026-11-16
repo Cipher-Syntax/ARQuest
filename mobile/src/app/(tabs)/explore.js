@@ -58,6 +58,9 @@ export default function ExploreScreen() {
     const [weeklyProgress, setWeeklyProgress] = useState({ completed: 0, target: 10 });
     const [earnedBadges, setEarnedBadges] = useState([]);
     const badgeAnim = useRef(new Animated.Value(0)).current;
+    // First-time discovery bonus returned by the unlock endpoints (+25 EXP).
+    const [unlockRewardExp, setUnlockRewardExp] = useState(0);
+    const unlockRewardAnim = useRef(new Animated.Value(0)).current;
     const [refreshing, setRefreshing] = useState(false);
 
     useFocusEffect(
@@ -316,14 +319,39 @@ export default function ExploreScreen() {
                         const isNewUnlock = unlockResult?.newly_unlocked === true;
 
                         if (role === "student") {
+                            const badges = isNewUnlock
+                                ? (unlockResult?.newly_earned_badges || [])
+                                : [];
+                            const expAwarded = isNewUnlock
+                                ? (unlockResult?.exp_awarded || 0)
+                                : 0;
+
                             if (isNewUnlock) {
                                 SoundManager.play("building_unlock");
                             }
                             if (checkToken) await checkToken(); // Refresh global EXP immediately!
 
-                            const badges = isNewUnlock
-                                ? (unlockResult?.newly_earned_badges || [])
-                                : [];
+                            // First-time discovery bonus. Rendered in the same
+                            // toast as a badge when both arrive together.
+                            if (expAwarded > 0) {
+                                setUnlockRewardExp(expAwarded);
+                                unlockRewardAnim.setValue(0);
+                                Animated.spring(unlockRewardAnim, {
+                                    toValue: 1,
+                                    tension: 60,
+                                    friction: 8,
+                                    useNativeDriver: true,
+                                }).start(() => {
+                                    setTimeout(() => {
+                                        Animated.timing(unlockRewardAnim, {
+                                            toValue: 0,
+                                            duration: 300,
+                                            useNativeDriver: true,
+                                        }).start(() => setUnlockRewardExp(0));
+                                    }, 3500);
+                                });
+                            }
+
                             if (badges.length > 0) {
                                 setTimeout(() => {
                                     SoundManager.play("badge_earned");
@@ -371,6 +399,11 @@ export default function ExploreScreen() {
         }
         startTracking();
     };
+
+    // A badge toast takes priority over an EXP-only toast; when both are live
+    // the badge animation drives the same card and the EXP shows as a chip.
+    const rewardToastAnim =
+        earnedBadges.length > 0 ? badgeAnim : unlockRewardAnim;
 
     return (
         <View style={{ flex: 1, backgroundColor: "#F8F9FA" }}>
@@ -914,16 +947,16 @@ export default function ExploreScreen() {
                 )}
             </ScrollView>
 
-            {/* Newly Earned Badges Toast */}
-            {role === "student" && earnedBadges.length > 0 && (
+            {/* Newly earned badge or first-discovery EXP toast */}
+            {role === "student" && (earnedBadges.length > 0 || unlockRewardExp > 0) && (
                 <Animated.View
                     style={[
                         styles.badgeToast,
                         {
-                            opacity: badgeAnim,
+                            opacity: rewardToastAnim,
                             transform: [
                                 {
-                                    translateY: badgeAnim.interpolate({
+                                    translateY: rewardToastAnim.interpolate({
                                         inputRange: [0, 1],
                                         outputRange: [-50, 0],
                                     }),
@@ -938,16 +971,27 @@ export default function ExploreScreen() {
                         borderRadius={16}
                     />
                     <Text style={styles.badgeToastEmoji}>
-                        {earnedBadges[0].icon}
+                        {earnedBadges.length > 0 ? earnedBadges[0].icon : "⚡"}
                     </Text>
                     <View style={{ flex: 1, zIndex: 2 }}>
                         <Text style={styles.badgeToastLabel}>
-                            ACHIEVEMENT UNLOCKED
+                            {earnedBadges.length > 0
+                                ? "ACHIEVEMENT UNLOCKED"
+                                : "FIRST DISCOVERY"}
                         </Text>
                         <Text style={styles.badgeToastName}>
-                            {earnedBadges[0].name}
+                            {earnedBadges.length > 0
+                                ? earnedBadges[0].name
+                                : `+${unlockRewardExp} EXP`}
                         </Text>
                     </View>
+                    {earnedBadges.length > 0 && unlockRewardExp > 0 && (
+                        <View style={styles.unlockExpChip}>
+                            <Text style={styles.unlockExpChipText}>
+                                +{unlockRewardExp} EXP
+                            </Text>
+                        </View>
+                    )}
                 </Animated.View>
             )}
         </View>
@@ -1286,6 +1330,21 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         fontFamily: fonts.heading.bold,
         color: "#fff",
         fontSize: 18,
+        letterSpacing: 0.5,
+    },
+    unlockExpChip: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "rgba(255, 215, 0, 0.6)",
+        backgroundColor: "rgba(255, 215, 0, 0.12)",
+        zIndex: 2,
+    },
+    unlockExpChipText: {
+        fontFamily: fonts.heading.bold,
+        color: "#FFD700",
+        fontSize: 12,
         letterSpacing: 0.5,
     },
 });

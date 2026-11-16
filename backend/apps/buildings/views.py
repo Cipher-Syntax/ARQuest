@@ -27,6 +27,13 @@ from .serializers import (
     DepartmentWriteSerializer
 )
 
+# First-time discovery reward. This is deliberately the smallest tier in the
+# EXP economy: a geofence unlock happens automatically while walking, so it
+# must pay less than a quiz answer or a quest. 25 EXP also lines up with the
+# rank curve (4 unlocks = 100 EXP = Explorer) and 15 buildings can only ever
+# yield 375 EXP, so unlocks alone can never reach the top ranks.
+DISCOVERY_EXP_REWARD = 25
+
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -442,6 +449,14 @@ def unlock_building(request):
                 unlock.last_validated_at = timezone.now()
                 unlock.save(update_fields=['last_validated_at'])
 
+            # First-time discovery reward, awarded before the badge check so a
+            # +25 that pushes the student over 100/500/1000 EXP can also earn
+            # the matching points badge in this same response.
+            exp_awarded = 0
+            if created and request.user.is_student_role:
+                request.user.gain_exp(DISCOVERY_EXP_REWARD)
+                exp_awarded = DISCOVERY_EXP_REWARD
+
             newly_earned_badges = []
             if created:
                 from apps.gamification.views import check_and_award_badges
@@ -451,6 +466,8 @@ def unlock_building(request):
             data = serializer.data
             data['newly_earned_badges'] = newly_earned_badges
             data['newly_unlocked'] = created  # True = first unlock, False = already had access
+            data['exp_awarded'] = exp_awarded
+            data['total_points'] = request.user.exploration_points
             return success_response(data)
     
     return error_response(ErrorCodes.GEOFENCE_OUTSIDE, 'Not inside any building geofence', status_code=400)
@@ -525,6 +542,12 @@ def unlock_building_qr(request):
         else:
             unlock.save(update_fields=['last_validated_at'])
 
+    # Demo unlocks are temporary and never count toward badges or EXP.
+    exp_awarded = 0
+    if created and request.user.is_student_role and not demo_mode:
+        request.user.gain_exp(DISCOVERY_EXP_REWARD)
+        exp_awarded = DISCOVERY_EXP_REWARD
+
     newly_earned_badges = []
     if created and request.user.is_student_role and not demo_mode:
         from apps.gamification.views import check_and_award_badges
@@ -534,6 +557,8 @@ def unlock_building_qr(request):
     data = serializer.data
     data['newly_earned_badges'] = newly_earned_badges
     data['newly_unlocked'] = created  # True = first unlock, False = already had access
+    data['exp_awarded'] = exp_awarded
+    data['total_points'] = request.user.exploration_points
     data['demo_mode'] = demo_mode
     return success_response(data)
 

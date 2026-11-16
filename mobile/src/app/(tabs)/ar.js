@@ -98,6 +98,7 @@ export default function ARScreen() {
     const [unlockedModalBuilding, setUnlockedModalBuilding] = useState("");
     const [unlockedModalIsDemo, setUnlockedModalIsDemo] = useState(false);
     const [unlockedModalAlready, setUnlockedModalAlready] = useState(false);
+    const [unlockedModalExp, setUnlockedModalExp] = useState(0);
 
     const navigation = useNavigation();
     const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
@@ -282,6 +283,16 @@ export default function ARScreen() {
     const [showArrivalModal, setShowArrivalModal] = useState(false);
     const arrivalModalAnim = useRef(new Animated.Value(0)).current;
     const arrivalTimerRef = useRef(null);
+    // First-time discovery bonus (+25 EXP) credited by this arrival's unlock.
+    // Keyed by building so a later arrival elsewhere cannot inherit it.
+    const [discoveryExp, setDiscoveryExp] = useState(null);
+    const arrivedBuildingId = (navTargetFull || nearbyBuildingFull)?.id;
+    const discoveryExpForArrival =
+        discoveryExp &&
+        arrivedBuildingId != null &&
+        String(discoveryExp.buildingId) === String(arrivedBuildingId)
+            ? discoveryExp.amount
+            : 0;
 
     const fetchQuests = useCallback(async () => {
         if (user?.role !== "student") return;
@@ -807,11 +818,20 @@ export default function ARScreen() {
         const runUnlock = async () => {
             try {
                 // No sound here: the arrival effect already announces arrival.
-                await attemptUnlock(
+                const result = await attemptUnlock(
                     location.latitude,
                     location.longitude,
                     location.accuracy || 10
                 );
+                // First-time discovery bonus: surface it on the arrival card
+                // and refresh the cached EXP shown on Home/Profile.
+                if (result?.newly_unlocked === true && result?.exp_awarded > 0) {
+                    setDiscoveryExp({
+                        buildingId: result.building,
+                        amount: result.exp_awarded,
+                    });
+                    checkToken();
+                }
             } catch (err) {
                 // Non-fatal: next entry (or Explore) will retry.
                 console.warn("AR geofence unlock failed:", err?.message || err);
@@ -826,6 +846,7 @@ export default function ARScreen() {
         unlockedBuildings,
         attemptUnlock,
         enable_gps,
+        checkToken,
     ]);
 
     const handleDismissArrivalModal = () => {
@@ -1164,6 +1185,11 @@ export default function ARScreen() {
                         }, 3500);
                     });
                 }
+                // Discovery EXP is credited server-side; refresh the cached
+                // totals so Home/Profile show the new balance immediately.
+                if (user?.role === "student" && result?.exp_awarded > 0) {
+                    checkToken();
+                }
             }
 
             // Custom modal instead of a native alert; demo unlocks are labelled
@@ -1173,6 +1199,7 @@ export default function ARScreen() {
             );
             setUnlockedModalIsDemo(!!isDemoUnlock);
             setUnlockedModalAlready(!isNewUnlock);
+            setUnlockedModalExp(isNewUnlock ? (result?.exp_awarded || 0) : 0);
             setUnlockedModalVisible(true);
         } catch (error) {
             console.error("QR unlock error:", error);
@@ -1612,6 +1639,7 @@ export default function ARScreen() {
                 anim={arrivalModalAnim}
                 buildingName={effectiveBuildingName || (navTargetFull || nearbyBuildingFull)?.name || 'Destination'}
                 missionExp={user?.role === 'student' && matchingQuest ? (matchingQuest.reward_points || 50) : null}
+                discoveryExp={discoveryExpForArrival}
             />
 
             {/* --- QUEST CLAIM ERROR & RETRY MODAL (TC_AR_05 Step 3 Compliance) --- */}
@@ -1657,6 +1685,7 @@ export default function ARScreen() {
                 buildingName={unlockedModalBuilding}
                 isDemo={unlockedModalIsDemo}
                 alreadyUnlocked={unlockedModalAlready}
+                expAwarded={unlockedModalExp}
             />
 
             {/* --- TRIVIA MODAL (GAMIFIED OR INFO) --- */}

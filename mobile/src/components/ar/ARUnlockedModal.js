@@ -16,6 +16,7 @@ export default function ARUnlockedModal({
     buildingName,
     isDemo,
     alreadyUnlocked,
+    expAwarded = 0,
 }) {
     const colors = useThemeColors();
     const styles = useThemedStyles(createStyles);
@@ -56,6 +57,14 @@ export default function ARUnlockedModal({
                             ? "This building is already in your collection."
                             : "This building is now unlocked. Its AR content and quests are available."}
                     </Text>
+
+                    {!alreadyUnlocked && expAwarded > 0 && (
+                        <View style={styles.expPill}>
+                            <Text style={styles.expPillText}>
+                                +{expAwarded} EXP DISCOVERY BONUS
+                            </Text>
+                        </View>
+                    )}
 
                     <View style={styles.guideBox}>
                         <Text style={styles.guideTitle}>WHERE TO FIND IT</Text>
@@ -145,6 +154,21 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         lineHeight: 20,
         marginBottom: 16,
         width: "100%",
+    },
+    expPill: {
+        backgroundColor: "rgba(180, 140, 0, 0.12)",
+        borderWidth: 1,
+        borderColor: "rgba(180, 140, 0, 0.45)",
+        borderRadius: radius.full,
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        marginBottom: 16,
+    },
+    expPillText: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: "#8A6A00",
+        letterSpacing: 0.5,
     },
     guideBox: {
         width: "100%",
