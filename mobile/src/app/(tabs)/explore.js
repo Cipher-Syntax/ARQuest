@@ -21,8 +21,6 @@ import { geofencingService, assetService } from "../../services";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { api } from "../../services";
 import { fonts } from "../../constants/typography";
-import SoundManager from "../../utils/SoundManager";
-import { useAuth } from "../../context/AuthContext";
 import { useIsFocused } from "../../hooks/useIsFocused";
 import { StatusBar } from "expo-status-bar";
 import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
@@ -34,7 +32,6 @@ export default function ExploreScreen() {
     const spacing = useThemeValue("spacing");
     const styles = useThemedStyles(createStyles);
     const { role } = useRoleAccess();
-    const { checkToken } = useAuth();
     const {
         location,
         error,
@@ -45,22 +42,16 @@ export default function ExploreScreen() {
         requestPermission,
     } = useLocationTracking();
 
-    const { unlockedBuildings, attemptUnlock } = useUnlockedBuildings();
+    const { unlockedBuildings } = useUnlockedBuildings();
     const hasInitialValidationRef = useRef(false);
     const lastValidatedStatusRef = useRef(null);
     const prefetchedBuildingsRef = useRef(new Set());
     const [validationResult, setValidationResult] = useState(null);
     const [isValidating, setIsValidating] = useState(false);
-    const [lastUnlockAttempt, setLastUnlockAttempt] = useState(null);
     const [buildingsList, setBuildingsList] = useState([]);
     const [totalBuildings, setTotalBuildings] = useState(0);
     const [activeQuests, setActiveQuests] = useState([]);
     const [weeklyProgress, setWeeklyProgress] = useState({ completed: 0, target: 10 });
-    const [earnedBadges, setEarnedBadges] = useState([]);
-    const badgeAnim = useRef(new Animated.Value(0)).current;
-    // First-time discovery bonus returned by the unlock endpoints (+25 EXP).
-    const [unlockRewardExp, setUnlockRewardExp] = useState(0);
-    const unlockRewardAnim = useRef(new Animated.Value(0)).current;
     const [refreshing, setRefreshing] = useState(false);
 
     useFocusEffect(
@@ -292,96 +283,10 @@ export default function ExploreScreen() {
             }
             // ------------------------------------
 
-            if (result.status === "inside" && result.building) {
-                const buildingId = result.building.id;
-                if (result.building.is_active === false) {
-                    // Building is closed
-                } else if (result.building.status === "MAINTENANCE") {
-                    // Building is under maintenance, do not unlock
-                    if (lastUnlockAttempt !== buildingId) {
-                        setLastUnlockAttempt(buildingId);
-                        // Optionally play a failure sound or show a small alert
-                    }
-                } else if (lastUnlockAttempt !== buildingId) {
-                    try {
-                        const unlockResult = await attemptUnlock(
-                            location.latitude,
-                            location.longitude,
-                            location.accuracy || 10,
-                        );
-                        setLastUnlockAttempt(buildingId);
-
-                        // Only celebrate a genuinely new unlock. Re-validating a
-                        // building the student already owns must stay silent, or
-                        // every visit (and tab change) replays the unlock sound.
-                        // Strict `=== true`: a missing flag must never be read as
-                        // "newly unlocked" (the geofence endpoint used to omit it).
-                        const isNewUnlock = unlockResult?.newly_unlocked === true;
-
-                        if (role === "student") {
-                            const badges = isNewUnlock
-                                ? (unlockResult?.newly_earned_badges || [])
-                                : [];
-                            const expAwarded = isNewUnlock
-                                ? (unlockResult?.exp_awarded || 0)
-                                : 0;
-
-                            if (isNewUnlock) {
-                                SoundManager.play("building_unlock");
-                            }
-                            if (checkToken) await checkToken(); // Refresh global EXP immediately!
-
-                            // First-time discovery bonus. Rendered in the same
-                            // toast as a badge when both arrive together.
-                            if (expAwarded > 0) {
-                                setUnlockRewardExp(expAwarded);
-                                unlockRewardAnim.setValue(0);
-                                Animated.spring(unlockRewardAnim, {
-                                    toValue: 1,
-                                    tension: 60,
-                                    friction: 8,
-                                    useNativeDriver: true,
-                                }).start(() => {
-                                    setTimeout(() => {
-                                        Animated.timing(unlockRewardAnim, {
-                                            toValue: 0,
-                                            duration: 300,
-                                            useNativeDriver: true,
-                                        }).start(() => setUnlockRewardExp(0));
-                                    }, 3500);
-                                });
-                            }
-
-                            if (badges.length > 0) {
-                                setTimeout(() => {
-                                    SoundManager.play("badge_earned");
-                                }, 1500);
-
-                                setEarnedBadges(badges);
-                                badgeAnim.setValue(0);
-                                Animated.sequence([
-                                    Animated.spring(badgeAnim, {
-                                        toValue: 1,
-                                        tension: 60,
-                                        friction: 8,
-                                        useNativeDriver: true,
-                                    }),
-                                ]).start(() => {
-                                    setTimeout(() => {
-                                        Animated.timing(badgeAnim, {
-                                            toValue: 0,
-                                            duration: 300,
-                                            useNativeDriver: true,
-                                        }).start(() => setEarnedBadges([]));
-                                    }, 3500);
-                                });
-                            }
-                        }
-                    } catch (err) {
-                        console.log("Unlock attempt:", err);
-                    }
-                }
-            }
+            // Explore is read-only: it reports geofence state but never writes
+            // a BuildingUnlock. The AR Scanner owns unlocking (automatic on
+            // entry, with QR as the fallback), so the map marker stays gray and
+            // no EXP/badges are awarded just for walking past this screen.
         } catch (err) {
             if (err?.response?.data?.error?.code === "SPOOFING_DETECTED") {
                 console.warn("Location validation notice: Spoofing/velocity alert from backend.");
@@ -402,8 +307,27 @@ export default function ExploreScreen() {
 
     // A badge toast takes priority over an EXP-only toast; when both are live
     // the badge animation drives the same card and the EXP shows as a chip.
-    const rewardToastAnim =
-        earnedBadges.length > 0 ? badgeAnim : unlockRewardAnim;
+    const insideBuilding =
+        validationResult?.status === "inside" ? validationResult.building : null;
+
+    // Explore never unlocks. Students standing inside a locked building get a
+    // handoff to the AR Scanner, which owns the unlock and its +25 EXP.
+    const insideLockedForStudent =
+        role === "student" &&
+        Boolean(insideBuilding) &&
+        insideBuilding.is_active !== false &&
+        insideBuilding.status !== "MAINTENANCE" &&
+        !unlockedBuildings.some(
+            (ub) => String(ub.id) === String(insideBuilding.id),
+        );
+
+    // The green "inside" treatment only applies when the student already owns
+    // the building (or has role access); locked rows stay neutral.
+    const insideOwned =
+        Boolean(insideBuilding) &&
+        insideBuilding.is_active !== false &&
+        insideBuilding.status !== "MAINTENANCE" &&
+        !insideLockedForStudent;
 
     return (
         <View style={{ flex: 1, backgroundColor: "#F8F9FA" }}>
@@ -597,7 +521,9 @@ export default function ExploreScreen() {
                                         ? validationResult.building
                                               .is_active === false
                                             ? styles.targetLocked
-                                            : styles.targetUnlocked
+                                            : insideLockedForStudent
+                                              ? styles.targetSearching
+                                              : styles.targetUnlocked
                                         : styles.targetSearching,
                                 ]}
                             >
@@ -608,15 +534,14 @@ export default function ExploreScreen() {
                                                 ? validationResult.building
                                                       .is_active === false
                                                     ? "warning"
-                                                    : "star"
+                                                    : insideLockedForStudent
+                                                      ? "lock-closed"
+                                                      : "star"
                                                 : "walk"
                                         }
                                         size={32}
                                         color={
-                                            validationResult.status ===
-                                                "inside" &&
-                                            validationResult.building
-                                                .is_active !== false
+                                            insideOwned
                                                 ? colors.white
                                                 : colors.primary
                                         }
@@ -626,11 +551,7 @@ export default function ExploreScreen() {
                                     <Text
                                         style={[
                                             styles.targetName,
-                                            validationResult.status ===
-                                                "inside" &&
-                                                validationResult.building
-                                                    .is_active !== false &&
-                                                styles.textWhite,
+                                            insideOwned && styles.textWhite,
                                         ]}
                                     >
                                         {validationResult.building.name}
@@ -638,11 +559,7 @@ export default function ExploreScreen() {
                                     <Text
                                         style={[
                                             styles.targetDistance,
-                                            validationResult.status ===
-                                                "inside" &&
-                                                validationResult.building
-                                                    .is_active !== false &&
-                                                styles.textWhite,
+                                            insideOwned && styles.textWhite,
                                             validationResult.building
                                                 .is_active === false && {
                                                 color: colors.error,
@@ -653,7 +570,13 @@ export default function ExploreScreen() {
                                             ? validationResult.building
                                                   .is_active === false
                                                 ? "Building is Closed"
-                                                : "AR Content Unlocked!"
+                                                : validationResult.building
+                                                        .status ===
+                                                      "MAINTENANCE"
+                                                  ? "Under Maintenance"
+                                                  : insideLockedForStudent
+                                                    ? "AR content locked"
+                                                    : "AR content unlocked"
                                             : `Distance: ${validationResult.distance_meters} meters away`}
                                     </Text>
                                 </View>
@@ -669,6 +592,48 @@ export default function ExploreScreen() {
                                 <Text style={styles.noTargetText}>
                                     Searching for nearby buildings...
                                 </Text>
+                            </View>
+                        )}
+
+                        {/* Explore never unlocks: hand the student to AR. */}
+                        {insideLockedForStudent && (
+                            <View style={styles.unlockGuide}>
+                                <View style={styles.unlockGuideHeader}>
+                                    <Ionicons
+                                        name="lock-closed"
+                                        size={18}
+                                        color={colors.primary}
+                                    />
+                                    <Text style={styles.unlockGuideTitle}>
+                                        AR CONTENT LOCKED
+                                    </Text>
+                                </View>
+                                <Text style={styles.unlockGuideText}>
+                                    Open the AR Scanner while inside this
+                                    building to unlock its 3D model, quests,
+                                    and passport stamp.
+                                </Text>
+                                <TouchableOpacity
+                                    style={styles.unlockGuideBtn}
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: "/(tabs)/ar",
+                                            params: {
+                                                targetBuildingId:
+                                                    insideBuilding.id,
+                                            },
+                                        })
+                                    }
+                                >
+                                    <Ionicons
+                                        name="scan"
+                                        size={16}
+                                        color="#FFFFFF"
+                                    />
+                                    <Text style={styles.unlockGuideBtnText}>
+                                        OPEN AR SCANNER
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                         )}
                     </View>
@@ -739,8 +704,16 @@ export default function ExploreScreen() {
                                         </View>
                                     </View>
                                     <View style={{ flexDirection: 'column', gap: 6 }}>
+                                        {/* Locked students are sent to AR, which
+                                            performs the unlock; owned buildings
+                                            keep the normal AR Nav label. */}
                                         <TouchableOpacity
-                                            style={styles.navigateBtn}
+                                            style={[
+                                                styles.navigateBtn,
+                                                role === "student" &&
+                                                    !isUnlocked &&
+                                                    styles.navigateBtnLocked,
+                                            ]}
                                             onPress={() =>
                                                 router.push({
                                                     pathname: "/(tabs)/ar",
@@ -749,12 +722,31 @@ export default function ExploreScreen() {
                                             }
                                         >
                                             <Ionicons
-                                                name="compass"
+                                                name={
+                                                    role === "student" &&
+                                                    !isUnlocked
+                                                        ? "lock-closed"
+                                                        : "compass"
+                                                }
                                                 size={16}
-                                                color="#FFFFFF"
+                                                color={
+                                                    role === "student" &&
+                                                    !isUnlocked
+                                                        ? colors.primary
+                                                        : "#FFFFFF"
+                                                }
                                             />
-                                            <Text style={styles.navigateText}>
-                                                AR Nav
+                                            <Text
+                                                style={[
+                                                    styles.navigateText,
+                                                    role === "student" &&
+                                                        !isUnlocked &&
+                                                        styles.navigateTextLocked,
+                                                ]}
+                                            >
+                                                {role === "student" && !isUnlocked
+                                                    ? "Unlock in AR"
+                                                    : "AR Nav"}
                                             </Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
@@ -946,54 +938,6 @@ export default function ExploreScreen() {
                     </>
                 )}
             </ScrollView>
-
-            {/* Newly earned badge or first-discovery EXP toast */}
-            {role === "student" && (earnedBadges.length > 0 || unlockRewardExp > 0) && (
-                <Animated.View
-                    style={[
-                        styles.badgeToast,
-                        {
-                            opacity: rewardToastAnim,
-                            transform: [
-                                {
-                                    translateY: rewardToastAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [-50, 0],
-                                    }),
-                                },
-                            ],
-                        },
-                    ]}
-                >
-                    <LinearGradient
-                        colors={["rgba(30,30,30,0.98)", "rgba(15,15,15,0.98)"]}
-                        style={StyleSheet.absoluteFillObject}
-                        borderRadius={16}
-                    />
-                    <Text style={styles.badgeToastEmoji}>
-                        {earnedBadges.length > 0 ? earnedBadges[0].icon : "⚡"}
-                    </Text>
-                    <View style={{ flex: 1, zIndex: 2 }}>
-                        <Text style={styles.badgeToastLabel}>
-                            {earnedBadges.length > 0
-                                ? "ACHIEVEMENT UNLOCKED"
-                                : "FIRST DISCOVERY"}
-                        </Text>
-                        <Text style={styles.badgeToastName}>
-                            {earnedBadges.length > 0
-                                ? earnedBadges[0].name
-                                : `+${unlockRewardExp} EXP`}
-                        </Text>
-                    </View>
-                    {earnedBadges.length > 0 && unlockRewardExp > 0 && (
-                        <View style={styles.unlockExpChip}>
-                            <Text style={styles.unlockExpChipText}>
-                                +{unlockRewardExp} EXP
-                            </Text>
-                        </View>
-                    )}
-                </Animated.View>
-            )}
         </View>
     );
 }
@@ -1255,6 +1199,58 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         fontSize: 12,
         marginLeft: 6,
     },
+    navigateBtnLocked: {
+        backgroundColor: "transparent",
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+    navigateTextLocked: {
+        color: colors.primary,
+    },
+    unlockGuide: {
+        marginTop: 12,
+        padding: 14,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: toRgba(colors.primary, 0.4),
+        backgroundColor: toRgba(colors.primary, 0.06),
+    },
+    unlockGuideHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 6,
+    },
+    unlockGuideTitle: {
+        fontFamily: fonts.heading.bold,
+        color: colors.primary,
+        fontSize: 11,
+        letterSpacing: 1.5,
+    },
+    unlockGuideText: {
+        fontFamily: fonts.body.regular,
+        color: colors.textSecondary,
+        fontSize: 13,
+        lineHeight: 19,
+        marginBottom: 12,
+    },
+    unlockGuideBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        alignSelf: "flex-start",
+        backgroundColor: colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+    },
+    unlockGuideBtnText: {
+        fontFamily: fonts.heading.bold,
+        color: "#FFFFFF",
+        fontSize: 12,
+        letterSpacing: 0.5,
+    },
     progressBarContainer: {
         height: 12,
         backgroundColor: "#F3F4F6",
@@ -1301,50 +1297,5 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         fontFamily: fonts.body.regular,
         fontSize: 15,
         color: colors.textSecondary,
-    },
-    badgeToast: {
-        position: "absolute",
-        top: 60,
-        left: 16,
-        right: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        padding: 16,
-        borderWidth: 1,
-        borderColor: "rgba(255, 215, 0, 0.5)",
-        gap: 16,
-        zIndex: 999,
-    },
-    badgeToastEmoji: {
-        fontSize: 38,
-        zIndex: 2,
-    },
-    badgeToastLabel: {
-        fontFamily: fonts.heading.bold,
-        color: "#FFD700",
-        fontSize: 11,
-        letterSpacing: 2,
-        marginBottom: 6,
-    },
-    badgeToastName: {
-        fontFamily: fonts.heading.bold,
-        color: "#fff",
-        fontSize: 18,
-        letterSpacing: 0.5,
-    },
-    unlockExpChip: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: "rgba(255, 215, 0, 0.6)",
-        backgroundColor: "rgba(255, 215, 0, 0.12)",
-        zIndex: 2,
-    },
-    unlockExpChipText: {
-        fontFamily: fonts.heading.bold,
-        color: "#FFD700",
-        fontSize: 12,
-        letterSpacing: 0.5,
     },
 });
