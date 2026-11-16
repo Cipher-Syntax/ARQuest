@@ -440,6 +440,11 @@ export default function ExploreScreen() {
                         stopTracking();
                         setTimeout(() => startTracking(), 300);
                     }}
+                    insideSubText={
+                        insideLockedForStudent
+                            ? "Open the AR Scanner to unlock the AR content."
+                            : null
+                    }
                 />
 
                 {/* Active Scanning Status HUD */}
@@ -575,7 +580,7 @@ export default function ExploreScreen() {
                                                       "MAINTENANCE"
                                                   ? "Under Maintenance"
                                                   : insideLockedForStudent
-                                                    ? "AR content locked"
+                                                    ? "Open the AR Scanner to unlock the AR content"
                                                     : "AR content unlocked"
                                             : `Distance: ${validationResult.distance_meters} meters away`}
                                     </Text>
@@ -592,48 +597,6 @@ export default function ExploreScreen() {
                                 <Text style={styles.noTargetText}>
                                     Searching for nearby buildings...
                                 </Text>
-                            </View>
-                        )}
-
-                        {/* Explore never unlocks: hand the student to AR. */}
-                        {insideLockedForStudent && (
-                            <View style={styles.unlockGuide}>
-                                <View style={styles.unlockGuideHeader}>
-                                    <Ionicons
-                                        name="lock-closed"
-                                        size={18}
-                                        color={colors.primary}
-                                    />
-                                    <Text style={styles.unlockGuideTitle}>
-                                        AR CONTENT LOCKED
-                                    </Text>
-                                </View>
-                                <Text style={styles.unlockGuideText}>
-                                    Open the AR Scanner while inside this
-                                    building to unlock its 3D model, quests,
-                                    and passport stamp.
-                                </Text>
-                                <TouchableOpacity
-                                    style={styles.unlockGuideBtn}
-                                    onPress={() =>
-                                        router.push({
-                                            pathname: "/(tabs)/ar",
-                                            params: {
-                                                targetBuildingId:
-                                                    insideBuilding.id,
-                                            },
-                                        })
-                                    }
-                                >
-                                    <Ionicons
-                                        name="scan"
-                                        size={16}
-                                        color="#FFFFFF"
-                                    />
-                                    <Text style={styles.unlockGuideBtnText}>
-                                        OPEN AR SCANNER
-                                    </Text>
-                                </TouchableOpacity>
                             </View>
                         )}
                     </View>
@@ -704,16 +667,11 @@ export default function ExploreScreen() {
                                         </View>
                                     </View>
                                     <View style={{ flexDirection: 'column', gap: 6 }}>
-                                        {/* Locked students are sent to AR, which
-                                            performs the unlock; owned buildings
-                                            keep the normal AR Nav label. */}
+                                        {/* Explore never unlocks; AR Nav just
+                                            hands off to the AR Scanner, which
+                                            performs the unlock on entry. */}
                                         <TouchableOpacity
-                                            style={[
-                                                styles.navigateBtn,
-                                                role === "student" &&
-                                                    !isUnlocked &&
-                                                    styles.navigateBtnLocked,
-                                            ]}
+                                            style={styles.navigateBtn}
                                             onPress={() =>
                                                 router.push({
                                                     pathname: "/(tabs)/ar",
@@ -722,31 +680,12 @@ export default function ExploreScreen() {
                                             }
                                         >
                                             <Ionicons
-                                                name={
-                                                    role === "student" &&
-                                                    !isUnlocked
-                                                        ? "lock-closed"
-                                                        : "compass"
-                                                }
+                                                name="compass"
                                                 size={16}
-                                                color={
-                                                    role === "student" &&
-                                                    !isUnlocked
-                                                        ? colors.primary
-                                                        : "#FFFFFF"
-                                                }
+                                                color="#FFFFFF"
                                             />
-                                            <Text
-                                                style={[
-                                                    styles.navigateText,
-                                                    role === "student" &&
-                                                        !isUnlocked &&
-                                                        styles.navigateTextLocked,
-                                                ]}
-                                            >
-                                                {role === "student" && !isUnlocked
-                                                    ? "Unlock in AR"
-                                                    : "AR Nav"}
+                                            <Text style={styles.navigateText}>
+                                                AR Nav
                                             </Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
@@ -1198,58 +1137,6 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         color: "#FFFFFF",
         fontSize: 12,
         marginLeft: 6,
-    },
-    navigateBtnLocked: {
-        backgroundColor: "transparent",
-        borderWidth: 1,
-        borderColor: colors.primary,
-    },
-    navigateTextLocked: {
-        color: colors.primary,
-    },
-    unlockGuide: {
-        marginTop: 12,
-        padding: 14,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: toRgba(colors.primary, 0.4),
-        backgroundColor: toRgba(colors.primary, 0.06),
-    },
-    unlockGuideHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 6,
-    },
-    unlockGuideTitle: {
-        fontFamily: fonts.heading.bold,
-        color: colors.primary,
-        fontSize: 11,
-        letterSpacing: 1.5,
-    },
-    unlockGuideText: {
-        fontFamily: fonts.body.regular,
-        color: colors.textSecondary,
-        fontSize: 13,
-        lineHeight: 19,
-        marginBottom: 12,
-    },
-    unlockGuideBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        alignSelf: "flex-start",
-        backgroundColor: colors.primary,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 20,
-    },
-    unlockGuideBtnText: {
-        fontFamily: fonts.heading.bold,
-        color: "#FFFFFF",
-        fontSize: 12,
-        letterSpacing: 0.5,
     },
     progressBarContainer: {
         height: 12,

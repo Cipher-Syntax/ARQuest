@@ -10,6 +10,9 @@ export const GeoStatusIndicator = ({
     permissionDenied,
     mockedGPS,
     onRetry,
+    // Optional guidance line for the "inside" state. Callers that own an
+    // explicit unlock flow (Explore) pass a hint; AR leaves it unset.
+    insideSubText = null,
 }) => {
     const colors = useThemeColors();
     const styles = useThemedStyles(createStyles);
@@ -47,7 +50,7 @@ export const GeoStatusIndicator = ({
                     bg: "#FFF5F5",
                     border: "rgba(127,3,3,0.2)",
                     text: buildingName ? `Inside ${buildingName}` : "Inside Building",
-                    subText: null,
+                    subText: insideSubText,
                     icon: "location",
                     actionLabel: null,
                     onAction: null,
