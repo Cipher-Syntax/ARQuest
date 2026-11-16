@@ -77,7 +77,6 @@ function getHorizontalForward(rotation) {
 // made the model blink out and come back on every step.
 const ORIGIN = [0, 0, 0];
 const ARRIVED_MODEL_SCALE = [0.038, 0.038, 0.038];
-const ARRIVED_MODEL_ANIMATION = { name: 'rotateModel', run: true, loop: true };
 const MODEL_NAME_SCALE = [0.42, 0.42, 0.42];
 const MODEL_STATUS_SCALE = [0.28, 0.28, 0.28];
 const MODEL_NOTE_SCALE = [0.22, 0.22, 0.22];
@@ -121,6 +120,15 @@ const ArrivedBeacon = React.memo(function ArrivedBeacon({
 }) {
     const modelSource = useMemo(() => ({ uri: modelUri }), [modelUri]);
     const primaryColor = brandColor || colors.primary;
+
+    // Rotate only after the GLB has actually loaded. Starting Viro's native
+    // animation before onLoadEnd makes a model that later fails/unloads crash
+    // the C++ animation thread when the node is torn down.
+    const isModelReady = Boolean(modelUri) && !isLoading && !isUnavailable;
+    const modelAnimation = useMemo(
+        () => ({ name: 'rotateModel', run: isModelReady, loop: true }),
+        [isModelReady],
+    );
 
     return (
         <>
@@ -172,17 +180,23 @@ const ArrivedBeacon = React.memo(function ArrivedBeacon({
                 materials={['glowArrowGold']}
             />
 
-            {modelUri && !isUnavailable && (
-                <ViroNode position={ORIGIN} animation={ARRIVED_MODEL_ANIMATION}>
-                    <Viro3DObject
-                        source={modelSource}
-                        position={ORIGIN}
-                        scale={ARRIVED_MODEL_SCALE}
-                        type="GLB"
-                        onLoadStart={onModelLoadStart}
-                        onLoadEnd={onModelLoadEnd}
-                        onError={onModelError}
-                    />
+            {/* The animated wrapper must stay mounted for as long as the model
+                exists. Viro crashes in native code when a node with a running
+                animation is unmounted, so an unavailable model toggles the GLB
+                out and stops the animation instead of removing the node. */}
+            {modelUri && (
+                <ViroNode position={ORIGIN} animation={modelAnimation}>
+                    {!isUnavailable && (
+                        <Viro3DObject
+                            source={modelSource}
+                            position={ORIGIN}
+                            scale={ARRIVED_MODEL_SCALE}
+                            type="GLB"
+                            onLoadStart={onModelLoadStart}
+                            onLoadEnd={onModelLoadEnd}
+                            onError={onModelError}
+                        />
+                    )}
                 </ViroNode>
             )}
 
