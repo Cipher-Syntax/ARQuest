@@ -5,13 +5,12 @@ import {
     Viro3DObject,
     ViroAmbientLight,
     ViroPolyline,
+    ViroPolygon,
     ViroMaterials,
     ViroNode,
     ViroText,
     ViroAnimations,
     ViroDirectionalLight,
-    ViroBox,
-    ViroImage,
 } from '@reactvision/react-viro';
 
 
@@ -241,6 +240,159 @@ const ArrivedBeacon = React.memo(function ArrivedBeacon({
     );
 });
 
+// ==== Ground guide path ======================================================
+// Three stacked arrowheads on the ground, like the reference design, with a red
+// border on each and no lane behind them. Built from ViroPolygon so they lie flat and need no textures.
+// Everything below is module-level and computed once, so the memoized component
+// never rebuilds while the parent re-renders.
+//
+// Local axes inside the guide node: +Z is the direction of travel (the parent
+// node adds a 180 degree turn so +Z points at the destination) and +X is right.
+// ViroPolygon is drawn in the XY plane, so each polygon is rotated -90 degrees
+// around X to lie flat. After that rotation polygon +Y maps to -Z, so a forward
+// distance f is stored as polygon y = -f.
+const GROUND_ROTATION = [-90, 0, 0];
+
+// Arrowhead: a swept-back dart with a notch in the tail. The concave shape is
+// split into two triangles so triangulation can never go wrong.
+// Points are [x, forward] around the arrow's own center.
+// The last arrow is a plain pointed triangle: its notch sits on the back edge,
+// so the tail is flat and the shape ends in a single point.
+const ARROW_TIP = [0, 0.28];
+const ARROW_WING_LEFT = [-0.34, -0.22];
+const ARROW_WING_RIGHT = [0.34, -0.22];
+const ARROW_NOTCH = [0, -0.08];
+const ARROW_NOTCH_POINTED = [0, -0.22];
+
+// Border thickness in meters at scale 1. The border sits outside the gold shape,
+// so the gold arrow keeps its size and the outline is added around it.
+const ARROW_BORDER = 0.035;
+
+// Pushes every edge of a counter-clockwise outline outward by d. Corners use a
+// mitre join, so the border has the same thickness along every edge.
+function offsetOutline(points, d) {
+    const n = points.length;
+    return points.map((p, i) => {
+        const a = points[(i + n - 1) % n];
+        const b = points[(i + 1) % n];
+        const e1 = [p[0] - a[0], p[1] - a[1]];
+        const e2 = [b[0] - p[0], b[1] - p[1]];
+        const l1 = Math.hypot(e1[0], e1[1]);
+        const l2 = Math.hypot(e2[0], e2[1]);
+        const n1 = [e1[1] / l1, -e1[0] / l1];
+        const n2 = [e2[1] / l2, -e2[0] / l2];
+        const k = d / (1 + n1[0] * n2[0] + n1[1] * n2[1]);
+        return [p[0] + (n1[0] + n2[0]) * k, p[1] + (n1[1] + n2[1]) * k];
+    });
+}
+
+// Returns the two body triangles plus the border as four flat quads, one per
+// edge. The border is a ring (not a filled shape underneath), so a faded gold
+// arrow never gets tinted red by what is behind it.
+function buildArrow(scale, pointed) {
+    const outline = [
+        ARROW_TIP,
+        ARROW_WING_LEFT,
+        pointed ? ARROW_NOTCH_POINTED : ARROW_NOTCH,
+        ARROW_WING_RIGHT,
+    ];
+    const outer = offsetOutline(outline, ARROW_BORDER);
+    const toPolygon = ([x, f]) => [x * scale, -f * scale];
+    const [tip, wingL, notch, wingR] = outline.map(toPolygon);
+
+    const border = outline.map((_, i) => {
+        const j = (i + 1) % outline.length;
+        return [
+            toPolygon(outline[i]),
+            toPolygon(outline[j]),
+            toPolygon(outer[j]),
+            toPolygon(outer[i]),
+        ];
+    });
+
+    return {
+        left: [tip, wingL, notch],
+        right: [tip, notch, wingR],
+        border,
+    };
+}
+
+// Closest arrow is largest and brightest, the far ones shrink and fade.
+// The pulse delay ripples forward from the closest arrow to the furthest.
+const ARROW_SPECS = [
+    { z: -0.05, scale: 1.0, material: 'trailArrow0', borderMaterial: 'trailBorder0', delay: 0 },
+    { z: 1.0, scale: 0.78, material: 'trailArrow1', borderMaterial: 'trailBorder1', delay: 200 },
+    { z: 1.85, scale: 0.58, material: 'trailArrow2', borderMaterial: 'trailBorder2', delay: 400, pointed: true },
+];
+
+const ARROWS = ARROW_SPECS.map((spec) => ({
+    material: spec.material,
+    borderMaterial: spec.borderMaterial,
+    position: [0, 0.012, spec.z],
+    animation: { name: 'pulseChevron', run: true, loop: true, delay: spec.delay },
+    shape: buildArrow(spec.scale, spec.pointed),
+}));
+
+/**
+ * Ground guide: three stacked gold arrowheads with a red border, no background.
+ *
+ *   TOP-DOWN VIEW (travel direction is up):
+ *
+ *          /\            far, small, faded, plain point
+ *         /__\
+ *
+ *        /\  /\          middle
+ *       /  \/  \
+ *
+ *      /\      /\        near, large, solid
+ *     /  \_  _/  \
+ *    /_____\/_____\
+ *
+ * The parent ViroNode rotates the whole assembly to the target bearing.
+ */
+const GuidePath = React.memo(function GuidePath() {
+    return (
+        <ViroNode>
+            {ARROWS.map((arrow, i) => (
+                <ViroNode
+                    key={`arrow-${i}`}
+                    position={arrow.position}
+                    animation={arrow.animation}
+                >
+                    {/* Solid gold arrowhead */}
+                    <ViroPolygon
+                        position={ORIGIN}
+                        rotation={GROUND_ROTATION}
+                        vertices={arrow.shape.left}
+                        materials={[arrow.material]}
+                    />
+                    <ViroPolygon
+                        position={ORIGIN}
+                        rotation={GROUND_ROTATION}
+                        vertices={arrow.shape.right}
+                        materials={[arrow.material]}
+                    />
+
+                    {/* Red border around the arrowhead, one quad per edge */}
+                    {arrow.shape.border.map((quad, j) => (
+                        <ViroPolygon
+                            key={`border-${j}`}
+                            position={ORIGIN}
+                            rotation={GROUND_ROTATION}
+                            vertices={quad}
+                            materials={[arrow.borderMaterial]}
+                        />
+                    ))}
+                </ViroNode>
+            ))}
+        </ViroNode>
+    );
+});
+
+/**
+ * Main AR Scene Component
+ * Renders the AR navigation guide path, HUD billboard, and arrived beacon.
+ */
 export default function ARQuestScene(props) {
     const { sceneNavigator } = props;
     const {
@@ -384,15 +536,39 @@ export default function ARQuestScene(props) {
     const recomputeNavPositions = useCallback((angle, camPos) => {
         const rad = (angle * Math.PI) / 180;
         const [cx, cy, cz] = camPos;
-        // Compact pedestrian dashed walking arrow planted 1.35m ahead of the user.
-        // Subtle human-stride scale so it never dominates the screen.
-        setChevronPositions([{
-            x: cx + 1.35 * Math.sin(rad),
-            y: cy - 0.85,
-            z: cz - 1.35 * Math.cos(rad),
-            angle,
-            pulseOffset: 0,
-        }]);
+        // Three chevrons forming a trail: closest=largest, furthest=smallest.
+        // Spaced ~1.35m apart so they read as a dotted path on the ground.
+        const spacing = 1.35;
+        const baseY = cy - 0.85;
+        setChevronPositions([
+            // 1st chevron — closest to user, largest
+            {
+                x: cx + spacing * Math.sin(rad),
+                y: baseY,
+                z: cz - spacing * Math.cos(rad),
+                angle,
+                scale: 1.15,
+                pulseOffset: 0,
+            },
+            // 2nd chevron — medium
+            {
+                x: cx + 2 * spacing * Math.sin(rad),
+                y: baseY,
+                z: cz - 2 * spacing * Math.cos(rad),
+                angle,
+                scale: 0.85,
+                pulseOffset: 200,
+            },
+            // 3rd chevron — furthest, smallest
+            {
+                x: cx + 3 * spacing * Math.sin(rad),
+                y: baseY,
+                z: cz - 3 * spacing * Math.cos(rad),
+                angle,
+                scale: 0.6,
+                pulseOffset: 400,
+            },
+        ]);
         setHudPosition([
             cx + 3.0 * Math.sin(rad),
             cy - 0.1,
@@ -512,6 +688,10 @@ export default function ARQuestScene(props) {
         setModelError(true);
     }, [modelFallbackUrl, sceneModelUri, effectiveModelUrl]);
 
+    // The guide path is one group of arrows anchored at the first chevron position.
+    // The other two entries from recomputeNavPositions are no longer needed.
+    const guide = chevronPositions[0];
+
     return (
         <ViroARScene onCameraTransformUpdate={onCameraTransformUpdate}>
             {/* ── Scene Lighting ── */}
@@ -521,47 +701,25 @@ export default function ARQuestScene(props) {
             <ViroDirectionalLight color="#ffffff" direction={[-1, 0, 1]} intensity={600} />
             <ViroDirectionalLight color="#ffffff" direction={[0, 1, 0]} intensity={400} />
 
-            {/* 
+            {/*
                 ============================================================
-                1. 3D AR NAVIGATION PATH (Sleek Ground Chevrons)
-                Renders proportional, glowing 3D arrow chevrons along the ground
-                pointing in the real-world direction of the building.
-                Positions are offset from the camera's current world-space
-                position so they follow the user as they walk.
+                1. 3D AR NAVIGATION PATH (Stacked Arrowheads)
+                Three flat gold arrowheads with a red border that shrink and fade
+                toward the destination. The last one is a plain pointed tip.
+                Position is offset from the camera's current world-space
+                position so it follows the user as they walk.
                 Hidden when arrived at the destination.
                 ============================================================
             */}
-            {!hasArrived && chevronPositions.map((chev, index) => (
+            {!hasArrived && guide && (
                 <ViroNode
-                    key={`nav-arrow-${index}`}
-                    position={[chev.x, chev.y, chev.z]}
-                    rotation={[0, -chev.angle, 0]}
-                    scale={[1.0, 1.0, 1.0]}
-                    animation={{
-                        name: 'pulseChevron',
-                        run: true,
-                        loop: true,
-                        delay: chev.pulseOffset,
-                    }}
+                    position={[guide.x, guide.y, guide.z]}
+                    // +180° because GuidePath is built with +Z as the travel direction
+                    rotation={[0, -guide.angle + 180, 0]}
                 >
-                    {/*
-                     * GROUND COMPASS MARK
-                     *
-                     * Fixed crimson ring with a solid navigation arrow, taken
-                     * from the reference mark. The node above rotates it to the
-                     * target bearing, so the arrow always points the way to walk
-                     * while the ring reads as a dial on the pavement.
-                     */}
-                    <ViroImage
-                        source={require('../../../assets/images/nav-compass-arrow.png')}
-                        rotation={[-90, 0, 0]}
-                        width={0.85}
-                        height={0.85}
-                        position={[0, 0, 0]}
-                        format="RGBA8"
-                    />
+                    <GuidePath />
                 </ViroNode>
-            ))}
+            )}
 
 
 
@@ -644,6 +802,53 @@ ViroMaterials.createMaterials({
         diffuseColor: '#E8B923',   // WMSU Gold
         lightingModel: 'Constant',
     },
+
+    // Guide arrowheads: WMSU Gold, fading with distance (closest is solid).
+    trailArrow0: {
+        diffuseColor: '#E8B923',
+        lightingModel: 'Constant',
+        blendMode: 'Alpha',
+        opacity: 1.0,
+        cullMode: 'None',
+    },
+    trailArrow1: {
+        diffuseColor: '#E8B923',
+        lightingModel: 'Constant',
+        blendMode: 'Alpha',
+        opacity: 0.85,
+        cullMode: 'None',
+    },
+    trailArrow2: {
+        diffuseColor: '#E8B923',
+        lightingModel: 'Constant',
+        blendMode: 'Alpha',
+        opacity: 0.65,
+        cullMode: 'None',
+    },
+
+    // Red border: base color, same opacity steps as the arrow it outlines.
+    trailBorder0: {
+        diffuseColor: colors.primary,
+        lightingModel: 'Constant',
+        blendMode: 'Alpha',
+        opacity: 1.0,
+        cullMode: 'None',
+    },
+    trailBorder1: {
+        diffuseColor: colors.primary,
+        lightingModel: 'Constant',
+        blendMode: 'Alpha',
+        opacity: 0.85,
+        cullMode: 'None',
+    },
+    trailBorder2: {
+        diffuseColor: colors.primary,
+        lightingModel: 'Constant',
+        blendMode: 'Alpha',
+        opacity: 0.65,
+        cullMode: 'None',
+    },
+
     beaconCrystal: {
         diffuseColor: '#E8B923',   // Glowing WMSU Gold
         lightingModel: 'Constant',
@@ -685,9 +890,9 @@ ViroAnimations.registerAnimations({
         easing: 'Linear',
         loop: true,
     },
-    // Pulsing scale animation for ground runway chevrons.
-    // Each chevron receives a staggered `delay` matching its pulseOffset,
-    // so the pulse ripples forward (1st→2nd→3rd) like airport runway lights.
+    // Pulsing scale animation for the guide arrowheads.
+    // Each arrow receives a staggered `delay`, so the pulse ripples forward
+    // (1st→2nd→3rd) like airport runway lights.
     pulseChevron: {
         properties: {
             scaleX: '+=0.04',
@@ -699,4 +904,3 @@ ViroAnimations.registerAnimations({
         direction: 'Alternate',
     },
 });
-
