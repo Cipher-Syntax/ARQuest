@@ -1,12 +1,10 @@
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, TouchableOpacity, ActivityIndicator } from "react-native";
 import { QrCode, Camera as CameraIcon } from "lucide-react-native";
 
 import { useThemeColors } from "../../context/ThemeContext";
 import { useArStyles } from "./arStyles";
 
-/**
- * Bottom action bar: QR scanner toggle and AR snapshot capture.
- */
+/** Side action rail: QR scanner toggle and AR snapshot capture. */
 export default function ARBottomControls({
     isScanningQr,
     capturing,
@@ -14,37 +12,45 @@ export default function ARBottomControls({
     onCapture,
     showQr = true,
     showCapture = true,
+    layout = "side",
 }) {
     const colors = useThemeColors();
     const styles = useArStyles();
+
     return (
-        <View style={styles.bottomControls}>
+        <View style={layout === "inline" ? styles.inlineControls : styles.sideControls}>
             {showQr && (
                 <TouchableOpacity
-                    style={[styles.qrBigButton, isScanningQr && styles.qrBigButtonActive]}
+                    style={[
+                        layout === "inline" ? styles.inlineActionButton : styles.sideActionButton,
+                        isScanningQr && styles.qrBigButtonActive,
+                    ]}
                     onPress={() => onToggleQr(!isScanningQr)}
+                    accessibilityRole="button"
+                    accessibilityLabel={isScanningQr ? "Stop QR scanner" : "Scan QR code"}
+                    activeOpacity={0.8}
                 >
-                    <QrCode size={20} color={isScanningQr ? "#fff" : colors.primary} />
-                    <Text style={[styles.qrBigButtonText, isScanningQr && { color: "#fff" }]}>
-                        {isScanningQr ? "SCANNING QR..." : "SCAN QR CODE"}
-                    </Text>
+                    <QrCode size={layout === "inline" ? 20 : 22} color={isScanningQr ? "#FFFFFF" : colors.primary} />
                 </TouchableOpacity>
             )}
 
             {showCapture && (
                 <TouchableOpacity
-                    style={styles.captureButton}
+                    style={[
+                        layout === "inline" ? styles.inlineActionButton : styles.sideActionButton,
+                        layout !== "inline" && styles.sideCaptureButton,
+                    ]}
                     onPress={onCapture}
                     disabled={capturing}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel="Capture AR view"
                 >
-                    <View style={styles.captureButtonInner}>
-                        {capturing ? (
-                            <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                            <CameraIcon size={28} color={colors.primary} />
-                        )}
-                    </View>
+                    {capturing ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                        <CameraIcon size={layout === "inline" ? 20 : 24} color={colors.primary} />
+                    )}
                 </TouchableOpacity>
             )}
         </View>

@@ -31,6 +31,7 @@ import ARArrivalModal from "../../components/ar/ARArrivalModal";
 import ARClaimErrorModal from "../../components/ar/ARClaimErrorModal";
 import ARTriviaModal from "../../components/ar/ARTriviaModal";
 import ARBottomControls from "../../components/ar/ARBottomControls";
+import ARRouteMiniMap from "../../components/ar/ARRouteMiniMap";
 import ARRewardToast from "../../components/ar/ARRewardToast";
 import { checkARSupport } from "../../utils/ar-hardware-check";
 import {
@@ -57,6 +58,13 @@ import ErrorBoundary from "../../components/ui/ErrorBoundary";
 // once the user is provably away again (outside the geofence or > 45 m off).
 const announcedArrivalBldgIds = new Set();
 
+function formatModelSize(bytes) {
+    const size = Number(bytes);
+    if (!Number.isFinite(size) || size <= 0) return "SIZE UNAVAILABLE";
+    if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    return `${Math.max(1, Math.round(size / 1024))} KB`;
+}
+
 export default function ARScreen() {
     const isFocused = useIsFocused();
     const colors = useThemeColors();
@@ -79,6 +87,7 @@ export default function ARScreen() {
     const [isARSupported, setIsARSupported] = useState(true); // Assume supported; set false if check fails
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
     const [cachedModel, setCachedModel] = useState(null);
+    const [modelDownloadProgress, setModelDownloadProgress] = useState(null);
     const prefetchedModelKeysRef = useRef(new Set());
     const [claimErrorModalVisible, setClaimErrorModalVisible] = useState(false);
     const [claimErrorMessage, setClaimErrorMessage] = useState("");
@@ -100,13 +109,31 @@ export default function ARScreen() {
     const [unlockedModalExp, setUnlockedModalExp] = useState(0);
 
     const navigation = useNavigation();
-    const { targetBuildingId, buildingId, questId } = useLocalSearchParams();
+    const {
+        targetBuildingId,
+        buildingId,
+        questId,
+        routeOriginLat,
+        routeOriginLng,
+        routeOriginName,
+    } = useLocalSearchParams();
+    const routeOriginLatitude = Array.isArray(routeOriginLat) ? routeOriginLat[0] : routeOriginLat;
+    const routeOriginLongitude = Array.isArray(routeOriginLng) ? routeOriginLng[0] : routeOriginLng;
+    const fixedRouteOrigin =
+        routeOriginLatitude != null && routeOriginLatitude !== "" &&
+        routeOriginLongitude != null && routeOriginLongitude !== "" &&
+        Number.isFinite(Number(routeOriginLatitude)) &&
+        Number.isFinite(Number(routeOriginLongitude))
+            ? { latitude: Number(routeOriginLatitude), longitude: Number(routeOriginLongitude) }
+            : null;
+    const fixedRouteOriginName = Array.isArray(routeOriginName) ? routeOriginName[0] : routeOriginName;
     const activeTargetId = targetBuildingId || buildingId;
     const isTargetMode = Boolean(activeTargetId);
 
     const [navTargetFull, setNavTargetFull] = useState(null);
     const [nextWaypoint, setNextWaypoint] = useState(null);
     const [routeCoordinates, setRouteCoordinates] = useState([]);
+    const [campusPerimeter, setCampusPerimeter] = useState(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
 
     const [isArrivedLatched, setIsArrivedLatched] = useState(false);
@@ -155,6 +182,7 @@ export default function ARScreen() {
                 key.version,
                 key.url,
             );
+            setModelDownloadProgress({ id: targetId, progress: null, status: "checking" });
 
             try {
                 if (
@@ -166,26 +194,43 @@ export default function ARScreen() {
                 ) {
                     if (!cancelled) {
                         setCachedModel({ id: targetId, uri: localPath });
+                        setModelDownloadProgress({ id: targetId, progress: 1, status: "ready" });
                     }
                     return;
                 }
 
-                // Nothing on disk yet: show the network model now and warm the
-                // cache in the background, without swapping sources mid-session
-                // (a swap would make Viro reload the model a second time).
+                const prefetchKey = `${key.assetId}_v${key.version}_${key.url}`;
+                if (prefetchedModelKeysRef.current.has(prefetchKey)) {
+                    if (!cancelled) {
+                        setCachedModel({ id: targetId, uri: key.url });
+                        setModelDownloadProgress({ id: targetId, progress: null, status: "fallback" });
+                    }
+                    return;
+                }
+                prefetchedModelKeysRef.current.add(prefetchKey);
                 if (!cancelled) {
-                    setCachedModel({ id: targetId, uri: key.url });
+                    setModelDownloadProgress({ id: targetId, progress: null, status: "downloading" });
                 }
 
-                const prefetchKey = `${key.assetId}_v${key.version}_${key.url}`;
-                if (prefetchedModelKeysRef.current.has(prefetchKey)) return;
-                prefetchedModelKeysRef.current.add(prefetchKey);
-
-                await assetService.downloadAsset(
-                    key.url,
-                    key.assetId,
-                    key.version,
-                );
+                try {
+                    const downloadedUri = await assetService.downloadAsset(
+                        key.url,
+                        key.assetId,
+                        key.version,
+                        (progress) => {
+                            if (!cancelled) {
+                                setModelDownloadProgress({ id: targetId, progress, status: "downloading" });
+                            }
+                        },
+                        targetBldg.model_file_size,
+                    );
+                    if (!cancelled) {
+                        setCachedModel({ id: targetId, uri: downloadedUri });
+                        setModelDownloadProgress({ id: targetId, progress: 1, status: "ready" });
+                    }
+                } finally {
+                    prefetchedModelKeysRef.current.delete(prefetchKey);
+                }
             } catch (e) {
                 console.warn(
                     "AR model cache unavailable, streaming from network:",
@@ -193,6 +238,7 @@ export default function ARScreen() {
                 );
                 if (!cancelled) {
                     setCachedModel({ id: targetId, uri: key.url });
+                    setModelDownloadProgress({ id: targetId, progress: null, status: "fallback" });
                 }
             }
         };
@@ -213,10 +259,25 @@ export default function ARScreen() {
 
     // Only trust a cached URI that belongs to the building currently targeted:
     // a stale path from the previous target would point at the wrong model.
-    const activeModelUri =
-        cachedModel && cachedModel.id === activeTarget?.id
-            ? cachedModel.uri
-            : effectiveModelUrl;
+    const matchingCachedModel = Boolean(
+        cachedModel && activeTarget?.id != null && cachedModel.id === activeTarget.id
+    );
+    const matchingModelProgress = Boolean(
+        modelDownloadProgress && activeTarget?.id != null && modelDownloadProgress.id === activeTarget.id
+    );
+    const activeModelUri = matchingCachedModel
+        ? cachedModel.uri
+        : matchingModelProgress && modelDownloadProgress.status === "fallback"
+          ? effectiveModelUrl
+          : null;
+    const modelProgressPercent =
+        matchingModelProgress && Number.isFinite(modelDownloadProgress.progress)
+            ? Math.max(0, Math.min(100, Math.round(modelDownloadProgress.progress * 100)))
+            : null;
+    const modelSizeLabel = formatModelSize(activeTarget?.model_file_size);
+    const modelLoadingLabel = modelProgressPercent == null
+        ? `${modelDownloadProgress?.status === "downloading" ? "DOWNLOADING MODEL" : "PREPARING MODEL"} · ${modelSizeLabel}`
+        : `${modelDownloadProgress.status === "ready" ? "PREPARING" : "DOWNLOADING"} ${modelProgressPercent}% / 100% · ${modelSizeLabel}`;
 
     const toggleQrScanner = useCallback((enable) => {
         if (enable && !enable_qr) {
@@ -308,24 +369,6 @@ export default function ARScreen() {
 
     // 3D Model Loading State in AR
     const [isArModelLoading, setIsArModelLoading] = useState(false);
-    const loadingShimmerAnim = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-        if (isArModelLoading) {
-            const loop = Animated.loop(
-                Animated.timing(loadingShimmerAnim, {
-                    toValue: 1,
-                    duration: 1200,
-                    easing: Easing.linear,
-                    useNativeDriver: true,
-                })
-            );
-            loop.start();
-            return () => loop.stop();
-        } else {
-            loadingShimmerAnim.setValue(0);
-        }
-    }, [isArModelLoading]);
 
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
@@ -355,6 +398,22 @@ export default function ARScreen() {
     );
 
     useEffect(() => {
+        let cancelled = false;
+        api.get("/api/navigation/perimeter/")
+            .then((res) => {
+                if (!cancelled && res.data?.success && res.data?.data) {
+                    setCampusPerimeter(res.data.data);
+                }
+            })
+            .catch((error) => {
+                console.log("[ARScreen] Campus perimeter unavailable:", error?.message);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
         if (!isCameraActive || !navTargetFull?.id) {
             setRouteCoordinates([]);
             setNextWaypoint(null);
@@ -365,8 +424,8 @@ export default function ARScreen() {
 
         const fetchRoute = async () => {
             if (!isMounted || !isCameraActive || !navTargetFull?.id) return;
-            const startLng = location?.longitude ?? location?.coords?.longitude;
-            const startLat = location?.latitude ?? location?.coords?.latitude;
+            const startLng = fixedRouteOrigin?.longitude ?? location?.longitude ?? location?.coords?.longitude;
+            const startLat = fixedRouteOrigin?.latitude ?? location?.latitude ?? location?.coords?.latitude;
 
             if (startLat && startLng) {
                 const fallbackWaypoint = {
@@ -419,6 +478,8 @@ export default function ARScreen() {
         navTargetFull?.id,
         navTargetFull?.latitude,
         navTargetFull?.longitude,
+        fixedRouteOrigin?.latitude,
+        fixedRouteOrigin?.longitude,
         !(location?.latitude ?? location?.coords?.latitude),
     ]);
 
@@ -464,7 +525,14 @@ export default function ARScreen() {
         setIsArModelLoading(false);
         stableModelUrlRef.current = null;
         stableBuildingNameRef.current = null;
-        router.setParams({ targetBuildingId: undefined, buildingId: undefined, questId: undefined });
+        router.setParams({
+            targetBuildingId: undefined,
+            buildingId: undefined,
+            questId: undefined,
+            routeOriginLat: undefined,
+            routeOriginLng: undefined,
+            routeOriginName: undefined,
+        });
 
         if (navigation?.canGoBack && navigation.canGoBack()) {
             navigation.goBack();
@@ -483,7 +551,6 @@ export default function ARScreen() {
                 setIsCameraActive(false);
                 stopTracking();
                 startTracking({ highFrequency: false });
-                setNavTargetFull(null);
                 setNextWaypoint(null);
                 setRouteCoordinates([]);
                 setCapturing(false);
@@ -493,9 +560,6 @@ export default function ARScreen() {
                 setScannedData(null);
                 setIsArrivedLatched(false);
                 setIsArModelLoading(false);
-                stableModelUrlRef.current = null;
-                stableBuildingNameRef.current = null;
-                router.setParams({ targetBuildingId: undefined, buildingId: undefined, questId: undefined });
             };
         }, [startTracking, stopTracking, fetchQuests])
     );
@@ -1498,24 +1562,13 @@ export default function ARScreen() {
                                                 <View style={{ marginTop: 2, width: '100%' }}>
                                                     <View style={styles.modelLoadingRow}>
                                                         <ActivityIndicator size="small" color="#E8B923" style={{ marginRight: 6 }} />
-                                                        <Text style={[styles.buildingStatus, { color: '#E8B923', fontWeight: 'bold' }]}>
-                                                            Loading 3D Model...
+                                                        <Text
+                                                            numberOfLines={1}
+                                                            ellipsizeMode="tail"
+                                                            style={[styles.buildingStatus, { color: '#E8B923', fontWeight: 'bold', fontSize: 10, letterSpacing: 0.1 }]}
+                                                        >
+                                                            {modelLoadingLabel}
                                                         </Text>
-                                                    </View>
-                                                    <View style={styles.modelLoadingTrack}>
-                                                        <Animated.View
-                                                            style={[
-                                                                styles.modelLoadingBar,
-                                                                {
-                                                                    transform: [{
-                                                                        translateX: loadingShimmerAnim.interpolate({
-                                                                            inputRange: [0, 1],
-                                                                            outputRange: [-80, 180],
-                                                                        }),
-                                                                    }],
-                                                                },
-                                                            ]}
-                                                        />
                                                     </View>
                                                 </View>
                                             ) : (
@@ -1579,6 +1632,25 @@ export default function ARScreen() {
                     </View>
                 )}
 
+                {!capturing && !isArrived && activeTarget && (
+                    <ARRouteMiniMap
+                        coordinates={routeCoordinates}
+                        currentLongitude={navUserLng}
+                        currentLatitude={navUserLat}
+                        targetLongitude={activeTarget.longitude}
+                        targetLatitude={activeTarget.latitude}
+                        buildingName={activeTarget.name}
+                        originName={fixedRouteOriginName}
+                        campusPerimeter={campusPerimeter}
+                        distanceMeters={distanceToTarget}
+                        isScanningQr={isScanningQr}
+                        capturing={capturing}
+                        onToggleQr={toggleQrScanner}
+                        onCapture={handleCaptureArSnapshot}
+                        showQr={enable_qr}
+                        showCapture={enable_ar_selfie}
+                    />
+                )}
 
                 {/* 3. Reticle Overlays */}
                 {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
@@ -1695,7 +1767,7 @@ export default function ARScreen() {
                 />
             )}
             {/* --- Bottom Camera Controls --- */}
-            {!capturing && (
+            {!capturing && (!activeTarget || isArrived) && (
                 <ARBottomControls
                     isScanningQr={isScanningQr}
                     capturing={capturing}

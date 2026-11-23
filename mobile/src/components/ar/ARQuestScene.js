@@ -317,19 +317,18 @@ function buildArrow(scale, pointed) {
     };
 }
 
-// Closest arrow is largest and brightest, the far ones shrink and fade.
-// The pulse delay ripples forward from the closest arrow to the furthest.
+// Closest arrow is largest and brightest; the other arrows remain visibly
+// separated and static to avoid a shimmering/pulsing trail in the live camera.
 const ARROW_SPECS = [
-    { z: -0.05, scale: 1.0, material: 'trailArrow0', borderMaterial: 'trailBorder0', delay: 0 },
-    { z: 1.0, scale: 0.78, material: 'trailArrow1', borderMaterial: 'trailBorder1', delay: 200 },
-    { z: 1.85, scale: 0.58, material: 'trailArrow2', borderMaterial: 'trailBorder2', delay: 400, pointed: true },
+    { z: -0.05, scale: 1.0, material: 'trailArrow0', borderMaterial: 'trailBorder0' },
+    { z: 1.2, scale: 0.78, material: 'trailArrow1', borderMaterial: 'trailBorder1' },
+    { z: 2.4, scale: 0.58, material: 'trailArrow2', borderMaterial: 'trailBorder2', pointed: true },
 ];
 
 const ARROWS = ARROW_SPECS.map((spec) => ({
     material: spec.material,
     borderMaterial: spec.borderMaterial,
     position: [0, 0.012, spec.z],
-    animation: { name: 'pulseChevron', run: true, loop: true, delay: spec.delay },
     shape: buildArrow(spec.scale, spec.pointed),
 }));
 
@@ -521,12 +520,13 @@ export default function ARQuestScene(props) {
 
     // Report model loading status to the parent 2D HUD overlay
     useEffect(() => {
-        if (hasArrived && effectiveModelUrl && !modelLoaded && !modelError) {
+        const hasModelSource = effectiveModelUrl || modelFallbackUrl;
+        if (hasArrived && hasModelSource && !modelLoaded && !modelError) {
             onModelLoadingChange?.(true);
         } else {
             onModelLoadingChange?.(false);
         }
-    }, [hasArrived, effectiveModelUrl, modelLoaded, modelError, onModelLoadingChange]);
+    }, [hasArrived, effectiveModelUrl, modelFallbackUrl, modelLoaded, modelError, onModelLoadingChange]);
 
     /**
      * Recompute chevron and HUD world positions given a bearing angle and
@@ -601,9 +601,10 @@ export default function ARQuestScene(props) {
         const viewDot = forward.x * lfx + forward.z * lfz;
         const turned = viewDot < 0.985; // ~10 degrees of yaw change
 
-        // Recompute if the user physically walked >= 24cm, turned >= 10deg,
-        // or 800ms elapsed (whichever comes first).
-        if (distSq >= 0.06 || turned || timeDelta >= 800) {
+        // Recompute only after meaningful movement or a real turn. Re-anchoring
+        // on a timer while stationary lets camera tracking noise make the guide
+        // visibly shimmer in place.
+        if (distSq >= 0.06 || turned) {
             lastRecomputeTimeRef.current = now;
             lastAnchorPosRef.current = [pos[0], pos[1], pos[2]];
             lastForwardRef.current = [forward.x, forward.z];
@@ -889,18 +890,5 @@ ViroAnimations.registerAnimations({
         duration: 18000, // 18-second smooth continuous 360° turntable rotation from left to right
         easing: 'Linear',
         loop: true,
-    },
-    // Pulsing scale animation for the guide arrowheads.
-    // Each arrow receives a staggered `delay`, so the pulse ripples forward
-    // (1st→2nd→3rd) like airport runway lights.
-    pulseChevron: {
-        properties: {
-            scaleX: '+=0.04',
-            scaleY: '+=0.04',
-            scaleZ: '+=0.04',
-        },
-        duration: 1200,
-        easing: 'EaseInEaseOut',
-        direction: 'Alternate',
     },
 });

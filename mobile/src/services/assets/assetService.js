@@ -156,7 +156,7 @@ export const assetService = {
         }
     },
 
-    downloadAsset: async (url, assetId, version, onProgress) => {
+    downloadAsset: async (url, assetId, version, onProgress, expectedFileSize = null) => {
         await ensureCacheDir();
         await assetService.purgeLegacyCacheKeys();
 
@@ -188,14 +188,14 @@ export const assetService = {
             localUri,
             {},
             (downloadProgress) => {
-                if (
-                    onProgress &&
+                const expectedBytes =
                     downloadProgress.totalBytesExpectedToWrite > 0
-                ) {
+                        ? downloadProgress.totalBytesExpectedToWrite
+                        : Number(expectedFileSize);
+                if (onProgress && expectedBytes > 0) {
                     const progress =
-                        downloadProgress.totalBytesWritten /
-                        downloadProgress.totalBytesExpectedToWrite;
-                    onProgress(progress);
+                        downloadProgress.totalBytesWritten / expectedBytes;
+                    onProgress(Math.max(0, Math.min(1, progress)));
                 }
             },
         );

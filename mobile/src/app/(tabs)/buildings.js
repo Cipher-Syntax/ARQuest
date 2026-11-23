@@ -819,6 +819,49 @@ export default function BuildingsScreen() {
                         )}
                     </View>
 
+                    {isOriginFocused && originQuery.length > 0 && (
+                        <View style={styles.searchResultsContainer}>
+                            <ScrollView
+                                style={styles.searchResultsList}
+                                keyboardShouldPersistTaps="handled"
+                                nestedScrollEnabled
+                            >
+                                {filteredOriginBuildings.map((b) => (
+                                    <TouchableOpacity
+                                        key={`origin-${b.id}`}
+                                        style={styles.searchResultItem}
+                                        onPress={() => handleSelectRouteOrigin(b)}
+                                    >
+                                        <View
+                                            style={[
+                                                styles.searchResultItemInner,
+                                                b.primary_department && {
+                                                    borderLeftWidth: 4,
+                                                    borderLeftColor: b.primary_department.color_hex || colors.primary,
+                                                    paddingLeft: 8,
+                                                },
+                                            ]}
+                                        >
+                                            <Text style={styles.searchResultName}>{b.name}</Text>
+                                            <Text
+                                                style={[
+                                                    styles.searchResultStatus,
+                                                    b.is_active === false && styles.searchResultStatusInactive,
+                                                ]}
+                                            >
+                                                {b.primary_department ? `${b.primary_department.name} • ` : ""}
+                                                {b.is_active === false ? "CLOSED / INACTIVE" : "AVAILABLE"}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                                {filteredOriginBuildings.length === 0 && (
+                                    <Text style={styles.searchNoResult}>No buildings found.</Text>
+                                )}
+                            </ScrollView>
+                        </View>
+                    )}
+
                     <View style={styles.terminalInputRowActive}>
                         <Text style={styles.terminalInputLabel}>TO</Text>
                         <View style={styles.toInputWrapper}>
@@ -853,126 +896,51 @@ export default function BuildingsScreen() {
                             </TouchableOpacity>
                         )}
                     </View>
+
+                    {isSearchFocused && searchQuery.length > 0 && (
+                        <View style={styles.searchResultsContainer}>
+                            <ScrollView
+                                style={styles.searchResultsList}
+                                keyboardShouldPersistTaps="handled"
+                                nestedScrollEnabled
+                            >
+                                {filteredTargetBuildings.map((b) => (
+                                    <TouchableOpacity
+                                        key={`target-${b.id}`}
+                                        style={styles.searchResultItem}
+                                        onPress={() => handleSelectRouteTarget(b)}
+                                    >
+                                        <View
+                                            style={[
+                                                styles.searchResultItemInner,
+                                                b.primary_department && {
+                                                    borderLeftWidth: 4,
+                                                    borderLeftColor: b.primary_department.color_hex || colors.primary,
+                                                    paddingLeft: 8,
+                                                },
+                                            ]}
+                                        >
+                                            <Text style={styles.searchResultName}>{b.name}</Text>
+                                            <Text
+                                                style={[
+                                                    styles.searchResultStatus,
+                                                    b.is_active === false && styles.searchResultStatusInactive,
+                                                ]}
+                                            >
+                                                {b.primary_department ? `${b.primary_department.name} • ` : ""}
+                                                {b.is_active === false ? "CLOSED / INACTIVE" : "AVAILABLE"}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                                {filteredTargetBuildings.length === 0 && (
+                                    <Text style={styles.searchNoResult}>No buildings found.</Text>
+                                )}
+                            </ScrollView>
+                        </View>
+                    )}
                 </View>
             </LinearGradient>
-
-            <View
-                style={{
-                    position: "absolute",
-                    top: 150,
-                    left: 0,
-                    right: 0,
-                    paddingHorizontal: 20,
-                    zIndex: 20,
-                }}
-                pointerEvents="box-none"
-            >
-                {isOriginFocused && originQuery.length > 0 && (
-                    <View style={styles.searchResultsContainer}>
-                        <ScrollView
-                            style={styles.searchResultsList}
-                            keyboardShouldPersistTaps="handled"
-                        >
-                            {filteredOriginBuildings.map((b) => (
-                                <TouchableOpacity
-                                    key={`origin-${b.id}`}
-                                    style={styles.searchResultItem}
-                                    onPress={() => handleSelectRouteOrigin(b)}
-                                >
-                                    <View
-                                        style={[
-                                            styles.searchResultItemInner,
-                                            b.primary_department && {
-                                                borderLeftWidth: 4,
-                                                borderLeftColor:
-                                                    b.primary_department
-                                                        .color_hex || colors.primary,
-                                                paddingLeft: 8,
-                                            },
-                                        ]}
-                                    >
-                                        <Text style={styles.searchResultName}>
-                                            {b.name}
-                                        </Text>
-                                        <Text
-                                            style={[
-                                                styles.searchResultStatus,
-                                                b.is_active === false &&
-                                                    styles.searchResultStatusInactive,
-                                            ]}
-                                        >
-                                            {b.primary_department
-                                                ? `${b.primary_department.name} • `
-                                                : ""}
-                                            {b.is_active === false
-                                                ? "CLOSED / INACTIVE"
-                                                : "AVAILABLE"}
-                                        </Text>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                            {filteredOriginBuildings.length === 0 && (
-                                <Text style={styles.searchNoResult}>
-                                    No buildings found.
-                                </Text>
-                            )}
-                        </ScrollView>
-                    </View>
-                )}
-
-                {isSearchFocused && searchQuery.length > 0 && (
-                    <View style={styles.searchResultsContainer}>
-                        <ScrollView
-                            style={styles.searchResultsList}
-                            keyboardShouldPersistTaps="handled"
-                        >
-                            {filteredTargetBuildings.map((b) => (
-                                <TouchableOpacity
-                                    key={`target-${b.id}`}
-                                    style={styles.searchResultItem}
-                                    onPress={() => handleSelectRouteTarget(b)}
-                                >
-                                    <View
-                                        style={[
-                                            styles.searchResultItemInner,
-                                            b.primary_department && {
-                                                borderLeftWidth: 4,
-                                                borderLeftColor:
-                                                    b.primary_department
-                                                        .color_hex || colors.primary,
-                                                paddingLeft: 8,
-                                            },
-                                        ]}
-                                    >
-                                        <Text style={styles.searchResultName}>
-                                            {b.name}
-                                        </Text>
-                                        <Text
-                                            style={[
-                                                styles.searchResultStatus,
-                                                b.is_active === false &&
-                                                    styles.searchResultStatusInactive,
-                                            ]}
-                                        >
-                                            {b.primary_department
-                                                ? `${b.primary_department.name} • `
-                                                : ""}
-                                            {b.is_active === false
-                                                ? "CLOSED / INACTIVE"
-                                                : "AVAILABLE"}
-                                        </Text>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                            {filteredTargetBuildings.length === 0 && (
-                                <Text style={styles.searchNoResult}>
-                                    No buildings found.
-                                </Text>
-                            )}
-                        </ScrollView>
-                    </View>
-                )}
-            </View>
 
             <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: colors.surfaceSoft, display: viewMode === 'list' ? 'flex' : 'none', paddingTop: 110, paddingHorizontal: 16 }}>
                     <View style={{ marginBottom: 16, backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }}>
@@ -1456,7 +1424,16 @@ export default function BuildingsScreen() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                 <TouchableOpacity
                                     style={styles.arQuickBtn}
-                                    onPress={() => router.push({ pathname: "/(tabs)/ar", params: { targetBuildingId: routeTarget.id, buildingId: routeTarget.id } })}
+                                    onPress={() => router.push({
+                                        pathname: "/(tabs)/ar",
+                                        params: {
+                                            targetBuildingId: routeTarget.id,
+                                            buildingId: routeTarget.id,
+                                            routeOriginLat: routeOrigin ? String(routeOrigin.latitude) : undefined,
+                                            routeOriginLng: routeOrigin ? String(routeOrigin.longitude) : undefined,
+                                            routeOriginName: routeOrigin ? (routeOrigin.name || "Selected origin") : undefined,
+                                        },
+                                    })}
                                     activeOpacity={0.8}
                                 >
                                     <Ionicons name="cube-outline" size={16} color={colors.primary} />
