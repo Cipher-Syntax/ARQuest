@@ -114,6 +114,19 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         letterSpacing: 1,
         marginLeft: 6,
     },
+    viewInfoFloatingBtn: {
+        position: "absolute",
+        top: 104,
+        right: 20,
+        zIndex: 25,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        elevation: 4,
+    },
     
     qrBigButton: {
         flexDirection: "row",
@@ -227,14 +240,12 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         marginTop: 80,
     },
     
-    topLeftControls: {
+    topRightControls: {
         position: "absolute",
         top: 50,
-        left: 20,
+        right: 20,
         zIndex: 20,
-        flexDirection: "column",
-        gap: 12,
-        alignItems: "flex-start",
+        alignItems: "flex-end",
     },
     topOvalContainer: {
         position: "absolute",
@@ -264,10 +275,10 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
     topOvalContent: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "flex-end",
-        width: "90%",
-        paddingRight: 20,
-        paddingLeft: 70, // Leaves space for the left controls
+        justifyContent: "flex-start",
+        width: "100%",
+        paddingRight: 70, // Leaves space for the separate exit control on the right
+        paddingLeft: 8,
     },
     targetCardLeft: {
         width: 80,
@@ -278,6 +289,9 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         overflow: "hidden",
         borderRadius: 6,
         backgroundColor: colors.surface,
+    },
+    directionArrowIcon: {
+        // Additional styling if needed for the big arrow icon
     },
     modelMiniature: {
         width: "100%",

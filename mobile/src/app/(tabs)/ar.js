@@ -18,7 +18,7 @@ import * as MediaLibrary from "expo-media-library/legacy";
 import { captureRef } from "react-native-view-shot";
 import { router, useLocalSearchParams, useFocusEffect, useNavigation } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
-import { X, Camera as CameraIcon, Navigation } from "lucide-react-native";
+import { X, Camera as CameraIcon, Navigation, ArrowUp, ArrowLeft, ArrowRight, RotateCcw, Building2 } from "lucide-react-native";
 import { useThemeColors } from "../../context/ThemeContext";
 import { useArStyles } from "../../components/ar/arStyles";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
@@ -26,7 +26,6 @@ import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { geofencingService, assetService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
-import ARTurnIndicator from "../../components/ar/ARTurnIndicator";
 import ARUnsupportedModal from "../../components/ar/ARUnsupportedModal";
 import ARArrivalModal from "../../components/ar/ARArrivalModal";
 import ARClaimErrorModal from "../../components/ar/ARClaimErrorModal";
@@ -276,8 +275,6 @@ export default function ARScreen() {
     const badgeAnim = useRef(new Animated.Value(0)).current;
     const rankAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
-    // Turn indicator glow pulse (border opacity animation)
-    const ribbonPulseAnim = useRef(new Animated.Value(0)).current;
 
     // Center Arrival Modal states & animation
     const [showArrivalModal, setShowArrivalModal] = useState(false);
@@ -329,29 +326,6 @@ export default function ARScreen() {
             loadingShimmerAnim.setValue(0);
         }
     }, [isArModelLoading]);
-
-    // Continuous pulsing border glow on turn indicators (loop opacity 0→1→0)
-    useEffect(() => {
-        const loop = Animated.loop(
-            Animated.sequence([
-                Animated.timing(ribbonPulseAnim, {
-                    toValue: 1,
-                    duration: 700,
-                    easing: Easing.ease,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(ribbonPulseAnim, {
-                    toValue: 0.2,
-                    duration: 700,
-                    easing: Easing.ease,
-                    useNativeDriver: true,
-                }),
-            ])
-        );
-        loop.start();
-        return () => loop.stop();
-    }, []);
-
 
     const cameraRef = useRef(null);
     const arViewRef = useRef(null);
@@ -869,9 +843,9 @@ export default function ARScreen() {
             let diff = (bearing - heading + 360) % 360;
             if (diff > 180) diff -= 360;
 
-            // Camera FOV is ~75° (±37.5°). The 3D arrow is visible within ±45°.
-            // Only show turn indicators when the target is genuinely off-screen.
-            // Display "TURN AROUND" when the target is behind the user.
+            // Categorize the same waypoint direction used by the ground guide
+            // for the compact header instruction. The 3D ground arrows remain
+            // the sole prominent turn cue in the camera view.
             if (Math.abs(diff) > 135) {
                 turnDirection = "around";
             } else if (diff < -45) {
@@ -1431,24 +1405,12 @@ export default function ARScreen() {
 
                 {/* 2. Middle Layer removed (Model moved into targetCard) */}
 
-                {/* --- Top Left Controls (Exit, QR, Active Missions) --- */}
+                {/* --- Top Right Control (Exit) --- */}
                 {!capturing && (
-                    <View style={styles.topLeftControls}>
+                    <View style={styles.topRightControls}>
                         <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
                             <X size={24} color={colors.primary} />
                         </TouchableOpacity>
-
-                        
-                        
-                        {/* Active Missions Pill */}
-                        {user?.role === "student" && Array.isArray(activeQuests) && activeQuests.length > 0 && !triviaModalVisible && (
-                            <TouchableOpacity style={styles.missionsPill}>
-                                <Ionicons name="list" size={14} color={colors.primary} style={{ marginRight: 4 }} />
-                                <Text style={styles.missionsPillText}>
-                                    {activeQuests.filter(q => !q.is_completed).length} MISSIONS
-                                </Text>
-                            </TouchableOpacity>
-                        )}
                     </View>
                 )}
 
@@ -1475,26 +1437,60 @@ export default function ARScreen() {
                             const activeBldg = navTargetFull || (!isTargetMode ? (nearbyBuildingFull || nearbyBuilding) : null);
                             const dist = Math.round(isTargetMode ? (distanceToTarget || 0) : (geofenceStatus?.distance_meters || 0));
 
+                            // Arrow direction label based on turnDirection
+                            const getArrowLabel = (dir) => {
+                                switch (dir) {
+                                    case 'left': return 'LEFT';
+                                    case 'right': return 'RIGHT';
+                                    case 'around': return 'TURN AROUND';
+                                    case 'ahead':
+                                    default: return 'FORWARD';
+                                }
+                            };
+                            const getArrowIcon = (dir) => {
+                                switch (dir) {
+                                    case 'left': return ArrowLeft;
+                                    case 'right': return ArrowRight;
+                                    case 'around': return RotateCcw;
+                                    case 'ahead':
+                                    default: return ArrowUp;
+                                }
+                            };
+                            const arrowDir = turnDirection || 'ahead';
+                            const arrowLabel = getArrowLabel(arrowDir);
+                            const DirectionIcon = getArrowIcon(arrowDir);
+
                             return (
                                 <View style={styles.topOvalContent}>
-                                    {/* Left Side: 2D Building Image */}
-                                    {isModelVisible && (
-                                        <View style={styles.targetCardLeft}>
-                                            <Image
-                                                source={{ uri: activeBldg?.image_url }}
-                                                style={styles.modelMiniature}
-                                                resizeMode="cover"
+                                    {/* Direction arrow becomes the building thumbnail on arrival. */}
+                                    <View style={styles.targetCardLeft}>
+                                        {isArrived ? (
+                                            activeBldg?.image_url ? (
+                                                <Image
+                                                    source={{ uri: activeBldg.image_url }}
+                                                    style={styles.modelMiniature}
+                                                    resizeMode="cover"
+                                                />
+                                            ) : (
+                                                <Building2 size={42} color={colors.primary} />
+                                            )
+                                        ) : (
+                                            <DirectionIcon
+                                                size={48}
+                                                color={colors.primary}
+                                                strokeWidth={3}
+                                                style={styles.directionArrowIcon}
                                             />
-                                        </View>
-                                    )}
+                                        )}
+                                    </View>
 
-                                    {/* Right Side: Info & Claim */}
+                                    {/* Right Side: Arrow Label + Building Name */}
                                     <View style={styles.targetCardRight}>
                                         <Text style={styles.targetLabel}>
-                                            {isArrived ? 'TARGET ACQUIRED' : 'TARGET DETECTED'}
+                                            {isArrived ? 'BUILDING ACQUIRED' : arrowLabel}
                                         </Text>
                                         <Text style={[styles.buildingLabel, { color: colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
-                                            {activeBldg?.name || 'Target'}
+                                            {isArrived ? (activeBldg?.name || 'Building') : `to ${activeBldg?.name || 'Target'}`}
                                         </Text>
                                         
                                         {isArrived ? (
@@ -1558,32 +1554,31 @@ export default function ARScreen() {
                                                         </>
                                                     )}
                                                 </TouchableOpacity>
-                                            ) : activeBldg && enable_trivia ? (
-                                                <TouchableOpacity 
-                                                    style={styles.claimQuestBtn} 
-                                                    onPress={handleViewTriviaOnly}
-                                                    activeOpacity={0.8}
-                                                >
-                                                    <Ionicons name="information-circle" size={16} color="#FFFFFF" />
-                                                    <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
-                                                </TouchableOpacity>
                                             ) : null
                                         )}
                                     </View>
                                 </View>
                             );
                         })()}
+
+                        {!capturing &&
+                            !triviaModalVisible &&
+                            isArrived &&
+                            activeTarget &&
+                            enable_trivia &&
+                            !(user?.role === 'student' && matchingQuest) && (
+                                <TouchableOpacity
+                                    style={[styles.viewInfoFloatingBtn, { backgroundColor: colors.primary }]}
+                                    onPress={handleViewTriviaOnly}
+                                    activeOpacity={0.85}
+                                >
+                                    <Ionicons name="information-circle" size={18} color="#FFFFFF" />
+                                    <Text style={styles.claimQuestBtnText}>VIEW INFO</Text>
+                                </TouchableOpacity>
+                            )}
                     </View>
                 )}
 
-
-                {/* ── Enhanced Animated Turn Indicators (Option 5 — Pulsing Glow Arrows) ── */}
-                {navTargetFull && !isArrived && !isScanningQr && !capturing && !triviaModalVisible && (
-                    <ARTurnIndicator
-                        turnDirection={turnDirection}
-                        pulseAnim={ribbonPulseAnim}
-                    />
-                )}
 
                 {/* 3. Reticle Overlays */}
                 {/* QR Scanner box — only when user explicitly toggles QR code scanning */}
