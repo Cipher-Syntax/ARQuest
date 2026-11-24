@@ -88,9 +88,9 @@ export default function ARUnsupportedModal({ visible, onGoToMap, onUseQr }) {
                             marginBottom: 20,
                         }}
                     >
-                        Your device does not support native Spatial AR tracking. You
-                        can still navigate using the Campus 2D Map and scan building QR
-                        codes to complete quests.
+                        Your device cannot display native Spatial AR models. GPS
+                        geofence unlocking can still work while the AR Scanner is open.
+                        If GPS cannot confirm the unlock, scan the building QR code instead.
                     </Text>
 
                     {/* Action Buttons */}

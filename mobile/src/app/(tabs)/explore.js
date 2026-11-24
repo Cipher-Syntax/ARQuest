@@ -3,6 +3,7 @@ import { router, useFocusEffect } from "expo-router";
 import {
     View,
     Text,
+    Image,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
@@ -121,7 +122,17 @@ export default function ExploreScreen() {
     const nearbyBuildings = useMemo(() => {
         if (!location || buildingsList.length === 0) return [];
 
+        const insideBuildingId =
+            validationResult?.status === "inside"
+                ? validationResult.building?.id
+                : null;
+
         return buildingsList
+            .filter(
+                (building) =>
+                    insideBuildingId == null ||
+                    String(building.id) !== String(insideBuildingId),
+            )
             .map((b) => ({
                 ...b,
                 distance: getDistance(
@@ -133,7 +144,12 @@ export default function ExploreScreen() {
             }))
             .sort((a, b) => a.distance - b.distance)
             .slice(0, 5);
-    }, [location, buildingsList]);
+    }, [
+        location,
+        buildingsList,
+        validationResult?.status,
+        validationResult?.building?.id,
+    ]);
 
     // Radar Pulse & Spin Animations (Paused when not tracking or screen unfocused)
     const pulseAnim1 = useRef(new Animated.Value(1)).current;
@@ -328,6 +344,17 @@ export default function ExploreScreen() {
         insideBuilding.is_active !== false &&
         insideBuilding.status !== "MAINTENANCE" &&
         !insideLockedForStudent;
+
+    const targetBuildingImageUrl = useMemo(() => {
+        const targetBuilding = validationResult?.building;
+        if (!targetBuilding) return null;
+        if (targetBuilding.image_url) return targetBuilding.image_url;
+
+        const buildingFromList = buildingsList.find(
+            (building) => String(building.id) === String(targetBuilding.id),
+        );
+        return buildingFromList?.image_url || null;
+    }, [validationResult?.building?.id, validationResult?.building?.image_url, buildingsList]);
 
     return (
         <View style={{ flex: 1, backgroundColor: "#F8F9FA" }}>
@@ -532,26 +559,23 @@ export default function ExploreScreen() {
                                         : styles.targetSearching,
                                 ]}
                             >
-                                <View style={styles.targetIcon}>
-                                    <Ionicons
-                                        name={
-                                            validationResult.status === "inside"
-                                                ? validationResult.building
-                                                      .is_active === false
-                                                    ? "warning"
-                                                    : insideLockedForStudent
-                                                      ? "lock-closed"
-                                                      : "star"
-                                                : "walk"
-                                        }
-                                        size={32}
-                                        color={
-                                            insideOwned
-                                                ? colors.white
-                                                : colors.primary
-                                        }
-                                    />
-                                </View>
+                                {validationResult.status === "inside" && insideOwned && (
+                                    <View style={styles.targetBuildingImageWrap}>
+                                        {targetBuildingImageUrl ? (
+                                            <Image
+                                                source={{ uri: targetBuildingImageUrl }}
+                                                style={styles.targetBuildingImage}
+                                                resizeMode="cover"
+                                            />
+                                        ) : (
+                                            <Ionicons
+                                                name="business"
+                                                size={52}
+                                                color={colors.primary}
+                                            />
+                                        )}
+                                    </View>
+                                )}
                                 <View style={styles.targetInfo}>
                                     <Text
                                         style={[
@@ -584,6 +608,56 @@ export default function ExploreScreen() {
                                                     : "AR content unlocked"
                                             : `Distance: ${validationResult.distance_meters} meters away`}
                                     </Text>
+                                    {validationResult.status === "inside" && insideLockedForStudent && (
+                                        <View style={styles.targetUnlockGuide}>
+                                            <Text style={styles.targetUnlockGuideTitle}>
+                                                HOW TO UNLOCK THIS BUILDING
+                                            </Text>
+                                            <Text style={styles.targetUnlockGuideText}>
+                                                1. Open the AR tab and launch the AR Scanner. GPS will unlock the building when your location is confirmed.
+                                            </Text>
+                                            <Text style={styles.targetUnlockGuideText}>
+                                                2. If Spatial AR is not supported on your device, choose “Use QR Scanner Instead” and scan the building QR code.
+                                            </Text>
+                                            <TouchableOpacity
+                                                style={styles.targetOpenScannerButton}
+                                                activeOpacity={0.85}
+                                                onPress={() =>
+                                                    router.push({
+                                                        pathname: "/(tabs)/ar",
+                                                        params: {
+                                                            targetBuildingId: String(insideBuilding.id),
+                                                        },
+                                                    })
+                                                }
+                                            >
+                                                <Ionicons
+                                                    name="scan-outline"
+                                                    size={18}
+                                                    color={colors.white}
+                                                />
+                                                <Text style={styles.targetOpenScannerButtonText}>
+                                                    OPEN AR SCANNER
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                    {validationResult.status === "inside" && insideOwned && (
+                                        <View style={styles.targetContentGuide}>
+                                            <Text style={styles.targetContentGuideTitle}>
+                                                WHERE TO FIND THIS CONTENT
+                                            </Text>
+                                            <Text style={styles.targetContentGuideText}>
+                                                1. Open the Maps tab.
+                                            </Text>
+                                            <Text style={styles.targetContentGuideText}>
+                                                2. Tap {validationResult.building.name} on the map.
+                                            </Text>
+                                            <Text style={styles.targetContentGuideText}>
+                                                3. Choose its 3D Model, Virtual Tour, or Quiz.
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
                             </View>
                         ) : (
@@ -1021,8 +1095,8 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         marginVertical: spacing.xl,
     },
     targetBox: {
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "stretch",
         padding: 16,
         borderRadius: radius.lg,
         borderWidth: 1.5,
@@ -1039,28 +1113,93 @@ const createStyles = (colors, spacing, radius) => StyleSheet.create({
         backgroundColor: "#10B981", // Clean success green
         borderColor: "#059669",
     },
-    targetIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+    targetBuildingImageWrap: {
+        width: "100%",
+        height: 160,
+        marginBottom: spacing.md,
+        borderRadius: radius.md,
+        overflow: "hidden",
         backgroundColor: "rgba(255,255,255,0.9)",
         alignItems: "center",
         justifyContent: "center",
-        marginRight: 16,
+    },
+    targetBuildingImage: {
+        width: "100%",
+        height: "100%",
     },
     targetInfo: {
-        flex: 1,
+        width: "100%",
     },
     targetName: {
         fontFamily: fonts.heading.bold,
         fontSize: 18,
         color: colors.textPrimary,
         marginBottom: 6,
+        textAlign: "center",
     },
     targetDistance: {
         fontFamily: fonts.body.medium,
         fontSize: 14,
         color: colors.textSecondary,
+        textAlign: "center",
+    },
+    targetUnlockGuide: {
+        marginTop: spacing.md,
+        padding: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        gap: spacing.sm,
+    },
+    targetUnlockGuideTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 11,
+        color: colors.primary,
+        letterSpacing: 0.6,
+    },
+    targetUnlockGuideText: {
+        fontFamily: fonts.body.medium,
+        fontSize: 12,
+        color: colors.textSecondary,
+        lineHeight: 17,
+    },
+    targetOpenScannerButton: {
+        marginTop: spacing.xs,
+        minHeight: 44,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.primary,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: spacing.sm,
+    },
+    targetOpenScannerButtonText: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 12,
+        color: colors.white,
+        letterSpacing: 0.5,
+    },
+    targetContentGuide: {
+        marginTop: spacing.md,
+        padding: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: "rgba(255,255,255,0.16)",
+        gap: spacing.xs,
+    },
+    targetContentGuideTitle: {
+        fontFamily: fonts.heading.bold,
+        fontSize: 11,
+        color: colors.white,
+        letterSpacing: 0.6,
+        marginBottom: spacing.xs,
+    },
+    targetContentGuideText: {
+        fontFamily: fonts.body.medium,
+        fontSize: 12,
+        color: colors.white,
+        lineHeight: 17,
     },
     textWhite: {
         color: colors.white,

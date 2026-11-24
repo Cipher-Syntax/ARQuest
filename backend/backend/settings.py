@@ -296,7 +296,7 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
             'filename': os.path.join(LOGS_DIR, 'arquest.log'),
             'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,

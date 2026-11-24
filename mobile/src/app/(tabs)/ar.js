@@ -21,9 +21,7 @@ import { useIsFocused } from "../../hooks/useIsFocused";
 import { X, Camera as CameraIcon, Navigation, ArrowUp, ArrowLeft, ArrowRight, RotateCcw, Building2 } from "lucide-react-native";
 import { useThemeColors } from "../../context/ThemeContext";
 import { useArStyles } from "../../components/ar/arStyles";
-import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
-import { geofencingService, assetService } from "../../services";
 import { api } from "../../services";
 import AR3DModelOverlay from "../../components/ar/AR3DModelOverlay";
 import ARUnsupportedModal from "../../components/ar/ARUnsupportedModal";
@@ -34,12 +32,6 @@ import ARBottomControls from "../../components/ar/ARBottomControls";
 import ARRouteMiniMap from "../../components/ar/ARRouteMiniMap";
 import ARRewardToast from "../../components/ar/ARRewardToast";
 import { checkARSupport } from "../../utils/ar-hardware-check";
-import {
-    getBearing,
-    getHaversineDistance,
-    getUpcomingWaypoint,
-    snapToWalkway,
-} from "../../utils/geo-ar";
 import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import ARQuestScene from "../../components/ar/ARQuestScene";
 import ARPostcardModal from "../../components/ar/ARPostcardModal";
@@ -52,11 +44,16 @@ import SoundManager from "../../utils/SoundManager";
 import { GeoStatusIndicator } from "../../components/ui/GeoStatusIndicator";
 import ErrorBoundary from "../../components/ui/ErrorBoundary";
 
-// Buildings whose arrival was already announced in this app session. Keeping
-// this outside the component means switching tabs while standing inside a
-// geofence cannot replay the arrival sound and modal. Entries are dropped only
-// once the user is provably away again (outside the geofence or > 45 m off).
-const announcedArrivalBldgIds = new Set();
+// Import extracted hooks
+import { useARNavigation } from "../../hooks/useARNavigation";
+import { useARGeofence } from "../../hooks/useARGeofence";
+import { useARModelCache } from "../../hooks/useARModelCache";
+import { useARQuestTrivia } from "../../hooks/useARQuestTrivia";
+import { useARQrUnlock } from "../../hooks/useARQrUnlock";
+import { useARCapture } from "../../hooks/useARCapture";
+import { useARArrival } from "../../hooks/useARArrival";
+import { useARBuildingDetails } from "../../hooks/useARBuildingDetails";
+import { useLocationTracking } from "../../hooks/useLocationTracking";
 
 function formatModelSize(bytes) {
     const size = Number(bytes);
@@ -71,44 +68,10 @@ export default function ARScreen() {
     const styles = useArStyles();
     const { user, checkToken } = useAuth();
     const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-    const [mediaPermission, requestMediaPermission] =
-        MediaLibrary.usePermissions();
-    const [nearbyBuilding, setNearbyBuilding] = useState(null);
-    const [nearbyBuildingFull, setNearbyBuildingFull] = useState(null);
-    const [geofenceStatus, setGeofenceStatus] = useState(null);
-    const lastGeofenceCheckTimeRef = useRef(0);
-    const consecutiveOutsideCountRef = useRef(0);
-    const [capturing, setCapturing] = useState(false);
-    const [postcardPhotoUri, setPostcardPhotoUri] = useState(null);
-    const [isPostcardModalVisible, setIsPostcardModalVisible] = useState(false);
-    const [isScanningQr, setIsScanningQr] = useState(false);
-    const [isCameraTransitioning, setIsCameraTransitioning] = useState(false);
-    const [scannedData, setScannedData] = useState(null);
-    const [isARSupported, setIsARSupported] = useState(true); // Assume supported; set false if check fails
-    const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
-    const [cachedModel, setCachedModel] = useState(null);
-    const [modelDownloadProgress, setModelDownloadProgress] = useState(null);
-    const prefetchedModelKeysRef = useRef(new Set());
-    const [claimErrorModalVisible, setClaimErrorModalVisible] = useState(false);
-    const [claimErrorMessage, setClaimErrorMessage] = useState("");
-    const [claimTargetQuest, setClaimTargetQuest] = useState(null);
-
-    // QR unlock error modal state
-    const [qrErrorModalVisible, setQrErrorModalVisible] = useState(false);
-    const [qrErrorMessage, setQrErrorMessage] = useState("");
-    const [qrErrorDistance, setQrErrorDistance] = useState(null);
-    const [qrErrorThreshold, setQrErrorThreshold] = useState(null);
-    const [qrErrorBuildingName, setQrErrorBuildingName] = useState("");
-    const [qrErrorRetrying, setQrErrorRetrying] = useState(false);
-
-    // QR unlock success modal state
-    const [unlockedModalVisible, setUnlockedModalVisible] = useState(false);
-    const [unlockedModalBuilding, setUnlockedModalBuilding] = useState("");
-    const [unlockedModalIsDemo, setUnlockedModalIsDemo] = useState(false);
-    const [unlockedModalAlready, setUnlockedModalAlready] = useState(false);
-    const [unlockedModalExp, setUnlockedModalExp] = useState(0);
-
+    const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
     const navigation = useNavigation();
+
+    // --- Route Params ---
     const {
         targetBuildingId,
         buildingId,
@@ -130,23 +93,105 @@ export default function ARScreen() {
     const activeTargetId = targetBuildingId || buildingId;
     const isTargetMode = Boolean(activeTargetId);
 
+    // --- Auth & Settings ---
+    const { canUseAR } = useRoleAccess();
+    const {
+        demoMode,
+        enable_gps,
+        enable_qr,
+        enable_ar_selfie,
+        enable_trivia,
+        refresh: refreshPublicSettings,
+    } = usePublicSettings();
+
+    // --- Location & Unlocks ---
+    const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
+    const { unlockedBuildings, attemptUnlock, unlockViaQr } = useUnlockedBuildings();
+
+    // --- Navigation State (component-managed) ---
     const [navTargetFull, setNavTargetFull] = useState(null);
-    const [nextWaypoint, setNextWaypoint] = useState(null);
-    const [routeCoordinates, setRouteCoordinates] = useState([]);
-    const [campusPerimeter, setCampusPerimeter] = useState(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
-
     const [isArrivedLatched, setIsArrivedLatched] = useState(false);
+    const [isScanningQr, setIsScanningQr] = useState(false);
+    const [isCameraTransitioning, setIsCameraTransitioning] = useState(false);
+    const [isArModelLoading, setIsArModelLoading] = useState(false);
+    const [claimTargetQuest, setClaimTargetQuest] = useState(null);
+    const [isARSupported, setIsARSupported] = useState(true);
+    const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
-    // Reset arrival latch and stable references whenever navigation target changes
+    // Reset arrival latch when navigation target changes
     useEffect(() => {
         setIsArrivedLatched(false);
-        stableModelUrlRef.current = null;
-        stableBuildingNameRef.current = null;
     }, [activeTargetId]);
 
-    // Active building target: In target navigation mode, ONLY use navTargetFull.
-    // Never fall back to the building where the user is currently standing.
+    // Nearby building ID state (updated from geofence hook)
+    const [nearbyBuildingId, setNearbyBuildingId] = useState(null);
+
+    // Unlocked IDs key for refetching
+    const unlockedIdsKey = useMemo(
+        () => (unlockedBuildings || []).map((b) => String(b.id)).sort().join(","),
+        [unlockedBuildings]
+    );
+
+    // --- Compose Sub-Hooks ---
+
+    // Building details & campus perimeter
+    const {
+        nearbyBuildingFull,
+        setNearbyBuildingFull,
+        campusPerimeter,
+    } = useARBuildingDetails({
+        nearbyBuildingId,
+        unlockedIdsKey,
+        activeTargetId,
+        setNavTargetFull,
+    });
+
+    // Navigation hook
+    const {
+        routeCoordinates,
+        nextWaypoint,
+        turnDirection,
+        distanceToTarget,
+        navUserLat,
+        navUserLng,
+        refreshRoute,
+        setRouteCoordinates,
+        setNextWaypoint,
+    } = useARNavigation({
+        isCameraActive,
+        navTargetFull,
+        fixedRouteOrigin,
+        location,
+        heading,
+        isArrived: isArrivedLatched,
+    });
+
+    // Geofence & Arrival hook
+    const {
+        nearbyBuilding,
+        geofenceStatus,
+        rawArrived,
+        isInsideDestination,
+        isArrived,
+    } = useARGeofence({
+        location,
+        enableGps: enable_gps,
+        isTargetMode,
+        activeTargetId,
+        navTargetFull,
+        isFocused,
+        isArrivedLatched,
+        setIsArrivedLatched,
+        distanceToTarget,
+    });
+
+    // Sync nearbyBuildingId from geofence hook for building details fetch
+    useEffect(() => {
+        setNearbyBuildingId(nearbyBuilding?.id ?? null);
+    }, [nearbyBuilding]);
+
+    // Active building target (derived from hook state)
     const activeTarget = navTargetFull || (!isTargetMode ? nearbyBuildingFull : null);
 
     // Stable references to prevent background geofence re-fetches from wiping model/name mid-session
@@ -164,121 +209,78 @@ export default function ARScreen() {
     }
     const effectiveBuildingName = candidateBuildingName || (isTargetMode ? (navTargetFull?.name || "Loading Destination...") : stableBuildingNameRef.current);
 
-    useEffect(() => {
-        const targetBldg =
-            navTargetFull || (!isTargetMode ? nearbyBuildingFull : null);
-        const key = assetService.getModelKey(targetBldg);
+    // Model Cache hook
+    const {
+        activeModelUri,
+        effectiveModelUrl: modelEffectiveUrl,
+        modelProgressPercent,
+        modelDownloadProgress,
+        matchingCachedModel,
+        matchingModelProgress,
+    } = useARModelCache({
+        activeTarget,
+        isTargetMode,
+        navTargetFull,
+        nearbyBuildingFull,
+    });
 
-        // No model for this target: the derived `activeModelUri` below falls
-        // back to the stable/remote URL on its own.
-        if (!key) return;
+    // Quest & Trivia hook
+    const {
+        matchingQuest,
+        fetchedTrivia,
+        claimedQuest,
+        isClaiming,
+        claimErrorMessage,
+        claimErrorModalVisible,
+        setClaimErrorModalVisible,
+        triviaModalVisible,
+        newlyEarnedBadges,
+        rankUpInfo,
+        slideAnim,
+        badgeAnim,
+        rankAnim,
+        fetchQuests,
+        handleClaimQuest,
+        handleViewTriviaOnly,
+        closeTriviaModal,
+    } = useARQuestTrivia({
+        user,
+        enableTrivia: enable_trivia,
+        navTargetFull,
+        nearbyBuildingFull,
+        activeQuests: [],
+        checkToken,
+    });
 
-        let cancelled = false;
-        const targetId = targetBldg.id;
+    // Arrival hook (moved before QR Unlock to provide arrivalModalAnim)
+    const {
+        arrivalModalAnim,
+        discoveryExpForArrival,
+        handleDismissArrivalModal,
+        showArrivalModal,
+    } = useARArrival({
+        isArrived,
+        isFocused,
+        isTargetMode,
+        navTargetFull,
+        nearbyBuildingFull,
+        nearbyBuilding,
+        geofenceStatus,
+        distanceToTarget,
+        unlockedBuildings,
+        effectiveBuildingName,
+        checkToken,
+        attemptUnlock,
+        location,
+        enableGps: enable_gps,
+        user,
+        isModalBlocked: showUnsupportedModal || isScanningQr,
+    });
 
-        const resolveModel = async () => {
-            const localPath = assetService.getLocalPath(
-                key.assetId,
-                key.version,
-                key.url,
-            );
-            setModelDownloadProgress({ id: targetId, progress: null, status: "checking" });
+    // Arrival timer ref (needed for toggleQrScanner)
+    const arrivalTimerRef = useRef(null);
 
-            try {
-                if (
-                    await assetService.isCached(
-                        key.assetId,
-                        key.version,
-                        key.url,
-                    )
-                ) {
-                    if (!cancelled) {
-                        setCachedModel({ id: targetId, uri: localPath });
-                        setModelDownloadProgress({ id: targetId, progress: 1, status: "ready" });
-                    }
-                    return;
-                }
-
-                const prefetchKey = `${key.assetId}_v${key.version}_${key.url}`;
-                if (prefetchedModelKeysRef.current.has(prefetchKey)) {
-                    if (!cancelled) {
-                        setCachedModel({ id: targetId, uri: key.url });
-                        setModelDownloadProgress({ id: targetId, progress: null, status: "fallback" });
-                    }
-                    return;
-                }
-                prefetchedModelKeysRef.current.add(prefetchKey);
-                if (!cancelled) {
-                    setModelDownloadProgress({ id: targetId, progress: null, status: "downloading" });
-                }
-
-                try {
-                    const downloadedUri = await assetService.downloadAsset(
-                        key.url,
-                        key.assetId,
-                        key.version,
-                        (progress) => {
-                            if (!cancelled) {
-                                setModelDownloadProgress({ id: targetId, progress, status: "downloading" });
-                            }
-                        },
-                        targetBldg.model_file_size,
-                    );
-                    if (!cancelled) {
-                        setCachedModel({ id: targetId, uri: downloadedUri });
-                        setModelDownloadProgress({ id: targetId, progress: 1, status: "ready" });
-                    }
-                } finally {
-                    prefetchedModelKeysRef.current.delete(prefetchKey);
-                }
-            } catch (e) {
-                console.warn(
-                    "AR model cache unavailable, streaming from network:",
-                    e,
-                );
-                if (!cancelled) {
-                    setCachedModel({ id: targetId, uri: key.url });
-                    setModelDownloadProgress({ id: targetId, progress: null, status: "fallback" });
-                }
-            }
-        };
-
-        resolveModel();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [
-        navTargetFull?.id,
-        isTargetMode ? null : nearbyBuildingFull?.id,
-        navTargetFull?.model_url,
-        isTargetMode ? null : nearbyBuildingFull?.model_url,
-        navTargetFull?.model_version,
-        isTargetMode ? null : nearbyBuildingFull?.model_version,
-    ]);
-
-    // Only trust a cached URI that belongs to the building currently targeted:
-    // a stale path from the previous target would point at the wrong model.
-    const matchingCachedModel = Boolean(
-        cachedModel && activeTarget?.id != null && cachedModel.id === activeTarget.id
-    );
-    const matchingModelProgress = Boolean(
-        modelDownloadProgress && activeTarget?.id != null && modelDownloadProgress.id === activeTarget.id
-    );
-    const activeModelUri = matchingCachedModel
-        ? cachedModel.uri
-        : matchingModelProgress && modelDownloadProgress.status === "fallback"
-          ? effectiveModelUrl
-          : null;
-    const modelProgressPercent =
-        matchingModelProgress && Number.isFinite(modelDownloadProgress.progress)
-            ? Math.max(0, Math.min(100, Math.round(modelDownloadProgress.progress * 100)))
-            : null;
-    const modelSizeLabel = formatModelSize(activeTarget?.model_file_size);
-    const modelLoadingLabel = modelProgressPercent == null
-        ? `${modelDownloadProgress?.status === "downloading" ? "DOWNLOADING MODEL" : "PREPARING MODEL"} · ${modelSizeLabel}`
-        : `${modelDownloadProgress.status === "ready" ? "PREPARING" : "DOWNLOADING"} ${modelProgressPercent}% / 100% · ${modelSizeLabel}`;
-
+    // QR Scanner toggle
     const toggleQrScanner = useCallback((enable) => {
         if (enable && !enable_qr) {
             Alert(
@@ -290,31 +292,88 @@ export default function ARScreen() {
         setIsCameraTransitioning(true);
         setIsScanningQr(enable);
         if (enable) {
-            if (arrivalTimerRef.current) {
-                clearTimeout(arrivalTimerRef.current);
-            }
-            setShowArrivalModal(false);
-            arrivalModalAnim.setValue(0);
+            // Use hook's dismiss function which clears internal timer and resets animation
+            handleDismissArrivalModal();
         }
         setTimeout(() => {
             setIsCameraTransitioning(false);
         }, 250);
-    }, [enable_qr]);
+    }, [enable_qr, handleDismissArrivalModal]);
 
-    // The admin can switch QR off while this screen is open.
+    // Admin can switch QR off while screen is open
     useEffect(() => {
         if (!enable_qr && isScanningQr) {
             toggleQrScanner(false);
         }
     }, [enable_qr, isScanningQr, toggleQrScanner]);
 
+    // QR Unlock hook
+    const {
+        scannedData,
+        setScannedData,
+        qrErrorModalVisible,
+        qrErrorMessage,
+        qrErrorDistance,
+        qrErrorThreshold,
+        qrErrorBuildingName,
+        qrErrorRetrying,
+        handleBarCodeScanned,
+        handleQrErrorRetry,
+        handleQrErrorDismiss,
+        unlockedModalVisible,
+        unlockedModalBuilding,
+        unlockedModalIsDemo,
+        unlockedModalAlready,
+        unlockedModalExp,
+        handleUnlockedDismiss,
+    } = useARQrUnlock({
+        isScanningQr,
+        setIsScanningQr,
+        location,
+        demoMode,
+        user,
+        nearbyBuildingFull,
+        setNearbyBuildingFull,
+        refreshPublicSettings,
+        checkToken,
+        toggleQrScanner,
+        unlockViaQr,
+    });
+
+    // Capture hook
+    const cameraRef = useRef(null);
+    const arViewRef = useRef(null);
+    const viroNavRef = useRef(null);
+
+    const {
+        flashAnim,
+        handleCaptureArSnapshot,
+        handleClosePostcard,
+        capturing,
+        postcardPhotoUri,
+        isPostcardModalVisible,
+        setCapturing,
+        setPostcardPhotoUri,
+        setIsPostcardModalVisible,
+    } = useARCapture({
+        enableArSelfie: enable_ar_selfie,
+        isScanningQr,
+        cameraRef,
+        arViewRef,
+        viroNavRef,
+        navTargetFull,
+        nearbyBuildingFull,
+        location,
+        user,
+    });
+
+    // AR Support Check
     useEffect(() => {
         checkARSupport()
             .then((supported) => {
                 setIsARSupported(supported);
                 if (!supported) {
                     setShowUnsupportedModal(true);
-                    setIsScanningQr(true);
                 }
             })
             .catch((err) => {
@@ -323,192 +382,13 @@ export default function ARScreen() {
             });
     }, []);
 
+    // Model size formatting
+    const modelSizeLabel = formatModelSize(activeTarget?.model_file_size);
+    const modelLoadingLabel = modelProgressPercent == null
+        ? `${modelDownloadProgress?.status === "downloading" ? "DOWNLOADING MODEL" : "PREPARING MODEL"} · ${modelSizeLabel}`
+        : `${modelDownloadProgress?.status === "ready" ? "PREPARING" : "DOWNLOADING"} ${modelProgressPercent}% / 100% · ${modelSizeLabel}`;
 
-    // Trivia & Quest State
-    const [activeQuests, setActiveQuests] = useState([]);
-    const [triviaModalVisible, setTriviaModalVisible] = useState(false);
-    const [claimedQuest, setClaimedQuest] = useState(null);
-    const [fetchedTrivia, setFetchedTrivia] = useState(null);
-    const [newlyEarnedBadges, setNewlyEarnedBadges] = useState([]);
-    const [isClaiming, setIsClaiming] = useState(false);
-    const [rankUpInfo, setRankUpInfo] = useState(null);
-    const slideAnim = useRef(new Animated.Value(400)).current;
-    const badgeAnim = useRef(new Animated.Value(0)).current;
-    const rankAnim = useRef(new Animated.Value(0)).current;
-    const pulseAnim = useRef(new Animated.Value(0.3)).current;
-
-    // Center Arrival Modal states & animation
-    const [showArrivalModal, setShowArrivalModal] = useState(false);
-    const arrivalModalAnim = useRef(new Animated.Value(0)).current;
-    const arrivalTimerRef = useRef(null);
-    // First-time discovery bonus (+25 EXP) credited by this arrival's unlock.
-    // Keyed by building so a later arrival elsewhere cannot inherit it.
-    const [discoveryExp, setDiscoveryExp] = useState(null);
-    const arrivedBuildingId = (navTargetFull || nearbyBuildingFull)?.id;
-    const discoveryExpForArrival =
-        discoveryExp &&
-        arrivedBuildingId != null &&
-        String(discoveryExp.buildingId) === String(arrivedBuildingId)
-            ? discoveryExp.amount
-            : 0;
-
-    const fetchQuests = useCallback(async () => {
-        if (user?.role !== "student") return;
-        try {
-            const res = await api.get("/api/gamification/quests/active/");
-            if (res.data.success) {
-                const quests = res.data.data?.quests || (Array.isArray(res.data.data) ? res.data.data : []);
-                setActiveQuests(quests);
-            }
-        } catch (error) {
-            console.error("Error fetching quests", error);
-        }
-    }, [user?.role]);
-
-
-
-    // 3D Model Loading State in AR
-    const [isArModelLoading, setIsArModelLoading] = useState(false);
-
-    const cameraRef = useRef(null);
-    const arViewRef = useRef(null);
-    const viroNavRef = useRef(null);
-
-    const flashAnim = useRef(new Animated.Value(0)).current;
-    const { canUseAR } = useRoleAccess();
-    const {
-        demoMode,
-        enable_gps,
-        enable_qr,
-        enable_ar_selfie,
-        enable_trivia,
-        refresh: refreshPublicSettings,
-    } = usePublicSettings();
-
-    const { location, heading, error: locationError, startTracking, stopTracking } = useLocationTracking();
-    const { unlockedBuildings, attemptUnlock, unlockViaQr } = useUnlockedBuildings();
-
-    // Sorted ID fingerprint of everything the user has unlocked. Used as a
-    // dependency so building details (and therefore `model_url`) are refetched
-    // after an unlock. The serializer hides `model_url` until the student owns
-    // the building, so the first fetch can return null.
-    const unlockedIdsKey = useMemo(
-        () => (unlockedBuildings || []).map((b) => String(b.id)).sort().join(","),
-        [unlockedBuildings]
-    );
-
-    useEffect(() => {
-        let cancelled = false;
-        api.get("/api/navigation/perimeter/")
-            .then((res) => {
-                if (!cancelled && res.data?.success && res.data?.data) {
-                    setCampusPerimeter(res.data.data);
-                }
-            })
-            .catch((error) => {
-                console.log("[ARScreen] Campus perimeter unavailable:", error?.message);
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!isCameraActive || !navTargetFull?.id) {
-            setRouteCoordinates([]);
-            setNextWaypoint(null);
-            return;
-        }
-
-        let isMounted = true;
-
-        const fetchRoute = async () => {
-            if (!isMounted || !isCameraActive || !navTargetFull?.id) return;
-            const startLng = fixedRouteOrigin?.longitude ?? location?.longitude ?? location?.coords?.longitude;
-            const startLat = fixedRouteOrigin?.latitude ?? location?.latitude ?? location?.coords?.latitude;
-
-            if (startLat && startLng) {
-                const fallbackWaypoint = {
-                    longitude: navTargetFull.longitude,
-                    latitude: navTargetFull.latitude,
-                };
-
-                try {
-                    const res = await api.get(
-                        `/api/navigation/route/?from_lat=${startLat}&from_lng=${startLng}&to_building_id=${navTargetFull.id}`
-                    );
-
-                    if (
-                        isMounted &&
-                        isCameraActive &&
-                        res.data?.success &&
-                        res.data?.data?.features?.[0]?.geometry?.coordinates
-                    ) {
-                        const coords = res.data.data.features[0].geometry.coordinates;
-                        if (Array.isArray(coords) && coords.length >= 2) {
-                            setRouteCoordinates(coords);
-                            const upcoming = getUpcomingWaypoint(coords, startLat, startLng);
-                            if (upcoming) {
-                                setNextWaypoint(upcoming);
-                            }
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.log("Campus navigation route unavailable, falling back to direct line-of-sight:", e?.message || e);
-                }
-
-                if (isMounted) {
-                    setRouteCoordinates([]);
-                    setNextWaypoint(fallbackWaypoint);
-                }
-            }
-        };
-
-        fetchRoute();
-
-        // Refresh global route every 10 seconds only while camera is active in foreground
-        const interval = setInterval(fetchRoute, 10000);
-        return () => {
-            isMounted = false;
-            clearInterval(interval);
-        };
-    }, [
-        isCameraActive,
-        navTargetFull?.id,
-        navTargetFull?.latitude,
-        navTargetFull?.longitude,
-        fixedRouteOrigin?.latitude,
-        fixedRouteOrigin?.longitude,
-        !(location?.latitude ?? location?.coords?.latitude),
-    ]);
-
-    // Continuously update immediate upcoming waypoint along active campus walking route as user moves
-    useEffect(() => {
-        if (isCameraActive && routeCoordinates && routeCoordinates.length >= 2 && location) {
-            const curLat = location?.latitude ?? location?.coords?.latitude;
-            const curLng = location?.longitude ?? location?.coords?.longitude;
-            if (curLat && curLng) {
-                const upcoming = getUpcomingWaypoint(routeCoordinates, curLat, curLng);
-                if (upcoming) {
-                    setNextWaypoint(prev => {
-                        if (!prev || Math.abs(prev.latitude - upcoming.latitude) > 0.00001 || Math.abs(prev.longitude - upcoming.longitude) > 0.00001) {
-                            return upcoming;
-                        }
-                        return prev;
-                    });
-                }
-            }
-        }
-    }, [
-        isCameraActive,
-        location?.latitude,
-        location?.longitude,
-        location?.coords?.latitude,
-        location?.coords?.longitude,
-        routeCoordinates,
-    ]);
-
+    // Handle exit
     const handleExit = useCallback(() => {
         setIsCameraActive(false);
         stopTracking();
@@ -522,7 +402,6 @@ export default function ARScreen() {
         setIsScanningQr(false);
         setScannedData(null);
         setIsArrivedLatched(false);
-        setIsArModelLoading(false);
         stableModelUrlRef.current = null;
         stableBuildingNameRef.current = null;
         router.setParams({
@@ -541,8 +420,9 @@ export default function ARScreen() {
         }
     }, [navigation, stopTracking, startTracking]);
 
+    // Focus effect
     useFocusEffect(
-        React.useCallback(() => {
+        useCallback(() => {
             setIsCameraActive(true);
             startTracking({ highFrequency: true });
             fetchQuests();
@@ -559,15 +439,12 @@ export default function ARScreen() {
                 setIsScanningQr(false);
                 setScannedData(null);
                 setIsArrivedLatched(false);
-                setIsArModelLoading(false);
             };
         }, [startTracking, stopTracking, fetchQuests])
     );
 
-    useEffect(() => {
-        fetchQuests();
-    }, [fetchQuests]);
-
+    // Pulse animation for scanning reticle
+    const pulseAnim = useRef(new Animated.Value(0.3)).current;
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
@@ -585,777 +462,7 @@ export default function ARScreen() {
         ).start();
     }, [pulseAnim]);
 
-    useEffect(() => {
-        if (location) {
-            checkGeofenceStatus();
-        }
-    }, [location]);
-
-    useEffect(() => {
-        if (nearbyBuilding?.id) {
-            fetchFullBuildingDetails(nearbyBuilding.id);
-        } else {
-            setNearbyBuildingFull(null);
-        }
-        // `unlockedIdsKey` is included so geofence-unlocked buildings refetch
-        // their details and receive `model_url` for the arrived view.
-    }, [nearbyBuilding?.id, unlockedIdsKey]);
-
-    const fetchFullBuildingDetails = async (buildingId) => {
-        try {
-            const response = await api.get(`/api/buildings/${buildingId}/`);
-            if (response.data.success) {
-                setNearbyBuildingFull(response.data.data);
-            }
-        } catch (error) {
-            console.error("Error fetching full building details:", error);
-        }
-    };
-
-    const safeActiveQuests = Array.isArray(activeQuests) ? activeQuests : [];
-    const matchingQuest = safeActiveQuests.find((q) => {
-        if (q.is_completed) return false;
-        // 1. Explicit questId from route params
-        if (questId && String(q.id) === String(questId)) {
-            return true;
-        }
-        // 2. Navigation target building
-        if (navTargetFull?.id && String(q.target_building) === String(navTargetFull.id)) {
-            return true;
-        }
-        // 3. Navigation target ID from route params
-        if (activeTargetId && String(q.target_building) === String(activeTargetId)) {
-            return true;
-        }
-        // 4. Geofence nearby building
-        if (nearbyBuildingFull?.id && String(q.target_building) === String(nearbyBuildingFull.id)) {
-            return true;
-        }
-        if (nearbyBuilding?.id && String(q.target_building) === String(nearbyBuilding.id)) {
-            return true;
-        }
-        return false;
-    });
-
-    // The target is refetched whenever the unlock list changes. A student who
-    // unlocks a building by walking into it gets `model_url: null` on the first
-    // fetch (the serializer only exposes the file to unlocked students), so
-    // without this the arrived view showed the pedestal but never the model.
-    useEffect(() => {
-        if (!activeTargetId) {
-            setNavTargetFull(null);
-            return undefined;
-        }
-
-        let cancelled = false;
-        api.get(`/api/buildings/${activeTargetId}/`)
-            .then((res) => {
-                if (!cancelled && res.data.success) {
-                    setNavTargetFull(res.data.data);
-                }
-            })
-            .catch((err) => console.error("Error fetching nav target", err));
-
-        return () => {
-            cancelled = true;
-        };
-    }, [activeTargetId, unlockedIdsKey]);
-
-    let distanceToTarget = null;
-    let turnDirection = null; // 'left' | 'right' | 'around' | 'ahead'
-    const curLat = location?.latitude ?? location?.coords?.latitude;
-    const curLng = location?.longitude ?? location?.coords?.longitude;
-
-    // Pathway Snapping (Map-Matching): Snaps user position to the nearest campus walkway segment
-    // within 25m, smoothing out GPS multipath reflections and satellite jumps from building walls.
-    const effectiveUserCoords = useMemo(() => {
-        if (!curLat || !curLng) return null;
-        if (routeCoordinates && routeCoordinates.length >= 2) {
-            return snapToWalkway(routeCoordinates, curLat, curLng, 25);
-        }
-        return { latitude: curLat, longitude: curLng, isSnapped: false };
-    }, [curLat, curLng, routeCoordinates]);
-
-    const navUserLat = effectiveUserCoords?.latitude ?? curLat;
-    const navUserLng = effectiveUserCoords?.longitude ?? curLng;
-
-    if (navTargetFull && navUserLat && navUserLng) {
-        distanceToTarget = getHaversineDistance(
-            navUserLat,
-            navUserLng,
-            navTargetFull.latitude,
-            navTargetFull.longitude
-        );
-    }
-
-    // Destination geofence check: True ONLY if inside the actual destination building geofence
-    const isInsideDestination = Boolean(
-        isTargetMode &&
-        geofenceStatus?.status === 'inside' &&
-        (String(nearbyBuildingFull?.id) === String(activeTargetId) || String(nearbyBuilding?.id) === String(activeTargetId))
-    );
-
-    // In target navigation mode: user is arrived ONLY if they reached the destination (distance <= 25m or inside destination geofence)
-    // In free exploration mode: arrived when inside any campus building geofence
-    const rawArrived = Boolean(isTargetMode
-        ? (navTargetFull && distanceToTarget !== null && (distanceToTarget <= 25 || isInsideDestination))
-        : (geofenceStatus?.status === 'inside'));
-
-    useEffect(() => {
-        if (rawArrived) {
-            setIsArrivedLatched(true);
-        } else if (isTargetMode) {
-            // In target navigation mode: unlatch when far from destination and not inside destination
-            if (distanceToTarget !== null && distanceToTarget > 45 && !isInsideDestination) {
-                setIsArrivedLatched(false);
-            }
-        } else if (geofenceStatus?.status !== 'inside') {
-            setIsArrivedLatched(false);
-        }
-    }, [rawArrived, distanceToTarget, isInsideDestination, isTargetMode, geofenceStatus?.status]);
-
-    const isArrived = Boolean(isArrivedLatched || rawArrived);
-
-    // Center Arrival Modal: Triggers for ~3.5 seconds ONCE per building visit.
-    //
-    // The announcement is remembered in a session-level set instead of a ref that
-    // is wiped whenever the screen blurs. Leaving the AR tab sets `isArrived`
-    // false (focus cleanup clears the nav target and the arrival latch), which
-    // used to reset the old per-instance guard, so coming back while still
-    // standing inside the geofence replayed the unlock sound and the modal on
-    // every tab switch. Entries are now dropped only when the user is provably
-    // away again, and nothing announces from a blurred tab.
-    useEffect(() => {
-        const currentBldgId = isTargetMode
-            ? navTargetFull?.id
-            : (nearbyBuildingFull?.id || nearbyBuilding?.id);
-
-        const isProvablyAway =
-            geofenceStatus?.status === "outside" ||
-            (distanceToTarget !== null && distanceToTarget > 45);
-
-        if (isProvablyAway) {
-            announcedArrivalBldgIds.clear();
-        }
-
-        if (!isFocused) return;
-
-        if (isArrived && currentBldgId) {
-            const arrivalKey = String(currentBldgId);
-            if (announcedArrivalBldgIds.has(arrivalKey)) {
-                return;
-            }
-            announcedArrivalBldgIds.add(arrivalKey);
-
-            // Only sound the unlock chime for a building the user does not own
-            // yet. Arriving at an already-unlocked building still shows the
-            // "You have arrived" card, but silently, so the unlock stinger does
-            // not replay on every visit.
-            const isAlreadyUnlocked = unlockedBuildings.some(
-                (b) => String(b.id) === arrivalKey
-            );
-            if (!isAlreadyUnlocked) {
-                try {
-                    SoundManager.play("building_unlock");
-                } catch {
-                    // Non-fatal if audio fails
-                }
-            }
-            setShowArrivalModal(true);
-            Animated.timing(arrivalModalAnim, {
-                toValue: 1,
-                duration: 350,
-                easing: Easing.out(Easing.back(1.5)),
-                useNativeDriver: true,
-            }).start();
-
-            if (arrivalTimerRef.current) {
-                clearTimeout(arrivalTimerRef.current);
-            }
-
-            arrivalTimerRef.current = setTimeout(() => {
-                setShowArrivalModal(false);
-                arrivalModalAnim.setValue(0);
-            }, 3500);
-        } else if (!isArrived) {
-            if (arrivalTimerRef.current) {
-                clearTimeout(arrivalTimerRef.current);
-            }
-            setShowArrivalModal(false);
-            arrivalModalAnim.setValue(0);
-        }
-
-        return () => {
-            if (arrivalTimerRef.current) {
-                clearTimeout(arrivalTimerRef.current);
-            }
-        };
-    }, [
-        isArrived,
-        isFocused,
-        navTargetFull?.id,
-        nearbyBuildingFull?.id,
-        nearbyBuilding?.id,
-        isTargetMode,
-        geofenceStatus?.status,
-        distanceToTarget,
-        arrivalModalAnim,
-        unlockedBuildings,
-    ]);
-
-    // Cleanup arrival modal immediately when switching away from the AR tab
-    useFocusEffect(
-        useCallback(() => {
-            return () => {
-                if (arrivalTimerRef.current) {
-                    clearTimeout(arrivalTimerRef.current);
-                }
-                setShowArrivalModal(false);
-                arrivalModalAnim.setValue(0);
-            };
-        }, [])
-    );
-
-    // Geofence unlock: a student physically entering a building unlocks it here,
-    // mirroring the Explore tab so AR-only sessions still credit the visit.
-    // Fires at most once per building entry; resets when the status leaves 'inside'.
-    const lastGeofenceUnlockBldgIdRef = useRef(null);
-
-    useEffect(() => {
-        const insideBuilding =
-            geofenceStatus?.status === "inside" ? geofenceStatus.building : null;
-
-        // GPS geofencing is switched off by the administrator.
-        if (!enable_gps) return;
-
-        if (!insideBuilding) {
-            lastGeofenceUnlockBldgIdRef.current = null;
-            return;
-        }
-
-        // Only students earn unlocks; visitors and professionals have role access.
-        if (user?.role !== "student") return;
-        if (insideBuilding.is_active === false) return;
-        if (insideBuilding.status === "MAINTENANCE") return;
-        if (
-            unlockedBuildings.some(
-                (b) => String(b.id) === String(insideBuilding.id)
-            )
-        ) {
-            return;
-        }
-        if (
-            String(lastGeofenceUnlockBldgIdRef.current) ===
-            String(insideBuilding.id)
-        ) {
-            return;
-        }
-
-        lastGeofenceUnlockBldgIdRef.current = insideBuilding.id;
-
-        const runUnlock = async () => {
-            try {
-                // No sound here: the arrival effect already announces arrival.
-                const result = await attemptUnlock(
-                    location.latitude,
-                    location.longitude,
-                    location.accuracy || 10
-                );
-                // First-time discovery bonus: surface it on the arrival card
-                // and refresh the cached EXP shown on Home/Profile.
-                if (result?.newly_unlocked === true && result?.exp_awarded > 0) {
-                    setDiscoveryExp({
-                        buildingId: result.building,
-                        amount: result.exp_awarded,
-                    });
-                    checkToken();
-                }
-            } catch (err) {
-                // Non-fatal: next entry (or Explore) will retry.
-                console.warn("AR geofence unlock failed:", err?.message || err);
-            }
-        };
-
-        runUnlock();
-    }, [
-        geofenceStatus,
-        user?.role,
-        location,
-        unlockedBuildings,
-        attemptUnlock,
-        enable_gps,
-        checkToken,
-    ]);
-
-    const handleDismissArrivalModal = () => {
-        if (arrivalTimerRef.current) {
-            clearTimeout(arrivalTimerRef.current);
-        }
-        setShowArrivalModal(false);
-        arrivalModalAnim.setValue(0);
-    };
-
-    // Turn prompts: TURN LEFT / TURN RIGHT / TURN AROUND are driven by the same
-    // relative bearing and keep their original thresholds. They stay independent
-    // of the in-world ground compass and hidden once the user has arrived.
-    if (navTargetFull && navUserLat && navUserLng && heading !== undefined && heading !== null && !isArrived) {
-        const targetLat = nextWaypoint?.latitude ?? navTargetFull.latitude;
-        const targetLng = nextWaypoint?.longitude ?? navTargetFull.longitude;
-
-        if (targetLat !== null && targetLat !== undefined && targetLng !== null && targetLng !== undefined) {
-            const bearing = getBearing(navUserLat, navUserLng, targetLat, targetLng);
-            let diff = (bearing - heading + 360) % 360;
-            if (diff > 180) diff -= 360;
-
-            // Categorize the same waypoint direction used by the ground guide
-            // for the compact header instruction. The 3D ground arrows remain
-            // the sole prominent turn cue in the camera view.
-            if (Math.abs(diff) > 135) {
-                turnDirection = "around";
-            } else if (diff < -45) {
-                turnDirection = "left";
-            } else if (diff > 45) {
-                turnDirection = "right";
-            } else {
-                turnDirection = "ahead";
-            }
-        }
-    }
-
-    const handleClaimQuest = async (questOverride = null) => {
-        // Prevent React Native event object from being treated as questOverride
-        const validOverride = (questOverride && typeof questOverride === 'object' && questOverride.id && !questOverride.nativeEvent)
-            ? questOverride
-            : null;
-        const validClaimTarget = (claimTargetQuest && claimTargetQuest.id) ? claimTargetQuest : null;
-        const validMatching = (matchingQuest && matchingQuest.id) ? matchingQuest : null;
-        const targetQuest = validOverride || validClaimTarget || validMatching;
-        if (!targetQuest || !targetQuest.id || isClaiming) return;
-        setClaimTargetQuest(targetQuest);
-        setIsClaiming(true);
-        try {
-            const res = await api.post(
-                `/api/gamification/quests/${targetQuest.id}/complete/`,
-            );
-            if (res.data.success) {
-                SoundManager.play("quest_complete");
-                setClaimedQuest(targetQuest);
-                setClaimTargetQuest(null);
-                setActiveQuests((prev) =>
-                    (Array.isArray(prev) ? prev : []).map((q) =>
-                        q.id === targetQuest.id
-                            ? { ...q, is_completed: true }
-                            : q,
-                    ),
-                );
-
-                // Show newly earned badges
-                const earned = res.data.data?.newly_earned_badges || [];
-                if (earned.length > 0) {
-                    setTimeout(() => {
-                        SoundManager.play("badge_earned");
-                    }, 1200); // Wait for quest sound to finish
-
-                    setNewlyEarnedBadges(earned);
-                    Animated.sequence([
-                        Animated.delay(600),
-                        Animated.spring(badgeAnim, {
-                            toValue: 1,
-                            tension: 60,
-                            friction: 8,
-                            useNativeDriver: true,
-                        }),
-                    ]).start(() => {
-                        setTimeout(() => {
-                            Animated.timing(badgeAnim, {
-                                toValue: 0,
-                                duration: 300,
-                                useNativeDriver: true,
-                            }).start(() => setNewlyEarnedBadges([]));
-                        }, 3500);
-                    });
-                }
-
-                // Show rank up toast if applicable
-                const newRankInfo = res.data.data?.rank_info;
-                if (
-                    newRankInfo &&
-                    user?.rank_info &&
-                    newRankInfo.level > user.rank_info.level
-                ) {
-                    setRankUpInfo(newRankInfo);
-                    Animated.sequence([
-                        Animated.delay(earned.length > 0 ? 4500 : 600),
-                        Animated.spring(rankAnim, {
-                            toValue: 1,
-                            tension: 60,
-                            friction: 8,
-                            useNativeDriver: true,
-                        }),
-                    ]).start(() => {
-                        setTimeout(() => {
-                            Animated.timing(rankAnim, {
-                                toValue: 0,
-                                duration: 300,
-                                useNativeDriver: true,
-                            }).start(() => {
-                                setRankUpInfo(null);
-                                checkToken(); // refresh user data after rank toast
-                            });
-                        }, 4000);
-                    });
-                } else {
-                    checkToken(); // refresh user data anyway to update EXP
-                }
-
-                // Fetch Trivia Fact (only when the Trivia System is enabled)
-                if (enable_trivia) {
-                    try {
-                        const activeBldg = navTargetFull || nearbyBuildingFull;
-                        const triviaRes = await api.get(
-                            `/api/buildings/trivias/?building_id=${activeBldg?.id}`,
-                        );
-                        if (
-                            triviaRes.data.success &&
-                            triviaRes.data.data.length > 0
-                        ) {
-                            const trivias = triviaRes.data.data;
-                            const randomTrivia =
-                                trivias[Math.floor(Math.random() * trivias.length)];
-                            setFetchedTrivia(randomTrivia.fact);
-                        } else {
-                            setFetchedTrivia(null);
-                        }
-                    } catch (e) {
-                        console.error("Error fetching trivia", e);
-                        setFetchedTrivia(null);
-                    }
-                } else {
-                    setFetchedTrivia(null);
-                }
-
-                setTriviaModalVisible(true);
-                Animated.spring(slideAnim, {
-                    toValue: 0,
-                    tension: 50,
-                    friction: 7,
-                    useNativeDriver: true,
-                }).start();
-            } else {
-                setClaimErrorMessage(res?.data?.error || "Failed to complete quest.");
-                setClaimErrorModalVisible(true);
-            }
-        } catch (err) {
-            console.error("CLAIM QUEST ERROR:", err);
-            let errorMessage = "The server took too long to respond. Please check your connection and retry.";
-            if (typeof err?.data === "string" && err.data.includes("<html")) {
-                if (err.status === 404) {
-                    errorMessage = "Quest could not be located on the server (404).";
-                } else if (err.status >= 500) {
-                    errorMessage = "Server error encountered (500). Please try again shortly.";
-                }
-            } else if (err?.data?.error) {
-                errorMessage = err.data.error;
-            } else if (err?.data?.detail) {
-                errorMessage = err.data.detail;
-            } else if (err?.message) {
-                errorMessage = err.message;
-            } else if (typeof err === "string") {
-                errorMessage = err;
-            }
-            setClaimErrorMessage(errorMessage);
-            setClaimErrorModalVisible(true);
-        } finally {
-            setIsClaiming(false);
-        }
-    };
-
-    const handleViewTriviaOnly = async () => {
-        setClaimedQuest(null); // Ensure clean trivia view without previous quest completion badge
-        const activeBldg = navTargetFull || nearbyBuildingFull;
-        if (!activeBldg) return;
-
-        if (enable_trivia) {
-            try {
-                const triviaRes = await api.get(
-                    `/api/buildings/trivias/?building_id=${activeBldg.id}`,
-                );
-                if (triviaRes.data.success && triviaRes.data.data.length > 0) {
-                    const trivias = triviaRes.data.data;
-                    const randomTrivia =
-                        trivias[Math.floor(Math.random() * trivias.length)];
-                    setFetchedTrivia(randomTrivia.fact);
-                } else {
-                    setFetchedTrivia(null);
-                }
-            } catch (e) {
-                console.error("Error fetching trivia", e);
-                setFetchedTrivia(null);
-            }
-        } else {
-            setFetchedTrivia(null);
-        }
-
-        setTriviaModalVisible(true);
-        Animated.spring(slideAnim, {
-            toValue: 0,
-            tension: 50,
-            friction: 7,
-            useNativeDriver: true,
-        }).start();
-    };
-
-    const closeTriviaModal = () => {
-        Animated.timing(slideAnim, {
-            toValue: 400,
-            duration: 250,
-            useNativeDriver: true,
-        }).start(() => {
-            setTriviaModalVisible(false);
-            setClaimedQuest(null);
-        });
-    };
-
-    const checkGeofenceStatus = async () => {
-        if (!location) return;
-        const now = Date.now();
-        // Throttle geofence backend checks to at most once every 2500ms to avoid network thrashing
-        if (now - lastGeofenceCheckTimeRef.current < 2500) return;
-        lastGeofenceCheckTimeRef.current = now;
-
-        try {
-            const status = await geofencingService.validateLocation(
-                location.latitude,
-                location.longitude,
-                location.accuracy,
-            );
-            setGeofenceStatus(status);
-            if (status?.building) {
-                consecutiveOutsideCountRef.current = 0;
-                setNearbyBuilding(status.building);
-            } else {
-                consecutiveOutsideCountRef.current += 1;
-                // Require 2 consecutive outside checks before clearing nearbyBuilding
-                if (consecutiveOutsideCountRef.current >= 2) {
-                    setNearbyBuilding(null);
-                }
-            }
-        } catch (error) {
-            if (error?.response?.data?.error?.code === "SPOOFING_DETECTED") {
-                console.warn("Location validation notice: Spoofing/velocity alert from backend.");
-            } else {
-                console.warn("Location validation notice:", error?.message || error);
-            }
-        }
-    };
-
-    const isModelVisible = !!(
-        nearbyBuildingFull &&
-        unlockedBuildings.some((b) => b.id === nearbyBuildingFull.id) &&
-        (nearbyBuildingFull.image_url || nearbyBuildingFull.model_url)
-    );
-
-    const handleBarCodeScanned = async ({ type, data }) => {
-        if (!isScanningQr || scannedData === data) return;
-        setScannedData(data);
-        setIsScanningQr(false); // Stop scanning immediately after successful read
-
-        if (!location && !demoMode) {
-            setScannedData(null);
-            Alert("Permission Required", "Please enable GPS location permissions to verify this QR code.");
-            return;
-        }
-
-        try {
-            // Routed through the shared context so the global unlocked list
-            // refreshes immediately and the Maps tab reflects the unlock.
-            const result = await unlockViaQr(
-                data,
-                location?.latitude ?? null,
-                location?.longitude ?? null
-            );
-
-            const isNewUnlock = result?.newly_unlocked !== false;
-            const isDemoUnlock = result?.demo_mode ?? demoMode;
-            // Keep the banner/context in sync if the admin flipped Demo Mode
-            // while this app was already in the foreground.
-            if (
-                typeof result?.demo_mode === "boolean" &&
-                result.demo_mode !== demoMode
-            ) {
-                refreshPublicSettings();
-            }
-            if (nearbyBuildingFull &&
-                String(nearbyBuildingFull.id) === String(result?.building)) {
-                setNearbyBuildingFull({
-                    ...nearbyBuildingFull,
-                    is_unlocked: true,
-                });
-            }
-            if (isNewUnlock) {
-                // Same unlock feedback as a real unlock; demo visitors hear it
-                // too so the exhibit feels identical.
-                if (user?.role === "student" || isDemoUnlock) {
-                    SoundManager.play("building_unlock");
-                }
-                // Show badge toast if earned (students only)
-                const earned = result?.newly_earned_badges || [];
-                if (user?.role === "student" && earned.length > 0) {
-                    setTimeout(() => {
-                        SoundManager.play("badge_earned");
-                    }, 1200);
-                    setNewlyEarnedBadges(earned);
-                    badgeAnim.setValue(0);
-                    Animated.sequence([
-                        Animated.spring(badgeAnim, {
-                            toValue: 1,
-                            tension: 60,
-                            friction: 8,
-                            useNativeDriver: true,
-                        }),
-                    ]).start(() => {
-                        setTimeout(() => {
-                            Animated.timing(badgeAnim, {
-                                toValue: 0,
-                                duration: 300,
-                                useNativeDriver: true,
-                            }).start(() => setNewlyEarnedBadges([]));
-                        }, 3500);
-                    });
-                }
-                // Discovery EXP is credited server-side; refresh the cached
-                // totals so Home/Profile show the new balance immediately.
-                if (user?.role === "student" && result?.exp_awarded > 0) {
-                    checkToken();
-                }
-            }
-
-            // Custom modal instead of a native alert; demo unlocks are labelled
-            // so exhibitors know the unlock is temporary.
-            setUnlockedModalBuilding(
-                result?.building_name || nearbyBuildingFull?.name || "Building",
-            );
-            setUnlockedModalIsDemo(!!isDemoUnlock);
-            setUnlockedModalAlready(!isNewUnlock);
-            setUnlockedModalExp(isNewUnlock ? (result?.exp_awarded || 0) : 0);
-            setUnlockedModalVisible(true);
-        } catch (error) {
-            console.error("QR unlock error:", error);
-            const errorMsg =
-                error.data?.error?.message ||
-                error.data?.detail ||
-                "Failed to connect to server.";
-
-            // Parse distance/threshold from backend message if present
-            // Format: "You must be within X meters... You are currently Y meters away."
-            let distance = null, threshold = null;
-            const distMatch = errorMsg.match(/You are currently (\d+) meters? away/);
-            const threshMatch = errorMsg.match(/within (\d+) meters? of the building/);
-            if (distMatch) distance = parseInt(distMatch[1], 10);
-            if (threshMatch) threshold = parseInt(threshMatch[1], 10);
-
-            // Get building name from nearby building if available
-            const buildingName = nearbyBuildingFull?.name || "";
-
-            setQrErrorMessage(errorMsg);
-            setQrErrorDistance(distance);
-            setQrErrorThreshold(threshold);
-            setQrErrorBuildingName(buildingName);
-            setQrErrorRetrying(false);
-            setQrErrorModalVisible(true);
-            setScannedData(null); // allow rescan
-        }
-    };
-
-    const handleCaptureArSnapshot = async () => {
-        if (!enable_ar_selfie) {
-            Alert(
-                "AR Selfie Disabled",
-                "AR selfie capture is turned off by the administrator.",
-            );
-            return;
-        }
-        if (capturing) return;
-        setCapturing(true);
-
-        // 1. Immediate shutter feedback: sound & camera flash
-        try {
-            SoundManager.play("trivia_correct");
-        } catch {
-            // Non-fatal
-        }
-
-        flashAnim.setValue(1);
-        Animated.timing(flashAnim, {
-            toValue: 0,
-            duration: 350,
-            useNativeDriver: true,
-        }).start();
-
-        let snapshotUri = null;
-
-        // 2. Capture native 3D AR view from ViroARSceneNavigator if active
-        if (!isScanningQr && viroNavRef.current) {
-            try {
-                const fileName = `wmsu_ar_snap_${Date.now()}`;
-                const takeFn =
-                    viroNavRef.current.takeScreenshot ||
-                    viroNavRef.current._takeScreenshot;
-
-                if (typeof takeFn === "function") {
-                    const res = await takeFn.call(viroNavRef.current, fileName, false);
-                    if (res && res.success && res.url) {
-                        snapshotUri = res.url;
-                    }
-                }
-            } catch (viroErr) {
-                console.warn("Viro native screenshot failed, attempting fallback:", viroErr);
-            }
-        }
-
-        // 3. Fallback: if scanning QR or Viro screenshot not available
-        if (!snapshotUri) {
-            try {
-                if (isScanningQr && cameraRef.current?.takePictureAsync) {
-                    const photo = await cameraRef.current.takePictureAsync({
-                        quality: 0.9,
-                        base64: false,
-                    });
-                    snapshotUri = photo?.uri;
-                } else if (arViewRef.current) {
-                    snapshotUri = await captureRef(arViewRef, {
-                        format: "jpg",
-                        quality: 0.9,
-                    });
-                }
-            } catch (fallbackErr) {
-                console.error("Fallback snapshot capture error:", fallbackErr);
-            }
-        }
-
-        setCapturing(false);
-
-        if (!snapshotUri) {
-            Alert(
-                "Capture Failed",
-                "Unable to capture AR view. Please ensure camera permissions are active and try again."
-            );
-            return;
-        }
-
-        // Ensure proper URI formatting
-        if (
-            !snapshotUri.startsWith("file://") &&
-            !snapshotUri.startsWith("content://") &&
-            !snapshotUri.startsWith("http")
-        ) {
-            snapshotUri = `file://${snapshotUri}`;
-        }
-
-        setPostcardPhotoUri(snapshotUri);
-        setIsPostcardModalVisible(true);
-    };
-
+    // Permission/Role checks
     if (!canUseAR && !demoMode) {
         return (
             <View style={styles.container}>
@@ -1444,7 +551,7 @@ export default function ARScreen() {
                                     userLng: navUserLng,
                                     userHeading: heading,
                                     modelUrl: activeModelUri,
-                                    modelFallbackUrl: effectiveModelUrl,
+                                    modelFallbackUrl: modelEffectiveUrl,
                                     buildingName: effectiveBuildingName,
                                     nextWaypoint: nextWaypoint,
                                     isArrived: isArrived,
@@ -1467,8 +574,6 @@ export default function ARScreen() {
                     </ErrorBoundary>
                 )}
 
-                {/* 2. Middle Layer removed (Model moved into targetCard) */}
-
                 {/* --- Top Right Control (Exit) --- */}
                 {!capturing && (
                     <View style={styles.topRightControls}>
@@ -1477,7 +582,6 @@ export default function ARScreen() {
                         </TouchableOpacity>
                     </View>
                 )}
-
 
                 {/* --- GPS Signal Banner --- */}
                 {!capturing && locationError && (
@@ -1501,7 +605,6 @@ export default function ARScreen() {
                             const activeBldg = navTargetFull || (!isTargetMode ? (nearbyBuildingFull || nearbyBuilding) : null);
                             const dist = Math.round(isTargetMode ? (distanceToTarget || 0) : (geofenceStatus?.distance_meters || 0));
 
-                            // Arrow direction label based on turnDirection
                             const getArrowLabel = (dir) => {
                                 switch (dir) {
                                     case 'left': return 'LEFT';
@@ -1556,7 +659,7 @@ export default function ARScreen() {
                                         <Text style={[styles.buildingLabel, { color: colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
                                             {isArrived ? (activeBldg?.name || 'Building') : `to ${activeBldg?.name || 'Target'}`}
                                         </Text>
-                                        
+
                                         {isArrived ? (
                                             isArModelLoading ? (
                                                 <View style={{ marginTop: 2, width: '100%' }}>
@@ -1590,8 +693,8 @@ export default function ARScreen() {
                                         {/* Gamified Claim / Info Button — ONLY when physically arrived at this target */}
                                         {!capturing && !triviaModalVisible && isArrived && (
                                             user?.role === 'student' && matchingQuest ? (
-                                                <TouchableOpacity 
-                                                    style={[styles.claimQuestBtn, { backgroundColor: colors.primary }]} 
+                                                <TouchableOpacity
+                                                    style={[styles.claimQuestBtn, { backgroundColor: colors.primary }]}
                                                     onPress={() => handleClaimQuest(matchingQuest)}
                                                     disabled={isClaiming}
                                                     activeOpacity={0.8}
@@ -1613,7 +716,6 @@ export default function ARScreen() {
                                 </View>
                             );
                         })()}
-
                         {!capturing &&
                             !triviaModalVisible &&
                             isArrived &&
@@ -1683,7 +785,7 @@ export default function ARScreen() {
                 building={navTargetFull || nearbyBuildingFull}
                 location={location}
                 user={user}
-                onClose={() => setIsPostcardModalVisible(false)}
+                onClose={handleClosePostcard}
             />
 
             {/* --- DEVICE NOT SUPPORTED MODAL --- */}
@@ -1701,7 +803,7 @@ export default function ARScreen() {
 
             {/* --- REWARD-STYLE CENTER ARRIVAL MODAL (Native Window Centered) --- */}
             <ARArrivalModal
-                visible={Boolean(showArrivalModal && !isScanningQr && !capturing && !triviaModalVisible)}
+                visible={Boolean(showArrivalModal && !showUnsupportedModal && !isScanningQr && !capturing && !triviaModalVisible)}
                 onDismiss={handleDismissArrivalModal}
                 anim={arrivalModalAnim}
                 buildingName={effectiveBuildingName || (navTargetFull || nearbyBuildingFull)?.name || 'Destination'}
@@ -1726,16 +828,9 @@ export default function ARScreen() {
             {/* --- QR UNLOCK ERROR MODAL --- */}
             <ARQRErrorModal
                 visible={qrErrorModalVisible}
-                onDismiss={() => {
-                    setQrErrorModalVisible(false);
-                    setScannedData(null);
-                }}
-                onRetry={() => {
-                    setQrErrorModalVisible(false);
-                    setScannedData(null);
-                    toggleQrScanner(true);
-                }}
-                isRetrying={false}
+                onDismiss={handleQrErrorDismiss}
+                onRetry={handleQrErrorRetry}
+                isRetrying={qrErrorRetrying}
                 message={qrErrorMessage}
                 distance={qrErrorDistance}
                 threshold={qrErrorThreshold}
@@ -1745,10 +840,7 @@ export default function ARScreen() {
             {/* --- QR UNLOCK SUCCESS MODAL --- */}
             <ARUnlockedModal
                 visible={unlockedModalVisible}
-                onDismiss={() => {
-                    setUnlockedModalVisible(false);
-                    setScannedData(null);
-                }}
+                onDismiss={handleUnlockedDismiss}
                 buildingName={unlockedModalBuilding}
                 isDemo={unlockedModalIsDemo}
                 alreadyUnlocked={unlockedModalAlready}
@@ -1766,6 +858,7 @@ export default function ARScreen() {
                     rewardPoints={user?.role === "student" && claimedQuest ? claimedQuest.reward_points : null}
                 />
             )}
+
             {/* --- Bottom Camera Controls --- */}
             {!capturing && (!activeTarget || isArrived) && (
                 <ARBottomControls
