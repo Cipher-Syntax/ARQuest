@@ -975,11 +975,12 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     // ── Metrics Grid (KPI Cards) ─────────────────────────────────────────────
     metricsGrid: {
         flexDirection: "row",
+        flexWrap: "wrap",
         gap: 8,
         marginBottom: 12,
     },
     metricCard: {
-        flex: 1,
+        width: "48%",
         backgroundColor: "#FFFFFF",
         borderRadius: 10,
         borderWidth: 1,
@@ -993,22 +994,22 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     },
     metricCardActive: {
         borderColor: colors.primary,
-        backgroundColor: toRgba(colors.primary, 0.1),
         borderWidth: 2,
+        // No background tint - only border
     },
     metricCardAmber: {
         borderColor: "#FDE68A",
-        backgroundColor: "#FFFBEB",
+        // No background tint
     },
     metricCardActiveSuccess: {
-        borderColor: "#16A34A",
-        backgroundColor: "#F0FDF4",
+        borderColor: colors.primary,
         borderWidth: 2,
+        // No background tint - only border
     },
     metricCardActivePurple: {
-        borderColor: "#9333EA",
-        backgroundColor: "#FAF5FF",
+        borderColor: colors.primary,
         borderWidth: 2,
+        // No background tint - only border
     },
     metricCardAccentWrapper: {
         flexDirection: "row",
