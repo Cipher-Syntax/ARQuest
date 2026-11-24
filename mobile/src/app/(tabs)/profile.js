@@ -38,6 +38,7 @@ import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { useAuth } from "../../hooks/useAuth";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { AVATARS } from "../../constants/Avatars";
+import { avatarService } from "../../services/avatar/avatarService";
 import { fonts } from "../../constants/typography";
 import FeedbackModal from "../../components/ui/FeedbackModal";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
@@ -61,6 +62,27 @@ export default function ProfileScreen() {
     const [rankModalVisible, setRankModalVisible] = useState(false);
 
     const [refreshing, setRefreshing] = useState(false);
+    const [avatarUri, setAvatarUri] = useState(user?.avatar_url || user?.profile_image || null);
+
+    useEffect(() => {
+        let isMounted = true;
+        if (user?.avatar_url) {
+            setAvatarUri(user.avatar_url);
+        } else if (user?.profile_image) {
+            setAvatarUri(user.profile_image);
+        } else if (user?.avatar_id) {
+            avatarService.getAvatarUri(user.avatar_id).then((uri) => {
+                if (isMounted && uri) {
+                    setAvatarUri(typeof uri === "string" ? uri : null);
+                }
+            }).catch(() => {});
+        } else {
+            setAvatarUri(null);
+        }
+        return () => {
+            isMounted = false;
+        };
+    }, [user?.avatar_url, user?.profile_image, user?.avatar_id]);
 
     const ALL_RANKS = [
         { level: 1, title: "Freshman", min_exp: 0, icon: "🎒" },
@@ -197,7 +219,12 @@ export default function ProfileScreen() {
                     style={styles.playerCard}
                 >
                     <View style={styles.playerCardTop}>
-                        {user?.avatar_id &&
+                        {avatarUri ? (
+                            <Image
+                                source={{ uri: avatarUri }}
+                                style={styles.playerAvatar}
+                            />
+                        ) : user?.avatar_id &&
                         AVATARS.find((a) => a.id === user.avatar_id)?.source ? (
                             <Image
                                 source={

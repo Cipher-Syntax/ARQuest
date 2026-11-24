@@ -217,6 +217,21 @@ class CurrentUserTestCase(TestCase):
         user.refresh_from_db()
         self.assertEqual(user.avatar_id, 'mascot_1')
 
+    def test_user_serializer_avatar_url(self):
+        from apps.authentication.models import Avatar
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        test_file = SimpleUploadedFile("avatar.jpg", b"fake image bytes", content_type="image/jpeg")
+        avatar = Avatar.objects.create(image=test_file)
+        self.user.avatar_id = str(avatar.id)
+        self.user.save()
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get('/api/auth/me/')
+        self.assertEqual(response.status_code, 200)
+        user_data = response.data['data']['user']
+        self.assertEqual(user_data['avatar_id'], str(avatar.id))
+        self.assertIsNotNone(user_data['avatar_url'])
+        self.assertIn('avatars', user_data['avatar_url'])
+
     def test_update_current_user_profile_image_and_remove(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
         self.client.force_authenticate(user=self.user)

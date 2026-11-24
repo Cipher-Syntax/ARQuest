@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -72,6 +72,14 @@ export default function AccountSettingsScreen() {
     };
 
     // Open avatar modal triggers load
+    useEffect(() => {
+        loadAvatarOptions();
+    }, []);
+
+    useEffect(() => {
+        setSelectedAvatarId(user?.avatar_id);
+    }, [user?.avatar_id]);
+
     const openAvatarModal = () => {
         setSelectedAvatarId(user?.avatar_id);
         setAvatarModalVisible(true);
@@ -260,7 +268,12 @@ export default function AccountSettingsScreen() {
                 {/* Avatar Hero */}
                 <View style={styles.avatarHero}>
                     <View style={styles.avatarWrapper}>
-                        {user?.avatar_id && avatarOptions.find((a) => a.id === user?.avatar_id)?.image_url ? (
+                        {user?.avatar_url || user?.profile_image ? (
+                            <Image
+                                source={{ uri: user.avatar_url || user.profile_image }}
+                                style={styles.avatarImage}
+                            />
+                        ) : user?.avatar_id && avatarOptions.find((a) => a.id === user?.avatar_id)?.image_url ? (
                             <Image
                                 source={{ uri: avatarOptions.find((a) => a.id === user.avatar_id).image_url }}
                                 style={styles.avatarImage}

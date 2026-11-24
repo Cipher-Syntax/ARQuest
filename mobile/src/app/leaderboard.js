@@ -213,10 +213,11 @@ export default function LeaderboardScreen() {
     const renderAvatar = (student, size = 48, borderColor = "#E5E7EB") => {
         if (!student) return null;
 
-        if (student.profile_image) {
+        const avatarUri = student.avatar_url || student.profile_image;
+        if (avatarUri) {
             return (
                 <Image
-                    source={{ uri: student.profile_image }}
+                    source={{ uri: avatarUri }}
                     style={{
                         width: size,
                         height: size,

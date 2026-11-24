@@ -14,6 +14,7 @@ import { getFallbackAvatars, getFallbackAvatarSource } from "../../constants/Ava
 import { avatarService } from "../../services/avatar/avatarService";
 import { api } from "../../services";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../../hooks/useAuth";
 import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function AvatarSelectionScreen() {
@@ -22,6 +23,7 @@ export default function AvatarSelectionScreen() {
     const [avatars, setAvatars] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { checkToken } = useAuth();
     const router = useRouter();
 
     const loadAvatars = useCallback(async () => {
@@ -72,6 +74,9 @@ export default function AvatarSelectionScreen() {
             await AsyncStorage.removeItem("@justine_guide_completed");
 
             // Successfully updated, go to dashboard
+            if (checkToken) {
+                await checkToken();
+            }
             router.replace("/(tabs)");
         } catch (error) {
             console.log("Avatar save error:", error);

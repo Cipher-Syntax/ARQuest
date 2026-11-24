@@ -121,7 +121,7 @@ def verify_otp(request):
         
         return success_response({
             'message': 'Email verified successfully. You can now log in.',
-            'user': UserSerializer(user).data
+            'user': UserSerializer(user, context={'request': request}).data
         })
     except User.DoesNotExist:
         return error_response(
@@ -260,7 +260,7 @@ def login(request):
     return success_response({
         'access': str(refresh.access_token),
         'refresh': str(refresh),
-        'user': UserSerializer(user).data,
+        'user': UserSerializer(user, context={'request': request}).data,
         'streak_bonus_exp': streak_bonus,
         'reactivated': reactivated,
     })
@@ -317,7 +317,7 @@ def guest_login(request):
     return success_response({
         'access': str(refresh.access_token),
         'refresh': str(refresh),
-        'user': UserSerializer(user).data,
+        'user': UserSerializer(user, context={'request': request}).data,
         'streak_bonus_exp': 0,
         'reactivated': False,
     })
@@ -633,7 +633,7 @@ def leaderboard(request):
     if not SystemSetting.get_settings().enable_leaderboard:
         return Response({'success': False, 'error': 'Leaderboard is currently disabled.'}, status=403)
     users = User.objects.filter(role='student').order_by('-exploration_points')[:50]
-    return success_response(UserSerializer(users, many=True).data)
+    return success_response(UserSerializer(users, many=True, context={'request': request}).data)
 
 
 @api_view(['POST'])

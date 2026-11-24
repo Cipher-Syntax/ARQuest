@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "../services/authService";
+import { preloadAvatarCatalog } from "../utils/avatarUtils";
 
 const AuthContext = createContext(null);
 
@@ -19,6 +20,8 @@ export const AuthProvider = ({ children }) => {
                     localStorage.removeItem("refresh_token");
                 }
             }
+            // Preload avatar catalog for immediate avatar rendering across the app
+            preloadAvatarCatalog().catch(() => {});
             setLoading(false);
         };
         loadUser();

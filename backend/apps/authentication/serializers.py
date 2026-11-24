@@ -8,18 +8,20 @@ from .models import User, EmailOTP, Avatar
 class UserSerializer(serializers.ModelSerializer):
     rank_info = serializers.SerializerMethodField()
     profile_image = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
             'role', 'email_verified', 'exploration_points', 'avatar_id',
-            'profile_image', 'streak_count', 'last_login_date',
+            'avatar_url', 'profile_image', 'streak_count', 'last_login_date',
             'is_active', 'date_joined', 'rank_info'
         ]
         read_only_fields = [
             'id', 'role', 'email_verified', 'exploration_points',
-            'streak_count', 'last_login_date', 'date_joined', 'is_active'
+            'streak_count', 'last_login_date', 'date_joined', 'is_active',
+            'avatar_url'
         ]
 
     def get_rank_info(self, obj):
@@ -32,6 +34,19 @@ class UserSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.profile_image.url)
             return obj.profile_image.url
+        return None
+
+    def get_avatar_url(self, obj):
+        if obj.avatar_id:
+            try:
+                avatar = Avatar.objects.filter(id=obj.avatar_id).first()
+                if avatar and avatar.image:
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(avatar.image.url)
+                    return avatar.image.url
+            except (ValueError, Exception):
+                pass
         return None
 
 
