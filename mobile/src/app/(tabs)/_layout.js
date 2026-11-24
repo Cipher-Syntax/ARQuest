@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Home, Map, Scan, Building2, User, Trophy } from "lucide-react-native";
-import { View, TouchableOpacity, Text } from "react-native";
+import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useThemeColors } from "../../context/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
@@ -10,14 +10,21 @@ import { registerForPushNotificationsAsync } from "../../utils/pushNotifications
 import { useEffect } from "react";
 import OnboardingTutorial from "../../components/features/OnboardingTutorial";
 import JustineGuideModal from "../../components/features/JustineGuideModal";
-import { registerTourTarget, tabTargetId } from "../../utils/tourTargets";
+import { TourRing, GOLD } from "../../components/features/TourHighlights";
+import { useTourHighlight, setTourHighlight } from "../../utils/tourHighlight";
 
 function CustomTabBar({ state, descriptors, navigation }) {
     const colors = useThemeColors();
+    const tour = useTourHighlight();
+    const ringColor = tour.tone === "gold" ? GOLD : colors.primary;
 
     return (
         <SafeAreaView
             edges={["bottom"]}
+            // The onboarding overlays stop at the top of this bar, so they need its height.
+            onLayout={(e) =>
+                setTourHighlight({ tabBarHeight: e.nativeEvent.layout.height })
+            }
             style={{
                 backgroundColor: colors.surface,
                 borderTopColor: colors.border,
@@ -66,13 +73,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
                         >
                             {isAR ? (
                                 <View
-                                    ref={(node) =>
-                                        registerTourTarget(
-                                            tabTargetId(route.name),
-                                            node,
-                                        )
-                                    }
-                                    collapsable={false}
                                     style={{
                                         width: 60,
                                         height: 60,
@@ -84,18 +84,19 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                     }}
                                 >
                                     <Scan size={28} color="#FFFFFF" />
+                                    {tour.tab === route.name && (
+                                        <TourRing
+                                            size={64}
+                                            parentW={60}
+                                            parentH={60}
+                                            color={ringColor}
+                                            pulse={tour.pulse}
+                                        />
+                                    )}
                                 </View>
                             ) : (
                                 <View style={{ alignItems: "center", gap: 4 }}>
-                                    <View
-                                        ref={(node) =>
-                                            registerTourTarget(
-                                                tabTargetId(route.name),
-                                                node,
-                                            )
-                                        }
-                                        collapsable={false}
-                                    >
+                                    <View style={{ width: 24, height: 24 }}>
                                         {options.tabBarIcon &&
                                             options.tabBarIcon({
                                                 color: isFocused
@@ -103,6 +104,15 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                                     : colors.textMuted,
                                                 size: 24,
                                             })}
+                                        {tour.tab === route.name && (
+                                            <TourRing
+                                                size={52}
+                                                parentW={24}
+                                                parentH={24}
+                                                color={ringColor}
+                                                pulse={tour.pulse}
+                                            />
+                                        )}
                                     </View>
                                     <Text
                                         style={{
@@ -123,6 +133,8 @@ function CustomTabBar({ state, descriptors, navigation }) {
                     );
                 })}
             </View>
+            {/* While a tour highlights a tab, the bar stays visible but must not navigate. */}
+            {tour.tab && <View style={StyleSheet.absoluteFill} />}
         </SafeAreaView>
     );
 }
@@ -145,6 +157,8 @@ export default function TabLayout() {
 
     return (
         <UnlockedBuildingsProvider>
+            {/* The onboarding overlays render inline inside this root (no Modal)
+                and stop above the tab bar, which draws its own highlight ring. */}
             <View style={{ flex: 1 }}>
                     <Tabs
                         screenOptions={{

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
     StyleSheet,
-    Modal,
     TouchableOpacity,
+    BackHandler,
     Dimensions,
     Animated,
     DeviceEventEmitter,
@@ -33,7 +33,7 @@ import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import { useAuth } from "../../hooks/useAuth";
 import { toRgba } from "../../utils/color";
-import { useTourTarget, tabTargetId } from "../../utils/tourTargets";
+import { setTourHighlight, clearTourHighlight, useTourHighlight, tabCenterX } from "../../utils/tourHighlight";
 
 const { width } = Dimensions.get("window");
 
@@ -238,20 +238,33 @@ export default function OnboardingTutorial() {
     // Replays (Profile → User Manual) skip the legal step: terms were already accepted.
     const [isReplay, setIsReplay] = useState(false);
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
-    const overlayRef = useRef(null);
 
     const steps = getTutorialSteps(user?.role, !isReplay);
 
-    // Live position of the tab this step points at, measured in the overlay's
-    // own coordinate space so the ring is centered on the real icon.
+    // The ring is drawn by the tab bar itself, around the real icon (centered by
+    // layout, nothing measured). This overlay only says which tab to highlight and
+    // ends above the tab bar so the ring stays visible.
+    const tour = useTourHighlight();
+    const [overlayW, setOverlayW] = useState(Dimensions.get("window").width);
     const currentTarget = steps[currentStep] || steps[0];
-    const targetRect = useTourTarget(
-        currentTarget?.position === "bottom" && currentTarget.target
-            ? tabTargetId(currentTarget.target)
-            : null,
-        overlayRef,
-        isVisible,
-    );
+    const highlightedTab =
+        isVisible && currentTarget?.position === "bottom" ? currentTarget.target : null;
+
+    useEffect(() => {
+        if (highlightedTab) {
+            setTourHighlight({ tab: highlightedTab, tone: "primary", pulse: false });
+        } else {
+            clearTourHighlight();
+        }
+        return () => clearTourHighlight();
+    }, [highlightedTab]);
+
+    // Swallow the Android back button while the tutorial is up (the old Modal did).
+    useEffect(() => {
+        if (!isVisible) return undefined;
+        const sub = BackHandler.addEventListener("hardwareBackPress", () => true);
+        return () => sub.remove();
+    }, [isVisible]);
 
     const getStorageKey = () => {
         return user?.id ? `@tutorial_completed_${user.id}` : "@tutorial_completed";
@@ -379,35 +392,26 @@ export default function OnboardingTutorial() {
     const step = steps[currentStep] || steps[0];
     const Icon = step.icon;
 
-    // Tab highlight geometry, all derived from the measured tab icon.
-    const showTarget = step.position === "bottom" && !!targetRect;
-    const ringSize = step.target === "ar" ? 76 : 56; // AR button is larger than a plain icon
-    const containerHeight =
-        targetRect?.containerHeight || Dimensions.get("window").height;
-    const ringTop = showTarget ? targetRect.cy - ringSize / 2 : 0;
-    const pointerTop = ringTop - 8 - 15; // tip sits 8px above the ring
-    const tooltipBottom = containerHeight - pointerTop; // box rests on the pointer
+    // Tab-step geometry: the overlay stops at the tab bar's top edge; the tooltip rests
+    // on a pointer whose tip touches that edge above the highlighted tab.
+    const showTarget = step.position === "bottom";
+    const cx = showTarget ? tabCenterX(step.target, overlayW) : null;
 
     return (
-        <Modal
-            transparent
-            visible={isVisible}
-            animationType="none"
-            statusBarTranslucent
-            navigationBarTranslucent
+        <View
+            style={[
+                styles.overlay,
+                showTarget && { bottom: tour.tabBarHeight || 78 },
+            ]}
+            onLayout={(e) => setOverlayW(e.nativeEvent.layout.width)}
         >
-            <View style={styles.overlay}>
                 <Animated.View
-                    ref={overlayRef}
-                    collapsable={false}
                     style={[styles.container, { opacity: fadeAnim }]}
                 >
                     <View
                         style={[
                             styles.tooltipBox,
-                            showTarget
-                                ? [styles.tooltipBottom, { bottom: tooltipBottom }]
-                                : styles.tooltipCenter,
+                            showTarget ? styles.tooltipBottom : styles.tooltipCenter,
                         ]}
                     >
                         {/* Header Step Counter & Category Badge */}
@@ -517,42 +521,25 @@ export default function OnboardingTutorial() {
                     </View>
 
                     {/* Pointer Triangle for bottom tooltips */}
-                    {showTarget && (
+                    {showTarget && cx != null && (
                         <View
                             pointerEvents="none"
-                            style={[
-                                styles.pointer,
-                                { top: pointerTop, left: targetRect.cx - 14 },
-                            ]}
-                        />
-                    )}
-
-                    {/* Highlight Indicator on Tab Bar — centered on the measured icon */}
-                    {showTarget && (
-                        <View
-                            pointerEvents="none"
-                            style={[
-                                styles.highlightCircle,
-                                {
-                                    top: ringTop,
-                                    left: targetRect.cx - ringSize / 2,
-                                    width: ringSize,
-                                    height: ringSize,
-                                    borderRadius: ringSize / 2,
-                                },
-                            ]}
+                            style={[styles.pointer, { left: cx - 14 }]}
                         />
                     )}
                 </Animated.View>
-            </View>
-        </Modal>
+        </View>
     );
 }
 
 const createStyles = (colors, spacing, radius, typography) => StyleSheet.create({
+    // Rendered inline inside the tab layout root (no Modal): fills it and sits above
+    // the tabs, so tour targets measured relative to that root line up exactly.
     overlay: {
-        flex: 1,
+        ...StyleSheet.absoluteFill,
         backgroundColor: "rgba(0, 0, 0, 0.8)",
+        zIndex: 9999,
+        elevation: 9999,
     },
     container: {
         flex: 1,
@@ -564,7 +551,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     },
     tooltipBottom: {
         position: "absolute",
-        // `bottom` is computed from the measured tab icon so it rests on the pointer.
+        bottom: 21, // rests on the 15px pointer, which sits 6px above the tab bar
         alignSelf: "center",
     },
     tooltipBox: {
@@ -714,7 +701,8 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         letterSpacing: 0.5,
     },
     pointer: {
-        position: "absolute", // top/left set from the measured tab icon
+        position: "absolute",
+        bottom: 6, // left is set from the highlighted tab's slot
         width: 0,
         height: 0,
         borderLeftWidth: 14,
@@ -725,12 +713,6 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         borderLeftColor: "transparent",
         borderRightColor: "transparent",
         borderTopColor: colors.surface,
-    },
-    highlightCircle: {
-        position: "absolute", // top/left/size set from the measured tab icon
-        borderWidth: 2,
-        borderColor: colors.primary,
-        backgroundColor: toRgba(colors.primary, 0.25),
     },
     legalCheckRow: {
         flexDirection: "row",

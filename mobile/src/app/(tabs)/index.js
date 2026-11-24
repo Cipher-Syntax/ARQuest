@@ -42,7 +42,8 @@ import { useIsFocused } from "../../hooks/useIsFocused";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { geofencingService } from "../../services";
 import { usePublicSettings } from "../../context/PublicSettingsContext";
-import { registerTourTarget, HOME_MISSION_TARGET } from "../../utils/tourTargets";
+import { useTourHighlight } from "../../utils/tourHighlight";
+import { TourSpotlight } from "../../components/features/TourHighlights";
 
 export default function HomeScreen() {
     const isFocused = useIsFocused();
@@ -60,6 +61,7 @@ export default function HomeScreen() {
 
     // The Justine tour spotlights the mission card, so it asks Home to scroll
     // back to the top first to keep the card on screen.
+    const tour = useTourHighlight();
     const homeScrollRef = React.useRef(null);
     useEffect(() => {
         const sub = DeviceEventEmitter.addListener("tour_scroll_home_top", () => {
@@ -441,13 +443,7 @@ export default function HomeScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            <View
-                                ref={(node) =>
-                                    registerTourTarget(HOME_MISSION_TARGET, node)
-                                }
-                                collapsable={false}
-                                style={{ marginBottom: 24 }}
-                            >
+                            <View style={{ marginBottom: 24 }}>
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
@@ -637,6 +633,8 @@ export default function HomeScreen() {
                                     )
                                 )}
                             </ScrollView>
+                            {/* Justine guide: frame/arrow/speech drawn over the card itself */}
+                            {tour.missionCard && <TourSpotlight text={tour.missionText} />}
                             </View>
 
                             {/* --- Limited Challenges --- */}
