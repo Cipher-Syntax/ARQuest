@@ -36,7 +36,6 @@ import { useThemeColors } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useAuth } from "../hooks/useAuth";
 import { fonts } from "../constants/typography";
-import { AVATARS } from "../constants/Avatars";
 import { toRgba } from "../utils/color";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -231,26 +230,6 @@ export default function LeaderboardScreen() {
             );
         }
 
-        if (student.avatar_id) {
-            const preset = AVATARS.find((a) => a.id === student.avatar_id);
-            if (preset?.source) {
-                return (
-                    <Image
-                        source={preset.source}
-                        style={{
-                            width: size,
-                            height: size,
-                            borderRadius: size / 2,
-                            borderWidth: 2,
-                            borderColor: borderColor,
-                            backgroundColor: "#FFFFFF",
-                        }}
-                        resizeMode="cover"
-                    />
-                );
-            }
-        }
-
         const letter = (
             student.first_name?.[0] ||
             student.username?.[0] ||
@@ -297,7 +276,7 @@ export default function LeaderboardScreen() {
     const renderHeader = () => {
         return (
             <View>
-                {/* --- KPI Summary Metric Cards (Interactive Filters) --- */}
+                {/* --- KPI Summary Metric Cards (Interactive Filters) - Redesigned --- */}
                 <View style={styles.metricsGrid}>
                     {/* Total Explorers */}
                     <TouchableOpacity
@@ -308,29 +287,38 @@ export default function LeaderboardScreen() {
                         onPress={() => setActiveFilter("all")}
                         activeOpacity={0.8}
                     >
-                        <View style={[styles.metricIconWrap, { backgroundColor: toRgba(colors.primary, 0.1) }]}>
-                            <Users size={18} color={colors.primary} />
+                        <View style={styles.metricCardAccentWrapper}>
+                            <View style={[styles.metricIconWrap, { backgroundColor: toRgba(colors.primary, 0.1) }]}>
+                                <Users size={18} color={colors.primary} />
+                            </View>
+                            <View style={styles.metricCardEmoji}>👥</View>
                         </View>
-                        <View>
-                            <Text style={styles.metricLabel}>TOTAL</Text>
-                            <Text style={styles.metricValue}>{metrics.totalStudents}</Text>
-                            <Text style={styles.metricSub}>Explorers</Text>
+                        <View style={styles.metricCardContent}>
+                            <Text style={styles.metricLabel}>TOTAL EXPLORERS</Text>
+                            <Text style={styles.metricValueLarge}>{metrics.totalStudents}</Text>
+                            <Text style={styles.metricSubLarge}>All registered</Text>
                         </View>
                     </TouchableOpacity>
 
                     {/* Top Campus Score */}
                     <TouchableOpacity
-                        style={styles.metricCard}
+                        style={[styles.metricCard, styles.metricCardAmber]}
                         onPress={() => firstPlace && setSelectedStudent({ ...firstPlace, rank: 1 })}
                         activeOpacity={0.8}
                     >
-                        <View style={[styles.metricIconWrap, { backgroundColor: "#FEF3C7" }]}>
-                            <Trophy size={18} color="#D97706" />
+                        <View style={styles.metricCardAccentWrapper}>
+                            <View style={[styles.metricIconWrap, { backgroundColor: "#FEF3C7" }]}>
+                                <Trophy size={18} color="#D97706" />
+                            </View>
+                            <View style={styles.metricCardEmoji}>🏆</View>
                         </View>
-                        <View>
+                        <View style={styles.metricCardContent}>
                             <Text style={styles.metricLabel}>TOP SCORE</Text>
-                            <Text style={styles.metricValue}>{metrics.topScore.toLocaleString()}</Text>
-                            <Text style={[styles.metricSub, { color: "#D97706", fontWeight: "700" }]}>🏆 #1 Lead</Text>
+                            <Text style={styles.metricValueLarge}>{metrics.topScore.toLocaleString()} XP</Text>
+                            <View style={styles.metricBadgeAmber}>
+                                <View style={styles.badgeDotAmber} />
+                                <Text style={styles.metricBadgeText}>#1 Champion</Text>
+                            </View>
                         </View>
                     </TouchableOpacity>
 
@@ -343,15 +331,19 @@ export default function LeaderboardScreen() {
                         onPress={() => setActiveFilter((prev) => (prev === "above_avg" ? "all" : "above_avg"))}
                         activeOpacity={0.8}
                     >
-                        <View style={[styles.metricIconWrap, { backgroundColor: "#DCFCE7" }]}>
-                            <TrendingUp size={18} color="#16A34A" />
+                        <View style={styles.metricCardAccentWrapper}>
+                            <View style={[styles.metricIconWrap, { backgroundColor: "#DCFCE7" }]}>
+                                <TrendingUp size={18} color="#16A34A" />
+                            </View>
+                            <View style={styles.metricCardEmoji}>📊</View>
                         </View>
-                        <View>
-                            <Text style={styles.metricLabel}>AVG SCORE</Text>
-                            <Text style={styles.metricValue}>{metrics.avgScore.toLocaleString()}</Text>
-                            <Text style={[styles.metricSub, { color: "#16A34A", fontWeight: "700" }]}>
-                                {avgRankDetails.icon} {avgRankDetails.title}
-                            </Text>
+                        <View style={styles.metricCardContent}>
+                            <Text style={styles.metricLabel}>AVERAGE POINTS</Text>
+                            <Text style={styles.metricValueLarge}>{metrics.avgScore.toLocaleString()} XP</Text>
+                            <View style={styles.metricBadgeEmerald}>
+                                <Text style={styles.metricBadgeIcon}>{avgRankDetails.icon}</Text>
+                                <Text style={styles.metricBadgeText}>Typical: {avgRankDetails.title}</Text>
+                            </View>
                         </View>
                     </TouchableOpacity>
 
@@ -364,13 +356,19 @@ export default function LeaderboardScreen() {
                         onPress={() => setActiveFilter((prev) => (prev === "legends" ? "all" : "legends"))}
                         activeOpacity={0.8}
                     >
-                        <View style={[styles.metricIconWrap, { backgroundColor: "#FAF5FF" }]}>
-                            <Crown size={18} color="#9333EA" />
+                        <View style={styles.metricCardAccentWrapper}>
+                            <View style={[styles.metricIconWrap, { backgroundColor: "#FAF5FF" }]}>
+                                <Crown size={18} color="#9333EA" />
+                            </View>
+                            <View style={styles.metricCardEmoji}>👑</View>
                         </View>
-                        <View>
-                            <Text style={styles.metricLabel}>LEGENDS</Text>
-                            <Text style={styles.metricValue}>{metrics.legendsCount}</Text>
-                            <Text style={[styles.metricSub, { color: "#9333EA", fontWeight: "700" }]}>≥ 2k EXP</Text>
+                        <View style={styles.metricCardContent}>
+                            <Text style={styles.metricLabel}>CAMPUS LEGENDS</Text>
+                            <Text style={styles.metricValueLarge}>{metrics.legendsCount}</Text>
+                            <View style={styles.metricBadgePurple}>
+                                <View style={styles.badgeDotPurple} />
+                                <Text style={styles.metricBadgeText}>Max Tier (≥2k XP)</Text>
+                            </View>
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -983,54 +981,120 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     metricCard: {
         flex: 1,
         backgroundColor: "#FFFFFF",
-        borderRadius: 8,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: "#E2E8F0",
-        padding: 10,
-        justifyContent: "space-between",
+        padding: 12,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 2,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+        elevation: 2,
     },
     metricCardActive: {
         borderColor: colors.primary,
-        backgroundColor: toRgba(colors.primary, 0.08),
+        backgroundColor: toRgba(colors.primary, 0.1),
+        borderWidth: 2,
+    },
+    metricCardAmber: {
+        borderColor: "#FDE68A",
+        backgroundColor: "#FFFBEB",
     },
     metricCardActiveSuccess: {
         borderColor: "#16A34A",
         backgroundColor: "#F0FDF4",
+        borderWidth: 2,
     },
     metricCardActivePurple: {
         borderColor: "#9333EA",
         backgroundColor: "#FAF5FF",
+        borderWidth: 2,
     },
-    metricIconWrap: {
-        width: 30,
-        height: 30,
-        borderRadius: 6,
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 6,
+    metricCardAccentWrapper: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    metricCardEmoji: {
+        fontSize: 24,
+        fontFamily: fonts.heading.bold,
+        opacity: 0.15,
+    },
+    metricCardContent: {
+        flex: 1,
     },
     metricLabel: {
-        fontSize: 8.5,
+        fontSize: 8,
         fontFamily: fonts.heading.bold,
         color: "#64748B",
-        letterSpacing: 0.5,
+        letterSpacing: 0.6,
+        marginBottom: 4,
     },
-    metricValue: {
-        fontSize: 14,
+    metricValueLarge: {
+        fontSize: 20,
         fontFamily: fonts.heading.bold,
         color: "#111827",
-        marginTop: 1,
+        marginTop: 2,
+        lineHeight: 24,
     },
-    metricSub: {
+    metricSubLarge: {
         fontSize: 9,
         fontFamily: fonts.body.regular,
-        color: "#64748B",
-        marginTop: 1,
+        color: "#94A3B8",
+        marginTop: 4,
+    },
+    metricBadgeAmber: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        marginTop: 6,
+        backgroundColor: "#FEF3C7",
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 999,
+        alignSelf: "flex-start",
+    },
+    metricBadgeEmerald: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        marginTop: 6,
+        backgroundColor: "#DCFCE7",
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 999,
+        alignSelf: "flex-start",
+    },
+    metricBadgePurple: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        marginTop: 6,
+        backgroundColor: "#FAF5FF",
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 999,
+        alignSelf: "flex-start",
+    },
+    badgeDotAmber: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: "#F59E0B",
+    },
+    badgeDotPurple: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: "#9333EA",
+    },
+    metricBadgeIcon: {
+        fontSize: 10,
+    },
+    metricBadgeText: {
+        fontSize: 8.5,
+        fontFamily: fonts.heading.bold,
     },
 
     filterBanner: {

@@ -11,10 +11,11 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 	rank_info = serializers.SerializerMethodField()
 	quests_completed = serializers.SerializerMethodField()
 	profile_image = serializers.SerializerMethodField()
+	avatar_url = serializers.SerializerMethodField()
 
 	class Meta:
 		model = User
-		fields = ['id', 'username', 'first_name', 'last_name', 'points', 'rank', 'rank_info', 'quests_completed', 'avatar_id', 'profile_image']
+		fields = ['id', 'username', 'first_name', 'last_name', 'points', 'rank', 'rank_info', 'quests_completed', 'avatar_id', 'profile_image', 'avatar_url']
 
 	def get_rank(self, obj):
 		return self.context.get('rank', 0)
@@ -32,6 +33,20 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 			if request:
 				return request.build_absolute_uri(obj.profile_image.url)
 			return obj.profile_image.url
+		return None
+
+	def get_avatar_url(self, obj):
+		if obj.avatar_id:
+			try:
+				from apps.authentication.models import Avatar
+				avatar = Avatar.objects.filter(id=obj.avatar_id).first()
+				if avatar and avatar.image:
+					request = self.context.get('request')
+					if request:
+						return request.build_absolute_uri(avatar.image.url)
+					return avatar.image.url
+			except (ValueError, Exception):
+				pass
 		return None
 
 class QuestSerializer(serializers.ModelSerializer):
