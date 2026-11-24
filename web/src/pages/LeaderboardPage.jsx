@@ -15,7 +15,7 @@ import {
     User as UserIcon,
 } from "lucide-react";
 import { userService } from "../services/userService";
-import { getAvatarUri, getProfileImageUrl } from "../utils/avatarUtils";
+import { getProfileImageUrl } from "../utils/avatarUtils";
 
 // Progression Ranks Matching ARQuest Gamification Engine
 const RANKS = [
@@ -251,30 +251,34 @@ export default function LeaderboardPage({ hideHeader }) {
                 </div>
             )}
 
-            {/* KPI Summary Metric Cards with Interactive Filters */}
+            {/* KPI Summary Metric Cards with Interactive Filters - Redesigned */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* Total Explorers */}
                 <Card
                     onClick={() => setActiveFilter("all")}
-                    className={`p-4 sm:p-5 flex items-center gap-3.5 border transition-all cursor-pointer ${
+                    className={`relative overflow-hidden p-4 sm:p-5 flex flex-col gap-2.5 border transition-all cursor-pointer ${
                         activeFilter === "all"
-                            ? "border-brand ring-2 ring-brand/15 bg-brand-light/30 shadow-sm"
-                            : "border-brand-border/70 hover:shadow-md"
+                            ? "border-brand ring-2 ring-brand/20 bg-gradient-to-br from-brand-light/40 to-brand-light/10 shadow-lg"
+                            : "border-brand-border/60 bg-white hover:shadow-lg hover:border-brand/30"
                     }`}
                     title="Click to view all student explorers"
                 >
-                    <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
-                        <Users size={22} />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand/5 via-transparent to-transparent pointer-events-none" />
+                    <div className="flex items-start justify-between relative z-10">
+                        <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                            <Users size={22} />
+                        </div>
+                        <span className="text-4xl font-extrabold text-brand/10 font-hud tracking-tight">👥</span>
                     </div>
-                    <div>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="relative z-10">
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
                             Total Explorers
                         </p>
-                        <p className="text-xl sm:text-2xl font-extrabold text-gray-900 font-hud">
+                        <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-hud">
                             {metrics.totalStudents}
                         </p>
-                        <span className="text-[10px] font-semibold text-gray-400 block mt-0.5">
-                            All registered
+                        <span className="text-[10px] font-medium text-gray-500 block mt-1">
+                            All registered students
                         </span>
                     </div>
                 </Card>
@@ -286,21 +290,26 @@ export default function LeaderboardPage({ hideHeader }) {
                             setSelectedStudent({ ...firstPlace, rank: 1 });
                         }
                     }}
-                    className="p-4 sm:p-5 flex items-center gap-3.5 border border-brand-border/70 hover:shadow-md transition-all cursor-pointer"
+                    className="relative overflow-hidden p-4 sm:p-5 flex flex-col gap-2.5 border border-amber-200 bg-gradient-to-br from-amber-50/50 to-white hover:shadow-lg hover:border-amber-300 transition-all cursor-pointer"
                     title="Click to view #1 champion profile"
                 >
-                    <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                        <Trophy size={22} />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-200/30 via-transparent to-transparent pointer-events-none" />
+                    <div className="flex items-start justify-between relative z-10">
+                        <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                            <Trophy size={22} />
+                        </div>
+                        <span className="text-4xl font-extrabold text-amber-200 font-hud tracking-tight">🏆</span>
                     </div>
-                    <div>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="relative z-10">
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
                             Top Campus Score
                         </p>
-                        <p className="text-xl sm:text-2xl font-extrabold text-gray-900 font-hud">
+                        <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-hud">
                             {metrics.topScore.toLocaleString()} XP
                         </p>
-                        <span className="text-[10px] font-bold text-amber-600 block mt-0.5">
-                            🏆 #1 Champion
+                        <span className="text-[10px] font-bold text-amber-600 block mt-1 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            #1 Champion
                         </span>
                     </div>
                 </Card>
@@ -312,24 +321,28 @@ export default function LeaderboardPage({ hideHeader }) {
                             prev === "above_avg" ? "all" : "above_avg",
                         )
                     }
-                    className={`p-4 sm:p-5 flex items-center gap-3.5 border transition-all cursor-pointer ${
+                    className={`relative overflow-hidden p-4 sm:p-5 flex flex-col gap-2.5 border transition-all cursor-pointer ${
                         activeFilter === "above_avg"
-                            ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40 shadow-sm"
-                            : "border-brand-border/70 hover:shadow-md"
+                            ? "border-emerald-400 ring-2 ring-emerald-400/20 bg-gradient-to-br from-emerald-50/50 to-white shadow-lg"
+                            : "border-brand-border/60 bg-white hover:shadow-lg hover:border-emerald-300"
                     }`}
                     title="Click to filter students scoring above campus average"
                 >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                        <TrendingUp size={22} />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-200/30 via-transparent to-transparent pointer-events-none" />
+                    <div className="flex items-start justify-between relative z-10">
+                        <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                            <TrendingUp size={22} />
+                        </div>
+                        <span className="text-4xl font-extrabold text-emerald-200 font-hud tracking-tight">📊</span>
                     </div>
-                    <div>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="relative z-10">
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
                             Average Points
                         </p>
-                        <p className="text-xl sm:text-2xl font-extrabold text-gray-900 font-hud">
+                        <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-hud">
                             {metrics.avgScore.toLocaleString()} XP
                         </p>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-0.5">
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50/80 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
                             <span>{avgRankDetails.icon}</span>
                             <span>Typical: {avgRankDetails.title}</span>
                         </span>
@@ -343,25 +356,29 @@ export default function LeaderboardPage({ hideHeader }) {
                             prev === "legends" ? "all" : "legends",
                         )
                     }
-                    className={`p-4 sm:p-5 flex items-center gap-3.5 border transition-all cursor-pointer ${
+                    className={`relative overflow-hidden p-4 sm:p-5 flex flex-col gap-2.5 border transition-all cursor-pointer ${
                         activeFilter === "legends"
-                            ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/40 shadow-sm"
-                            : "border-brand-border/70 hover:shadow-md"
+                            ? "border-purple-400 ring-2 ring-purple-400/20 bg-gradient-to-br from-purple-50/50 to-white shadow-lg"
+                            : "border-brand-border/60 bg-white hover:shadow-lg hover:border-purple-300"
                     }`}
                     title="Click to filter Campus Legends (≥ 2,000 XP)"
                 >
-                    <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                        <Crown size={22} />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-200/30 via-transparent to-transparent pointer-events-none" />
+                    <div className="flex items-start justify-between relative z-10">
+                        <div className="w-11 h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                            <Crown size={22} />
+                        </div>
+                        <span className="text-4xl font-extrabold text-purple-200 font-hud tracking-tight">👑</span>
                     </div>
-                    <div>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="relative z-10">
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
                             Campus Legends
                         </p>
-                        <p className="text-xl sm:text-2xl font-extrabold text-gray-900 font-hud">
+                        <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-hud">
                             {metrics.legendsCount}
                         </p>
-                        <span className="text-[10px] font-bold text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-0.5">
-                            <span>👑</span>
+                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50/80 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                             <span>Max Tier (≥2k XP)</span>
                         </span>
                     </div>
@@ -429,12 +446,9 @@ export default function LeaderboardPage({ hideHeader }) {
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
                                             />
-                                        ) : secondPlace.avatar_id &&
-                                          getAvatarUri(secondPlace.avatar_id) ? (
+                                        ) : secondPlace.avatar_url ? (
                                             <img
-                                                src={getAvatarUri(
-                                                    secondPlace.avatar_id,
-                                                )}
+                                                src={secondPlace.avatar_url}
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
                                             />
@@ -508,12 +522,9 @@ export default function LeaderboardPage({ hideHeader }) {
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
                                             />
-                                        ) : firstPlace.avatar_id &&
-                                          getAvatarUri(firstPlace.avatar_id) ? (
+                                        ) : firstPlace.avatar_url ? (
                                             <img
-                                                src={getAvatarUri(
-                                                    firstPlace.avatar_id,
-                                                )}
+                                                src={firstPlace.avatar_url}
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
                                             />
@@ -583,12 +594,9 @@ export default function LeaderboardPage({ hideHeader }) {
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
                                             />
-                                        ) : thirdPlace.avatar_id &&
-                                          getAvatarUri(thirdPlace.avatar_id) ? (
+                                        ) : thirdPlace.avatar_url ? (
                                             <img
-                                                src={getAvatarUri(
-                                                    thirdPlace.avatar_id,
-                                                )}
+                                                src={thirdPlace.avatar_url}
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
                                             />
@@ -753,14 +761,9 @@ export default function LeaderboardPage({ hideHeader }) {
                                                             alt="Avatar"
                                                             className="w-full h-full object-cover"
                                                         />
-                                                    ) : user.avatar_id &&
-                                                      getAvatarUri(
-                                                          user.avatar_id,
-                                                      ) ? (
+                                                    ) : user.avatar_url ? (
                                                         <img
-                                                            src={getAvatarUri(
-                                                                user.avatar_id,
-                                                            )}
+                                                            src={user.avatar_url}
                                                             alt="Avatar"
                                                             className="w-full h-full object-cover"
                                                         />
@@ -875,12 +878,9 @@ export default function LeaderboardPage({ hideHeader }) {
                                         alt="Avatar"
                                         className="w-full h-full object-cover"
                                     />
-                                ) : selectedStudent.avatar_id &&
-                                  getAvatarUri(selectedStudent.avatar_id) ? (
+                                ) : selectedStudent.avatar_url ? (
                                     <img
-                                        src={getAvatarUri(
-                                            selectedStudent.avatar_id,
-                                        )}
+                                        src={selectedStudent.avatar_url}
                                         alt="Avatar"
                                         className="w-full h-full object-cover"
                                     />
