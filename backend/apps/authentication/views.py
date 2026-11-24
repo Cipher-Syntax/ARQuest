@@ -829,20 +829,21 @@ def reset_password(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def avatar_list(request):
     """
     List all avatars (GET) or create a new avatar (POST).
-    Admin-only for POST; GET is available to all authenticated users.
+    GET is public (for onboarding avatar selection); POST is admin-only.
     """
     if request.method == 'GET':
+        # Public access for avatar selection during onboarding
         avatars = Avatar.objects.all().order_by('-created_at')
         serializer = AvatarSerializer(avatars, many=True, context={'request': request})
         return success_response(serializer.data)
 
     # POST - Admin only
-    if not request.user.is_admin_role:
+    if not request.user.is_authenticated or not request.user.is_admin_role:
         return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
 
     serializer = AvatarSerializer(data=request.data, context={'request': request})

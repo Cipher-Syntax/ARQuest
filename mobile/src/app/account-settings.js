@@ -37,8 +37,8 @@ import { api } from "../services";
 import { useThemeColors } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
-import { AVATARS } from "../constants/Avatars";
 import { customAlert as Alert } from "../components/ui/CustomAlert";
+import { avatarService } from "../services/avatar/avatarService";
 
 export default function AccountSettingsScreen() {
     const colors = useThemeColors();
@@ -53,7 +53,32 @@ export default function AccountSettingsScreen() {
 
     // Avatar state
     const [selectedAvatarId, setSelectedAvatarId] = useState(user?.avatar_id);
+    const [avatarOptions, setAvatarOptions] = useState([]);
+    const [isLoadingAvatars, setIsLoadingAvatars] = useState(true);
     const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+
+    // Load avatar catalog from server for avatar modal
+    const loadAvatarOptions = async () => {
+        setIsLoadingAvatars(true);
+        try {
+            const { avatars } = await avatarService.getCatalog();
+            setAvatarOptions(avatars);
+        } catch (error) {
+            console.warn("Failed to load avatar options:", error);
+            setAvatarOptions([]);
+        } finally {
+            setIsLoadingAvatars(false);
+        }
+    };
+
+    // Open avatar modal triggers load
+    const openAvatarModal = () => {
+        setSelectedAvatarId(user?.avatar_id);
+        setAvatarModalVisible(true);
+        if (avatarOptions.length === 0) {
+            loadAvatarOptions();
+        }
+    };
 
     // Edit Profile state
     const [firstName, setFirstName] = useState(user?.first_name || "");
@@ -235,12 +260,14 @@ export default function AccountSettingsScreen() {
                 {/* Avatar Hero */}
                 <View style={styles.avatarHero}>
                     <View style={styles.avatarWrapper}>
-                        {user?.avatar_id &&
-                        AVATARS.find((a) => a.id === user?.avatar_id)?.source ? (
+                        {user?.avatar_id && avatarOptions.find((a) => a.id === user?.avatar_id)?.image_url ? (
                             <Image
-                                source={
-                                    AVATARS.find((a) => a.id === user.avatar_id).source
-                                }
+                                source={{ uri: avatarOptions.find((a) => a.id === user.avatar_id).image_url }}
+                                style={styles.avatarImage}
+                            />
+                        ) : user?.avatar_id && avatarOptions.find((a) => a.id === user?.avatar_id)?.source ? (
+                            <Image
+                                source={avatarOptions.find((a) => a.id === user.avatar_id).source}
                                 style={styles.avatarImage}
                             />
                         ) : (
@@ -252,10 +279,7 @@ export default function AccountSettingsScreen() {
                         )}
                         <TouchableOpacity
                             style={styles.editAvatarBadge}
-                            onPress={() => {
-                                setSelectedAvatarId(user?.avatar_id);
-                                setAvatarModalVisible(true);
-                            }}
+                            onPress={openAvatarModal}
                             activeOpacity={0.85}
                         >
                             <Camera size={14} color="#FFFFFF" />
@@ -453,34 +477,42 @@ export default function AccountSettingsScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        <FlatList
-                            data={AVATARS}
-                            numColumns={2}
-                            keyExtractor={(item) => item.id}
-                            contentContainerStyle={styles.avatarGrid}
-                            columnWrapperStyle={{ justifyContent: "space-between" }}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={[
-                                        styles.avatarOption,
-                                        selectedAvatarId === item.id &&
-                                            styles.avatarOptionSelected,
-                                    ]}
-                                    onPress={() => setSelectedAvatarId(item.id)}
-                                    activeOpacity={0.8}
-                                >
-                                    <Image
-                                        source={item.source}
-                                        style={styles.avatarOptionImage}
-                                    />
-                                    {selectedAvatarId === item.id && (
-                                        <View style={styles.avatarOptionOverlay}>
-                                            <Check size={18} color="#FFFFFF" />
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                            )}
-                        />
+                        {isLoadingAvatars ? (
+                            <View style={styles.avatarGridLoading}>
+                                <ActivityIndicator size="large" color={colors.primary} />
+                            </View>
+                        ) : avatarOptions.length === 0 ? (
+                            <Text style={styles.noAvatarsText}>No avatars available</Text>
+                        ) : (
+                            <FlatList
+                                data={avatarOptions}
+                                numColumns={2}
+                                keyExtractor={(item) => item.id}
+                                contentContainerStyle={styles.avatarGrid}
+                                columnWrapperStyle={{ justifyContent: "space-between" }}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.avatarOption,
+                                            selectedAvatarId === item.id &&
+                                                styles.avatarOptionSelected,
+                                        ]}
+                                        onPress={() => setSelectedAvatarId(item.id)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Image
+                                            source={item.image_url ? { uri: item.image_url } : item.source}
+                                            style={styles.avatarOptionImage}
+                                        />
+                                        {selectedAvatarId === item.id && (
+                                            <View style={styles.avatarOptionOverlay}>
+                                                <Check size={18} color="#FFFFFF" />
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            />
+                        )}
 
                         <View style={styles.modalActions}>
                             <TouchableOpacity
@@ -1132,6 +1164,15 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     },
     avatarGrid: {
         paddingVertical: 10,
+    },
+    avatarGridLoading: {
+        paddingVertical: 40,
+        alignItems: "center",
+    },
+    noAvatarsText: {
+        paddingVertical: 40,
+        textAlign: "center",
+        color: colors.textMuted,
     },
     avatarOption: {
         width: "48%",
