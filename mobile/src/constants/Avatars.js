@@ -1,39 +1,9 @@
 /**
  * Fallback avatar catalog (used when server catalog is unavailable).
  * Server catalog from /api/auth/avatars/ takes precedence when available.
+ * Empty — server catalog is the single source of truth.
  */
-export const AVATARS = [
-    {
-        id: "explorer_1",
-        source: require("../../assets/avatars/explorer_1.png"),
-        fallback: true,
-    },
-    {
-        id: "explorer_2",
-        source: require("../../assets/avatars/explorer_2.png"),
-        fallback: true,
-    },
-    {
-        id: "mascot_1",
-        source: require("../../assets/avatars/mascot_1.png"),
-        fallback: true,
-    },
-    {
-        id: "student_1",
-        source: require("../../assets/avatars/student_1.png"),
-        fallback: true,
-    },
-    {
-        id: "student_2",
-        source: require("../../assets/avatars/student_2.png"),
-        fallback: true,
-    },
-    {
-        id: "visitor_1",
-        source: require("../../assets/avatars/visitor_1.png"),
-        fallback: true,
-    },
-];
+export const AVATARS = [];
 
 /**
  * Get avatar source by ID from fallback catalog.

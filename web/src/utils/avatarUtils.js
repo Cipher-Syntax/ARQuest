@@ -1,16 +1,9 @@
 /**
  * Hardcoded fallback avatar catalog.
  * Used when server catalog is unavailable or during initial load.
- * UUIDs here must match any pre-existing User.avatar_id values.
+ * Empty — server catalog is the single source of truth.
  */
-export const FALLBACK_AVATARS = [
-    { id: "explorer_1", uri: "/avatars/explorer_1.png" },
-    { id: "explorer_2", uri: "/avatars/explorer_2.png" },
-    { id: "mascot_1", uri: "/avatars/mascot_1.png" },
-    { id: "student_1", uri: "/avatars/student_1.png" },
-    { id: "student_2", uri: "/avatars/student_2.png" },
-    { id: "visitor_1", uri: "/avatars/visitor_1.png" },
-];
+export const FALLBACK_AVATARS = [];
 
 // In-memory cache for server avatar catalog
 let avatarCatalogCache = null;
