@@ -1339,9 +1339,9 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         elevation: 1,
     },
     myRankRow: {
-        backgroundColor: toRgba(colors.primary, 0.08),
+        // No background tint - only border
         borderColor: colors.primary,
-        borderWidth: 1.5,
+        borderWidth: 2,
     },
     rankPositionWrap: {
         width: 32,
