@@ -75,32 +75,38 @@ export default function RegisterScreen() {
             });
         } catch (err) {
             console.log("Registration error:", err);
-            
-            if (err?.data && typeof err.data === 'object') {
-                const errors = err.data;
-                const newFieldErrors = {};
-                let hasSpecificErrors = false;
-                
-                Object.keys(errors).forEach(key => {
-                    if (Array.isArray(errors[key])) {
-                        newFieldErrors[key] = errors[key][0];
-                        hasSpecificErrors = true;
-                    } else if (typeof errors[key] === 'string') {
-                        newFieldErrors[key] = errors[key];
-                        hasSpecificErrors = true;
+
+            const responseBody = err?.data || err?.response?.data || {};
+            const apiError = responseBody?.error;
+            const validationDetails =
+                apiError?.details || responseBody?.details || responseBody?.data || responseBody;
+            const newFieldErrors = {};
+            let generalValidationMessage = "";
+
+            if (validationDetails && typeof validationDetails === "object") {
+                Object.entries(validationDetails).forEach(([key, value]) => {
+                    const message = Array.isArray(value) ? value[0] : value;
+                    if (typeof message === "string") {
+                        if (["username", "email", "password", "password_confirm"].includes(key)) {
+                            newFieldErrors[key] = message;
+                        } else if (["non_field_errors", "detail"].includes(key)) {
+                            generalValidationMessage = message;
+                        }
                     }
                 });
-
-                if (hasSpecificErrors) {
-                    setFieldErrors(newFieldErrors);
-                    return;
-                }
             }
 
-            let serverMessage = err?.data?.error || err?.data?.message || err?.data?.detail;
-            if (typeof serverMessage === "object" && serverMessage !== null) {
-                serverMessage = serverMessage.message || serverMessage.detail || JSON.stringify(serverMessage);
+            if (Object.keys(newFieldErrors).length > 0) {
+                setFieldErrors(newFieldErrors);
+                return;
             }
+
+            const serverMessage =
+                generalValidationMessage ||
+                apiError?.message ||
+                responseBody?.message ||
+                responseBody?.detail ||
+                (typeof apiError === "string" ? apiError : "");
             setError(serverMessage || "Registration failed. Please check your details.");
         }
     };
