@@ -3,6 +3,7 @@ import Map, { Marker, Source, Layer, Popup, NavigationControl } from "react-map-
 import circle from "@turf/circle";
 import { MapPin } from "lucide-react";
 import { theme } from "../../theme";
+import { navigationService } from "../../services/navigationService";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@google/model-viewer";
 
@@ -48,6 +49,25 @@ const GeofenceEditor = ({
         lat: value?.latitude ? parseFloat(value.latitude) : WMSU_CENTER.lat,
         lng: value?.longitude ? parseFloat(value.longitude) : WMSU_CENTER.lng,
     };
+    const latitudeValue = Number(value?.latitude);
+    const longitudeValue = Number(value?.longitude);
+    const hasValidCoordinates =
+        value?.latitude != null &&
+        value?.longitude != null &&
+        String(value.latitude).trim() !== "" &&
+        String(value.longitude).trim() !== "" &&
+        Number.isFinite(latitudeValue) &&
+        Number.isFinite(longitudeValue) &&
+        latitudeValue >= -90 &&
+        latitudeValue <= 90 &&
+        longitudeValue >= -180 &&
+        longitudeValue <= 180;
+    const isOutsideCampusBounds =
+        hasValidCoordinates &&
+        (longitudeValue < WMSU_BOUNDS[0][0] ||
+            latitudeValue < WMSU_BOUNDS[0][1] ||
+            longitudeValue > WMSU_BOUNDS[1][0] ||
+            latitudeValue > WMSU_BOUNDS[1][1]);
 
     const [viewState, setViewState] = useState({
         longitude: center.lng,
@@ -56,6 +76,28 @@ const GeofenceEditor = ({
         pitch: 45,
         bearing: 0
     });
+    const [campusPerimeter, setCampusPerimeter] = useState(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        navigationService
+            .getPerimeter()
+            .then((perimeter) => {
+                if (
+                    isMounted &&
+                    Array.isArray(perimeter?.coordinates) &&
+                    perimeter.coordinates.length >= 3
+                ) {
+                    setCampusPerimeter(perimeter);
+                }
+            })
+            .catch((error) => {
+                console.warn("Failed to load campus perimeter for geofence editor:", error);
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     useEffect(() => {
         if (value?.latitude && value?.longitude) {
@@ -81,6 +123,33 @@ const GeofenceEditor = ({
         if (radius <= 0) return null;
         return circle([parseFloat(value.longitude), parseFloat(value.latitude)], radius / 1000, { steps: 64, units: 'kilometers' });
     }, [value?.latitude, value?.longitude, value?.radius_meters]);
+
+    const campusBoundaryGeoJSON = useMemo(() => {
+        const coordinates = campusPerimeter?.coordinates;
+        if (!Array.isArray(coordinates) || coordinates.length < 3) return null;
+
+        const ring = coordinates.map(([longitude, latitude]) => [
+            Number(longitude),
+            Number(latitude),
+        ]);
+        if (ring.some(([longitude, latitude]) => !Number.isFinite(longitude) || !Number.isFinite(latitude))) {
+            return null;
+        }
+        const first = ring[0];
+        const last = ring[ring.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+            ring.push([...first]);
+        }
+
+        return {
+            type: "Feature",
+            properties: {},
+            geometry: {
+                type: "Polygon",
+                coordinates: [ring],
+            },
+        };
+    }, [campusPerimeter?.coordinates]);
 
     const existingCirclesData = useMemo(() => {
         const features = [];
@@ -148,6 +217,15 @@ const GeofenceEditor = ({
                 <span>Click anywhere on the map to automatically set Latitude & Longitude coordinates and reposition the arrival pin.</span>
             </div>
 
+            {isOutsideCampusBounds && (
+                <div
+                    role="status"
+                    className="p-2.5 mb-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-md text-xs"
+                >
+                    These coordinates are outside the usual WMSU campus bounds. The pin will still be shown and the location can still be saved for testing.
+                </div>
+            )}
+
             {errors?.center && (
                 <div style={{ color: theme.colors.error, fontSize: "12px", marginBottom: "8px" }}>
                     {errors.center}
@@ -161,7 +239,6 @@ const GeofenceEditor = ({
                     onClick={handleMapClick}
                     mapboxAccessToken={MAPBOX_TOKEN}
                     mapStyle="mapbox://styles/mapbox/streets-v12"
-                    maxBounds={WMSU_BOUNDS}
                     minZoom={16}
                     maxZoom={20}
                 >
@@ -181,6 +258,28 @@ const GeofenceEditor = ({
                             'fill-extrusion-opacity': 0.6
                         }}
                     />
+
+                    {campusBoundaryGeoJSON && (
+                        <Source id="campus-perimeter-geofence-editor" type="geojson" data={campusBoundaryGeoJSON}>
+                            <Layer
+                                id="campus-perimeter-fill-geofence-editor"
+                                type="fill"
+                                paint={{
+                                    "fill-color": campusPerimeter.stroke_color || theme.colors.primary,
+                                    "fill-opacity": 0.06,
+                                }}
+                            />
+                            <Layer
+                                id="campus-perimeter-line-geofence-editor"
+                                type="line"
+                                paint={{
+                                    "line-color": campusPerimeter.stroke_color || theme.colors.primary,
+                                    "line-width": campusPerimeter.stroke_width || 3,
+                                    "line-dasharray": [3, 2],
+                                }}
+                            />
+                        </Source>
+                    )}
 
                     <Source id="existing-geofences" type="geojson" data={existingCirclesData}>
                         <Layer
