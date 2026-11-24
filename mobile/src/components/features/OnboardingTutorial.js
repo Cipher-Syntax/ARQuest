@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -33,10 +33,11 @@ import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { fonts } from "../../constants/typography";
 import { useAuth } from "../../hooks/useAuth";
 import { toRgba } from "../../utils/color";
+import { useTourTarget, tabTargetId } from "../../utils/tourTargets";
 
 const { width } = Dimensions.get("window");
 
-const getTutorialSteps = (role) => {
+const getTutorialSteps = (role, includeLegal = true) => {
     let steps = [];
 
     if (role === "professional" || role === "admin") {
@@ -56,7 +57,7 @@ const getTutorialSteps = (role) => {
                     "See total campus buildings, check how close you are to the nearest building, and quickly open your evaluation tools.",
                 icon: Activity,
                 position: "bottom",
-                pointerLeft: "10%",
+                target: "index",
             },
             {
                 badge: "MAP",
@@ -65,7 +66,7 @@ const getTutorialSteps = (role) => {
                     "View the campus map with your live GPS location. Tap any building pin to view its 3D model, or switch to List View.",
                 icon: Map,
                 position: "bottom",
-                pointerLeft: "30%",
+                target: "buildings",
             },
             {
                 badge: "AR CAMERA",
@@ -74,7 +75,7 @@ const getTutorialSteps = (role) => {
                     "Point your phone camera to see building names and directions floating right in front of you while walking on campus.",
                 icon: ScanLine,
                 position: "bottom",
-                pointerLeft: "50%",
+                target: "ar",
             },
             {
                 badge: "EXPLORE",
@@ -83,7 +84,7 @@ const getTutorialSteps = (role) => {
                     "Browse the full list of campus buildings, view department offices, and see exact walking distances from where you are standing.",
                 icon: MapPin,
                 position: "bottom",
-                pointerLeft: "70%",
+                target: "explore",
             },
             {
                 badge: "CHECKLIST",
@@ -92,7 +93,7 @@ const getTutorialSteps = (role) => {
                     "Keep track of the buildings you have visited and evaluated. Checked buildings automatically appear at the top of your list.",
                 icon: CheckCircle2,
                 position: "bottom",
-                pointerLeft: "90%",
+                target: "profile",
             },
         ];
     } else if (role === "visitor") {
@@ -112,7 +113,7 @@ const getTutorialSteps = (role) => {
                     "Quickly see the nearest campus building and access the map and camera navigation shortcuts.",
                 icon: Building,
                 position: "bottom",
-                pointerLeft: "10%",
+                target: "index",
             },
             {
                 badge: "MAP",
@@ -121,7 +122,7 @@ const getTutorialSteps = (role) => {
                     "View the full 2D map with your live GPS location to find departments, rooms, and facilities.",
                 icon: Map,
                 position: "bottom",
-                pointerLeft: "30%",
+                target: "buildings",
             },
             {
                 badge: "AR CAMERA",
@@ -130,7 +131,7 @@ const getTutorialSteps = (role) => {
                     "Look through your camera to see building names and directions floating in real-time as you walk.",
                 icon: ScanLine,
                 position: "bottom",
-                pointerLeft: "50%",
+                target: "ar",
             },
             {
                 badge: "EXPLORE",
@@ -139,7 +140,7 @@ const getTutorialSteps = (role) => {
                     "Browse photos, department information, and operating hours for all buildings across campus.",
                 icon: MapPin,
                 position: "bottom",
-                pointerLeft: "70%",
+                target: "explore",
             },
         ];
     } else {
@@ -160,7 +161,7 @@ const getTutorialSteps = (role) => {
                     "Check here every day for 3 daily missions and limited-time quests to earn EXP and increase your player level.",
                 icon: Target,
                 position: "bottom",
-                pointerLeft: "10%",
+                target: "index",
             },
             {
                 badge: "MAP",
@@ -169,7 +170,7 @@ const getTutorialSteps = (role) => {
                     "See where you are on campus. Tap any building pin to inspect its 3D model or switch to List View for quick searching.",
                 icon: Map,
                 position: "bottom",
-                pointerLeft: "30%",
+                target: "buildings",
             },
             {
                 badge: "AR CAMERA",
@@ -178,7 +179,7 @@ const getTutorialSteps = (role) => {
                     "Use your camera to find buildings around you. Scan building QR codes at the entrance to unlock them and take campus selfies!",
                 icon: ScanLine,
                 position: "bottom",
-                pointerLeft: "50%",
+                target: "ar",
             },
             {
                 badge: "EXPLORE",
@@ -187,7 +188,7 @@ const getTutorialSteps = (role) => {
                     "Walk close to a building to automatically unlock it. Take quick building quizzes to earn bonus EXP points.",
                 icon: MapPin,
                 position: "bottom",
-                pointerLeft: "70%",
+                target: "explore",
             },
             {
                 badge: "PROFILE",
@@ -196,13 +197,21 @@ const getTutorialSteps = (role) => {
                     "Track your rank from Freshman to Campus Legend, maintain daily check-in streaks, and collect achievement badges.",
                 icon: Trophy,
                 position: "bottom",
-                pointerLeft: "90%",
+                target: "profile",
             },
         ];
     }
 
     // Add actionLabel 'NEXT' to all steps
     steps = steps.map(s => ({ ...s, actionLabel: "NEXT" }));
+
+    if (!includeLegal) {
+        // Replay of the manual: the user already accepted the terms, so the
+        // last content step simply closes the tutorial.
+        const last = steps.length - 1;
+        steps[last] = { ...steps[last], actionLabel: "FINISH" };
+        return steps;
+    }
 
     // Append the mandatory Legal step at the very end
     steps.push({
@@ -226,9 +235,23 @@ export default function OnboardingTutorial() {
     const [isVisible, setIsVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [isAgreed, setIsAgreed] = useState(false);
+    // Replays (Profile → User Manual) skip the legal step: terms were already accepted.
+    const [isReplay, setIsReplay] = useState(false);
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
+    const overlayRef = useRef(null);
 
-    const steps = getTutorialSteps(user?.role);
+    const steps = getTutorialSteps(user?.role, !isReplay);
+
+    // Live position of the tab this step points at, measured in the overlay's
+    // own coordinate space so the ring is centered on the real icon.
+    const currentTarget = steps[currentStep] || steps[0];
+    const targetRect = useTourTarget(
+        currentTarget?.position === "bottom" && currentTarget.target
+            ? tabTargetId(currentTarget.target)
+            : null,
+        overlayRef,
+        isVisible,
+    );
 
     const getStorageKey = () => {
         return user?.id ? `@tutorial_completed_${user.id}` : "@tutorial_completed";
@@ -237,7 +260,13 @@ export default function OnboardingTutorial() {
     useEffect(() => {
         checkTutorialStatus();
 
-        const sub = DeviceEventEmitter.addListener("show_tutorial", () => {
+        const sub = DeviceEventEmitter.addListener("show_tutorial", async () => {
+            let alreadyAccepted = false;
+            try {
+                alreadyAccepted =
+                    (await AsyncStorage.getItem(getStorageKey())) === "true";
+            } catch {}
+            setIsReplay(alreadyAccepted);
             setCurrentStep(0);
             setIsVisible(true);
             Animated.timing(fadeAnim, {
@@ -255,6 +284,7 @@ export default function OnboardingTutorial() {
             const key = getStorageKey();
             const hasCompleted = await AsyncStorage.getItem(key);
             if (hasCompleted !== "true") {
+                setIsReplay(false);
                 setCurrentStep(0);
                 setIsVisible(true);
                 Animated.timing(fadeAnim, {
@@ -284,19 +314,23 @@ export default function OnboardingTutorial() {
             ]).start();
             setTimeout(() => setCurrentStep((prev) => prev + 1), 150);
         } else {
-            // Finish tutorial
-            Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 250,
-                useNativeDriver: true,
-            }).start(async () => {
-                setIsVisible(false);
-                const key = getStorageKey();
-                await AsyncStorage.setItem(key, "true");
-                await AsyncStorage.setItem("@tutorial_completed", "true");
-                DeviceEventEmitter.emit("tutorial_finished");
-            });
+            finishTutorial();
         }
+    };
+
+    const finishTutorial = () => {
+        Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+        }).start(async () => {
+            setIsVisible(false);
+            if (isReplay) return; // nothing new to record or chain into
+            const key = getStorageKey();
+            await AsyncStorage.setItem(key, "true");
+            await AsyncStorage.setItem("@tutorial_completed", "true");
+            DeviceEventEmitter.emit("tutorial_finished");
+        });
     };
 
     const handlePrev = () => {
@@ -318,6 +352,11 @@ export default function OnboardingTutorial() {
     };
 
     const handleSkip = async () => {
+        if (isReplay) {
+            // Terms already accepted — skipping a replay just closes it.
+            finishTutorial();
+            return;
+        }
         if (currentStep < steps.length - 1) {
             Animated.sequence([
                 Animated.timing(fadeAnim, {
@@ -340,17 +379,34 @@ export default function OnboardingTutorial() {
     const step = steps[currentStep] || steps[0];
     const Icon = step.icon;
 
+    // Tab highlight geometry, all derived from the measured tab icon.
+    const showTarget = step.position === "bottom" && !!targetRect;
+    const ringSize = step.target === "ar" ? 76 : 56; // AR button is larger than a plain icon
+    const containerHeight =
+        targetRect?.containerHeight || Dimensions.get("window").height;
+    const ringTop = showTarget ? targetRect.cy - ringSize / 2 : 0;
+    const pointerTop = ringTop - 8 - 15; // tip sits 8px above the ring
+    const tooltipBottom = containerHeight - pointerTop; // box rests on the pointer
+
     return (
-        <Modal transparent visible={isVisible} animationType="none">
+        <Modal
+            transparent
+            visible={isVisible}
+            animationType="none"
+            statusBarTranslucent
+            navigationBarTranslucent
+        >
             <View style={styles.overlay}>
                 <Animated.View
+                    ref={overlayRef}
+                    collapsable={false}
                     style={[styles.container, { opacity: fadeAnim }]}
                 >
                     <View
                         style={[
                             styles.tooltipBox,
-                            step.position === "bottom"
-                                ? styles.tooltipBottom
+                            showTarget
+                                ? [styles.tooltipBottom, { bottom: tooltipBottom }]
                                 : styles.tooltipCenter,
                         ]}
                     >
@@ -461,21 +517,29 @@ export default function OnboardingTutorial() {
                     </View>
 
                     {/* Pointer Triangle for bottom tooltips */}
-                    {step.position === "bottom" && (
+                    {showTarget && (
                         <View
+                            pointerEvents="none"
                             style={[
                                 styles.pointer,
-                                { left: step.pointerLeft },
+                                { top: pointerTop, left: targetRect.cx - 14 },
                             ]}
                         />
                     )}
 
-                    {/* Highlight Indicator on Tab Bar */}
-                    {step.position === "bottom" && (
+                    {/* Highlight Indicator on Tab Bar — centered on the measured icon */}
+                    {showTarget && (
                         <View
+                            pointerEvents="none"
                             style={[
                                 styles.highlightCircle,
-                                { left: step.pointerLeft },
+                                {
+                                    top: ringTop,
+                                    left: targetRect.cx - ringSize / 2,
+                                    width: ringSize,
+                                    height: ringSize,
+                                    borderRadius: ringSize / 2,
+                                },
                             ]}
                         />
                     )}
@@ -500,7 +564,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     },
     tooltipBottom: {
         position: "absolute",
-        bottom: 125, // Sits above tab bar
+        // `bottom` is computed from the measured tab icon so it rests on the pointer.
         alignSelf: "center",
     },
     tooltipBox: {
@@ -650,8 +714,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         letterSpacing: 0.5,
     },
     pointer: {
-        position: "absolute",
-        bottom: 110,
+        position: "absolute", // top/left set from the measured tab icon
         width: 0,
         height: 0,
         borderLeftWidth: 14,
@@ -662,18 +725,12 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         borderLeftColor: "transparent",
         borderRightColor: "transparent",
         borderTopColor: colors.surface,
-        marginLeft: -14,
     },
     highlightCircle: {
-        position: "absolute",
-        bottom: 25,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        position: "absolute", // top/left/size set from the measured tab icon
         borderWidth: 2,
         borderColor: colors.primary,
         backgroundColor: toRgba(colors.primary, 0.25),
-        marginLeft: -28,
     },
     legalCheckRow: {
         flexDirection: "row",

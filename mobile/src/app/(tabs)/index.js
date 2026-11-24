@@ -42,6 +42,7 @@ import { useIsFocused } from "../../hooks/useIsFocused";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { geofencingService } from "../../services";
 import { usePublicSettings } from "../../context/PublicSettingsContext";
+import { registerTourTarget, HOME_MISSION_TARGET } from "../../utils/tourTargets";
 
 export default function HomeScreen() {
     const isFocused = useIsFocused();
@@ -56,6 +57,16 @@ export default function HomeScreen() {
     );
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // The Justine tour spotlights the mission card, so it asks Home to scroll
+    // back to the top first to keep the card on screen.
+    const homeScrollRef = React.useRef(null);
+    useEffect(() => {
+        const sub = DeviceEventEmitter.addListener("tour_scroll_home_top", () => {
+            homeScrollRef.current?.scrollTo({ y: 0, animated: false });
+        });
+        return () => sub.remove();
+    }, []);
 
     // Carousel
     const scrollX = React.useRef(new Animated.Value(0)).current;
@@ -242,6 +253,7 @@ export default function HomeScreen() {
         <View style={styles.container}>
             {isFocused && <StatusBar style="light" />}
             <ScrollView
+                ref={homeScrollRef}
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={
                     <RefreshControl
@@ -429,10 +441,17 @@ export default function HomeScreen() {
                                 </TouchableOpacity>
                             </View>
 
+                            <View
+                                ref={(node) =>
+                                    registerTourTarget(HOME_MISSION_TARGET, node)
+                                }
+                                collapsable={false}
+                                style={{ marginBottom: 24 }}
+                            >
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
-                                style={{ marginBottom: 24, overflow: "visible" }}
+                                style={{ overflow: "visible" }}
                                 contentContainerStyle={{ gap: 20 }}
                                 snapToInterval={Dimensions.get("window").width - 20}
                                 decelerationRate="fast"
@@ -618,6 +637,7 @@ export default function HomeScreen() {
                                     )
                                 )}
                             </ScrollView>
+                            </View>
 
                             {/* --- Limited Challenges --- */}
                             <View style={styles.section}>

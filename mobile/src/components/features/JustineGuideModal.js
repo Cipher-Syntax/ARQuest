@@ -21,26 +21,15 @@ import { useAuth } from "../../hooks/useAuth";
 import { useThemeColors } from "../../context/ThemeContext";
 import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { toRgba } from "../../utils/color";
+import { router } from "expo-router";
+import { useTourTarget, tabTargetId, HOME_MISSION_TARGET } from "../../utils/tourTargets";
 import { AnimatedBottomBar, ModalSafeArea, useBottomInset } from "../ui/SafeAreaSheet";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-// ── Tab layout (5 equal slots: Home=0, Maps=1, AR=2, Explore=3, Profile=4) ──
-const TAB_SLOT_W = SCREEN_WIDTH / 5;
-const MAPS_TAB_CX  = TAB_SLOT_W * 1 + TAB_SLOT_W / 2;   // SCREEN_WIDTH * 0.3
-const AR_TAB_CX    = TAB_SLOT_W * 2 + TAB_SLOT_W / 2;   // SCREEN_WIDTH * 0.5
-
-// ── Tab bar geometry ─────────────────────────────────────────────────────────
-// CustomTabBar: SafeAreaView(edges bottom) → inner row height 70px, padTop/Pad8
-// Tab icon sits roughly at center of the 54px inner content (70-8-8)
-const TAB_BAR_TOTAL_H  = 78;
-const TAB_ICON_CENTER_FROM_BOTTOM = 58;   // aligned to center of tab icon across mobile viewports
-
-// ── Home-screen mission card geometry ───────────────────────────────────────
-// Header LinearGradient: paddingTop(80) + headerTopRow(~88) + expContainer(~40) + paddingBottom(50) ≈ 258px
-// contentArea marginTop: -30 → card top ≈ 258 - 30 = 228px from screen top
-const MISSION_CARD_TOP    = 228;
-const MISSION_CARD_HEIGHT = 170;
+// Highlight positions are NOT hard-coded: the tab icons and the Home mission card
+// register themselves in utils/tourTargets and are measured live, so the rings
+// stay centered across devices, safe-area insets, font scales and layouts.
 
 // ── Character Sprites ────────────────────────────────────────────────────────
 const CHAR_IMAGES = {
@@ -65,6 +54,7 @@ const TOUR_STEPS = [
         speech: "Right here 👉 — every day you get 3 Daily Missions! Visit buildings, rack up EXP, and rise from Freshman to Campus Legend!",
         button: "NICE, WHAT ELSE? 📍",
         layout: "spotlight",
+        target: HOME_MISSION_TARGET,
         image: CHAR_IMAGES.pointing,
     },
     {
@@ -72,7 +62,7 @@ const TOUR_STEPS = [
         speech: "Tap Maps to pull up campus walking paths and get routed straight to any building's entrance.",
         button: "GOT IT! →",
         layout: "tab_pointer",
-        tabCX: MAPS_TAB_CX,
+        target: tabTargetId("buildings"),
         label: "MAPS",
         isAR: false,
         image: CHAR_IMAGES.explorer,
@@ -82,7 +72,7 @@ const TOUR_STEPS = [
         speech: "Step inside a building's zone then hit the center AR button! Scan, claim quest rewards, answer trivia, and inspect 3D models!",
         button: "START EXPLORING! 🏆",
         layout: "tab_pointer",
-        tabCX: AR_TAB_CX,
+        target: tabTargetId("ar"),
         label: "AR SCAN",
         isAR: true,
         image: CHAR_IMAGES.celebrating,
@@ -101,6 +91,7 @@ export default function JustineGuideModal() {
     const [mode, setMode] = useState("tour");
     const [currentStep, setCurrentStep] = useState(0);
     const [hintData, setHintData] = useState(null);
+    const overlayRef = useRef(null);
 
     const overlayOpacity = useRef(new Animated.Value(0)).current;
     const charSlideY     = useRef(new Animated.Value(80)).current;
@@ -145,7 +136,7 @@ export default function JustineGuideModal() {
     // ── Event listeners ──────────────────────────────────────────────────────
     useEffect(() => {
         checkAutoTrigger();
-        const a = DeviceEventEmitter.addListener("tutorial_finished", () => setTimeout(() => startTour(), 350));
+        const a = DeviceEventEmitter.addListener("tutorial_finished", () => startAfterTutorial());
         const b = DeviceEventEmitter.addListener("show_justine_guide", () => startTour());
         const c = DeviceEventEmitter.addListener("show_justine_hint",  (d) => showHint(d));
         return () => { a.remove(); b.remove(); c.remove(); };
@@ -153,6 +144,17 @@ export default function JustineGuideModal() {
 
     const getStorageKey  = () => user?.id ? `@justine_guide_completed_${user.id}` : "@justine_guide_completed";
     const getTutorialKey = () => user?.id ? `@tutorial_completed_${user.id}` : "@tutorial_completed";
+
+    // After the initial tutorial: only students who haven't done the guide yet.
+    // (Professionals/admins/visitors have no Daily Missions to be shown, and a
+    // replayed manual must not restart a guide that was already completed.)
+    const startAfterTutorial = async () => {
+        if (!user || user.role !== "student") return;
+        try {
+            const done = await AsyncStorage.getItem(getStorageKey());
+            if (done !== "true") setTimeout(() => startTour(), 350);
+        } catch {}
+    };
 
     const checkAutoTrigger = async () => {
         if (!user || user.role !== "student") return;
@@ -180,7 +182,13 @@ export default function JustineGuideModal() {
         ]).start();
     };
 
-    const startTour = () => { setMode("tour"); setCurrentStep(0); setIsVisible(true); animateIn(); };
+    const startTour = () => {
+        // The tour spotlights Home content (Daily Missions), so always begin
+        // from Home — wherever the guide was launched (e.g. Profile → Meet Justine).
+        try { router.navigate("/(tabs)"); } catch {}
+        DeviceEventEmitter.emit("tour_scroll_home_top");
+        setMode("tour"); setCurrentStep(0); setIsVisible(true); animateIn();
+    };
     const showHint  = (d) => { setMode("hint"); setHintData(d || {}); setIsVisible(true); animateIn(); };
 
     const handleNext = () => {
@@ -221,9 +229,17 @@ export default function JustineGuideModal() {
         }
     }, [currentStep, isVisible]);
 
-    if (!isVisible) return null;
-
     const step = TOUR_STEPS[currentStep] || TOUR_STEPS[0];
+
+    // Live position of this step's highlight target, in the overlay's own
+    // coordinate space (so rings are centered on the real element).
+    const targetRect = useTourTarget(
+        mode === "tour" ? step.target : null,
+        overlayRef,
+        isVisible && mode === "tour",
+    );
+
+    if (!isVisible) return null;
 
     // ── Shared: progress dots ─────────────────────────────────────────────────
     const Dots = () => (
@@ -306,40 +322,51 @@ export default function JustineGuideModal() {
     // ─────────────────────────────────────────────────────────────────────────
     // LAYOUT 2 — Spotlight on mission card  (Step 2)
     // ─────────────────────────────────────────────────────────────────────────
-    const renderSpotlight = () => (
+    const renderSpotlight = () => {
+        // Frame/arrow/bubble all derive from the measured Daily Missions card.
+        const rect = targetRect;
+        const containerH = rect?.containerHeight || SCREEN_HEIGHT;
+        return (
         <>
             <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={handleDismiss} />
 
             {/* Dashed crimson frame exactly over the card */}
-            <View
-                pointerEvents="none"
-                style={[
-                    S.spotlightFrame,
-                    { top: MISSION_CARD_TOP, height: MISSION_CARD_HEIGHT },
-                ]}
-            />
+            {rect && (
+                <View
+                    pointerEvents="none"
+                    style={[
+                        S.spotlightFrame,
+                        { top: rect.y, left: rect.x, width: rect.width, height: rect.height },
+                    ]}
+                />
+            )}
 
             {/* Left-pointing arrow at mid-height of card */}
-            <Animated.View
-                pointerEvents="none"
-                style={[
-                    S.spotlightArrowWrap,
-                    {
-                        top: MISSION_CARD_TOP + MISSION_CARD_HEIGHT / 2 - 14,
-                        transform: [{ translateY: arrowBounceY }],
-                    },
-                ]}
-            >
-                <View style={S.arrowLeft} />
-            </Animated.View>
+            {rect && (
+                <Animated.View
+                    pointerEvents="none"
+                    style={[
+                        S.spotlightArrowWrap,
+                        {
+                            top: rect.cy - 14,
+                            transform: [{ translateY: arrowBounceY }],
+                        },
+                    ]}
+                >
+                    <View style={S.arrowLeft} />
+                </Animated.View>
+            )}
 
             {/* Speech bubble — floats above the card (white + crimson border) */}
             <Animated.View
                 pointerEvents="none"
                 style={[
                     S.spotlightBubble,
+                    // Bottom-anchored just above the card so it grows upward with its text.
+                    rect
+                        ? { bottom: containerH - rect.y + 14 }
+                        : { top: SCREEN_HEIGHT * 0.2 },
                     {
-                        top: MISSION_CARD_TOP - 110,
                         opacity: bubbleOpacity,
                         transform: [{ translateX: bubbleSlideX }],
                     },
@@ -372,36 +399,38 @@ export default function JustineGuideModal() {
                 </TouchableOpacity>
             </AnimatedBottomBar>
         </>
-    );
+        );
+    };
 
     // ─────────────────────────────────────────────────────────────────────────
     // LAYOUT 3 — Tab pointer  (Steps 3 & 4: Maps & AR Scanner)
     // ─────────────────────────────────────────────────────────────────────────
     const renderTabPointer = () => {
-        const cx = step.tabCX || MAPS_TAB_CX;
         const isAR = step.isAR;
+        const rect = targetRect;
 
-        // Ring: precisely centred on the tab icon
-        const ringW = isAR ? 66 : 52;
+        // Ring: centred on the measured tab icon (AR button is larger than a plain icon)
+        const ringW = isAR ? 74 : 52;
         const ringR = ringW / 2;
-        const ringBottom = TAB_ICON_CENTER_FROM_BOTTOM + bottomInset - ringR; // bottom edge of ring
-        const ringLeft   = cx - ringR;                          // left edge of ring
+        const ringTop  = rect ? rect.cy - ringR : 0;
+        const ringLeft = rect ? rect.cx - ringR : 0;
 
-        // Arrow tip lands just above the top of the ring
-        const arrowBottom = ringBottom + ringW + 4;
+        // Arrow tip lands just above the top of the ring (arrow is 16px tall)
+        const arrowTop = ringTop - 4 - 16;
 
         return (
             <>
                 <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={handleDismiss} />
 
                 {/* ── Pulsing ring centred directly on tab icon ── */}
+                {rect && (
                 <Animated.View
                     pointerEvents="none"
                     style={[
                         S.tabRing,
                         {
                             left: ringLeft,
-                            bottom: ringBottom,
+                            top: ringTop,
                             width: ringW,
                             height: ringW,
                             borderRadius: ringR,
@@ -412,21 +441,24 @@ export default function JustineGuideModal() {
                         },
                     ]}
                 />
+                )}
 
                 {/* ── Bouncing down-arrow pointing directly into the tab ── */}
+                {rect && (
                 <Animated.View
                     pointerEvents="none"
                     style={[
                         S.tabArrowWrap,
                         {
-                            left: cx - 12,
-                            bottom: arrowBottom,
+                            left: rect.cx - 12,
+                            top: arrowTop,
                             transform: [{ translateY: arrowBounceY }],
                         },
                     ]}
                 >
                     <View style={[S.arrowDown, isAR && S.arrowDownAR]} />
                 </Animated.View>
+                )}
 
                 {/* ── Justine character standing on the right, directly above the card ── */}
                 <Animated.View
@@ -499,7 +531,7 @@ export default function JustineGuideModal() {
     return (
         <Modal transparent visible={isVisible} animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={handleDismiss}>
             <ModalSafeArea>
-                <Animated.View style={[S.overlay, { opacity: overlayOpacity }]}>
+                <Animated.View ref={overlayRef} collapsable={false} style={[S.overlay, { opacity: overlayOpacity }]}>
                     {mode === "hint"  && renderVNBar()}
                     {mode === "tour"  && step.layout === "vn_bar"     && renderVNBar()}
                     {mode === "tour"  && step.layout === "spotlight"   && renderSpotlight()}
@@ -645,9 +677,7 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     // LAYOUT 2 — Spotlight
     // ─────────────────────────────────────────────────────────────────────────
     spotlightFrame: {
-        position: "absolute",
-        left: 20,
-        right: 20,
+        position: "absolute", // top/left/size come from the measured card
         borderRadius: 6,
         borderWidth: 2.5,
         borderColor: colors.primary,
@@ -739,15 +769,6 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
         shadowOpacity: 0.12,
         shadowRadius: 10,
         elevation: 14,
-    },
-    floatingBarRaised: {
-        bottom: TAB_BAR_TOTAL_H + 8,
-        paddingBottom: 14,
-        borderRadius: 6,
-        left: 14,
-        right: 14,
-        borderWidth: 1.5,
-        borderColor: colors.primary,
     },
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ import { registerForPushNotificationsAsync } from "../../utils/pushNotifications
 import { useEffect } from "react";
 import OnboardingTutorial from "../../components/features/OnboardingTutorial";
 import JustineGuideModal from "../../components/features/JustineGuideModal";
+import { registerTourTarget, tabTargetId } from "../../utils/tourTargets";
 
 function CustomTabBar({ state, descriptors, navigation }) {
     const colors = useThemeColors();
@@ -65,6 +66,13 @@ function CustomTabBar({ state, descriptors, navigation }) {
                         >
                             {isAR ? (
                                 <View
+                                    ref={(node) =>
+                                        registerTourTarget(
+                                            tabTargetId(route.name),
+                                            node,
+                                        )
+                                    }
+                                    collapsable={false}
                                     style={{
                                         width: 60,
                                         height: 60,
@@ -79,13 +87,23 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                 </View>
                             ) : (
                                 <View style={{ alignItems: "center", gap: 4 }}>
-                                    {options.tabBarIcon &&
-                                        options.tabBarIcon({
-                                            color: isFocused
-                                                ? colors.primary
-                                                : colors.textMuted,
-                                            size: 24,
-                                        })}
+                                    <View
+                                        ref={(node) =>
+                                            registerTourTarget(
+                                                tabTargetId(route.name),
+                                                node,
+                                            )
+                                        }
+                                        collapsable={false}
+                                    >
+                                        {options.tabBarIcon &&
+                                            options.tabBarIcon({
+                                                color: isFocused
+                                                    ? colors.primary
+                                                    : colors.textMuted,
+                                                size: 24,
+                                            })}
+                                    </View>
                                     <Text
                                         style={{
                                             fontSize: 12,
