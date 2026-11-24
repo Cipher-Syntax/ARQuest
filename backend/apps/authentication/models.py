@@ -3,6 +3,7 @@ from django.db import models, transaction
 from django.utils import timezone
 from datetime import timedelta, date
 import random
+import uuid
 
 
 class CustomUserManager(UserManager):
@@ -151,3 +152,29 @@ class UserDevice(models.Model):
 
     def __str__(self):
         return f"Device for {self.user.username}"
+
+
+class Avatar(models.Model):
+    """
+    Admin-managed avatar catalog. Auto-generated UUID is used by User.avatar_id.
+    Images are stored in configured media storage (S3 or Cloudinary).
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, help_text="Auto-generated unique key used by User.avatar_id")
+    image = models.ImageField(upload_to='avatars/', help_text="Avatar image file")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Avatar'
+        verbose_name_plural = 'Avatars'
+
+    def __str__(self):
+        return f"Avatar {str(self.id)[:8]}"
+
+    @property
+    def image_url(self):
+        """Absolute URL for the avatar image (used by API serializer)."""
+        if self.image:
+            return self.image.url
+        return None

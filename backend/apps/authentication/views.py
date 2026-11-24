@@ -22,9 +22,10 @@ from .serializers import (
     LoginSerializer, UserSerializer, RegisterSerializer, VerifyOTPSerializer,
     ResendOTPSerializer, CreateProfessionalSerializer, ChangePasswordSerializer,
     DeactivateAccountSerializer, AdminCreateUserSerializer,
-    ForgotPasswordSerializer, ResetPasswordSerializer
+    ForgotPasswordSerializer, ResetPasswordSerializer,
+    AvatarSerializer
 )
-from .models import User, EmailOTP
+from .models import User, EmailOTP, Avatar
 from .emails import send_verification_email, send_password_reset_email
 
 logger = logging.getLogger(__name__)
@@ -825,3 +826,107 @@ def reset_password(request):
     return success_response({
         'message': 'Password has been reset successfully. You can now log in.'
     })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def avatar_list(request):
+    """
+    List all avatars (GET) or create a new avatar (POST).
+    Admin-only for POST; GET is available to all authenticated users.
+    """
+    if request.method == 'GET':
+        avatars = Avatar.objects.all().order_by('-created_at')
+        serializer = AvatarSerializer(avatars, many=True, context={'request': request})
+        return success_response(serializer.data)
+
+    # POST - Admin only
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+    serializer = AvatarSerializer(data=request.data, context={'request': request})
+    if not serializer.is_valid():
+        return error_response(
+            code='validation_error',
+            message='Failed to create avatar.',
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=serializer.errors
+        )
+
+    avatar = serializer.save()
+    return success_response(
+        AvatarSerializer(avatar, context={'request': request}).data,
+        status_code=status.HTTP_201_CREATED
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def avatar_bulk_create(request):
+    """
+    Create multiple avatars at once (bulk upload).
+    Admin-only. Accepts multiple 'image' files in multipart/form-data.
+    Returns array of created avatars and any errors.
+    """
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+    images = request.FILES.getlist('image')
+    if not images:
+        return error_response(
+            code='validation_error',
+            message='At least one image file is required.',
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    created = []
+    errors = []
+
+    for idx, image in enumerate(images):
+        serializer = AvatarSerializer(data={'image': image}, context={'request': request})
+        if serializer.is_valid():
+            avatar = serializer.save()
+            created.append(AvatarSerializer(avatar, context={'request': request}).data)
+        else:
+            errors.append({
+                'index': idx,
+                'filename': image.name,
+                'errors': serializer.errors
+            })
+
+    status_code = status.HTTP_201_CREATED if created else status.HTTP_400_BAD_REQUEST
+    return success_response({
+        'created': created,
+        'errors': errors,
+        'total': len(images),
+        'success_count': len(created),
+        'error_count': len(errors)
+    }, status_code=status_code)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def avatar_detail(request, pk):
+    """
+    Delete an avatar by ID (hard delete).
+    Admin-only. Clears avatar_id from any users who had this avatar.
+    """
+    if not request.user.is_admin_role:
+        return error_response(ErrorCodes.PERMISSION_DENIED, 'Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+
+    try:
+        avatar = Avatar.objects.get(pk=pk)
+    except Avatar.DoesNotExist:
+        return error_response(ErrorCodes.NOT_FOUND, 'Avatar not found', status_code=status.HTTP_404_NOT_FOUND)
+
+    # Clear avatar_id from users who have this avatar
+    User.objects.filter(avatar_id=str(avatar.id)).update(avatar_id=None)
+
+    # Delete the image file from storage
+    if avatar.image:
+        avatar.image.delete(save=False)
+
+    avatar.delete()
+    return success_response({'message': 'Avatar deleted successfully.'})

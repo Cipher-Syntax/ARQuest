@@ -25,4 +25,8 @@ urlpatterns = [
     path('forgot-password/', views.forgot_password, name='forgot_password'),
     path('reset-password/', views.reset_password, name='reset_password'),
     path('deactivate/', views.deactivate_account, name='deactivate_account'),
+    # Avatar Management
+    path('avatars/', views.avatar_list, name='avatar_list'),
+    path('avatars/bulk/', views.avatar_bulk_create, name='avatar_bulk_create'),
+    path('avatars/<uuid:pk>/', views.avatar_detail, name='avatar_detail'),
 ]

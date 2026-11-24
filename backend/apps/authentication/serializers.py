@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.db import models
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from .models import User, EmailOTP
+from .models import User, EmailOTP, Avatar
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -312,4 +312,24 @@ class ResetPasswordSerializer(serializers.Serializer):
 
         data['user'] = user
         return data
+
+
+class AvatarSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Avatar
+        fields = ['id', 'image', 'image_url', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'image_url', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'image': {'write_only': True, 'required': True},
+        }
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 

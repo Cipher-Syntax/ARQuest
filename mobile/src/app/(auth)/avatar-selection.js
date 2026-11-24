@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -6,10 +6,12 @@ import {
     TouchableOpacity,
     StyleSheet,
     FlatList,
+    ActivityIndicator,
 } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
 import { useRouter } from "expo-router";
-import { AVATARS } from "../../constants/Avatars";
+import { getFallbackAvatars, getFallbackAvatarSource } from "../../constants/Avatars";
+import { avatarService } from "../../services/avatar/avatarService";
 import { api } from "../../services";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useThemedStyles } from "../../hooks/useThemedStyles";
@@ -17,7 +19,39 @@ import { useThemedStyles } from "../../hooks/useThemedStyles";
 export default function AvatarSelectionScreen() {
     const styles = useThemedStyles(createStyles);
     const [selectedId, setSelectedId] = useState(null);
+    const [avatars, setAvatars] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const router = useRouter();
+
+    const loadAvatars = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const { avatars: loadedAvatars } = await avatarService.getCatalog();
+            setAvatars(loadedAvatars);
+        } catch (err) {
+            console.error("Failed to load avatars:", err);
+            // Use fallback avatars
+            setAvatars(getFallbackAvatars());
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadAvatars();
+    }, [loadAvatars]);
+
+    const getAvatarSource = (avatar) => {
+        if (avatar.image_url) {
+            return { uri: avatar.image_url };
+        }
+        if (avatar.source) {
+            return avatar.source;
+        }
+        return getFallbackAvatarSource(avatar.id);
+    };
 
     const handleContinue = async () => {
         if (!selectedId) {
@@ -45,14 +79,28 @@ export default function AvatarSelectionScreen() {
         }
     };
 
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={styles.loadingColor} />
+                <Text style={styles.loadingText}>Loading avatars...</Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Choose Your Avatar</Text>
             <Text style={styles.subtitle}>
                 Pick a look that matches your vibe for the{"\n"}semester ahead.
             </Text>
+            {error && (
+                <Text style={styles.errorText}>
+                    Using default avatars (offline mode)
+                </Text>
+            )}
             <FlatList
-                data={AVATARS}
+                data={avatars}
                 numColumns={2}
                 keyExtractor={(item) => item.id}
                 columnWrapperStyle={styles.row}
@@ -64,7 +112,7 @@ export default function AvatarSelectionScreen() {
                         ]}
                         onPress={() => setSelectedId(item.id)}
                     >
-                        <Image source={item.source} style={styles.avatar} />
+                        <Image source={getAvatarSource(item)} style={styles.avatar} />
                     </TouchableOpacity>
                 )}
             />
@@ -83,6 +131,18 @@ const createStyles = (colors) => StyleSheet.create({
         alignItems: "center",
         justifyContent: "flex-start",
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 24,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+        color: "#666",
+    },
+    loadingColor: colors.primary,
     title: {
         fontSize: 32,
         fontWeight: "bold",
@@ -97,6 +157,12 @@ const createStyles = (colors) => StyleSheet.create({
         textAlign: "center",
         marginBottom: 32,
         lineHeight: 20,
+    },
+    errorText: {
+        fontSize: 12,
+        color: "#F57C00",
+        marginBottom: 16,
+        textAlign: "center",
     },
     row: {
         justifyContent: "space-between",

@@ -17,6 +17,7 @@ import ModelCompressorPage from "../pages/ModelCompressorPage";
 import CampusMapPage from "../pages/CampusMapPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import ReportsPage from "../pages/ReportsPage";
+import AvatarManagementPage from "../pages/AvatarManagementPage";
 import NotFound from "../pages/NotFound";
 
 const AppRoutes = () => {
@@ -51,6 +52,7 @@ const AppRoutes = () => {
                 <Route path="feedback" element={<FeedbackPage />} />
                 <Route path="history" element={<HistoryPage />} />
                 <Route path="compressor" element={<ModelCompressorPage />} />
+<Route path="avatars" element={<AvatarManagementPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
         </Routes>

@@ -18,6 +18,7 @@ import {
     ChevronUp,
     Box,
     FileBarChart,
+    User,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useBranding } from "../context/BrandingContext";
@@ -40,6 +41,7 @@ const NAV_GROUPS = [
         label: "Tools",
         items: [
             { to: "/compressor", icon: Box, label: "3D Model Compressor" },
+            { to: "/avatars", icon: User, label: "Avatar Management" },
         ],
     },
     {
