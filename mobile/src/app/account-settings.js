@@ -34,14 +34,16 @@ import {
 import { router } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services";
-import { useThemeColors } from "../context/ThemeContext";
+import { useThemeColors, useThemeValue } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { fonts } from "../constants/typography";
+import { LinearGradient } from "expo-linear-gradient";
 import { customAlert as Alert } from "../components/ui/CustomAlert";
 import { avatarService } from "../services/avatar/avatarService";
 
 export default function AccountSettingsScreen() {
     const colors = useThemeColors();
+    const radius = useThemeValue("radius");
     const styles = useThemedStyles(createStyles);
     const { user, checkToken, logout } = useAuth();
 
@@ -266,7 +268,12 @@ export default function AccountSettingsScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Avatar Hero */}
-                <View style={styles.avatarHero}>
+                <LinearGradient
+                    colors={[colors.primaryDark, colors.primary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.avatarHero}
+                >
                     <View style={styles.avatarWrapper}>
                         {user?.avatar_url || user?.profile_image ? (
                             <Image
@@ -304,7 +311,7 @@ export default function AccountSettingsScreen() {
                             {user?.role?.toUpperCase() || "STUDENT"}
                         </Text>
                     </View>
-                </View>
+                </LinearGradient>
 
                 {/* Section 1: Profile Information */}
                 <View style={styles.card}>
@@ -873,66 +880,68 @@ const createStyles = (colors, spacing, radius, typography) => StyleSheet.create(
     },
     avatarHero: {
         alignItems: "center",
-        paddingVertical: 20,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: "#E5E7EB",
+        paddingVertical: 24,
+        borderRadius: radius.xl,
         marginBottom: 16,
     },
     avatarWrapper: {
         position: "relative",
-        marginBottom: 10,
+        marginBottom: 12,
     },
     avatarImage: {
         width: 80,
         height: 80,
-        borderRadius: 6,
+        borderRadius: 40,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 3,
+        borderColor: "rgba(255, 255, 255, 0.5)",
     },
     avatarPlaceholder: {
         width: 80,
         height: 80,
-        borderRadius: 6,
-        backgroundColor: colors.primary,
+        borderRadius: 40,
+        backgroundColor: "#FFFFFF",
         justifyContent: "center",
         alignItems: "center",
+        borderWidth: 3,
+        borderColor: "rgba(255, 255, 255, 0.5)",
     },
     avatarPlaceholderText: {
         fontFamily: fonts.heading.bold,
         fontSize: 32,
-        color: "#FFFFFF",
+        color: colors.primary,
     },
     editAvatarBadge: {
         position: "absolute",
-        bottom: -4,
-        right: -4,
-        width: 28,
-        height: 28,
-        borderRadius: 6,
+        bottom: -2,
+        right: -2,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
-        borderWidth: 2,
+        borderWidth: 3,
         borderColor: "#FFFFFF",
     },
     usernameText: {
         fontFamily: fonts.heading.bold,
         fontSize: 16,
-        color: colors.textPrimary,
+        color: "#FFFFFF",
         marginBottom: 4,
     },
     roleBadge: {
-        backgroundColor: "rgba(155, 27, 48, 0.08)",
-        borderRadius: 6,
-        paddingHorizontal: 8,
+        backgroundColor: "rgba(255, 255, 255, 0.15)",
+        borderRadius: radius.full,
+        paddingHorizontal: 10,
         paddingVertical: 3,
         borderWidth: 1,
-        borderColor: "rgba(155, 27, 48, 0.15)",
+        borderColor: "rgba(255, 255, 255, 0.3)",
     },
     roleBadgeText: {
         fontFamily: fonts.heading.bold,
         fontSize: 10.5,
-        color: colors.primary,
+        color: "#FFFFFF",
         letterSpacing: 0.5,
     },
     card: {

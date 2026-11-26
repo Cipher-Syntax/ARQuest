@@ -443,9 +443,9 @@ export default function BuildingsScreen() {
                 }
             } else {
                 Alert(
-                    "ZONE LOCKED",
-                    `You must physically deploy to ${payload.name} to unlock its AR capabilities.`,
-                    [{ text: "ACKNOWLEDGE" }],
+                    "Building Locked",
+                    `Visit ${payload.name} in person to unlock it and access its features.`,
+                    [{ text: "OK" }],
                 );
             }
         }
@@ -679,7 +679,7 @@ export default function BuildingsScreen() {
             setSelectedBuilding({ ...item, ...unlockedData });
             setModalVisible(true);
         } else {
-            Alert("ZONE LOCKED", `You must physically deploy to ${item.name} to unlock its AR capabilities.`, [{ text: "ACKNOWLEDGE" }]);
+            Alert("Building Locked", `Visit ${item.name} in person to unlock it and access its features.`, [{ text: "OK" }]);
         }
     }, [unlockedBuildings, role]);
 
