@@ -446,27 +446,40 @@ export const mapHtmlString = `<!DOCTYPE html>
             if (map) return;
             const activeToken = token || DEFAULT_MAPBOX_TOKEN;
             mapboxgl.accessToken = activeToken;
-            
-            try {
-                map = new mapboxgl.Map({
-                    container: 'map',
-                    style: 'mapbox://styles/mapbox/streets-v12',
-                    center: WMSU_CENTER,
-                    zoom: 16.5,
-                    minZoom: 15.2,
-                    maxZoom: 19.5,
-                    maxBounds: WMSU_BOUNDS,
-                    pitch: 45,
-                    bearing: -15,
-                    attributionControl: false
-                });
 
-                map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
-                map.addControl(new mapboxgl.NavigationControl({ showCompass: true, showZoom: true }), 'top-right');
+            // Try satellite first, fallback to streets if token doesn't have access
+            const tryStyle = (styleUrl, isFallback) => {
+                try {
+                    map = new mapboxgl.Map({
+                        container: 'map',
+                        style: styleUrl,
+                        center: WMSU_CENTER,
+                        zoom: 16.5,
+                        minZoom: 15.2,
+                        maxZoom: 19.5,
+                        maxBounds: WMSU_BOUNDS,
+                        pitch: 45,
+                        bearing: -15,
+                        attributionControl: false
+                    });
 
-                map.on('load', () => {
-                    mapInitialized = true;
-                    sendBridgeLog("info", "Mapbox map loaded successfully");
+                    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
+                    map.addControl(new mapboxgl.NavigationControl({ showCompass: true, showZoom: true }), 'top-right');
+
+                    map.on('error', (e) => {
+                        if (!isFallback && e.error && (e.error.message.includes('403') || e.error.message.includes('401') || e.error.message.includes('Failed to fetch'))) {
+                            sendBridgeLog("warn", "Style load failed, falling back to streets: " + e.error.message);
+                            map.remove();
+                            map = null;
+                            tryStyle('mapbox://styles/mapbox/streets-v12', true);
+                        } else {
+                            sendBridgeLog("error", "Mapbox internal error: " + (e.error ? e.error.message : JSON.stringify(e)));
+                        }
+                    });
+
+                    map.on('load', () => {
+                        mapInitialized = true;
+                        sendBridgeLog("info", "Mapbox map loaded successfully");
                     
                     // Add 3D building extrusions
                     try {
@@ -644,14 +657,14 @@ export const mapHtmlString = `<!DOCTYPE html>
                         processUpdateMap(window.lastMapData);
                     }
                 });
-
-                map.on('error', (e) => {
-                    sendBridgeLog("error", "Mapbox internal error: " + (e.error ? e.error.message : JSON.stringify(e)));
-                });
             } catch (err) {
                 sendBridgeLog("error", "Failed to construct mapboxgl.Map: " + err.message);
             }
-        }
+        };
+
+        // Start with satellite, will auto-fallback to streets if token lacks access
+        tryStyle('mapbox://styles/mapbox/satellite-v9', false);
+    }
 
         function processUpdateMap(data) {
             if (!mapInitialized || !map) return;
@@ -1038,6 +1051,20 @@ export const mapHtmlString = `<!DOCTYPE html>
                     sendBridgeEvent("turn_clear", {});
                     if (mapInitialized && map && map.getSource('route')) {
                         map.getSource('route').setData({ type: 'FeatureCollection', features: [] });
+                    }
+                } else if (data.type === "set_style") {
+                    if (mapInitialized && map && payloadData && payloadData.style) {
+                        // Mapbox style versions: streets-v12, satellite-v9
+                        const styleVersion = payloadData.style === 'satellite' ? 'v9' : 'v12';
+                        const styleUrl = 'mapbox://styles/mapbox/' + payloadData.style + '-' + styleVersion;
+                        map.once('error', (e) => {
+                            if (e.error && (e.error.message.includes('403') || e.error.message.includes('401') || e.error.message.includes('Failed to fetch') || e.error.message.includes('Style not found'))) {
+                                sendBridgeLog("warn", "Style " + payloadData.style + " not accessible, falling back to streets");
+                                map.setStyle('mapbox://styles/mapbox/streets-v12');
+                            }
+                        });
+                        map.setStyle(styleUrl);
+                        sendBridgeLog("info", "Map style changed to: " + payloadData.style);
                     }
                 }
             } catch (e) {

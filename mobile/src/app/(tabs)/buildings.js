@@ -1,205 +1,182 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ActivityIndicator,
-    TouchableOpacity,
-    Modal,
-    TextInput,
-    ScrollView,
-    FlatList,
-    Image,
-} from "react-native";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { View, Text, TouchableOpacity, StatusBar } from "react-native";
 import { customAlert as Alert } from "../../components/ui/CustomAlert";
-import { WebView } from "react-native-webview";
-import { INJECTED_BRIDGE_SCRIPT, createBridgeMessage, parseBridgeMessage } from "../../utils/WebViewBridge";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useIsFocused } from "../../hooks/useIsFocused";
-import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
 import { useThemeColors } from "../../context/ThemeContext";
 import { useThemedStyles } from "../../hooks/useThemedStyles";
 import { useUnlockedBuildings } from "../../hooks/useUnlockedBuildings";
 import { usePublicSettings } from "../../context/PublicSettingsContext";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
-import { api, authService, geofencingService } from "../../services";
+import { authService } from "../../services";
 import * as ScreenOrientation from "expo-screen-orientation";
-import {
-    ShieldAlert,
-    X,
-    Lock,
-} from "lucide-react-native";
-import { fonts } from "../../constants/typography";
 import QuizModal from "../../components/features/QuizModal";
-import {
-    BottomSheetSurface,
-    ModalSafeArea,
-} from "../../components/ui/SafeAreaSheet";
 import QuickMissionsModal from "../../components/features/QuickMissionsModal";
 import NavigationTurnHUD from "../../components/features/NavigationTurnHUD";
 import SoundManager from "../../utils/SoundManager";
-import { ErrorBoundary } from "../../components/ui/ErrorBoundary";
-import { toRgba } from "../../utils/color";
 
-const BuildingListItem = React.memo(({ item, isUnlocked, isVisitor, isLast, onPress }) => {
-    const colors = useThemeColors();
+// --- Hooks ---
+import { useBuildingsMap } from "../../hooks/useBuildingsMap";
+import { useBuildingsRouting } from "../../hooks/useBuildingsRouting";
+import { useQuickMissions } from "../../hooks/useQuickMissions";
+import { useBuildingDetail } from "../../hooks/useBuildingDetail";
 
-    return (
-        <TouchableOpacity 
-            style={{ 
-                padding: 12, 
-                backgroundColor: '#FFF',
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                borderBottomWidth: isLast ? 0 : 1,
-                borderBottomColor: '#E5E7EB',
-                height: 85,
-            }}
-            onPress={onPress}
-            activeOpacity={0.7}
+// --- Components ---
+import { BuildingsMapView } from "../../components/buildings/BuildingsMapView";
+import { BuildingsListView } from "../../components/buildings/BuildingsListView";
+import { BuildingDetailModal } from "../../components/buildings/BuildingDetailModal";
+import { ControlModePicker } from "../../components/buildings/ControlModePicker";
+import { QuickMissionsButton } from "../../components/buildings/QuickMissionsButton";
+import { createBuildingsStyles } from "../../components/buildings/buildingsStyles";
+
+// --- View Mode Toggle Component ---
+const ViewModeToggle = ({ viewMode, onChange, styles, colors }) => (
+    <View style={styles.viewModeToggle}>
+        <TouchableOpacity
+            onPress={() => onChange("map")}
+            style={[
+                styles.viewModeBtn,
+                viewMode === "map" && styles.viewModeBtnActive,
+            ]}
         >
-            <View style={{ width: 60, height: 60, borderRadius: 12, backgroundColor: colors.bgPrimary, overflow: 'hidden', marginRight: 16, justifyContent: 'center', alignItems: 'center' }}>
-                {item.image_url ? (
-                    <Image source={{ uri: item.image_url }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
-                ) : (
-                    <Ionicons name="business" size={24} color={colors.textMuted} />
-                )}
-            </View>
-            <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: fonts.heading.bold, fontSize: 16, color: colors.textPrimary, marginBottom: 4 }} numberOfLines={1}>{item.name}</Text>
-                <Text style={{ fontFamily: fonts.body.regular, fontSize: 12, color: colors.textSecondary }} numberOfLines={1}>
-                    {item.primary_department ? `${item.primary_department.name} • ` : ""} 
-                    {item.is_active === false ? "CLOSED" : (item.status === "MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE")}
-                </Text>
-            </View>
-            <Ionicons name={isUnlocked || isVisitor ? "chevron-forward" : "lock-closed"} size={20} color={isUnlocked || isVisitor ? colors.primary : colors.textMuted} />
+            <Text
+                style={[
+                    styles.viewModeBtnText,
+                    viewMode === "map"
+                        ? styles.viewModeBtnTextActive
+                        : styles.viewModeBtnTextInactive,
+                ]}
+            >
+                Map View
+            </Text>
         </TouchableOpacity>
-    );
-});
+        <TouchableOpacity
+            onPress={() => onChange("list")}
+            style={[
+                styles.viewModeBtn,
+                viewMode === "list" && styles.viewModeBtnActive,
+            ]}
+        >
+            <Text
+                style={[
+                    styles.viewModeBtnText,
+                    viewMode === "list"
+                        ? styles.viewModeBtnTextActive
+                        : styles.viewModeBtnTextInactive,
+                ]}
+            >
+                List View
+            </Text>
+        </TouchableOpacity>
+    </View>
+);
 
 export default function BuildingsScreen() {
     const isFocused = useIsFocused();
-    const {
-        unlockedBuildings,
-        isLoading: isUnlockedLoading,
-        refresh: refreshUnlocked,
-    } = useUnlockedBuildings();
-    const { location, startTracking, stopTracking } = useLocationTracking();
-    const { canAccessBuildingFeatures, canView3D, canViewPanorama, role } =
-        useRoleAccess();
-    const { enable_trivia } = usePublicSettings();
     const router = useRouter();
     const { targetBuildingId } = useLocalSearchParams();
     const colors = useThemeColors();
-    const styles = useThemedStyles(createStyles);
+    const styles = useThemedStyles(createBuildingsStyles);
 
+    // --- Shared Services & Context ---
+    const {
+        unlockedBuildings,
+        refresh: refreshUnlocked,
+    } = useUnlockedBuildings();
+    const { location, startTracking, stopTracking } = useLocationTracking();
+    const {
+        canAccessBuildingFeatures,
+        canView3D,
+        canViewPanorama,
+        role,
+    } = useRoleAccess();
+    const { enable_trivia } = usePublicSettings();
+
+    // --- Auth Token ---
     const [authToken, setAuthToken] = useState("");
-
     useEffect(() => {
         let isMounted = true;
         authService.getAccessToken().then((token) => {
-            if (isMounted && token) {
-                setAuthToken(token);
-            }
+            if (isMounted && token) setAuthToken(token);
         });
         return () => {
             isMounted = false;
         };
     }, []);
 
-    // Quick Missions & Turn HUD States
-    const [quickModalVisible, setQuickModalVisible] = useState(false);
-    const [quickQuests, setQuickQuests] = useState([]);
-    const [completedQuickQuests, setCompletedQuickQuests] = useState([]);
-    const [isQuickUnlocked, setIsQuickUnlocked] = useState(false);
-    const [dailyProgress, setDailyProgress] = useState({ completed: 0, total: 3 });
-    const [missionBuildingIds, setMissionBuildingIds] = useState([]);
-    const [campusPerimeter, setCampusPerimeter] = useState(null);
-    const [turnHUD, setTurnHUD] = useState({
-        visible: false,
-        turnType: "STRAIGHT",
-        distance: 10,
-        instruction: "",
+    // --- Callback Refs (defined before hooks to break circular deps) ---
+    const handleBuildingClickRef = useRef(null);
+    const handleRouteChangeRef = useRef(null);
+    const handleDetailCloseRef = useRef(null);
+    const turnInstructionRef = useRef(null);
+    const turnClearRef = useRef(null);
+
+    // --- Hooks ---
+    const quickMissionsHook = useQuickMissions({ role });
+
+    const mapHook = useBuildingsMap({
+        unlockedBuildings,
+        role,
+        authToken,
+        location,
+        missionBuildingIds: quickMissionsHook.missionBuildingIds,
+        onBuildingClick: (payload) => handleBuildingClickRef.current?.(payload),
+        onTurnInstruction: (payload) => turnInstructionRef.current?.(payload),
+        onTurnClear: () => turnClearRef.current?.(),
     });
 
-    // Fetch dynamic campus perimeter boundary from backend
+    const routingHook = useBuildingsRouting({
+        allBuildings: mapHook.allBuildings,
+        location,
+        webViewRef: mapHook.webViewRef,
+        webViewReady: mapHook.webViewReady,
+        authToken,
+        role,
+        onRouteChange: (changes) => handleRouteChangeRef.current?.(changes),
+    });
+
+    const detailHook = useBuildingDetail({
+        unlockedBuildings,
+        role,
+        canAccessBuildingFeatures,
+        canView3D,
+        canViewPanorama,
+        enable_trivia,
+        onClose: (reason, building) => handleDetailCloseRef.current?.(reason, building),
+    });
+
+    // Update refs after hooks are initialized (useEffect to avoid render-time ref writes)
     useEffect(() => {
-        let isMounted = true;
-        api.get("/api/navigation/perimeter/")
-            .then((res) => {
-                if (isMounted && res.data?.success && res.data?.data) {
-                    setCampusPerimeter(res.data.data);
-                }
-            })
-            .catch((err) => {
-                console.log("[BuildingsScreen] Perimeter fetch notice:", err?.message);
-            });
-        return () => {
-            isMounted = false;
-        };
-    }, []);
+        turnInstructionRef.current = routingHook.handleTurnInstruction;
+        turnClearRef.current = routingHook.handleTurnClear;
+    }, [routingHook.handleTurnInstruction, routingHook.handleTurnClear]);
 
-    const sendMapUpdate = React.useCallback(() => {
-        if (webViewRef.current) {
-            const unlockedIds =
-                role === "visitor"
-                    ? allBuildings.map((b) => b.id)
-                    : unlockedBuildings.map((b) => b.id);
-            const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
-            const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
-            const message = createBridgeMessage("update", {
-                buildings: allBuildings,
-                unlockedIds: unlockedIds,
-                missionBuildingIds: missionBuildingIds,
-                mapboxToken: token,
-                apiBase: apiBase,
-                authToken: authToken,
-                userLocation: location,
-                perimeter: campusPerimeter,
-            });
-            webViewRef.current.postMessage(message);
-        }
-    }, [allBuildings, unlockedBuildings, missionBuildingIds, location, authToken, role, campusPerimeter]);
+    // --- Local State ---
+    const [viewMode, setViewMode] = useState("map");
+    const [listSearchQuery, setListSearchQuery] = useState("");
 
-    const fetchQuickMissions = async () => {
-        if (role !== "student") return;
-        try {
-            const res = await api.get("/api/gamification/quests/quick/");
-            if (res.data.success) {
-                const data = res.data.data;
-                setIsQuickUnlocked(data.is_unlocked);
-                setDailyProgress({
-                    completed: data.daily_completed_count || 0,
-                    total: data.daily_total_count || 3,
-                });
-                const available = data.available_quests || data.quests || [];
-                const completed = data.completed_quests || [];
-                setQuickQuests(available);
-                setCompletedQuickQuests(completed);
-                const bIds = available.map((q) => q.target_building);
-                setMissionBuildingIds(bIds);
-            }
-        } catch (err) {
-            console.log("Failed to fetch quick missions:", err);
-        }
-    };
+    const lastTargetBuildingIdRef = useRef(null);
 
-    const sendMapUpdateRef = useRef(sendMapUpdate);
-    sendMapUpdateRef.current = sendMapUpdate;
+    // Stable refs for focus effect dependencies
+    const fetchQuickMissionsRef = useRef(null);
+    const sendMapUpdateRef = useRef(null);
+    const selectRouteTargetRef = useRef(null);
 
+    // Update refs after hooks are initialized
+    useEffect(() => {
+        fetchQuickMissionsRef.current = quickMissionsHook.fetchQuickMissions;
+        sendMapUpdateRef.current = mapHook.sendMapUpdate;
+        selectRouteTargetRef.current = routingHook.handleSelectRouteTarget;
+    }, [quickMissionsHook.fetchQuickMissions, mapHook.sendMapUpdate, routingHook.handleSelectRouteTarget]);
+
+    // --- Focus Effect ---
     useFocusEffect(
-        React.useCallback(() => {
-            ScreenOrientation.lockAsync(
-                ScreenOrientation.OrientationLock.PORTRAIT,
-            );
+        useCallback(() => {
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
             startTracking();
-            fetchQuickMissions();
-            // Silent refresh: catches unlocks made elsewhere (AR QR scan, AR/Explore
-            // geofence) without flashing a loading state over the map.
-            refreshUnlocked(true);
+            fetchQuickMissionsRef.current();
+            refreshUnlocked(true); // Silent refresh
             SoundManager.init();
             if (sendMapUpdateRef.current) {
                 sendMapUpdateRef.current();
@@ -207,239 +184,61 @@ export default function BuildingsScreen() {
             return () => {
                 stopTracking();
             };
-        }, [startTracking, stopTracking, role, refreshUnlocked])
+        }, [startTracking, stopTracking, refreshUnlocked]),
     );
 
-    const [allBuildings, setAllBuildings] = useState([]);
-    const [isLoadingAll, setIsLoadingAll] = useState(true);
-    const [selectedBuilding, setSelectedBuilding] = useState(null);
-    const [modalVisible, setModalVisible] = useState(false);
-    const [controlPickerVisible, setControlPickerVisible] = useState(false);
-    const [quizModalVisible, setQuizModalVisible] = useState(false);
-    const [viewMode, setViewMode] = useState("map");
-    const [listSearchQuery, setListSearchQuery] = useState("");
-
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [routeTarget, setRouteTarget] = useState(null);
-    const [isRouteActive, setIsRouteActive] = useState(false);
-
-    const [originQuery, setOriginQuery] = useState("");
-    const [isOriginFocused, setIsOriginFocused] = useState(false);
-    const [routeOrigin, setRouteOrigin] = useState(null);
-    const [calculatedRoute, setCalculatedRoute] = useState(null);
-    const [isRouteLoading, setIsRouteLoading] = useState(false);
-    const activeRouteKeyRef = useRef("");
-
-    const webViewRef = useRef(null);
-    const [webViewReady, setWebViewReady] = useState(false);
-
-    const fetchRouteData = async (target, origin = null) => {
-        if (!target) return null;
-        let fromLat, fromLng;
-        if (origin) {
-            fromLat = parseFloat(origin.latitude);
-            fromLng = parseFloat(origin.longitude);
-        } else if (location && location.latitude && location.longitude) {
-            fromLat = parseFloat(location.latitude);
-            fromLng = parseFloat(location.longitude);
-        } else {
-            // Default WMSU campus center
-            fromLat = 6.9125;
-            fromLng = 122.0594;
-        }
-
-        try {
-            const res = await api.get("/api/navigation/route/", {
-                params: {
-                    from_lat: fromLat,
-                    from_lng: fromLng,
-                    to_building_id: target.id,
-                },
-            });
-
-            if (res.data?.success && res.data?.data?.features?.[0]) {
-                const feat = res.data.data.features[0];
-                const coords = feat.geometry?.coordinates;
-                if (Array.isArray(coords) && coords.length >= 2) {
-                    return {
-                        coordinates: coords,
-                        distanceMeters: feat.properties?.distance_meters,
-                        estimatedMinutes: feat.properties?.estimated_minutes,
-                        isFallback: Boolean(feat.properties?.fallback),
-                    };
-                }
-            }
-        } catch (err) {
-            console.log(
-                "[BuildingsScreen] Route calculation notice:",
-                err?.response?.data || err?.message
-            );
-        }
-
-        // Fallback straight line if server route is unavailable
-        const targetLat = parseFloat(target.latitude);
-        const targetLng = parseFloat(target.longitude);
-        if (
-            !isNaN(fromLat) &&
-            !isNaN(fromLng) &&
-            !isNaN(targetLat) &&
-            !isNaN(targetLng)
-        ) {
-            return {
-                coordinates: [
-                    [fromLng, fromLat],
-                    [targetLng, targetLat],
-                ],
-                distanceMeters: null,
-                estimatedMinutes: null,
-                isFallback: true,
-            };
-        }
-        return null;
-    };
-
-    const triggerDrawRoute = async (target, origin = null) => {
-        if (!target || !webViewRef.current) return;
-        setIsRouteLoading(true);
-        try {
-            const route = await fetchRouteData(target, origin);
-            if (route && webViewRef.current) {
-                setCalculatedRoute(route);
-                const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
-                const message = createBridgeMessage("draw_route", {
-                    buildingId: target.id,
-                    sourceBuildingId: origin ? origin.id : null,
-                    coordinates: route.coordinates,
-                    distanceMeters: route.distanceMeters,
-                    estimatedMinutes: route.estimatedMinutes,
-                    isFallback: route.isFallback,
-                    apiBase: apiBase,
-                    authToken: authToken,
-                });
-                webViewRef.current.postMessage(message);
-            }
-        } finally {
-            setIsRouteLoading(false);
-        }
-    };
-
+    // --- Handle targetBuildingId from deep link ---
     useEffect(() => {
-        const fetchBuildings = async () => {
-            try {
-                const res = await api.get("/api/buildings/");
-                if (res.data.success) {
-                    setAllBuildings(res.data.data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch all buildings:", err);
-            } finally {
-                setIsLoadingAll(false);
-            }
-        };
-        fetchBuildings();
-    }, []);
-
-    useEffect(() => {
-        if (webViewReady && webViewRef.current) {
-            sendMapUpdate();
-        }
-    }, [webViewReady, sendMapUpdate]);
-
-    const lastTargetBuildingIdRef = useRef(null);
-
-    useEffect(() => {
-        if (targetBuildingId && allBuildings.length > 0) {
-            const target = allBuildings.find(
-                (b) => b.id.toString() === targetBuildingId.toString()
+        if (targetBuildingId && mapHook.allBuildings.length > 0) {
+            const target = mapHook.allBuildings.find(
+                (b) => b.id.toString() === targetBuildingId.toString(),
             );
             if (target && lastTargetBuildingIdRef.current !== targetBuildingId) {
                 lastTargetBuildingIdRef.current = targetBuildingId;
                 setTimeout(() => {
                     setViewMode("map");
-                    setRouteTarget(target);
-                    setSearchQuery(target.name);
-                    setRouteOrigin(null);
-                    setOriginQuery("");
-                    setIsRouteActive(false);
+                    selectRouteTargetRef.current(target);
                 }, 0);
             }
         }
-    }, [targetBuildingId, allBuildings]);
+    }, [targetBuildingId, mapHook.allBuildings]);
 
-    // Send draw_route when route navigation is active and parameters change
-    useEffect(() => {
-        if (isRouteActive && routeTarget && webViewReady) {
-            const routeKey = `${routeTarget.id}_${routeOrigin ? routeOrigin.id : "gps"}`;
-            if (activeRouteKeyRef.current !== routeKey) {
-                activeRouteKeyRef.current = routeKey;
-                triggerDrawRoute(routeTarget, routeOrigin);
-            }
-        } else if (!isRouteActive) {
-            activeRouteKeyRef.current = "";
-        }
-    }, [isRouteActive, routeTarget, routeOrigin, webViewReady]);
-
-    const handleMessage = (event) => {
-        const result = parseBridgeMessage(event.nativeEvent.data);
-        if (!result.success) {
-            console.error("WebView bridge parsing error", result.error);
-            return;
-        }
-
-        const { type, payload } = result.data;
-
-        if (type === "map_ready") {
-            setWebViewReady(true);
-            sendMapUpdate();
-            return;
-        }
-
-        if (type === "log") {
-            console.log("[Map WebView]", payload?.level, payload?.message);
-            return;
-        }
-
-        if (type === "turn_instruction") {
-            setTurnHUD({
-                visible: true,
-                turnType: payload.turn || "STRAIGHT",
-                distance: payload.distance || 10,
-                instruction: payload.instruction || "",
-            });
-            if (payload.turn === "LEFT") {
-                SoundManager.play("nav_turn_left");
-            } else if (payload.turn === "RIGHT") {
-                SoundManager.play("nav_turn_right");
-            } else if (payload.turn === "ARRIVED") {
-                SoundManager.play("nav_arrived");
-            }
-            return;
-        }
-
-        if (type === "turn_clear") {
-            setTurnHUD({
-                visible: false,
-                turnType: "STRAIGHT",
-                distance: 0,
-                instruction: "",
-            });
-            return;
-        }
-
-        if (type === "building_click") {
-            const building = allBuildings.find(
+    // --- Building Click from Map ---
+    const handleBuildingClick = useCallback(
+        (payload) => {
+            const building = mapHook.allBuildings.find(
                 (b) => b.id === payload.buildingId,
             );
-            
-            if (payload.isUnlocked || role === "visitor" || (building && building.status === "MAINTENANCE")) {
+
+            if (payload.navigateToAR) {
+                router.push({
+                    pathname: "/(tabs)/ar",
+                    params: {
+                        targetBuildingId: payload.buildingId,
+                        buildingId: payload.buildingId,
+                        routeOriginLat: routingHook.routeOrigin
+                            ? String(routingHook.routeOrigin.latitude)
+                            : undefined,
+                        routeOriginLng: routingHook.routeOrigin
+                            ? String(routingHook.routeOrigin.longitude)
+                            : undefined,
+                        routeOriginName: routingHook.routeOrigin
+                            ? routingHook.routeOrigin.name || "Selected origin"
+                            : undefined,
+                    },
+                });
+                return;
+            }
+
+            if (
+                payload.isUnlocked ||
+                role === "visitor" ||
+                (building && building.status === "MAINTENANCE")
+            ) {
                 const unlockedData =
-                    unlockedBuildings.find(
-                        (b) => b.id === payload.buildingId,
-                    ) || {};
+                    unlockedBuildings.find((b) => b.id === payload.buildingId) || {};
                 if (building) {
-                    setSelectedBuilding({ ...building, ...unlockedData });
-                    setModalVisible(true);
+                    detailHook.openBuildingDetail({ ...building, ...unlockedData });
                 }
             } else {
                 Alert(
@@ -448,1702 +247,196 @@ export default function BuildingsScreen() {
                     [{ text: "OK" }],
                 );
             }
-        }
-    };
+        },
+        [
+            mapHook.allBuildings,
+            unlockedBuildings,
+            role,
+            detailHook,
+            router,
+            routingHook.routeOrigin,
+        ],
+    );
 
-    const handleView3D = () => {
-        if (!selectedBuilding?.model_url) {
+    // --- Route Change Callback ---
+    const handleRouteChange = useCallback((changes) => {
+        // Could trigger side effects if needed
+    }, []);
+
+    // --- Detail Modal Close Handler ---
+    const handleDetailClose = useCallback((reason, building) => {
+        if (reason === "locked") {
+            Alert(
+                "Building Locked",
+                `Visit ${building?.name || "this building"} in person to unlock it and access its features.`,
+                [{ text: "OK" }],
+            );
+        } else if (reason === "no_model") {
             Alert(
                 "3D MODEL LOCKED",
-                `Unlock ${selectedBuilding?.name || "this building"} by visiting it or scanning its QR code to view the 3D model.`,
+                `Unlock ${building?.name || "this building"} by visiting it or scanning its QR code to view the 3D model.`,
                 [{ text: "UNDERSTOOD" }],
             );
-            return;
         }
-        setModalVisible(false);
-        router.push({
-            pathname: "/building-3d-viewer",
-            params: {
-                buildingId: selectedBuilding.id,
-                buildingName: selectedBuilding.name,
-                buildingDescription: selectedBuilding.description,
-                modelUrl: selectedBuilding.model_url,
-                modelVersion: selectedBuilding.model_version,
-            },
-        });
-    };
+    }, []);
 
-    const handleVirtualTour = () => {
-        setModalVisible(false);
-        // Show control-mode picker before launching
-        setControlPickerVisible(true);
-    };
+    // Wire up callback refs after all callbacks are defined
+    useEffect(() => {
+        handleBuildingClickRef.current = handleBuildingClick;
+        handleRouteChangeRef.current = handleRouteChange;
+        handleDetailCloseRef.current = handleDetailClose;
+    }, [handleBuildingClick, handleRouteChange, handleDetailClose]);
 
-    const launchVirtualTour = (controlMode) => {
-        setControlPickerVisible(false);
-        router.push({
-            pathname: "/virtual-tour-viewer",
-            params: {
-                buildingId: selectedBuilding.id,
-                buildingName: selectedBuilding.name,
-                modelUrl: selectedBuilding.model_url,
-                modelVersion: selectedBuilding.model_version,
-                hotspots: JSON.stringify(selectedBuilding.hotspots || []),
-                controlMode: controlMode, // 'joystick' | 'gyroscope'
-            },
-        });
-    };
-
-    const handleViewPanorama = () => {
-        setModalVisible(false);
-        router.push({
-            pathname: "/panorama-viewer",
-            params: {
-                buildingId: selectedBuilding.id,
-                buildingName: selectedBuilding.name,
-            },
-        });
-    };
-
-    const filteredTargetBuildings = allBuildings.filter(
-        (b) =>
-            b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (b.slug &&
-                b.slug.toLowerCase().includes(searchQuery.toLowerCase())),
-    );
-
-    const filteredOriginBuildings = allBuildings.filter(
-        (b) =>
-            b.name.toLowerCase().includes(originQuery.toLowerCase()) ||
-            (b.slug &&
-                b.slug.toLowerCase().includes(originQuery.toLowerCase())),
-    );
-
-    const routeDistance = useMemo(() => {
-        if (calculatedRoute?.distanceMeters) {
-            return calculatedRoute.distanceMeters;
-        }
-        if (!routeTarget) return null;
-        let lat1, lon1;
-        if (routeOrigin) {
-            lat1 = parseFloat(routeOrigin.latitude);
-            lon1 = parseFloat(routeOrigin.longitude);
-        } else if (location) {
-            lat1 = location.latitude;
-            lon1 = location.longitude;
-        }
-
-        if (lat1 && lon1) {
-            const lat2 = parseFloat(routeTarget.latitude);
-            const lon2 = parseFloat(routeTarget.longitude);
-            const dist = geofencingService.calculateDistance(
-                lat1,
-                lon1,
-                lat2,
-                lon2,
-            );
-            return Math.round(dist);
-        }
-        return null;
-    }, [calculatedRoute, routeTarget, routeOrigin, location]);
-
-    const handleSelectRouteTarget = (building) => {
-        if (role === "visitor") {
-            setSelectedBuilding(building);
-            setModalVisible(true);
-            setIsSearchFocused(false);
-            setSearchQuery("");
-            return;
-        }
-        setRouteTarget(building);
-        setSearchQuery(building.name);
-        setIsSearchFocused(false);
-        setIsRouteActive(false);
-        setCalculatedRoute(null);
-        activeRouteKeyRef.current = "";
-
-        if (webViewRef.current) {
-            const message = createBridgeMessage("clear_route");
-            webViewRef.current.postMessage(message);
-        }
-    };
-
-    const handleSelectRouteOrigin = (building) => {
-        setRouteOrigin(building);
-        setOriginQuery(building.name);
-        setIsOriginFocused(false);
-
-        if (isRouteActive && routeTarget) {
-            activeRouteKeyRef.current = `${routeTarget.id}_${building.id}`;
-            triggerDrawRoute(routeTarget, building);
-        }
-    };
-
-    const handleClearOrigin = () => {
-        setRouteOrigin(null);
-        setOriginQuery("");
-        if (isRouteActive && routeTarget) {
-            activeRouteKeyRef.current = `${routeTarget.id}_gps`;
-            triggerDrawRoute(routeTarget, null);
-        }
-    };
-
-    const handleClearRoute = () => {
-        setRouteTarget(null);
-        setSearchQuery("");
-        setIsRouteActive(false);
-        setCalculatedRoute(null);
-        activeRouteKeyRef.current = "";
-        setTurnHUD({ visible: false, turnType: "STRAIGHT", distance: 0, instruction: "" });
-
-        if (webViewRef.current) {
-            const message = createBridgeMessage("clear_route");
-            webViewRef.current.postMessage(message);
-        }
-    };
-
-    const handleStartRoute = () => {
-        if (role === "visitor") {
-            Alert(
-                "Guest Access Restricted",
-                "Turn-by-turn walking navigation is only available for registered students. Guests can view 360° panoramas of campus buildings.",
-                [{ text: "Understood" }]
-            );
-            return;
-        }
-        if (!routeTarget) return;
-        setIsRouteActive(true);
-        activeRouteKeyRef.current = `${routeTarget.id}_${routeOrigin ? routeOrigin.id : "gps"}`;
-        triggerDrawRoute(routeTarget, routeOrigin);
-    };
-
-    const handleStopRoute = () => {
-        setIsRouteActive(false);
-        setCalculatedRoute(null);
-        activeRouteKeyRef.current = "";
-        setTurnHUD({ visible: false, turnType: "STRAIGHT", distance: 0, instruction: "" });
-        if (webViewRef.current) {
-            const message = createBridgeMessage("clear_route");
-            webViewRef.current.postMessage(message);
-        }
-    };
-
-    const handleSelectQuickMission = (mission) => {
-        if (!mission || !mission.target_building) return;
-        const targetB = allBuildings.find(
-            (b) => b.id.toString() === mission.target_building.toString()
-        );
-        if (targetB) {
-            setViewMode("map");
-            setRouteTarget(targetB);
-            setSearchQuery(targetB.name);
-            setRouteOrigin(null);
-            setOriginQuery("");
-            setIsRouteActive(false);
-            setCalculatedRoute(null);
-            activeRouteKeyRef.current = "";
-            setQuickModalVisible(false);
-            if (webViewRef.current) {
-                const message = createBridgeMessage("clear_route");
-                webViewRef.current.postMessage(message);
+    // --- List View Item Press ---
+    const handlePressBuildingItem = useCallback(
+        (item) => {
+            const isUnlocked = unlockedBuildings.some((u) => u.id === item.id);
+            if (isUnlocked || role === "visitor" || (item && item.status === "MAINTENANCE")) {
+                const unlockedData = unlockedBuildings.find((b) => b.id === item.id) || {};
+                detailHook.openBuildingDetail({ ...item, ...unlockedData });
+            } else {
+                Alert(
+                    "Building Locked",
+                    `Visit ${item.name} in person to unlock it and access its features.`,
+                    [{ text: "OK" }],
+                );
             }
-        }
-    };
-    const { mapHtmlString } = require("../../../assets/buildings-map");
-
-    const mapHtml = useMemo(() => {
-        const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || "";
-        const apiBase = process.env.EXPO_PUBLIC_API_URL || "";
-        return mapHtmlString
-            .replaceAll("__MAPBOX_TOKEN__", token)
-            .replaceAll("__ARQUEST_API_BASE__", apiBase)
-            .replaceAll("__ARQUEST_AUTH_TOKEN__", authToken || "");
-    }, [authToken]);
-
-    const sortedBuildings = useMemo(() => {
-        return allBuildings
-            .filter(b => b.name.toLowerCase().includes(listSearchQuery.toLowerCase()) || (b.slug && b.slug.toLowerCase().includes(listSearchQuery.toLowerCase())))
-            .sort((a, b) => {
-                const aAvail = unlockedBuildings.some(u => u.id === a.id) || role === "visitor" || a.status === "MAINTENANCE";
-                const bAvail = unlockedBuildings.some(u => u.id === b.id) || role === "visitor" || b.status === "MAINTENANCE";
-                if (aAvail && !bAvail) return -1;
-                if (!aAvail && bAvail) return 1;
-                return a.name.localeCompare(b.name);
-            });
-    }, [allBuildings, listSearchQuery, unlockedBuildings, role]);
-
-    const handlePressBuildingItem = React.useCallback((item) => {
-        const isUnlocked = unlockedBuildings.some(u => u.id === item.id);
-        if (isUnlocked || role === "visitor" || (item && item.status === "MAINTENANCE")) {
-            const unlockedData = unlockedBuildings.find(b => b.id === item.id) || {};
-            setSelectedBuilding({ ...item, ...unlockedData });
-            setModalVisible(true);
-        } else {
-            Alert("Building Locked", `Visit ${item.name} in person to unlock it and access its features.`, [{ text: "OK" }]);
-        }
-    }, [unlockedBuildings, role]);
-
-    const renderBuildingListItem = React.useCallback(({ item, index }) => {
-        const isUnlocked = unlockedBuildings.some(u => u.id === item.id);
-        const isLast = index === sortedBuildings.length - 1;
-        return (
-            <BuildingListItem
-                item={item}
-                isUnlocked={isUnlocked}
-                isVisitor={role === "visitor"}
-                isLast={isLast}
-                onPress={() => handlePressBuildingItem(item)}
-            />
-        );
-    }, [unlockedBuildings, sortedBuildings.length, role, handlePressBuildingItem]);
-
-    const getItemLayout = React.useCallback((data, index) => ({
-        length: 85,
-        offset: 85 * index,
-        index,
-    }), []);
-
-    // `has_model` reports asset existence; `model_url` is role/unlock gated.
-    const selectedBuildingHasModel = Boolean(
-        selectedBuilding?.has_model ?? selectedBuilding?.model_url
+        },
+        [unlockedBuildings, role, detailHook],
     );
-    const selectedBuildingModelUrl = selectedBuilding?.model_url || null;
 
+    // --- Quick Mission Select ---
+    const handleSelectQuickMission = useCallback(
+        (mission) => {
+            quickMissionsHook.handleSelectQuickMission(
+                mission,
+                mapHook.allBuildings,
+                {
+                    handleSelectRouteTarget: routingHook.handleSelectRouteTarget,
+                },
+            );
+        },
+        [quickMissionsHook, mapHook.allBuildings, routingHook.handleSelectRouteTarget],
+    );
+
+    // --- Render ---
     return (
         <View style={styles.container}>
             {isFocused && <StatusBar style="dark" />}
 
-            {/* Toggle Switch */}
-            <View style={{ position: 'absolute', top: 45, right:16, alignSelf: 'center', zIndex: 100, flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 20, padding: 4, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
-                <TouchableOpacity onPress={() => setViewMode('map')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'map' ? colors.primary : 'transparent' }}>
-                    <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'map' ? '#FFF' : colors.textSecondary }}>Map View</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setViewMode('list')} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, backgroundColor: viewMode === 'list' ? colors.primary : 'transparent' }}>
-                    <Text style={{ fontFamily: fonts.body.bold, color: viewMode === 'list' ? '#FFF' : colors.textSecondary }}>List View</Text>
-                </TouchableOpacity>
-            </View>
+            {/* View Mode Toggle */}
+            <ViewModeToggle
+                viewMode={viewMode}
+                onChange={setViewMode}
+                styles={styles}
+                colors={colors}
+            />
 
             <View style={{ flex: 1 }}>
-                    {(isUnlockedLoading || isLoadingAll) && !webViewReady && (
-                        <View style={styles.loadingOverlay}>
-                            <ActivityIndicator
-                                size="large"
-                                color={colors.primary}
-                            />
-                            <Text style={styles.loadingText}>Loading Map...</Text>
-                        </View>
-                    )}
+                {/* Map View */}
+                <BuildingsMapView
+                    {...mapHook}
+                    {...routingHook}
+                    role={role}
+                    viewMode={viewMode}
+                    onBuildingClick={handleBuildingClick}
+                    mapStyle={mapHook.mapStyle}
+                    setMapStyle={mapHook.setMapStyle}
+                    styles={styles}
+                    colors={colors}
+                />
 
-                    <ErrorBoundary
-                        title="Map View Interrupted"
-                        message="The 3D campus map encountered an error. Tap retry to reload the map."
-                        onReset={() => {
-                            setWebViewReady(false);
-                            if (webViewRef.current) {
-                                webViewRef.current.reload();
-                            }
-                        }}
-                    >
-                        <WebView
-                            ref={webViewRef}
-                            source={{ html: mapHtml, baseUrl: 'https://api.mapbox.com/' }}
-                            style={styles.webview}
-                            onMessage={handleMessage}
-                            onLoadEnd={() => {
-                                setWebViewReady(true);
-                                sendMapUpdate();
-                            }}
-                            onError={(syntheticEvent) => {
-                                const { nativeEvent } = syntheticEvent;
-                                console.warn('[WebView] WebView error: ', nativeEvent);
-                            }}
-                            onHttpError={(syntheticEvent) => {
-                                const { nativeEvent } = syntheticEvent;
-                                console.warn('[WebView] HTTP error: ', nativeEvent);
-                            }}
-                            javaScriptEnabled={true}
-                            domStorageEnabled={true}
-                            allowFileAccess={true}
-                            allowFileAccessFromFileURLs={true}
-                            allowUniversalAccessFromFileURLs={true}
-                            originWhitelist={["*"]}
-                            injectedJavaScript={INJECTED_BRIDGE_SCRIPT}
-                            mixedContentMode="always"
-                        />
-                    </ErrorBoundary>
+                {/* List View */}
+                <BuildingsListView
+                    allBuildings={mapHook.allBuildings}
+                    unlockedBuildings={unlockedBuildings}
+                    role={role}
+                    listSearchQuery={listSearchQuery}
+                    setListSearchQuery={setListSearchQuery}
+                    viewMode={viewMode}
+                    onPressBuilding={handlePressBuildingItem}
+                    styles={styles}
+                    colors={colors}
+                />
 
-            {/* Routing Search Overlay */}
-            <LinearGradient
-                colors={[
-                    "rgba(255,255,255,1)",
-                    "rgba(255,255,255,0.95)",
-                    "rgba(255,255,255,0.8)",
-                ]}
-                style={styles.searchTerminal}
-                pointerEvents="box-none"
-            >
-                <Text style={styles.terminalHeader}>Map Navigation</Text>
+                {/* Building Detail Modal */}
+                <BuildingDetailModal
+                    modalVisible={detailHook.modalVisible}
+                    selectedBuilding={detailHook.selectedBuilding}
+                    unlockedBuildings={unlockedBuildings}
+                    role={role}
+                    canAccessBuildingFeatures={detailHook.canAccessFeatures}
+                    canView3D={canView3D}
+                    canViewPanorama={canViewPanorama}
+                    enable_trivia={enable_trivia}
+                    selectedBuildingHasModel={detailHook.selectedBuildingHasModel}
+                    selectedBuildingModelUrl={detailHook.selectedBuildingModelUrl}
+                    onClose={detailHook.closeBuildingDetail}
+                    onView3D={detailHook.handleView3D}
+                    onVirtualTour={detailHook.handleVirtualTour}
+                    onViewPanorama={detailHook.handleViewPanorama}
+                    onTakeQuiz={detailHook.handleTakeQuiz}
+                    styles={styles}
+                    colors={colors}
+                />
 
-                <View style={styles.terminalInputContainer}>
-                    <View style={styles.terminalInputRow}>
-                        <Text style={styles.terminalInputLabel}>FROM</Text>
-                        <TextInput
-                            style={[
-                                styles.terminalInput,
-                                !routeOrigin && {
-                                    color: colors.success,
-                                    fontWeight: "bold",
-                                },
-                            ]}
-                            placeholder="Your Location"
-                            placeholderTextColor={
-                                !routeOrigin ? colors.success : "#999999"
-                            }
-                            value={originQuery}
-                            onChangeText={setOriginQuery}
-                            onFocus={() => {
-                                setIsOriginFocused(true);
-                                setIsSearchFocused(false);
-                            }}
-                            onBlur={() =>
-                                setTimeout(() => setIsOriginFocused(false), 200)
-                            }
-                        />
-                        {routeOrigin && (
-                            <TouchableOpacity
-                                onPress={handleClearOrigin}
-                                style={styles.clearRouteBtn}
-                            >
-                                <X color={colors.textMuted} size={18} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                {/* Control Mode Picker */}
+                <ControlModePicker
+                    visible={detailHook.controlPickerVisible}
+                    onClose={() => detailHook.setControlPickerVisible(false)}
+                    onLaunchVirtualTour={detailHook.launchVirtualTour}
+                    styles={styles}
+                    colors={colors}
+                />
 
-                    {isOriginFocused && originQuery.length > 0 && (
-                        <View style={styles.searchResultsContainer}>
-                            <ScrollView
-                                style={styles.searchResultsList}
-                                keyboardShouldPersistTaps="handled"
-                                nestedScrollEnabled
-                            >
-                                {filteredOriginBuildings.map((b) => (
-                                    <TouchableOpacity
-                                        key={`origin-${b.id}`}
-                                        style={styles.searchResultItem}
-                                        onPress={() => handleSelectRouteOrigin(b)}
-                                    >
-                                        <View
-                                            style={[
-                                                styles.searchResultItemInner,
-                                                b.primary_department && {
-                                                    borderLeftWidth: 4,
-                                                    borderLeftColor: b.primary_department.color_hex || colors.primary,
-                                                    paddingLeft: 8,
-                                                },
-                                            ]}
-                                        >
-                                            <Text style={styles.searchResultName}>{b.name}</Text>
-                                            <Text
-                                                style={[
-                                                    styles.searchResultStatus,
-                                                    b.is_active === false && styles.searchResultStatusInactive,
-                                                ]}
-                                            >
-                                                {b.primary_department ? `${b.primary_department.name} • ` : ""}
-                                                {b.is_active === false ? "CLOSED / INACTIVE" : "AVAILABLE"}
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))}
-                                {filteredOriginBuildings.length === 0 && (
-                                    <Text style={styles.searchNoResult}>No buildings found.</Text>
-                                )}
-                            </ScrollView>
-                        </View>
-                    )}
-
-                    <View style={styles.terminalInputRowActive}>
-                        <Text style={styles.terminalInputLabel}>TO</Text>
-                        <View style={styles.toInputWrapper}>
-                            <TextInput
-                                style={styles.terminalInputActive}
-                                placeholder="Search Destination"
-                                placeholderTextColor="#999999"
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                onFocus={() => {
-                                    setIsSearchFocused(true);
-                                    setIsOriginFocused(false);
-                                }}
-                                onBlur={() =>
-                                    setTimeout(() => setIsSearchFocused(false), 200)
-                                }
-                            />
-                            {routeTarget && routeDistance !== null && (
-                                <View style={styles.distanceCornerBadge} pointerEvents="none">
-                                    <Text style={styles.distanceCornerBadgeText}>
-                                        {routeDistance}m
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                        {routeTarget && (
-                            <TouchableOpacity
-                                onPress={handleClearRoute}
-                                style={styles.clearRouteBtn}
-                            >
-                                <X color={colors.textMuted} size={18} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-
-                    {isSearchFocused && searchQuery.length > 0 && (
-                        <View style={styles.searchResultsContainer}>
-                            <ScrollView
-                                style={styles.searchResultsList}
-                                keyboardShouldPersistTaps="handled"
-                                nestedScrollEnabled
-                            >
-                                {filteredTargetBuildings.map((b) => (
-                                    <TouchableOpacity
-                                        key={`target-${b.id}`}
-                                        style={styles.searchResultItem}
-                                        onPress={() => handleSelectRouteTarget(b)}
-                                    >
-                                        <View
-                                            style={[
-                                                styles.searchResultItemInner,
-                                                b.primary_department && {
-                                                    borderLeftWidth: 4,
-                                                    borderLeftColor: b.primary_department.color_hex || colors.primary,
-                                                    paddingLeft: 8,
-                                                },
-                                            ]}
-                                        >
-                                            <Text style={styles.searchResultName}>{b.name}</Text>
-                                            <Text
-                                                style={[
-                                                    styles.searchResultStatus,
-                                                    b.is_active === false && styles.searchResultStatusInactive,
-                                                ]}
-                                            >
-                                                {b.primary_department ? `${b.primary_department.name} • ` : ""}
-                                                {b.is_active === false ? "CLOSED / INACTIVE" : "AVAILABLE"}
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))}
-                                {filteredTargetBuildings.length === 0 && (
-                                    <Text style={styles.searchNoResult}>No buildings found.</Text>
-                                )}
-                            </ScrollView>
-                        </View>
-                    )}
-                </View>
-            </LinearGradient>
-
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: colors.surfaceSoft, display: viewMode === 'list' ? 'flex' : 'none', paddingTop: 110, paddingHorizontal: 16 }}>
-                    <View style={{ marginBottom: 16, backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }}>
-                        <Ionicons name="search" size={20} color={colors.textMuted} style={{ marginRight: 8 }} />
-                        <TextInput
-                            style={{ flex: 1, fontFamily: fonts.body.regular, fontSize: 16, color: colors.textPrimary }}
-                            placeholder="Search buildings..."
-                            placeholderTextColor={colors.textMuted}
-                            value={listSearchQuery}
-                            onChangeText={setListSearchQuery}
-                        />
-                        {listSearchQuery.length > 0 && (
-                            <TouchableOpacity onPress={() => setListSearchQuery("")}>
-                                <Ionicons name="close-circle" size={20} color={colors.textMuted} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <FlatList 
-                            data={sortedBuildings}
-                            keyExtractor={b => b.id.toString()}
-                            contentContainerStyle={{ paddingBottom: 100 }}
-                            removeClippedSubviews={true}
-                            maxToRenderPerBatch={6}
-                            updateCellsBatchingPeriod={50}
-                            initialNumToRender={6}
-                            windowSize={5}
-                            getItemLayout={getItemLayout}
-                            renderItem={renderBuildingListItem}
-                        />
-                    </View>
-                </View>
-            </View>
-
-            {/* AR Gamified Bottom Sheet Modal */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                statusBarTranslucent
-                navigationBarTranslucent
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <ModalSafeArea>
-                    <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => setModalVisible(false)}
-                    >
-                        <BottomSheetSurface
-                            base={40}
-                            style={styles.tacticalModalContainer}
-                        >
-                        {selectedBuilding && (
-                            <>
-                                <View style={styles.tacticalModalHeader}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text
-                                            style={styles.tacticalModalSubtitle}
-                                        >
-                                            Selected Location
-                                        </Text>
-                                        <Text
-                                            style={styles.tacticalModalTitle}
-                                            numberOfLines={2}
-                                        >
-                                            {selectedBuilding.name}
-                                        </Text>
-                                        {routeDistance && (
-                                            <Text
-                                                style={
-                                                    styles.tacticalModalDistance
-                                                }
-                                            >
-                                                Distance: {routeDistance} meters
-                                            </Text>
-                                        )}
-                                    </View>
-
-                                    <View
-                                        style={[
-                                            styles.tacticalModalBadge,
-                                            role !== "visitor" &&
-                                            !unlockedBuildings.some(
-                                                (b) =>
-                                                    b.id ===
-                                                    selectedBuilding.id,
-                                            ) &&
-                                                styles.tacticalModalBadgeLocked,
-                                        ]}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.tacticalBadgeText,
-                                                role !== "visitor" &&
-                                                !unlockedBuildings.some(
-                                                    (b) =>
-                                                        b.id ===
-                                                        selectedBuilding.id,
-                                                ) &&
-                                                    styles.tacticalBadgeTextLocked,
-                                            ]}
-                                        >
-                                            {role === "visitor"
-                                                ? "GUEST PANORAMA"
-                                                : unlockedBuildings.some(
-                                                      (b) =>
-                                                          b.id ===
-                                                          selectedBuilding.id,
-                                                  )
-                                                ? "UNLOCKED"
-                                                : "LOCKED"}
-                                        </Text>
-                                    </View>
-                                </View>
-
-                                {selectedBuilding.is_active === false ? (
-                                    <View style={styles.restrictedContainer}>
-                                        <ShieldAlert
-                                            color={colors.error}
-                                            size={20}
-                                            style={{ marginBottom: 4 }}
-                                        />
-                                        <Text style={styles.restrictedText}>
-                                            Building Closed / Under Renovation
-                                        </Text>
-                                    </View>
-                                ) : selectedBuilding.status === 'MAINTENANCE' ? (
-                                    <View style={[styles.restrictedContainer, { borderColor: '#f97316', backgroundColor: '#fff7ed' }]}>
-                                        <ShieldAlert
-                                            color="#f97316"
-                                            size={20}
-                                            style={{ marginBottom: 4 }}
-                                        />
-                                        <Text style={[styles.restrictedText, { color: '#c2410c' }]}>
-                                            Under Maintenance / Construction
-                                        </Text>
-                                    </View>
-                                ) : canAccessBuildingFeatures(true) ? (
-                                    <View style={styles.tacticalActionGrid}>
-                                        {!selectedBuilding.model_active ||
-                                        !selectedBuildingHasModel ? (
-                                            <View
-                                                style={[
-                                                    styles.tacticalActionBtn,
-                                                    styles.tacticalActionBtnDisabled,
-                                                ]}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.tacticalActionText,
-                                                        {
-                                                            color: colors.textMuted,
-                                                        },
-                                                    ]}
-                                                >
-                                                    3D Assets Offline
-                                                </Text>
-                                            </View>
-                                        ) : role === "visitor" ? (
-                                            <TouchableOpacity
-                                                style={[
-                                                    styles.tacticalActionBtn,
-                                                    styles.tacticalActionBtnDisabled,
-                                                ]}
-                                                onPress={() =>
-                                                    Alert(
-                                                        "Guest Access Restricted",
-                                                        "3D architectural models are only accessible to registered students. Guests can view the 360° panorama tour below.",
-                                                        [{ text: "Understood" }]
-                                                    )
-                                                }
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.tacticalActionText,
-                                                        {
-                                                            color: colors.textMuted,
-                                                        },
-                                                    ]}
-                                                >
-                                                    3D Model (Student Only) 🔒
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ) : selectedBuildingModelUrl &&
-                                          canView3D ? (
-                                            <TouchableOpacity
-                                                style={styles.tacticalActionBtn}
-                                                onPress={handleView3D}
-                                            >
-                                                <Text
-                                                    style={
-                                                        styles.tacticalActionText
-                                                    }
-                                                >
-                                                    View 3D Model
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ) : role === "student" ? (
-                                            <TouchableOpacity
-                                                style={[
-                                                    styles.tacticalActionBtn,
-                                                    styles.tacticalActionBtnDisabled,
-                                                ]}
-                                                onPress={() =>
-                                                    Alert(
-                                                        "3D MODEL LOCKED",
-                                                        `Unlock ${selectedBuilding.name} by visiting it or scanning its QR code to view the 3D model.`,
-                                                        [{ text: "UNDERSTOOD" }]
-                                                    )
-                                                }
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.tacticalActionText,
-                                                        {
-                                                            color: colors.textMuted,
-                                                        },
-                                                    ]}
-                                                >
-                                                    Unlock to View 3D 🔒
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ) : (
-                                            <View
-                                                style={[
-                                                    styles.tacticalActionBtn,
-                                                    styles.tacticalActionBtnDisabled,
-                                                ]}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.tacticalActionText,
-                                                        {
-                                                            color: colors.textMuted,
-                                                        },
-                                                    ]}
-                                                >
-                                                    3D Assets Offline
-                                                </Text>
-                                            </View>
-                                        )}
-
-                                        {canViewPanorama &&
-                                            (role === "student" ||
-                                                role === "professional" ||
-                                                role === "admin") &&
-                                            selectedBuilding.model_active &&
-                                            selectedBuilding.model_url && (
-                                                <TouchableOpacity
-                                                    style={
-                                                        styles.tacticalActionBtn
-                                                    }
-                                                    onPress={handleVirtualTour}
-                                                >
-                                                    <Text
-                                                        style={
-                                                            styles.tacticalActionText
-                                                        }
-                                                    >
-                                                        Start Virtual Tour
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            )}
-
-                                        {canViewPanorama && (
-                                            <TouchableOpacity
-                                                style={styles.tacticalActionBtn}
-                                                onPress={handleViewPanorama}
-                                            >
-                                                <Text
-                                                    style={
-                                                        styles.tacticalActionText
-                                                    }
-                                                >
-                                                    View 360° Panorama
-                                                </Text>
-                                            </TouchableOpacity>
-                                        )}
-
-                                        {role === "student" && enable_trivia && (
-                                            <TouchableOpacity
-                                                style={[
-                                                    styles.tacticalActionBtn,
-                                                    {
-                                                        borderColor:
-                                                            colors.primary,
-                                                    },
-                                                ]}
-                                                onPress={() => {
-                                                    setModalVisible(false);
-                                                    setQuizModalVisible(true);
-                                                }}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.tacticalActionText,
-                                                        {
-                                                            color: colors.primary,
-                                                        },
-                                                    ]}
-                                                >
-                                                    Take Quiz
-                                                </Text>
-                                            </TouchableOpacity>
-                                        )}
-                                    </View>
-                                ) : (
-                                    <View
-                                        style={{
-                                            alignItems: "center",
-                                            marginTop: 16,
-                                        }}
-                                    >
-                                        <ShieldAlert
-                                            color={colors.primary}
-                                            size={24}
-                                            style={{ marginBottom: 8 }}
-                                        />
-                                        <Text
-                                            style={styles.tacticalWarningText}
-                                        >
-                                            ⚠ You must visit this location in
-                                            person to unlock its features
-                                        </Text>
-                                    </View>
-                                )}
-                            </>
-                        )}
-                        </BottomSheetSurface>
-                    </TouchableOpacity>
-                </ModalSafeArea>
-            </Modal>
-
-            {/* Control Mode Picker Modal */}
-            <Modal
-                transparent
-                animationType="fade"
-                visible={controlPickerVisible}
-                onRequestClose={() => setControlPickerVisible(false)}
-            >
-                <View style={styles.controlPickerOverlay}>
-                    <View style={styles.controlPickerCard}>
-                        {/* Header */}
-                        <View style={styles.controlPickerHeader}>
-                            <Ionicons
-                                name="game-controller-outline"
-                                size={28}
-                                color={colors.arHighlight}
-                            />
-                            <Text style={styles.controlPickerTitle}>
-                                SELECT CONTROL MODE
-                            </Text>
-                            <Text style={styles.controlPickerSubtitle}>
-                                Choose how you want to navigate the virtual tour
-                            </Text>
-                        </View>
-
-                        {/* Joystick Option */}
-                        <TouchableOpacity
-                            style={styles.controlOption}
-                            onPress={() => launchVirtualTour("joystick")}
-                            activeOpacity={0.75}
-                        >
-                            <View style={styles.controlOptionIcon}>
-                                <Ionicons
-                                    name="options-outline"
-                                    size={32}
-                                    color={colors.arHighlight}
-                                />
-                            </View>
-                            <View style={styles.controlOptionText}>
-                                <Text style={styles.controlOptionTitle}>
-                                    ORBIT CONTROLS
-                                </Text>
-                                <Text style={styles.controlOptionDesc}>
-                                    Left joystick to move · Drag right side to
-                                    look around
-                                </Text>
-                            </View>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={20}
-                                color={colors.textMuted}
-                            />
-                        </TouchableOpacity>
-
-                        <View style={styles.controlDivider} />
-
-                        {/* Gyroscope Option */}
-                        <TouchableOpacity
-                            style={styles.controlOption}
-                            onPress={() => launchVirtualTour("gyroscope")}
-                            activeOpacity={0.75}
-                        >
-                            <View
-                                style={[
-                                    styles.controlOptionIcon,
-                                    styles.controlOptionIconGyro,
-                                ]}
-                            >
-                                <Ionicons
-                                    name="phone-portrait-outline"
-                                    size={32}
-                                    color={colors.success}
-                                />
-                            </View>
-                            <View style={styles.controlOptionText}>
-                                <Text
-                                    style={[
-                                        styles.controlOptionTitle,
-                                        { color: colors.success },
-                                    ]}
-                                >
-                                    GYROSCOPE
-                                </Text>
-                                <Text style={styles.controlOptionDesc}>
-                                    Tilt &amp; rotate your phone to look · Tap
-                                    joystick side to move
-                                </Text>
-                                <Text style={styles.controlOptionBadge}>
-                                    IMMERSIVE MODE
-                                </Text>
-                            </View>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={20}
-                                color={colors.textMuted}
-                            />
-                        </TouchableOpacity>
-
-                        {/* Cancel */}
-                        <TouchableOpacity
-                            style={styles.controlCancelBtn}
-                            onPress={() => setControlPickerVisible(false)}
-                        >
-                            <Text style={styles.controlCancelText}>CANCEL</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Google Maps Style Route Navigation Card */}
-            {!modalVisible && viewMode === 'map' && routeTarget && (
-                <View style={styles.routeNavCard}>
-                    <View style={styles.routeNavHeader}>
-                        <View style={styles.routeNavInfo}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                {isRouteActive && (
-                                    <View style={styles.pulseLiveDot} />
-                                )}
-                                <Text style={styles.routeNavTitle} numberOfLines={1}>
-                                    {routeTarget.name}
-                                </Text>
-                            </View>
-                            <Text style={styles.routeNavSubtitle}>
-                                {routeDistance !== null 
-                                    ? `${routeDistance}m • ~${Math.max(1, Math.round(routeDistance / 75))} min walk` 
-                                    : (routeOrigin ? `From ${routeOrigin.name}` : "From Your Location (GPS)")}
-                            </Text>
-                        </View>
-
-                        {/* Actions: Start vs Exit / AR */}
-                        {!isRouteActive ? (
-                            <TouchableOpacity
-                                style={styles.startNavBtn}
-                                onPress={handleStartRoute}
-                                activeOpacity={0.8}
-                                disabled={isRouteLoading}
-                            >
-                                {isRouteLoading ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                ) : (
-                                    <>
-                                        <Ionicons name="navigate" size={18} color="#FFFFFF" />
-                                        <Text style={styles.startNavBtnText}>Start</Text>
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        ) : (
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                <TouchableOpacity
-                                    style={styles.arQuickBtn}
-                                    onPress={() => router.push({
-                                        pathname: "/(tabs)/ar",
-                                        params: {
-                                            targetBuildingId: routeTarget.id,
-                                            buildingId: routeTarget.id,
-                                            routeOriginLat: routeOrigin ? String(routeOrigin.latitude) : undefined,
-                                            routeOriginLng: routeOrigin ? String(routeOrigin.longitude) : undefined,
-                                            routeOriginName: routeOrigin ? (routeOrigin.name || "Selected origin") : undefined,
-                                        },
-                                    })}
-                                    activeOpacity={0.8}
-                                >
-                                    <Ionicons name="cube-outline" size={16} color={colors.primary} />
-                                    <Text style={styles.arQuickBtnText}>AR</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={styles.exitNavBtn}
-                                    onPress={handleStopRoute}
-                                    activeOpacity={0.8}
-                                >
-                                    <Ionicons name="close" size={18} color="#FFFFFF" />
-                                    <Text style={styles.exitNavBtnText}>Exit</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </View>
-                </View>
-            )}
-
-            {/* Map Legend (hidden while route is being planned or navigated) */}
-            {!modalVisible && viewMode === 'map' && !routeTarget && (
-                <View style={styles.mapLegend}>
-                    <Text style={styles.legendTitle}>MAP LEGEND</Text>
-                    <View style={styles.legendRow}>
-                        <View
-                            style={[
-                                styles.legendDot,
-                                {
-                                    backgroundColor: "#4285F4",
-                                    borderWidth: 2,
-                                    borderColor: "#FFFFFF",
-                                },
-                            ]}
-                        />
-                        <Text style={styles.legendText}>Your Location</Text>
-                    </View>
-                    <View style={styles.legendRow}>
-                        <View
-                            style={[
-                                styles.legendDot,
-                                {
-                                    backgroundColor: colors.primaryDark,
-                                    borderWidth: 2,
-                                    borderColor: "#FFFFFF",
-                                },
-                            ]}
-                        />
-                        <Text style={styles.legendText}>
-                            {role === "professional" ? "Visited" : "Unlocked"}{" "}
-                            Location
-                        </Text>
-                    </View>
-                    <View style={styles.legendRow}>
-                        <View
-                            style={[
-                                styles.legendDot,
-                                {
-                                    backgroundColor: "#6b7280",
-                                    borderWidth: 2,
-                                    borderColor: "#FFFFFF",
-                                },
-                            ]}
-                        />
-                        <Text style={styles.legendText}>
-                            {role === "professional" ? "Unvisited" : "Locked"}{" "}
-                            Location
-                        </Text>
-                    </View>
-                </View>
-            )}
-
-            {/* Floating Quick Missions Button (Right side of Map) */}
-            {role === "student" && viewMode === "map" && !modalVisible && !isRouteActive && (
-                <TouchableOpacity
-                    style={[
-                        styles.floatingQuickMissionsBtn,
-                        routeTarget && { bottom: 105 },
-                    ]}
+                {/* Quick Missions Button */}
+                <QuickMissionsButton
+                    role={role}
+                    viewMode={viewMode}
+                    isRouteActive={routingHook.isRouteActive}
+                    routeTarget={routingHook.routeTarget}
+                    modalVisible={detailHook.modalVisible}
+                    quickQuests={quickMissionsHook.quickQuests}
+                    isQuickUnlocked={quickMissionsHook.isQuickUnlocked}
+                    dailyProgress={quickMissionsHook.dailyProgress}
                     onPress={() => {
-                        fetchQuickMissions();
-                        setQuickModalVisible(true);
+                        quickMissionsHook.fetchQuickMissions();
+                        quickMissionsHook.setQuickModalVisible(true);
                     }}
-                    activeOpacity={0.85}
-                >
-                    <View style={styles.floatingQuickAvatarWrap}>
-                        <Image
-                            source={require("../../../assets/images/characters/justine_avatar.png")}
-                            style={styles.floatingQuickAvatar}
-                        />
-                        {isQuickUnlocked ? (
-                            <View style={styles.floatingQuestBadge}>
-                                <Text style={styles.floatingQuestBadgeText}>
-                                    {quickQuests.length}
-                                </Text>
-                            </View>
-                        ) : (
-                            <View style={[styles.floatingQuestBadge, { backgroundColor: "#6B7280" }]}>
-                                <Lock size={9} color="#FFFFFF" />
-                            </View>
-                        )}
-                    </View>
-                    <View style={styles.floatingQuickInfo}>
-                        <Text style={styles.floatingQuickTitle}>MISSIONS</Text>
-                        <Text style={[styles.floatingQuickSub, isQuickUnlocked && { color: colors.success }]}>
-                            {isQuickUnlocked ? "Unlocked 🎯" : "Locked 🔒"}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
-            )}
+                    styles={styles}
+                    colors={colors}
+                />
 
-            {/* Navigation Turn HUD */}
-            <NavigationTurnHUD
-                visible={turnHUD.visible && isRouteActive}
-                turnType={turnHUD.turnType}
-                distance={turnHUD.distance}
-                instruction={turnHUD.instruction}
-            />
+                {/* Navigation Turn HUD */}
+                <NavigationTurnHUD
+                    visible={routingHook.turnHUD.visible && routingHook.isRouteActive}
+                    turnType={routingHook.turnHUD.turnType}
+                    distance={routingHook.turnHUD.distance}
+                    instruction={routingHook.turnHUD.instruction}
+                />
 
-            {/* Trivia Quiz Modal */}
-            <QuizModal
-                visible={quizModalVisible}
-                building={selectedBuilding}
-                onClose={() => setQuizModalVisible(false)}
-            />
+                {/* Trivia Quiz Modal */}
+                <QuizModal
+                    visible={detailHook.quizModalVisible}
+                    building={detailHook.quizBuilding}
+                    onClose={detailHook.closeQuizModal}
+                />
 
-            {/* Justine 2D Story Quick Missions Modal */}
-            <QuickMissionsModal
-                visible={quickModalVisible}
-                onClose={() => setQuickModalVisible(false)}
-                onSelectMission={handleSelectQuickMission}
-                isUnlocked={isQuickUnlocked}
-                dailyCompletedCount={dailyProgress.completed}
-                dailyTotalCount={dailyProgress.total}
-                quests={quickQuests}
-                completedQuests={completedQuickQuests}
-                onGoToHome={() => router.push("/(tabs)")}
-                userLocation={location}
-                allBuildings={allBuildings}
-            />
+                {/* Quick Missions Modal */}
+                <QuickMissionsModal
+                    visible={quickMissionsHook.quickModalVisible}
+                    onClose={() => quickMissionsHook.setQuickModalVisible(false)}
+                    onSelectMission={handleSelectQuickMission}
+                    isUnlocked={quickMissionsHook.isQuickUnlocked}
+                    dailyCompletedCount={quickMissionsHook.dailyProgress.completed}
+                    dailyTotalCount={quickMissionsHook.dailyProgress.total}
+                    quests={quickMissionsHook.quickQuests}
+                    completedQuests={quickMissionsHook.completedQuickQuests}
+                    onGoToHome={() => router.push("/(tabs)")}
+                    userLocation={location}
+                    allBuildings={mapHook.allBuildings}
+                />
+            </View>
         </View>
     );
 }
-
-const createStyles = (colors, spacing, radius) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.surfaceSoft,
-    },
-    webview: {
-        flex: 1,
-        backgroundColor: colors.surfaceSoft,
-    },
-    loadingOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: colors.bgPrimary,
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 10,
-    },
-    loadingText: {
-        color: colors.primary,
-        marginTop: 10,
-        fontFamily: fonts.heading.bold,
-        letterSpacing: 1,
-    },
-    searchTerminal: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        paddingTop: 60,
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-        borderBottomWidth: 4,
-        borderBottomColor: colors.primary,
-        zIndex: 10,
-    },
-    terminalHeader: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 14,
-        color: colors.primary,
-        letterSpacing: 1,
-        // marginBottom: 16,
-        marginTop: 10
-    },
-    terminalInputContainer: {
-        borderLeftWidth: 2,
-        borderLeftColor: colors.primary,
-        paddingLeft: 12,
-        gap: 12,
-        marginTop: 10,
-    },
-    terminalInputRow: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    terminalInputRowActive: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    terminalInputLabel: {
-        fontFamily: fonts.body.bold,
-        fontSize: 12,
-        color: colors.textSecondary,
-        width: 45,
-    },
-    terminalInput: {
-        flex: 1,
-        fontFamily: fonts.body.regular,
-        fontSize: 14,
-        color: colors.textPrimary,
-        backgroundColor: "#FFFFFF",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: radius.md,
-    },
-    toInputWrapper: {
-        flex: 1,
-        position: "relative",
-        justifyContent: "center",
-    },
-    terminalInputActive: {
-        width: "100%",
-        fontFamily: fonts.body.regular,
-        fontSize: 14,
-        color: colors.primary,
-        backgroundColor: "#FFFFFF",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderWidth: 1,
-        borderColor: colors.primary,
-        borderRadius: radius.md,
-    },
-    distanceCornerBadge: {
-        position: "absolute",
-        top: -9,
-        right: 12,
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: colors.primary,
-        borderRadius: radius.sm,
-        paddingHorizontal: 6,
-        paddingVertical: 1,
-        zIndex: 10,
-        elevation: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.12,
-        shadowRadius: 2,
-    },
-    distanceCornerBadgeText: {
-        fontSize: 10,
-        fontFamily: fonts.body.bold,
-        color: colors.primary,
-        letterSpacing: 0.5,
-    },
-    clearRouteBtn: {
-        padding: spacing.xs,
-    },
-    searchResultsContainer: {
-        marginTop: spacing.sm,
-        backgroundColor: colors.bgPrimary,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        maxHeight: 200,
-    },
-    searchResultsList: {
-        flexGrow: 0,
-    },
-    searchResultItem: {
-        padding: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.surfaceSoft,
-    },
-    searchResultName: {
-        fontSize: 16,
-        fontFamily: fonts.heading.bold,
-        color: colors.textPrimary,
-    },
-    searchResultStatus: {
-        fontSize: 11,
-        fontFamily: fonts.body.bold,
-        color: colors.success,
-        marginTop: 2,
-        letterSpacing: 1,
-    },
-    searchResultStatusInactive: {
-        color: colors.error,
-    },
-    searchNoResult: {
-        padding: spacing.md,
-        color: colors.textMuted,
-        fontFamily: fonts.body.regular,
-        fontStyle: "italic",
-        textAlign: "center",
-    },
-    modalOverlay: {
-        flex: 1,
-        justifyContent: "flex-end",
-        backgroundColor: "rgba(0, 0, 0, 0.4)",
-    },
-    tacticalModalContainer: {
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: "rgba(255,255,255,0.95)",
-        borderTopWidth: 3,
-        borderTopColor: colors.primary,
-        padding: 20,
-        paddingBottom: 40,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 10,
-    },
-    tacticalModalHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 20,
-    },
-    tacticalModalSubtitle: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 12,
-        color: colors.primary,
-        letterSpacing: 1,
-        marginBottom: 4,
-    },
-    tacticalModalTitle: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 22,
-        color: "#000000",
-        textTransform: "uppercase",
-        marginBottom: 4,
-    },
-    tacticalModalDistance: {
-        fontFamily: fonts.body.regular,
-        fontSize: 14,
-        color: colors.textSecondary,
-    },
-    tacticalModalBadge: {
-        backgroundColor: "rgba(0,0,0,0.05)",
-        borderWidth: 1,
-        borderColor: "#CCCCCC",
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        marginLeft: 12,
-    },
-    tacticalModalBadgeLocked: {
-        backgroundColor: toRgba(colors.primary, 0.1),
-        borderColor: colors.primary,
-    },
-    tacticalBadgeText: {
-        fontFamily: fonts.body.bold,
-        fontSize: 11,
-        color: colors.textPrimary,
-        letterSpacing: 1,
-    },
-    tacticalBadgeTextLocked: {
-        color: colors.primary,
-    },
-    tacticalActionGrid: {
-        flexDirection: "column",
-        gap: 8,
-    },
-    tacticalActionBtn: {
-        backgroundColor: "#FFFFFF",
-        paddingVertical: 14,
-        borderWidth: 1,
-        borderColor: "#CCCCCC",
-        borderRadius: radius.md,
-        alignItems: "center",
-    },
-    tacticalActionBtnDisabled: {
-        opacity: 0.5,
-        backgroundColor: colors.bgSecondary,
-    },
-    tacticalActionText: {
-        fontFamily: fonts.heading.bold,
-        fontSize: 14,
-        color: colors.textPrimary,
-        letterSpacing: 1,
-    },
-    tacticalWarningText: {
-        fontFamily: fonts.body.bold,
-        fontSize: 12,
-        color: colors.primary,
-        textAlign: "center",
-    },
-    restrictedContainer: {
-        paddingVertical: 16,
-        backgroundColor: "rgba(226, 54, 54, 0.05)",
-        borderWidth: 1,
-        borderColor: colors.error,
-        alignItems: "center",
-        width: "100%",
-        marginTop: 12,
-    },
-    restrictedText: {
-        fontSize: 12,
-        fontFamily: fonts.heading.bold,
-        color: colors.error,
-        letterSpacing: 1,
-        marginTop: 8,
-    },
-
-    // --- Control Mode Picker ---
-    controlPickerOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 24,
-    },
-    controlPickerCard: {
-        width: "100%",
-        backgroundColor: colors.bgSecondary,
-        borderRadius: radius.xl,
-        borderWidth: 1,
-        borderColor: colors.border,
-        paddingBottom: spacing.md,
-        overflow: "hidden",
-    },
-    controlPickerHeader: {
-        alignItems: "center",
-        paddingTop: spacing.xl,
-        paddingBottom: spacing.lg,
-        paddingHorizontal: spacing.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-        gap: 6,
-    },
-    controlPickerTitle: {
-        color: colors.arHighlight,
-        fontSize: 16,
-        fontWeight: "900",
-        letterSpacing: 3,
-        marginTop: 8,
-    },
-    controlPickerSubtitle: {
-        color: colors.textSecondary,
-        fontSize: 12,
-        textAlign: "center",
-    },
-    controlOption: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: spacing.lg,
-        paddingVertical: 18,
-        gap: 14,
-    },
-    controlOptionIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 14,
-        backgroundColor: "rgba(0, 229, 255, 0.1)",
-        borderWidth: 1,
-        borderColor: "rgba(0, 229, 255, 0.3)",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    controlOptionIconGyro: {
-        backgroundColor: "rgba(46, 204, 113, 0.1)",
-        borderColor: "rgba(46, 204, 113, 0.3)",
-    },
-    controlOptionText: {
-        flex: 1,
-        gap: 3,
-    },
-    controlOptionTitle: {
-        color: colors.arHighlight,
-        fontSize: 14,
-        fontWeight: "800",
-        letterSpacing: 2,
-    },
-    controlOptionDesc: {
-        color: colors.textMuted,
-        fontSize: 12,
-        lineHeight: 17,
-    },
-    controlOptionBadge: {
-        color: colors.success,
-        fontSize: 10,
-        fontWeight: "bold",
-        letterSpacing: 1.5,
-        marginTop: 2,
-    },
-    controlDivider: {
-        height: 1,
-        backgroundColor: colors.border,
-        marginHorizontal: spacing.lg,
-    },
-    controlCancelBtn: {
-        marginTop: spacing.md,
-        marginHorizontal: spacing.lg,
-        paddingVertical: 12,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        alignItems: "center",
-    },
-    controlCancelText: {
-        color: colors.textMuted,
-        fontSize: 13,
-        fontWeight: "bold",
-        letterSpacing: 2,
-    },
-    mapLegend: {
-        position: "absolute",
-        bottom: 24,
-        left: 20,
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
-        padding: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 4,
-    },
-    legendTitle: {
-        fontSize: 10,
-        fontWeight: "bold",
-        color: colors.textMuted,
-        letterSpacing: 1,
-        marginBottom: 8,
-    },
-    legendRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 6,
-    },
-    legendDot: {
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        marginRight: 8,
-    },
-    legendText: {
-        fontSize: 12,
-        color: colors.textPrimary,
-        fontWeight: "500",
-    },
-    routeNavCard: {
-        position: "absolute",
-        bottom: 20,
-        left: 16,
-        right: 16,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        elevation: 6,
-        zIndex: 30,
-    },
-    routeNavHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-    routeNavInfo: {
-        flex: 1,
-        marginRight: 12,
-    },
-    routeNavTitle: {
-        fontSize: 15,
-        fontFamily: fonts.heading.bold,
-        color: colors.textPrimary,
-    },
-    routeNavSubtitle: {
-        fontSize: 12,
-        fontFamily: fonts.body.regular,
-        color: colors.textSecondary,
-        marginTop: 2,
-    },
-    pulseLiveDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: "#22C55E",
-    },
-    startNavBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        backgroundColor: "#16A34A",
-        paddingHorizontal: 18,
-        paddingVertical: 10,
-        borderRadius: 22,
-        shadowColor: "#16A34A",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 4,
-    },
-    startNavBtnText: {
-        color: "#FFFFFF",
-        fontSize: 14,
-        fontFamily: fonts.body.bold,
-    },
-    arQuickBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        backgroundColor: "#FFF0F0",
-        borderWidth: 1,
-        borderColor: colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 18,
-    },
-    arQuickBtnText: {
-        color: colors.primary,
-        fontSize: 12,
-        fontFamily: fonts.body.bold,
-    },
-    exitNavBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        backgroundColor: "#DC2626",
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 18,
-        shadowColor: "#DC2626",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3,
-        elevation: 3,
-    },
-    exitNavBtnText: {
-        color: "#FFFFFF",
-        fontSize: 12,
-        fontFamily: fonts.body.bold,
-    },
-    floatingQuickMissionsBtn: {
-        position: "absolute",
-        bottom: 24,
-        right: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#FFFFFF",
-        borderRadius: 28,
-        paddingVertical: 7,
-        paddingHorizontal: 12,
-        borderWidth: 2,
-        borderColor: colors.primary,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.18,
-        shadowRadius: 6,
-        elevation: 6,
-        zIndex: 35,
-    },
-    floatingQuickAvatarWrap: {
-        position: "relative",
-        marginRight: 8,
-    },
-    floatingQuickAvatar: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        borderWidth: 1.5,
-        borderColor: colors.primary,
-    },
-    floatingQuestBadge: {
-        position: "absolute",
-        top: -4,
-        right: -4,
-        backgroundColor: colors.primary,
-        minWidth: 16,
-        height: 16,
-        borderRadius: 8,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 3,
-        borderWidth: 1.5,
-        borderColor: "#FFFFFF",
-    },
-    floatingQuestBadgeText: {
-        color: "#FFFFFF",
-        fontSize: 9,
-        fontFamily: fonts.heading.bold,
-    },
-    floatingQuickInfo: {
-        justifyContent: "center",
-    },
-    floatingQuickTitle: {
-        fontSize: 11,
-        fontFamily: fonts.heading.bold,
-        color: colors.primary,
-        letterSpacing: 0.6,
-    },
-    floatingQuickSub: {
-        fontSize: 10,
-        fontFamily: fonts.body.bold,
-        color: colors.textMuted,
-        marginTop: 1,
-    },
-});
