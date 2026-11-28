@@ -54,6 +54,14 @@ import { useARCapture } from "../../hooks/useARCapture";
 import { useARArrival } from "../../hooks/useARArrival";
 import { useARBuildingDetails } from "../../hooks/useARBuildingDetails";
 import { useLocationTracking } from "../../hooks/useLocationTracking";
+import {
+    MODEL_PHASE,
+    resolveModelPhase,
+    isModelPhaseBusy,
+    modelPhaseTone,
+    formatModelPhaseLabel,
+    formatModelPhaseCardLabel,
+} from "../../utils/ar-model";
 
 function formatModelSize(bytes) {
     const size = Number(bytes);
@@ -114,7 +122,7 @@ export default function ARScreen() {
     const [isArrivedLatched, setIsArrivedLatched] = useState(false);
     const [isScanningQr, setIsScanningQr] = useState(false);
     const [isCameraTransitioning, setIsCameraTransitioning] = useState(false);
-    const [isArModelLoading, setIsArModelLoading] = useState(false);
+    const [arModelStatus, setArModelStatus] = useState("idle");
     const [claimTargetQuest, setClaimTargetQuest] = useState(null);
     const [isARSupported, setIsARSupported] = useState(true);
     const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
@@ -258,6 +266,7 @@ export default function ARScreen() {
         discoveryExpForArrival,
         handleDismissArrivalModal,
         showArrivalModal,
+        unlockStatus,
     } = useARArrival({
         isArrived,
         isFocused,
@@ -382,11 +391,42 @@ export default function ARScreen() {
             });
     }, []);
 
-    // Model size formatting
+    // Model size + honest readiness phase for the active target. The phase is
+    // derived from data the screen already has, so the header and arrival card
+    // never claim "arrived" while the model is still locked or downloading.
     const modelSizeLabel = formatModelSize(activeTarget?.model_file_size);
-    const modelLoadingLabel = modelProgressPercent == null
-        ? `${modelDownloadProgress?.status === "downloading" ? "DOWNLOADING MODEL" : "PREPARING MODEL"} · ${modelSizeLabel}`
-        : `${modelDownloadProgress?.status === "ready" ? "PREPARING" : "DOWNLOADING"} ${modelProgressPercent}% / 100% · ${modelSizeLabel}`;
+    const isInsideActiveBuilding = Boolean(
+        activeTarget?.id != null &&
+        geofenceStatus?.status === "inside" &&
+        String(geofenceStatus?.building?.id) === String(activeTarget.id)
+    );
+    const modelPhase = resolveModelPhase({
+        hasTarget: Boolean(activeTarget),
+        hasModel: Boolean(activeTarget?.has_model),
+        hasModelUrl: Boolean(activeTarget?.model_url),
+        isInsideActiveBuilding,
+        unlockStatus,
+        progressStatus: matchingModelProgress ? (modelDownloadProgress?.status ?? null) : null,
+        sceneStatus: arModelStatus,
+    });
+    const modelPercent = modelProgressPercent;
+    const modelPhaseLabel = formatModelPhaseLabel(modelPhase, {
+        percent: modelPercent,
+        sizeLabel: modelSizeLabel,
+    });
+    const modelPhaseCardLabel = formatModelPhaseCardLabel(modelPhase, {
+        percent: modelPercent,
+    });
+    const modelPhaseBusy = isModelPhaseBusy(modelPhase);
+    const modelPhaseToneValue = modelPhaseTone(modelPhase);
+    const modelPhaseColor =
+        modelPhaseToneValue === "success"
+            ? colors.success
+            : modelPhaseToneValue === "error"
+                ? colors.error
+                : modelPhaseToneValue === "warning"
+                    ? "#E8B923"
+                    : colors.textMuted;
 
     // Handle exit
     const handleExit = useCallback(() => {
@@ -555,7 +595,7 @@ export default function ARScreen() {
                                     buildingName: effectiveBuildingName,
                                     nextWaypoint: nextWaypoint,
                                     isArrived: isArrived,
-                                    onModelLoadingChange: setIsArModelLoading,
+                                    onModelStatusChange: setArModelStatus,
                                     brandColor: colors.primary,
                                 }}
                                 style={styles.camera}
@@ -661,24 +701,40 @@ export default function ARScreen() {
                                         </Text>
 
                                         {isArrived ? (
-                                            isArModelLoading ? (
-                                                <View style={{ marginTop: 2, width: '100%' }}>
-                                                    <View style={styles.modelLoadingRow}>
-                                                        <ActivityIndicator size="small" color="#E8B923" style={{ marginRight: 6 }} />
-                                                        <Text
-                                                            numberOfLines={1}
-                                                            ellipsizeMode="tail"
-                                                            style={[styles.buildingStatus, { color: '#E8B923', fontWeight: 'bold', fontSize: 10, letterSpacing: 0.1 }]}
-                                                        >
-                                                            {modelLoadingLabel}
-                                                        </Text>
-                                                    </View>
+                                            <View style={{ marginTop: 2, width: '100%' }}>
+                                                <View style={styles.modelLoadingRow}>
+                                                    {modelPhaseBusy ? (
+                                                        <ActivityIndicator
+                                                            size="small"
+                                                            color={modelPhaseColor}
+                                                            style={{ marginRight: 6 }}
+                                                        />
+                                                    ) : (
+                                                        <Ionicons
+                                                            name={
+                                                                modelPhase === MODEL_PHASE.READY
+                                                                    ? "checkmark-circle"
+                                                                    : modelPhase === MODEL_PHASE.LOCKED
+                                                                        ? "lock-closed"
+                                                                        : modelPhase === MODEL_PHASE.UNLOCK_FAILED ||
+                                                                            modelPhase === MODEL_PHASE.UNAVAILABLE
+                                                                            ? "alert-circle"
+                                                                            : "information-circle"
+                                                            }
+                                                            size={13}
+                                                            color={modelPhaseColor}
+                                                            style={{ marginRight: 6 }}
+                                                        />
+                                                    )}
+                                                    <Text
+                                                        numberOfLines={1}
+                                                        ellipsizeMode="tail"
+                                                        style={[styles.buildingStatus, { color: modelPhaseColor, fontWeight: 'bold', fontSize: 10, letterSpacing: 0.1 }]}
+                                                    >
+                                                        {modelPhaseLabel}
+                                                    </Text>
                                                 </View>
-                                            ) : (
-                                                <Text style={[styles.buildingStatus, { color: colors.success }]}>
-                                                    ✓ You have arrived!
-                                                </Text>
-                                            )
+                                            </View>
                                         ) : (
                                             <>
                                                 <Text style={[styles.buildingStatus, { color: colors.textSecondary }]}>
@@ -809,6 +865,10 @@ export default function ARScreen() {
                 buildingName={effectiveBuildingName || (navTargetFull || nearbyBuildingFull)?.name || 'Destination'}
                 missionExp={user?.role === 'student' && matchingQuest ? (matchingQuest.reward_points || 50) : null}
                 discoveryExp={discoveryExpForArrival}
+                modelPhase={modelPhase}
+                modelPercent={modelPercent}
+                modelPhaseLabel={modelPhaseCardLabel}
+                modelPhaseBusy={modelPhaseBusy}
             />
 
             {/* --- QUEST CLAIM ERROR & RETRY MODAL (TC_AR_05 Step 3 Compliance) --- */}

@@ -876,6 +876,29 @@ export const createArStyles = (colors, spacing, radius, typography) => StyleShee
         color: "#E8B923",
         fontWeight: "600",
     },
+    arrivalRewardLoaderTextSuccess: {
+        color: colors.success,
+    },
+    arrivalRewardLoaderTextError: {
+        color: colors.error,
+    },
+    arrivalRewardLoaderTextMuted: {
+        color: colors.textMuted,
+    },
+    arrivalRewardProgressTrack: {
+        width: "100%",
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+        overflow: "hidden",
+        marginTop: -6,
+        marginBottom: 12,
+    },
+    arrivalRewardProgressFill: {
+        height: "100%",
+        borderRadius: 2,
+        backgroundColor: "#E8B923",
+    },
     arrivalRewardDismissHint: {
         fontSize: 11,
         color: "#8AA3AA",

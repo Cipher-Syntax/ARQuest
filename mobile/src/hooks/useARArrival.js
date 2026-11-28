@@ -11,6 +11,17 @@ import SoundManager from "../utils/SoundManager";
  * - Plays unlock sound for first-time building visits
  * - Manages discovery EXP display
  */
+
+// Module-level so the announcement memory survives tab switches, screen
+// remounts, and exit/re-entry. Entries are dropped only when the student is
+// provably away from the building (see the arrival effect below).
+const announcedArrivalBldgIds = new Set();
+
+// A failed unlock is retried at most this often while the student stays inside
+// the building, so a transient network error cannot strand the HUD on
+// "UNLOCKING…" and cannot hammer the endpoint on every GPS ping.
+const UNLOCK_RETRY_COOLDOWN_MS = 10000;
+
 export function useARArrival({
     isArrived,
     isFocused,
@@ -31,20 +42,31 @@ export function useARArrival({
 }) {
     const [showArrivalModal, setShowArrivalModal] = useState(false);
     const [discoveryExp, setDiscoveryExp] = useState(null);
+    const [unlockStatus, setUnlockStatus] = useState("idle");
     const arrivalModalAnim = useRef(new Animated.Value(0)).current;
     const arrivalTimerRef = useRef(null);
-
-    // Session-level arrival announcement tracking (persists across tab switches)
-    const announcedArrivalBldgIdsRef = useRef(new Set());
+    const lastUnlockAttemptAtRef = useRef(0);
 
     // Geofence unlock: a student physically entering a building unlocks it here,
     // mirroring the Explore tab so AR-only sessions still credit the visit.
     // Fires at most once per building entry; resets when the status leaves 'inside'.
     const lastGeofenceUnlockBldgIdRef = useRef(null);
 
+    // Derived, not stored: the reset-to-idle cases are computed during render so
+    // the effect below never needs a synchronous setState for them.
+    const insideGeofenceBuilding =
+        geofenceStatus?.status === "inside" ? geofenceStatus.building : null;
+    const isInsideGeofenceUnlocked = Boolean(
+        insideGeofenceBuilding &&
+        unlockedBuildings.some(
+            (b) => String(b.id) === String(insideGeofenceBuilding.id)
+        )
+    );
+    const effectiveUnlockStatus =
+        !insideGeofenceBuilding || isInsideGeofenceUnlocked ? "idle" : unlockStatus;
+
     useEffect(() => {
-        const insideBuilding =
-            geofenceStatus?.status === "inside" ? geofenceStatus.building : null;
+        const insideBuilding = insideGeofenceBuilding;
 
         // GPS geofencing is switched off by the administrator.
         if (!enableGps) return;
@@ -58,23 +80,31 @@ export function useARArrival({
         if (user?.role !== "student") return;
         if (insideBuilding.is_active === false) return;
         if (insideBuilding.status === "MAINTENANCE") return;
-        if (
-            unlockedBuildings.some(
-                (b) => String(b.id) === String(insideBuilding.id)
-            )
-        ) {
-            return;
-        }
-        if (
+
+        const alreadyUnlocked = unlockedBuildings.some(
+            (b) => String(b.id) === String(insideBuilding.id)
+        );
+        if (alreadyUnlocked) return;
+
+        const sameBuilding =
             String(lastGeofenceUnlockBldgIdRef.current) ===
-            String(insideBuilding.id)
-        ) {
-            return;
+            String(insideBuilding.id);
+        if (sameBuilding) {
+            // Only a failed attempt may run again, and only after the cooldown.
+            if (unlockStatus !== "failed") return;
+            if (
+                Date.now() - lastUnlockAttemptAtRef.current <
+                UNLOCK_RETRY_COOLDOWN_MS
+            ) {
+                return;
+            }
         }
 
         lastGeofenceUnlockBldgIdRef.current = insideBuilding.id;
+        lastUnlockAttemptAtRef.current = Date.now();
 
         const runUnlock = async () => {
+            setUnlockStatus("unlocking");
             try {
                 // No sound here: the arrival effect already announces arrival.
                 const result = await attemptUnlock(
@@ -82,6 +112,7 @@ export function useARArrival({
                     location.longitude,
                     location.accuracy || 10
                 );
+                setUnlockStatus("idle");
                 // First-time discovery bonus: surface it on the arrival card
                 // and refresh the cached EXP shown on Home/Profile.
                 if (result?.newly_unlocked === true && result?.exp_awarded > 0) {
@@ -92,7 +123,8 @@ export function useARArrival({
                     checkToken();
                 }
             } catch (err) {
-                // Non-fatal: next entry (or Explore) will retry.
+                setUnlockStatus("failed");
+                // Non-fatal: retried after the cooldown while still inside.
                 console.warn("AR geofence unlock failed:", err?.message || err);
             }
         };
@@ -100,12 +132,14 @@ export function useARArrival({
         runUnlock();
     }, [
         geofenceStatus,
+        insideGeofenceBuilding,
         user?.role,
         location,
         unlockedBuildings,
         attemptUnlock,
         enableGps,
         checkToken,
+        unlockStatus,
     ]);
 
     // Center Arrival Modal: Triggers for ~3.5 seconds ONCE per building visit.
@@ -127,7 +161,7 @@ export function useARArrival({
         // geofence validation still confirms arrival. Clear only after arrival
         // has ended and the user is demonstrably outside the visit area.
         if (isProvablyAway && !isArrived) {
-            announcedArrivalBldgIdsRef.current.clear();
+            announcedArrivalBldgIds.clear();
         }
 
         if (!isFocused) return;
@@ -137,7 +171,7 @@ export function useARArrival({
         // announcement key so it can be presented after the user dismisses it.
         if (isModalBlocked) {
             if (currentBldgId) {
-                announcedArrivalBldgIdsRef.current.delete(String(currentBldgId));
+                announcedArrivalBldgIds.delete(String(currentBldgId));
             }
             if (arrivalTimerRef.current) {
                 clearTimeout(arrivalTimerRef.current);
@@ -148,10 +182,10 @@ export function useARArrival({
 
         if (isArrived && currentBldgId) {
             const arrivalKey = String(currentBldgId);
-            if (announcedArrivalBldgIdsRef.current.has(arrivalKey)) {
+            if (announcedArrivalBldgIds.has(arrivalKey)) {
                 return;
             }
-            announcedArrivalBldgIdsRef.current.add(arrivalKey);
+            announcedArrivalBldgIds.add(arrivalKey);
 
             // Only sound the unlock chime for a building the user does not own
             // yet. Arriving at an already-unlocked building still shows the
@@ -241,6 +275,7 @@ export function useARArrival({
         arrivalModalAnim,
         discoveryExpForArrival,
         handleDismissArrivalModal,
-        announcedArrivalBldgIds: announcedArrivalBldgIdsRef.current,
+        unlockStatus: effectiveUnlockStatus,
+        announcedArrivalBldgIds,
     };
 }

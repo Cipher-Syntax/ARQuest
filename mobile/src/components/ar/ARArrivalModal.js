@@ -10,10 +10,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { useArStyles } from "./arStyles";
+import { useThemeColors } from "../../context/ThemeContext";
 
 /**
  * Reward-style arrival card shown when the user reaches a destination.
  * `missionExp` is null when there is no claimable mission for this building.
+ *
+ * The 3D-model row mirrors the same phase the AR header shows, so the card
+ * never promises a model that is still locked or downloading.
  */
 export default function ARArrivalModal({
     visible,
@@ -22,8 +26,33 @@ export default function ARArrivalModal({
     buildingName,
     missionExp,
     discoveryExp = 0,
+    modelPhase = "none",
+    modelPercent = null,
+    modelPhaseLabel = "",
+    modelPhaseBusy = false,
 }) {
     const styles = useArStyles();
+    const colors = useThemeColors();
+
+    const isErrorPhase =
+        modelPhase === "unlock_failed" || modelPhase === "unavailable";
+    const isSuccessPhase = modelPhase === "ready";
+
+    const statusIcon = isSuccessPhase
+        ? { name: "checkmark-circle", color: colors.success }
+        : modelPhase === "locked"
+            ? { name: "lock-closed", color: "#E8B923" }
+            : isErrorPhase
+                ? { name: "alert-circle", color: colors.error }
+                : { name: "information-circle", color: colors.textMuted };
+
+    const statusTextStyle = isSuccessPhase
+        ? styles.arrivalRewardLoaderTextSuccess
+        : isErrorPhase
+            ? styles.arrivalRewardLoaderTextError
+            : modelPhaseBusy || modelPhase === "locked"
+                ? styles.arrivalRewardLoaderText
+                : styles.arrivalRewardLoaderTextMuted;
 
     return (
         <Modal
@@ -112,13 +141,36 @@ export default function ARArrivalModal({
                             </View>
                         )}
 
-                        {/* Model Loading Status Indicator */}
-                        <View style={styles.arrivalRewardLoaderBox}>
-                            <ActivityIndicator size="small" color="#FFD700" style={{ marginRight: 8 }} />
-                            <Text style={styles.arrivalRewardLoaderText}>
-                                Wait for 3D model to load...
-                            </Text>
-                        </View>
+                        {/* Model Readiness Status Indicator */}
+                        {modelPhaseLabel ? (
+                            <View style={{ width: "100%" }}>
+                                <View style={styles.arrivalRewardLoaderBox}>
+                                    {modelPhaseBusy ? (
+                                        <ActivityIndicator size="small" color="#E8B923" style={{ marginRight: 8 }} />
+                                    ) : (
+                                        <Ionicons
+                                            name={statusIcon.name}
+                                            size={15}
+                                            color={statusIcon.color}
+                                            style={{ marginRight: 8 }}
+                                        />
+                                    )}
+                                    <Text style={[styles.arrivalRewardLoaderText, statusTextStyle]}>
+                                        {modelPhaseLabel}
+                                    </Text>
+                                </View>
+                                {modelPhaseBusy && modelPercent != null && (
+                                    <View style={styles.arrivalRewardProgressTrack}>
+                                        <View
+                                            style={[
+                                                styles.arrivalRewardProgressFill,
+                                                { width: `${Math.max(0, Math.min(100, modelPercent))}%` },
+                                            ]}
+                                        />
+                                    </View>
+                                )}
+                            </View>
+                        ) : null}
 
                         {/* Dismiss Hint */}
                         <Text style={styles.arrivalRewardDismissHint}>Tap anywhere to continue</Text>

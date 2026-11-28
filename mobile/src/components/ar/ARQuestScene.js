@@ -405,7 +405,7 @@ export default function ARQuestScene(props) {
         nextWaypoint,
         buildingName,
         isArrived = false,
-        onModelLoadingChange,
+        onModelStatusChange,
         brandColor,
     } = sceneNavigator.viroAppProps || {};
 
@@ -518,15 +518,19 @@ export default function ARQuestScene(props) {
         }
     }, [hasArrived]);
 
-    // Report model loading status to the parent 2D HUD overlay
+    // Report the model's readiness to the 2D HUD overlay. A single status
+    // string lets the screen tell "still preparing" apart from "failed", which
+    // the old boolean could not.
     useEffect(() => {
-        const hasModelSource = effectiveModelUrl || modelFallbackUrl;
-        if (hasArrived && hasModelSource && !modelLoaded && !modelError) {
-            onModelLoadingChange?.(true);
-        } else {
-            onModelLoadingChange?.(false);
+        const hasModelSource = Boolean(effectiveModelUrl || modelFallbackUrl);
+        let status = "idle";
+        if (hasArrived && hasModelSource) {
+            if (modelError) status = "error";
+            else if (modelLoaded) status = "loaded";
+            else status = "loading";
         }
-    }, [hasArrived, effectiveModelUrl, modelFallbackUrl, modelLoaded, modelError, onModelLoadingChange]);
+        onModelStatusChange?.(status);
+    }, [hasArrived, effectiveModelUrl, modelFallbackUrl, modelLoaded, modelError, onModelStatusChange]);
 
     /**
      * Recompute chevron and HUD world positions given a bearing angle and
